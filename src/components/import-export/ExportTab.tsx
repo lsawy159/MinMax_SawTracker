@@ -96,15 +96,17 @@ export default function ExportTab() {
         'المهنة': emp.profession,
         'الجنسية': emp.nationality,
         'تاريخ الميلاد': emp.birth_date,
-        'الجوال': emp.mobile,
-        'الجواز': emp.passport,
+        'رقم الجوال': emp.phone || '',
+        'رقم الجواز': emp.passport_number || '',
         'رقم الإقامة': emp.residence_number,
         'تاريخ الالتحاق': emp.joining_date,
         'انتهاء العقد': emp.contract_expiry || '',
         'انتهاء الإقامة': emp.residence_expiry,
-        'المشروع': emp.project || '',
+        'اسم المشروع': emp.project_name || '',
         'الحساب البنكي': emp.bank_account || '',
-        'رقم التأميني': emp.insurance_number || '',
+        'الراتب': emp.additional_fields?.salary || '',
+        'رابط صورة الإقامة': emp.residence_image_url || '',
+        'انتهاء اشتراك التأمين': emp.additional_fields?.ending_subscription_insurance_date || '',
         'المؤسسة': emp.company?.name || '',
         'حقول إضافية': emp.additional_fields ? JSON.stringify(emp.additional_fields) : ''
       }))
@@ -120,15 +122,17 @@ export default function ExportTab() {
         { wch: 20 }, // المهنة
         { wch: 15 }, // الجنسية
         { wch: 15 }, // تاريخ الميلاد
-        { wch: 15 }, // الجوال
-        { wch: 15 }, // الجواز
+        { wch: 15 }, // رقم الجوال
+        { wch: 15 }, // رقم الجواز
         { wch: 15 }, // رقم الإقامة
         { wch: 15 }, // تاريخ الالتحاق
         { wch: 15 }, // انتهاء العقد
         { wch: 15 }, // انتهاء الإقامة
-        { wch: 20 }, // المشروع
-        { wch: 20 }, // الحساب البنكي
-        { wch: 15 }, // رقم التأميني
+        { wch: 20 }, // اسم المشروع
+        { wch: 25 }, // الحساب البنكي
+        { wch: 15 }, // الراتب
+        { wch: 25 }, // رابط صورة الإقامة
+        { wch: 20 }, // انتهاء اشتراك التأمين
         { wch: 25 }, // المؤسسة
         { wch: 30 }  // حقول إضافية
       ]
@@ -160,10 +164,16 @@ export default function ExportTab() {
       
       const excelData = selectedData.map(company => ({
         'اسم المؤسسة': company.name,
-        'الرقم التأميني': company.insurance_number || '',
+        'الرقم التأميني': company.tax_number || '',
         'الرقم الموحد': company.unified_number || '',
-        'رقم اشتراك قوى': company.qiwa_subscription || '',
-        'حد الموظفين': company.employee_limit || 0,
+        'رقم اشتراك قوى': company.labor_subscription_number || '',
+        'نوع المؤسسة': company.company_type || '',
+        'تاريخ انتهاء السجل التجاري': company.commercial_registration_expiry || '',
+        'تاريخ انتهاء اشتراك التأمين': company.insurance_subscription_expiry || '',
+        'تاريخ تجديد الوثائق الحكومية': company.government_docs_renewal || '',
+        'تاريخ انتهاء اشتراك قوى': company.additional_fields?.ending_subscription_power_date || '',
+        'عدد الموظفين': company.employee_count || 0,
+        'الحد الأقصى للموظفين': company.max_employees || 0,
         'حقول إضافية': company.additional_fields ? JSON.stringify(company.additional_fields) : ''
       }))
 
@@ -176,7 +186,13 @@ export default function ExportTab() {
         { wch: 20 }, // الرقم التأميني
         { wch: 20 }, // الرقم الموحد
         { wch: 20 }, // رقم اشتراك قوى
-        { wch: 15 }, // حد الموظفين
+        { wch: 15 }, // نوع المؤسسة
+        { wch: 20 }, // تاريخ انتهاء السجل التجاري
+        { wch: 20 }, // تاريخ انتهاء اشتراك التأمين
+        { wch: 25 }, // تاريخ تجديد الوثائق الحكومية
+        { wch: 20 }, // تاريخ انتهاء اشتراك قوى
+        { wch: 15 }, // عدد الموظفين
+        { wch: 20 }, // الحد الأقصى للموظفين
         { wch: 30 }  // حقول إضافية
       ]
       ws['!cols'] = wscols

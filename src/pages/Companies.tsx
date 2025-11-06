@@ -1,25 +1,48 @@
 import { useEffect, useState } from 'react'
 import { supabase, Company } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
+import CompanyModal from '../components/companies/CompanyModal'
+import CompanyCard from '../components/companies/CompanyCard'
 import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
+import { 
+  calculateCommercialRegistrationStatus, 
+  calculateInsuranceSubscriptionStatus,
+  calculateCompanyStatusStats
+} from '../utils/autoCompanyStatus'
 
-type SortField = 'name' | 'company_type' | 'created_at' | 'commercial_registration_status' | 'insurance_subscription_status'
+type SortField = 'name' | 'company_type' | 'created_at' | 'commercial_registration_status' | 'insurance_subscription_status' | 'employee_count' | 'power_subscription_status' | 'moqeem_subscription_status'
 type SortDirection = 'asc' | 'desc'
 type CommercialRegStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type InsuranceStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
+type PowerSubscriptionStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
+type MoqeemSubscriptionStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
+
+type EmployeeCountFilter = 'all' | '1' | '2' | '3' | '4+'
+type AvailableSlotsFilter = 'all' | '1' | '2' | '3' | '4+'
 type DateRange = 'all' | 'last_month' | 'last_3_months' | 'last_year' | 'custom'
 
 export default function Companies() {
-  const [companies, setCompanies] = useState<(Company & { employee_count: number })[]>([])
-  const [filteredCompanies, setFilteredCompanies] = useState<(Company & { employee_count: number })[]>([])
+  const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
+  const [filteredCompanies, setFilteredCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
   const [companyTypeFilter, setCompanyTypeFilter] = useState<string>('all')
   const [commercialRegStatus, setCommercialRegStatus] = useState<CommercialRegStatus>('all')
   const [insuranceStatus, setInsuranceStatus] = useState<InsuranceStatus>('all')
+  const [powerSubscriptionStatus, setPowerSubscriptionStatus] = useState<PowerSubscriptionStatus>('all')
+  const [moqeemSubscriptionStatus, setMoqeemSubscriptionStatus] = useState<MoqeemSubscriptionStatus>('all')
+
+  const [employeeCountFilter, setEmployeeCountFilter] = useState<EmployeeCountFilter>('all')
+  const [availableSlotsFilter, setAvailableSlotsFilter] = useState<AvailableSlotsFilter>('all')
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange>('all')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
@@ -48,6 +71,10 @@ export default function Companies() {
     companyTypeFilter,
     commercialRegStatus,
     insuranceStatus,
+    powerSubscriptionStatus,
+    moqeemSubscriptionStatus,
+    employeeCountFilter,
+    availableSlotsFilter,
     dateRangeFilter,
     customStartDate,
     customEndDate,
@@ -64,6 +91,11 @@ export default function Companies() {
         setCompanyTypeFilter(filters.companyTypeFilter || 'all')
         setCommercialRegStatus(filters.commercialRegStatus || 'all')
         setInsuranceStatus(filters.insuranceStatus || 'all')
+        setPowerSubscriptionStatus(filters.powerSubscriptionStatus || 'all')
+        setMoqeemSubscriptionStatus(filters.moqeemSubscriptionStatus || 'all')
+
+        setEmployeeCountFilter(filters.employeeCountFilter || 'all')
+        setAvailableSlotsFilter(filters.availableSlotsFilter || 'all')
         setDateRangeFilter(filters.dateRangeFilter || 'all')
         setSortField(filters.sortField || 'name')
         setSortDirection(filters.sortDirection || 'asc')
@@ -80,6 +112,11 @@ export default function Companies() {
         companyTypeFilter,
         commercialRegStatus,
         insuranceStatus,
+        powerSubscriptionStatus,
+        moqeemSubscriptionStatus,
+
+        employeeCountFilter,
+        availableSlotsFilter,
         dateRangeFilter,
         sortField,
         sortDirection
@@ -91,44 +128,106 @@ export default function Companies() {
   }
 
   const loadCompanies = async () => {
+    console.log('🔍 [DEBUG] Starting loadCompanies...')
+    
     try {
+      console.log('📊 [DEBUG] Fetching companies from database...')
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
         .order('name')
 
-      if (companiesError) throw companiesError
+      console.log('📋 [DEBUG] Companies data fetched:', {
+        data: companiesData,
+        error: companiesError,
+        dataLength: companiesData?.length || 0
+      })
 
+      if (companiesError) {
+        console.error('❌ [DEBUG] Companies fetch error:', companiesError)
+        throw companiesError
+      }
+
+      // معالجة البيانات null/undefined
+      if (!companiesData) {
+        console.warn('⚠️ [DEBUG] No companies data received, setting empty array')
+        setCompanies([])
+        setCompanyTypes([])
+        return
+      }
+
+      console.log(`🏢 [DEBUG] Processing ${companiesData.length} companies...`)
+      
       const companiesWithCount = await Promise.all(
         (companiesData || []).map(async (company) => {
-          const { count } = await supabase
-            .from('employees')
-            .select('*', { count: 'exact', head: true })
-            .eq('company_id', company.id)
+          try {
+            console.log(`👥 [DEBUG] Counting employees for company: ${company.name} (ID: ${company.id})`)
+            
+            const { count, error: countError } = await supabase
+              .from('employees')
+              .select('*', { count: 'exact', head: true })
+              .eq('company_id', company.id)
 
-          return { ...company, employee_count: count || 0 }
+            if (countError) {
+              console.error(`❌ [DEBUG] Error counting employees for company ${company.id}:`, countError)
+            }
+
+            const employeeCount = count || 0
+            const maxEmployees = company.max_employees || 4 // افتراضي 4 موظفين كحد أقصى
+            const availableSlots = Math.max(0, maxEmployees - employeeCount)
+
+            console.log(`✅ [DEBUG] Company ${company.name}: ${employeeCount} employees, ${availableSlots} available slots`)
+
+            return { ...company, employee_count: employeeCount, available_slots: availableSlots }
+          } catch (companyError) {
+            console.error(`❌ [DEBUG] Error processing company ${company.id}:`, companyError)
+            return { 
+              ...company, 
+              employee_count: 0, 
+              available_slots: company.max_employees || 4 
+            }
+          }
         })
       )
 
+      console.log('💾 [DEBUG] Setting companies data:', companiesWithCount.length, 'companies')
       setCompanies(companiesWithCount)
 
       // Extract unique company types
+      console.log('🏷️ [DEBUG] Extracting company types...')
       const typesSet = new Set<string>()
       companiesWithCount.forEach(company => {
-        if (company.company_type) {
+        if (company?.company_type) {
           typesSet.add(company.company_type)
         }
-        if (company.additional_fields?.company_type) {
+        if (company?.additional_fields?.company_type) {
           typesSet.add(company.additional_fields.company_type)
         }
-        if (company.additional_fields?.type) {
+        if (company?.additional_fields?.type) {
           typesSet.add(company.additional_fields.type)
         }
       })
-      setCompanyTypes(Array.from(typesSet).sort())
+      
+      const sortedTypes = Array.from(typesSet).sort()
+      console.log('🏷️ [DEBUG] Company types extracted:', sortedTypes)
+      setCompanyTypes(sortedTypes)
+
+      console.log(`✅ [DEBUG] Successfully loaded ${companiesWithCount.length} companies with ${sortedTypes.length} types`)
+      
     } catch (error) {
-      console.error('Error loading companies:', error)
+      console.error('❌ [DEBUG] Critical error in loadCompanies:', error)
+      console.error('❌ [DEBUG] Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      })
+      
+      // في حالة الخطأ، قم بمسح البيانات وتعيين قائمة فارغة
+      setCompanies([])
+      setCompanyTypes([])
     } finally {
+      console.log('🏁 [DEBUG] loadCompanies completed, setting loading to false')
       setLoading(false)
     }
   }
@@ -157,33 +256,77 @@ export default function Companies() {
 
     // Apply commercial registration status filter
     if (commercialRegStatus !== 'all') {
-      const today = new Date()
-      const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
-
       filtered = filtered.filter(company => {
-        if (!company.commercial_registration_expiry) return false
-        const expiryDate = new Date(company.commercial_registration_expiry)
+        const statusInfo = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
 
-        if (commercialRegStatus === 'expired') return expiryDate < today
-        if (commercialRegStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
-        if (commercialRegStatus === 'valid') return expiryDate > thirtyDaysLater
+        if (commercialRegStatus === 'expired') return statusInfo.status === 'منتهي'
+        if (commercialRegStatus === 'expiring_soon') return statusInfo.status === 'حرج' || statusInfo.status === 'متوسط'
+        if (commercialRegStatus === 'valid') return statusInfo.status === 'ساري'
         return true
       })
     }
 
     // Apply insurance status filter
     if (insuranceStatus !== 'all') {
+      filtered = filtered.filter(company => {
+        const statusInfo = calculateInsuranceSubscriptionStatus(company.insurance_subscription_expiry)
+
+        if (insuranceStatus === 'expired') return statusInfo.status === 'منتهي'
+        if (insuranceStatus === 'expiring_soon') return statusInfo.status === 'حرج' || statusInfo.status === 'متوسط'
+        if (insuranceStatus === 'valid') return statusInfo.status === 'ساري'
+        return true
+      })
+    }
+
+    // Apply power subscription status filter
+    if (powerSubscriptionStatus !== 'all') {
       const today = new Date()
       const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
       filtered = filtered.filter(company => {
-        if (!company.insurance_subscription_expiry) return false
-        const expiryDate = new Date(company.insurance_subscription_expiry)
+        if (!company.ending_subscription_power_date) return false
+        const expiryDate = new Date(company.ending_subscription_power_date)
 
-        if (insuranceStatus === 'expired') return expiryDate < today
-        if (insuranceStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
-        if (insuranceStatus === 'valid') return expiryDate > thirtyDaysLater
+        if (powerSubscriptionStatus === 'expired') return expiryDate < today
+        if (powerSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+        if (powerSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
         return true
+      })
+    }
+
+    // Apply moqeem subscription status filter
+    if (moqeemSubscriptionStatus !== 'all') {
+      const today = new Date()
+      const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      filtered = filtered.filter(company => {
+        if (!company.ending_subscription_moqeem_date) return false
+        const expiryDate = new Date(company.ending_subscription_moqeem_date)
+
+        if (moqeemSubscriptionStatus === 'expired') return expiryDate < today
+        if (moqeemSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+        if (moqeemSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
+        return true
+      })
+    }
+
+
+
+    // Apply employee count filter
+    if (employeeCountFilter !== 'all') {
+      filtered = filtered.filter(company => {
+        const count = company.employee_count
+        if (employeeCountFilter === '4+') return count >= 4
+        return count === parseInt(employeeCountFilter)
+      })
+    }
+
+    // Apply available slots filter
+    if (availableSlotsFilter !== 'all') {
+      filtered = filtered.filter(company => {
+        const slots = company.available_slots || 0
+        if (availableSlotsFilter === '4+') return slots >= 4
+        return slots === parseInt(availableSlotsFilter)
       })
     }
 
@@ -235,13 +378,26 @@ export default function Companies() {
           bValue = b.created_at ? new Date(b.created_at).getTime() : 0
           break
         case 'commercial_registration_status':
-          aValue = a.commercial_registration_expiry ? getDaysRemaining(a.commercial_registration_expiry) : -999999
-          bValue = b.commercial_registration_expiry ? getDaysRemaining(b.commercial_registration_expiry) : -999999
+          aValue = a.commercial_registration_expiry ? calculateCommercialRegistrationStatus(a.commercial_registration_expiry).daysRemaining : -999999
+          bValue = b.commercial_registration_expiry ? calculateCommercialRegistrationStatus(b.commercial_registration_expiry).daysRemaining : -999999
           break
         case 'insurance_subscription_status':
-          aValue = a.insurance_subscription_expiry ? getDaysRemaining(a.insurance_subscription_expiry) : -999999
-          bValue = b.insurance_subscription_expiry ? getDaysRemaining(b.insurance_subscription_expiry) : -999999
+          aValue = a.insurance_subscription_expiry ? calculateInsuranceSubscriptionStatus(a.insurance_subscription_expiry).daysRemaining : -999999
+          bValue = b.insurance_subscription_expiry ? calculateInsuranceSubscriptionStatus(b.insurance_subscription_expiry).daysRemaining : -999999
           break
+        case 'employee_count':
+          aValue = a.employee_count || 0
+          bValue = b.employee_count || 0
+          break
+        case 'power_subscription_status':
+          aValue = a.ending_subscription_power_date ? getDaysRemaining(a.ending_subscription_power_date) : -999999
+          bValue = b.ending_subscription_power_date ? getDaysRemaining(b.ending_subscription_power_date) : -999999
+          break
+        case 'moqeem_subscription_status':
+          aValue = a.ending_subscription_moqeem_date ? getDaysRemaining(a.ending_subscription_moqeem_date) : -999999
+          bValue = b.ending_subscription_moqeem_date ? getDaysRemaining(b.ending_subscription_moqeem_date) : -999999
+          break
+
         default:
           aValue = a.name.toLowerCase()
           bValue = b.name.toLowerCase()
@@ -261,17 +417,47 @@ export default function Companies() {
     return differenceInDays(new Date(date), new Date())
   }
 
-  const getStatusColor = (days: number) => {
-    if (days < 0) return 'text-red-600 bg-red-50'
-    if (days <= 30) return 'text-orange-600 bg-orange-50'
-    return 'text-green-600 bg-green-50'
+  // دالة حساب الأماكن الشاغرة
+  const calculateAvailableSlots = (maxEmployees: number, currentEmployees: number): number => {
+    return Math.max(0, maxEmployees - currentEmployees)
   }
+
+  // دالة الحصول على لون حالة الأماكن الشاغرة
+  const getAvailableSlotsColor = (availableSlots: number) => {
+    if (availableSlots === 0) return 'text-red-600 bg-red-50 border-red-200'
+    if (availableSlots === 1) return 'text-orange-600 bg-orange-50 border-orange-200'
+    if (availableSlots <= 3) return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    return 'text-green-600 bg-green-50 border-green-200'
+  }
+
+  // دالة الحصول على لون النص للأماكن الشاغرة
+  const getAvailableSlotsTextColor = (availableSlots: number) => {
+    if (availableSlots === 0) return 'text-red-600'
+    if (availableSlots === 1) return 'text-orange-600'
+    if (availableSlots <= 3) return 'text-yellow-600'
+    return 'text-green-600'
+  }
+
+  // دالة الحصول على وصف حالة الأماكن الشاغرة
+  const getAvailableSlotsText = (availableSlots: number, maxEmployees: number) => {
+    if (availableSlots === 0) return 'مكتملة'
+    if (availableSlots === 1) return 'مكان واحد متبقي'
+    if (availableSlots <= 3) return 'أماكن قليلة متاحة'
+    return 'أماكن متاحة'
+  }
+
+
 
   const clearFilters = () => {
     setSearchTerm('')
     setCompanyTypeFilter('all')
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
+    setPowerSubscriptionStatus('all')
+    setMoqeemSubscriptionStatus('all')
+
+    setEmployeeCountFilter('all')
+    setAvailableSlotsFilter('all')
     setDateRangeFilter('all')
     setCustomStartDate('')
     setCustomEndDate('')
@@ -293,11 +479,71 @@ export default function Companies() {
     return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
 
+  const handleAddCompany = () => {
+    setSelectedCompany(null)
+    setShowAddModal(true)
+  }
+
+  const handleEditCompany = (company: Company) => {
+    setSelectedCompany(company)
+    setShowEditModal(true)
+  }
+
+  const handleDeleteCompany = (company: Company) => {
+    setSelectedCompany(company)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedCompany) return
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', selectedCompany.id)
+
+      if (error) throw error
+
+      // Log activity
+      await supabase.from('activity_logs').insert({
+        action: 'حذف مؤسسة',
+        entity_type: 'company',
+        entity_id: selectedCompany.id,
+        details: { company_name: selectedCompany.name }
+      })
+
+      // Refresh companies list
+      loadCompanies()
+      setShowDeleteModal(false)
+      setSelectedCompany(null)
+    } catch (error) {
+      console.error('Error deleting company:', error)
+    }
+  }
+
+  const handleModalClose = () => {
+    setShowAddModal(false)
+    setShowEditModal(false)
+    setShowDeleteModal(false)
+    setSelectedCompany(null)
+  }
+
+  const handleModalSuccess = () => {
+    handleModalClose()
+    loadCompanies()
+  }
+
   const activeFiltersCount = [
     searchTerm !== '',
     companyTypeFilter !== 'all',
     commercialRegStatus !== 'all',
     insuranceStatus !== 'all',
+    powerSubscriptionStatus !== 'all',
+    moqeemSubscriptionStatus !== 'all',
+
+    employeeCountFilter !== 'all',
+    availableSlotsFilter !== 'all',
     dateRangeFilter !== 'all'
   ].filter(Boolean).length
 
@@ -316,13 +562,22 @@ export default function Companies() {
               )}
             </p>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            {showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleAddCompany}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <Building2 className="w-4 h-4" />
+              إضافة مؤسسة
+            </button>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              {showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر'}
+            </button>
+          </div>
         </div>
 
         {/* Filters Section */}
@@ -338,7 +593,7 @@ export default function Companies() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="ابحث بالاسم أو الرقم التأميني أو الموحد..."
+                    placeholder="ابحث بالاسم أو رقم اشتراك التأمينات أو الرقم الموحد..."
                     className="w-full pr-10 pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -368,24 +623,88 @@ export default function Companies() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">الكل</option>
-                  <option value="expired">منتهي</option>
-                  <option value="expiring_soon">قريب الانتهاء (30 يوم)</option>
-                  <option value="valid">ساري</option>
+                  <option value="expired">منتهي الصلاحية</option>
+                  <option value="expiring_soon">أقل من 60 يوم</option>
+                  <option value="valid">أكثر من 60 يوم</option>
                 </select>
               </div>
 
               {/* Insurance Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">حالة التأمين</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">حالة اشتراك التأمينات</label>
                 <select
                   value={insuranceStatus}
                   onChange={(e) => setInsuranceStatus(e.target.value as InsuranceStatus)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">الكل</option>
+                  <option value="expired">منتهي الصلاحية</option>
+                  <option value="expiring_soon">أقل من 60 يوم</option>
+                  <option value="valid">أكثر من 60 يوم</option>
+                </select>
+              </div>
+
+              {/* Power Subscription Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">حالة اشتراك قوى</label>
+                <select
+                  value={powerSubscriptionStatus}
+                  onChange={(e) => setPowerSubscriptionStatus(e.target.value as PowerSubscriptionStatus)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">الكل</option>
                   <option value="expired">منتهي</option>
                   <option value="expiring_soon">قريب الانتهاء (30 يوم)</option>
                   <option value="valid">ساري</option>
+                </select>
+              </div>
+
+              {/* Moqeem Subscription Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">حالة اشتراك مقيم</label>
+                <select
+                  value={moqeemSubscriptionStatus}
+                  onChange={(e) => setMoqeemSubscriptionStatus(e.target.value as MoqeemSubscriptionStatus)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">الكل</option>
+                  <option value="expired">منتهي</option>
+                  <option value="expiring_soon">قريب الانتهاء (30 يوم)</option>
+                  <option value="valid">ساري</option>
+                </select>
+              </div>
+
+
+
+              {/* Employee Count Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">عدد الموظفين</label>
+                <select
+                  value={employeeCountFilter}
+                  onChange={(e) => setEmployeeCountFilter(e.target.value as EmployeeCountFilter)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">الكل</option>
+                  <option value="1">موظف واحد</option>
+                  <option value="2">موظفان</option>
+                  <option value="3">ثلاثة موظفين</option>
+                  <option value="4+">أربعة موظفين فأكثر</option>
+                </select>
+              </div>
+
+              {/* Available Slots Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">الأماكن الشاغرة</label>
+                <select
+                  value={availableSlotsFilter}
+                  onChange={(e) => setAvailableSlotsFilter(e.target.value as AvailableSlotsFilter)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">الكل</option>
+                  <option value="1">مكان واحد شاغر</option>
+                  <option value="2">مكانين شاغرين</option>
+                  <option value="3">ثلاثة أماكن شاغرة</option>
+                  <option value="4+">أربعة أماكن فأكثر</option>
                 </select>
               </div>
 
@@ -489,12 +808,85 @@ export default function Companies() {
                   }`}
                 >
                   {getSortIcon('insurance_subscription_status')}
-                  حالة التأمين
+                  حالة اشتراك التأمينات
                 </button>
+                <button
+                  onClick={() => handleSort('employee_count')}
+                  className={`px-3 py-1.5 rounded-md border transition flex items-center gap-1 text-sm ${
+                    sortField === 'employee_count' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {getSortIcon('employee_count')}
+                  عدد الموظفين
+                </button>
+                <button
+                  onClick={() => handleSort('power_subscription_status')}
+                  className={`px-3 py-1.5 rounded-md border transition flex items-center gap-1 text-sm ${
+                    sortField === 'power_subscription_status' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {getSortIcon('power_subscription_status')}
+                  حالة اشتراك قوى
+                </button>
+                <button
+                  onClick={() => handleSort('moqeem_subscription_status')}
+                  className={`px-3 py-1.5 rounded-md border transition flex items-center gap-1 text-sm ${
+                    sortField === 'moqeem_subscription_status' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {getSortIcon('moqeem_subscription_status')}
+                  حالة اشتراك مقيم
+                </button>
+
               </div>
             </div>
           </div>
         )}
+
+        {/* Commercial Registration Statistics Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-600" />
+              إحصائيات السجل التجاري
+            </h3>
+          </div>
+          {(() => {
+            const stats = calculateCompanyStatusStats(companies.map(c => ({
+              id: c.id,
+              name: c.name,
+              commercial_registration_expiry: c.commercial_registration_expiry,
+              insurance_subscription_expiry: c.insurance_subscription_expiry
+            })))
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* إجمالي المؤسسات */}
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">{stats.totalCompanies}</div>
+                  <div className="text-sm text-gray-600">إجمالي المؤسسات</div>
+                </div>
+                
+                {/* ساري */}
+                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-2xl font-bold text-green-700">{stats.commercialRegStats.valid}</div>
+                  <div className="text-sm text-green-600">ساري ({stats.commercialRegStats.percentageValid}%)</div>
+                </div>
+                
+                {/* متوسطة الأهمية */}
+                <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="text-2xl font-bold text-yellow-700">{stats.commercialRegStats.medium}</div>
+                  <div className="text-sm text-yellow-600">متوسطة الأهمية ({stats.commercialRegStats.percentageMedium}%)</div>
+                </div>
+                
+                {/* حرج/منتهي */}
+                <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                  <div className="text-2xl font-bold text-red-700">{stats.commercialRegStats.critical + stats.commercialRegStats.expired}</div>
+                  <div className="text-sm text-red-600">حرج/منتهي ({stats.commercialRegStats.percentageCritical + stats.commercialRegStats.percentageExpired}%)</div>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
 
         {/* Companies Grid */}
         {loading ? (
@@ -503,67 +895,17 @@ export default function Companies() {
           </div>
         ) : filteredCompanies.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCompanies.map((company) => {
-              const commercialRegDays = company.commercial_registration_expiry 
-                ? getDaysRemaining(company.commercial_registration_expiry)
-                : null
-              const insuranceDays = company.insurance_subscription_expiry
-                ? getDaysRemaining(company.insurance_subscription_expiry)
-                : null
-
-              return (
-                <div key={company.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="bg-blue-100 p-3 rounded-lg">
-                      <Building2 className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-700">{company.employee_count} موظف</span>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{company.name}</h3>
-                  
-                  <div className="space-y-2 text-sm mb-4">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">الرقم الموحد:</span>
-                      <span className="font-mono text-gray-900">{company.unified_number}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">الرقم التأميني:</span>
-                      <span className="font-mono text-gray-900">{company.tax_number}</span>
-                    </div>
-                    {company.labor_subscription_number && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">رقم اشتراك قوى:</span>
-                        <span className="font-mono text-gray-900">{company.labor_subscription_number}</span>
-                      </div>
-                    )}
-                    {(company.company_type || company.additional_fields?.company_type) && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">نوع المؤسسة:</span>
-                        <span className="text-gray-900">{company.company_type || company.additional_fields?.company_type}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status Badges */}
-                  <div className="space-y-2 pt-4 border-t border-gray-200">
-                    {commercialRegDays !== null && (
-                      <div className={`px-3 py-2 rounded-md text-sm font-medium ${getStatusColor(commercialRegDays)}`}>
-                        السجل التجاري: {commercialRegDays < 0 ? `منتهي منذ ${Math.abs(commercialRegDays)} يوم` : `باقي ${commercialRegDays} يوم`}
-                      </div>
-                    )}
-                    {insuranceDays !== null && (
-                      <div className={`px-3 py-2 rounded-md text-sm font-medium ${getStatusColor(insuranceDays)}`}>
-                        التأمينات: {insuranceDays < 0 ? `منتهي منذ ${Math.abs(insuranceDays)} يوم` : `باقي ${insuranceDays} يوم`}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {filteredCompanies.map((company) => (
+              <CompanyCard
+                key={company.id}
+                company={company}
+                onEdit={handleEditCompany}
+                onDelete={handleDeleteCompany}
+                getAvailableSlotsColor={getAvailableSlotsColor}
+                getAvailableSlotsTextColor={getAvailableSlotsTextColor}
+                getAvailableSlotsText={getAvailableSlotsText}
+              />
+            ))}
           </div>
         ) : (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
@@ -577,6 +919,56 @@ export default function Companies() {
                 مسح الفلاتر وعرض الكل
               </button>
             )}
+          </div>
+        )}
+
+        {/* Add/Edit Company Modal */}
+        {(showAddModal || showEditModal) && (
+          <CompanyModal
+            isOpen={showAddModal || showEditModal}
+            company={selectedCompany}
+            onClose={handleModalClose}
+            onSuccess={handleModalSuccess}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-100 p-3 rounded-lg">
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">تأكيد الحذف</h3>
+                    <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+                  </div>
+                </div>
+                <p className="text-gray-700 mb-6">
+                  هل أنت متأكد من حذف مؤسسة "<strong>{selectedCompany?.name}</strong>"؟
+                  <br />
+                  <span className="text-sm text-red-600 mt-2 block">
+                    سيتم حذف جميع الموظفين المرتبطة بهذه المؤسسة أيضاً
+                  </span>
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+                  >
+                    نعم، احذف
+                  </button>
+                  <button
+                    onClick={handleModalClose}
+                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
