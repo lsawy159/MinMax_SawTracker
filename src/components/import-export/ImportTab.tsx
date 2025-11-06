@@ -105,12 +105,12 @@ export default function ImportTab() {
           }
 
           // Mobile validation
-          if (row['الجوال']) {
-            const mobile = row['الجوال'].toString().replace(/\s/g, '')
+          if (row['رقم الجوال']) {
+            const mobile = row['رقم الجوال'].toString().replace(/\s/g, '')
             if (!/^[0-9+]{10,15}$/.test(mobile)) {
               errors.push({
                 row: rowNum,
-                field: 'الجوال',
+                field: 'رقم الجوال',
                 message: 'رقم الجوال غير صحيح',
                 severity: 'warning'
               })
@@ -131,10 +131,10 @@ export default function ImportTab() {
           }
 
           // Passport validation
-          if (!row['الجواز'] || !row['الجواز'].toString().trim()) {
+          if (!row['رقم الجواز'] || !row['رقم الجواز'].toString().trim()) {
             errors.push({
               row: rowNum,
-              field: 'الجواز',
+              field: 'رقم الجواز',
               message: 'رقم الجواز مطلوب',
               severity: 'error'
             })
@@ -193,11 +193,20 @@ export default function ImportTab() {
           }
 
           // Validation for numeric fields
-          if (row['حد الموظفين'] && isNaN(Number(row['حد الموظفين']))) {
+          if (row['عدد الموظفين'] && isNaN(Number(row['عدد الموظفين']))) {
             errors.push({
               row: rowNum,
-              field: 'حد الموظفين',
-              message: 'حد الموظفين يجب أن يكون رقماً',
+              field: 'عدد الموظفين',
+              message: 'عدد الموظفين يجب أن يكون رقماً',
+              severity: 'error'
+            })
+          }
+          
+          if (row['الحد الأقصى للموظفين'] && isNaN(Number(row['الحد الأقصى للموظفين']))) {
+            errors.push({
+              row: rowNum,
+              field: 'الحد الأقصى للموظفين',
+              message: 'الحد الأقصى للموظفين يجب أن يكون رقماً',
               severity: 'error'
             })
           }
@@ -249,16 +258,33 @@ export default function ImportTab() {
               profession: row['المهنة'],
               nationality: row['الجنسية'],
               birth_date: row['تاريخ الميلاد'] ? new Date(row['تاريخ الميلاد']).toISOString().split('T')[0] : null,
-              mobile: row['الجوال']?.toString() || null,
-              passport: row['الجواز'],
-              residence_number: row['رقم الإقامة'],
+              phone: row['رقم الجوال']?.toString() || null,
+              passport_number: row['رقم الجواز'] || null,
+              residence_number: row['رقم الإقامة'] || null,
               joining_date: row['تاريخ الالتحاق'] ? new Date(row['تاريخ الالتحاق']).toISOString().split('T')[0] : null,
               contract_expiry: row['انتهاء العقد'] ? new Date(row['انتهاء العقد']).toISOString().split('T')[0] : null,
-              residence_expiry: new Date(row['انتهاء الإقامة']).toISOString().split('T')[0],
-              project: row['المشروع'] || null,
+              residence_expiry: row['انتهاء الإقامة'] ? new Date(row['انتهاء الإقامة']).toISOString().split('T')[0] : null,
+              project_name: row['اسم المشروع'] || null,
               bank_account: row['الحساب البنكي'] || null,
-              insurance_number: row['رقم التأميني'] || null,
+              residence_image_url: row['رابط صورة الإقامة'] || null,
               company_id: companyId
+            }
+
+            // Handle salary and insurance subscription expiry in additional_fields
+            if (row['الراتب']) {
+              if (employeeData.additional_fields) {
+                employeeData.additional_fields.salary = row['الراتب']
+              } else {
+                employeeData.additional_fields = { salary: row['الراتب'] }
+              }
+            }
+
+            if (row['انتهاء اشتراك التأمين']) {
+              if (employeeData.additional_fields) {
+                employeeData.additional_fields.ending_subscription_insurance_date = row['انتهاء اشتراك التأمين']
+              } else {
+                employeeData.additional_fields = { ending_subscription_insurance_date: row['انتهاء اشتراك التأمين'] }
+              }
             }
 
             // Handle additional fields
@@ -283,10 +309,30 @@ export default function ImportTab() {
           try {
             const companyData: any = {
               name: row['اسم المؤسسة'],
-              insurance_number: row['الرقم التأميني'] || null,
-              unified_number: row['الرقم الموحد'] || null,
-              qiwa_subscription: row['رقم اشتراك قوى'] || null,
-              employee_limit: row['حد الموظفين'] ? Number(row['حد الموظفين']) : null
+              tax_number: row['الرقم التأميني'] ? Number(row['الرقم التأميني']) : null,
+              unified_number: row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null,
+              labor_subscription_number: row['رقم اشتراك قوى'] || null,
+              company_type: row['نوع المؤسسة'] || null,
+              commercial_registration_expiry: row['تاريخ انتهاء السجل التجاري'] || null,
+              insurance_subscription_expiry: row['تاريخ انتهاء اشتراك التأمين'] || null,
+              government_docs_renewal: row['تاريخ تجديد الوثائق الحكومية'] || null,
+              employee_count: row['عدد الموظفين'] ? Number(row['عدد الموظفين']) : 0,
+              max_employees: row['الحد الأقصى للموظفين'] ? Number(row['الحد الأقصى للموظفين']) : 0
+            }
+
+            // Handle additional fields
+            const additionalFields: any = {}
+            
+            if (row['تاريخ انتهاء اشتراك قوى']) {
+              additionalFields.ending_subscription_power_date = row['تاريخ انتهاء اشتراك قوى']
+            }
+            
+            if (row['حد الموظفين']) {
+              additionalFields.employee_limit = Number(row['حد الموظفين'])
+            }
+            
+            if (Object.keys(additionalFields).length > 0) {
+              companyData.additional_fields = additionalFields
             }
 
             if (row['حقول إضافية']) {

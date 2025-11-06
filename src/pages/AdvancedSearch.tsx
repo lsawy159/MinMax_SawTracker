@@ -15,9 +15,15 @@ interface Employee {
   profession: string
   nationality: string
   phone: string
+  passport_number?: string
+  birth_date?: string
+  residence_number?: string
+  joining_date?: string
   residence_expiry: string
-  contract_expiry: string
+  contract_expiry?: string
   project_name?: string
+  bank_account?: string
+  ending_subscription_insurance_date?: string
   additional_fields?: Record<string, any>
   companies?: { name: string }
 }
@@ -27,12 +33,19 @@ interface Company {
   name: string
   tax_number: number
   unified_number: number
-  commercial_registration_expiry: string
-  insurance_subscription_expiry: string
+  labor_subscription_number?: string
+  commercial_registration_expiry?: string
+  insurance_subscription_expiry?: string
+  ending_subscription_power_date?: string
+  ending_subscription_moqeem_date?: string
+
   additional_fields?: Record<string, any>
   company_type?: string
   commercial_registration_status?: string
   insurance_subscription_status?: string
+  government_docs_renewal?: string
+  employee_count?: number
+  available_slots?: number
 }
 
 interface SavedSearch {
@@ -73,12 +86,26 @@ export default function AdvancedSearch() {
   const [selectedProject, setSelectedProject] = useState<string>('all')
   const [residenceStatus, setResidenceStatus] = useState<ResidenceStatus>('all')
   const [contractStatus, setContractStatus] = useState<ContractStatus>('all')
+  
+  // فلاتر جديدة للموظفين
+  const [hasInsuranceExpiry, setHasInsuranceExpiry] = useState<string>('all')
+
+  const [hasBankAccount, setHasBankAccount] = useState<string>('all')
+  const [birthDateRange, setBirthDateRange] = useState<string>('all')
+  const [joiningDateRange, setJoiningDateRange] = useState<string>('all')
 
   // Filter states for companies
   const [selectedCompanyType, setSelectedCompanyType] = useState<string>('all')
   const [commercialRegStatus, setCommercialRegStatus] = useState<CompanyStatus>('all')
   const [insuranceStatus, setInsuranceStatus] = useState<CompanyStatus>('all')
   const [companyDateFilter, setCompanyDateFilter] = useState<'all' | 'commercial_expiring' | 'insurance_expiring'>('all')
+  
+  // فلاتر جديدة للشركات
+  const [powerSubscriptionStatus, setPowerSubscriptionStatus] = useState<string>('all')
+  const [moqeemSubscriptionStatus, setMoqeemSubscriptionStatus] = useState<string>('all')
+
+  const [employeeCountFilter, setEmployeeCountFilter] = useState<string>('all')
+  const [availableSlotsFilter, setAvailableSlotsFilter] = useState<string>('all')
 
   // Filter lists
   const [nationalities, setNationalities] = useState<string[]>([])
@@ -307,6 +334,53 @@ export default function AdvancedSearch() {
           return true
         })
       }
+
+      // فلاتر جديدة للموظفين
+      if (hasInsuranceExpiry !== 'all') {
+        filteredEmps = filteredEmps.filter(e => {
+          const hasExpiry = e.ending_subscription_insurance_date
+          return hasInsuranceExpiry === 'yes' ? !!hasExpiry : !hasExpiry
+        })
+      }
+
+
+
+      if (hasBankAccount !== 'all') {
+        filteredEmps = filteredEmps.filter(e => {
+          const hasAccount = e.bank_account
+          return hasBankAccount === 'yes' ? !!hasAccount : !hasAccount
+        })
+      }
+
+      if (birthDateRange !== 'all') {
+        const today = new Date()
+        filteredEmps = filteredEmps.filter(e => {
+          if (!e.birth_date) return false
+          const birthDate = new Date(e.birth_date)
+          const age = today.getFullYear() - birthDate.getFullYear()
+          
+          if (birthDateRange === 'under_25') return age < 25
+          if (birthDateRange === '25_35') return age >= 25 && age <= 35
+          if (birthDateRange === '35_45') return age >= 35 && age <= 45
+          if (birthDateRange === 'over_45') return age > 45
+          return true
+        })
+      }
+
+      if (joiningDateRange !== 'all') {
+        const today = new Date()
+        filteredEmps = filteredEmps.filter(e => {
+          if (!e.joining_date) return false
+          const joiningDate = new Date(e.joining_date)
+          const monthsDiff = (today.getFullYear() - joiningDate.getFullYear()) * 12 + (today.getMonth() - joiningDate.getMonth())
+          
+          if (joiningDateRange === 'less_than_6_months') return monthsDiff < 6
+          if (joiningDateRange === '6_months_1_year') return monthsDiff >= 6 && monthsDiff < 12
+          if (joiningDateRange === '1_2_years') return monthsDiff >= 12 && monthsDiff < 24
+          if (joiningDateRange === 'over_2_years') return monthsDiff >= 24
+          return true
+        })
+      }
     }
 
     // Apply company filters
@@ -365,6 +439,63 @@ export default function AdvancedSearch() {
           })
         }
       }
+
+      // فلاتر جديدة للشركات
+      if (powerSubscriptionStatus !== 'all') {
+        const today = new Date()
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+        filteredComps = filteredComps.filter(c => {
+          if (!c.ending_subscription_power_date) return powerSubscriptionStatus === 'no_expiry'
+          const expiryDate = new Date(c.ending_subscription_power_date)
+          
+          if (powerSubscriptionStatus === 'expired') return expiryDate < today
+          if (powerSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (powerSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
+          if (powerSubscriptionStatus === 'no_expiry') return false
+          return true
+        })
+      }
+
+      if (moqeemSubscriptionStatus !== 'all') {
+        const today = new Date()
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+        filteredComps = filteredComps.filter(c => {
+          if (!c.ending_subscription_moqeem_date) return moqeemSubscriptionStatus === 'no_expiry'
+          const expiryDate = new Date(c.ending_subscription_moqeem_date)
+          
+          if (moqeemSubscriptionStatus === 'expired') return expiryDate < today
+          if (moqeemSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (moqeemSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
+          if (moqeemSubscriptionStatus === 'no_expiry') return false
+          return true
+        })
+      }
+
+
+
+      if (employeeCountFilter !== 'all') {
+        filteredComps = filteredComps.filter(c => {
+          const count = c.employee_count || 0
+          if (employeeCountFilter === '1') return count === 1
+          if (employeeCountFilter === '2') return count === 2
+          if (employeeCountFilter === '3') return count === 3
+          if (employeeCountFilter === '4+') return count >= 4
+          return true
+        })
+      }
+
+      if (availableSlotsFilter !== 'all') {
+        filteredComps = filteredComps.filter(c => {
+          const slots = c.available_slots || 0
+          if (availableSlotsFilter === '1') return slots === 1
+          if (availableSlotsFilter === '2') return slots === 2
+          if (availableSlotsFilter === '3') return slots === 3
+          if (availableSlotsFilter === '4+') return slots >= 4
+          return true
+        })
+      }
     }
 
     setFilteredEmployees(filteredEmps)
@@ -379,10 +510,25 @@ export default function AdvancedSearch() {
     setSelectedProject('all')
     setResidenceStatus('all')
     setContractStatus('all')
+    
+    // فلاتر جديدة للموظفين
+    setHasInsuranceExpiry('all')
+    setHasBankAccount('all')
+    setBirthDateRange('all')
+    setJoiningDateRange('all')
+    
     setSelectedCompanyType('all')
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
     setCompanyDateFilter('all')
+    
+    // فلاتر جديدة للشركات
+    setPowerSubscriptionStatus('all')
+    setMoqeemSubscriptionStatus('all')
+
+    setEmployeeCountFilter('all')
+    setAvailableSlotsFilter('all')
+    
     setCurrentPage(1)
   }
 
@@ -493,7 +639,7 @@ export default function AdvancedSearch() {
       const companyData = filteredCompanies.map(comp => {
         const basicData = {
           'اسم المؤسسة': comp.name,
-          'رقم التأميني': comp.tax_number,
+          'رقم اشتراك التأمينات': comp.tax_number,
           'رقم موحد': comp.unified_number,
           'نوع المؤسسة': comp.company_type || '',
           'انتهاء السجل التجاري': comp.commercial_registration_expiry,
@@ -632,7 +778,7 @@ export default function AdvancedSearch() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-1">حالة التأمينات</label>
+                        <label className="block text-sm font-medium mb-1">حالة اشتراك التأمينات</label>
                         <select
                           value={insuranceStatus}
                           onChange={(e) => setInsuranceStatus(e.target.value as CompanyStatus)}
@@ -974,7 +1120,7 @@ export default function AdvancedSearch() {
                           <div key={comp.id} className="bg-white border rounded-lg p-4">
                             <h3 className="font-bold text-lg mb-2">{comp.name}</h3>
                             <div className="space-y-1 text-sm">
-                              <p><span className="text-gray-600">رقم التأميني:</span> {comp.tax_number}</p>
+                              <p><span className="text-gray-600">رقم اشتراك التأمينات:</span> {comp.tax_number}</p>
                               <p><span className="text-gray-600">رقم موحد:</span> {comp.unified_number}</p>
                               {comp.company_type && (
                                 <p><span className="text-gray-600">نوع المؤسسة:</span> {comp.company_type}</p>
@@ -1004,7 +1150,7 @@ export default function AdvancedSearch() {
                             <thead className="bg-gray-50">
                               <tr>
                                 <th className="px-4 py-2 text-right">اسم المؤسسة</th>
-                                <th className="px-4 py-2 text-right">رقم التأميني</th>
+                                <th className="px-4 py-2 text-right">رقم اشتراك التأمينات</th>
                                 <th className="px-4 py-2 text-right">رقم موحد</th>
                                 <th className="px-4 py-2 text-right">نوع المؤسسة</th>
                                 <th className="px-4 py-2 text-right">انتهاء السجل</th>

@@ -9,7 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface Company {
   id: string
   name: string
-  tax_number: number
+  tax_number?: BIGINT | null
   unified_number: number
   labor_subscription_number: string
   company_type?: string
@@ -19,6 +19,13 @@ export interface Company {
   insurance_subscription_status?: string
   government_docs_renewal?: string
   additional_fields?: Record<string, any>
+  // حقول انتهاء الاشتراكات الجديدة
+  ending_subscription_power_date?: string
+  ending_subscription_moqeem_date?: string
+  ending_subscription_insurance_date?: string
+  // عدد الموظفين والعدد الأقصى (للحسابات)
+  employee_count?: number
+  max_employees?: number
   created_at: string
   updated_at: string
 }
@@ -39,7 +46,15 @@ export interface Employee {
   project_name?: string
   bank_account?: string
   residence_image_url?: string
-  employee_tax_number: number
+  // حقول إضافية من التحسينات الأخيرة
+  employee_number?: string
+  contract_number?: string
+  insurance_number?: string
+  salary?: number
+  housing_allowance?: number
+  transport_allowance?: number
+  // حقل انتهاء اشتراك التأمين
+  ending_subscription_insurance_date?: string
   additional_fields?: Record<string, any>
   created_at: string
   updated_at: string
