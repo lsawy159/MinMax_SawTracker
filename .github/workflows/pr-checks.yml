@@ -1,0 +1,130 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Validate PR title follows conventional commits
+  pr-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            test
+            chore
+            perf
+          scopes: |
+            auth
+            companies
+            employees
+            dashboard
+            alerts
+            ui
+            api
+            deps
+
+  # Check for TODO comments
+  check-todos:
+    name: Check for TODOs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for TODO comments
+        run: |
+          if git diff origin/main...HEAD | grep -i "TODO\|FIXME"; then
+            echo "⚠️ Found TODO/FIXME comments in the changes"
+            echo "Please resolve or document them before merging"
+            exit 0
+          else
+            echo "✅ No TODO/FIXME comments found"
+          fi
+
+  # Code size check
+  size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(du -sb dist | cut -f1)
+          MAX_SIZE=$((5 * 1024 * 1024)) # 5MB
+          
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size ($BUNDLE_SIZE bytes) exceeds maximum ($MAX_SIZE bytes)"
+            exit 1
+          else
+            echo "✅ Bundle size ($BUNDLE_SIZE bytes) is within limits"
+          fi
+
+  # Comment on PR with build info
+  pr-comment:
+    name: PR Comment
+    runs-on: ubuntu-latest
+    needs: [pr-title, size-check]
+    if: always()
+    
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checks = [
+              { name: 'PR Title', status: '${{ needs.pr-title.result }}' },
+              { name: 'Bundle Size', status: '${{ needs.size-check.result }}' }
+            ];
+            
+            const statusEmoji = {
+              success: '✅',
+              failure: '❌',
+              skipped: '⏭️'
+            };
+            
+            let body = '## 🔍 PR Checks\n\n';
+            checks.forEach(check => {
+              const emoji = statusEmoji[check.status] || '❓';
+              body += `${emoji} **${check.name}**: ${check.status}\n`;
+            });
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

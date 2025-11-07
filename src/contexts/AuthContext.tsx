@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
 import { supabase, User } from '../lib/supabase'
 import { Session, AuthError } from '@supabase/supabase-js'
 
@@ -16,18 +16,22 @@ interface AuthContextType {
   retryLogin: () => Promise<void>
 }
 
+// إنشاء Context
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
 // AuthProvider متقدم
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const mountedRef = useRef(true)
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
 
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
 
     // جلب الجلسة الحالية
     const initializeAuth = async () => {
@@ -37,21 +41,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionError) {
           console.error('خطأ في جلب الجلسة:', sessionError)
           setError('خطأ في تحميل بيانات الجلسة')
-          if (mounted) setLoading(false)
+          if (mountedRef.current) setLoading(false)
           return
         }
 
-        if (mounted) {
+        if (mountedRef.current) {
           setSession(currentSession)
           if (currentSession?.user) {
             await fetchUserData(currentSession.user.id, true)
           } else {
-            if (mounted) setLoading(false)
+            if (mountedRef.current) setLoading(false)
           }
         }
       } catch (err) {
         console.error('خطأ في تهيئة المصادقة:', err)
-        if (mounted) {
+        if (mountedRef.current) {
           setError('فشل في تهيئة نظام المصادقة')
           setLoading(false)
         }
@@ -62,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // مراقبة تغييرات المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
+      if (!mountedRef.current) return
 
       console.log('تغيير حالة المصادقة:', event)
       setSession(session)
@@ -80,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => {
-      mounted = false
+      mountedRef.current = false
       subscription.unsubscribe()
     }
   }, [])
@@ -111,14 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userData = await createUserFromAuthData(authUser)
       }
 
-      if (mounted) {
+      if (mountedRef.current) {
         setUser(userData)
         setLoading(false)
       }
     } catch (error: any) {
       console.error('خطأ في جلب بيانات المستخدم:', error)
       
-      if (mounted) {
+      if (mountedRef.current) {
         setError(error.message || 'خطأ في جلب بيانات المستخدم')
         setLoading(false)
         

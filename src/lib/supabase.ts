@@ -9,7 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface Company {
   id: string
   name: string
-  tax_number?: BIGINT | null
+  tax_number?: number | null
   unified_number: number
   labor_subscription_number: string
   company_type?: string
