@@ -98,7 +98,7 @@ serve(async (req) => {
     
     // الآن جرب تحديث كل شركة
     const today = new Date()
-    let updateResults = []
+    const updateResults = []
     
     if (companies && companies.length > 0) {
       for (const company of companies) {

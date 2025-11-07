@@ -28,7 +28,7 @@ async function addTestExpiryDates() {
     
     const today = new Date()
     let successCount = 0
-    let failureCount = 0
+    const failureCount = 0
     
     // إضافة شركة جديدة بتواريخ واضحة للاختبار
     const testCompany = {

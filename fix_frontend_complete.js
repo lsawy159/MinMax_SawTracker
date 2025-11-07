@@ -283,8 +283,6 @@ const loadCompanies = async () => {
     const { data: companiesData, error: companiesError } = await supabase
       .from('companies')
       .select(`
-        *,
-        -- جميع الأعمدة المطلوبة
         id,
         name,
         tax_number,

@@ -144,7 +144,7 @@ serve(async (req) => {
       const total = allCompanies.length
       const today = new Date()
       
-      let stats = {
+      const stats = {
         total,
         expiredCommercial: 0,
         expiredInsurance: 0,

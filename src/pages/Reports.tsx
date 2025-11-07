@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react'
 import { supabase, Employee, Company } from '../lib/supabase'
 import Layout from '../components/layout/Layout'

@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     let response: SessionResponse
 
     switch (action) {
-      case 'create':
+      case 'create': {
         // إنشاء جلسة جديدة
         if (!user_id) {
           throw new Error('معرف المستخدم مطلوب لإنشاء الجلسة')
@@ -116,8 +116,9 @@ Deno.serve(async (req) => {
           }
         }
         break
+      }
 
-      case 'validate':
+      case 'validate': {
         // التحقق من صحة الجلسة
         if (!session_token) {
           throw new Error('رمز الجلسة مطلوب للتحقق')
@@ -176,8 +177,9 @@ Deno.serve(async (req) => {
           }
         }
         break
+      }
 
-      case 'terminate':
+      case 'terminate': {
         // إنهاء جلسة محددة
         if (!session_token) {
           throw new Error('رمز الجلسة مطلوب للإنهاء')
@@ -197,8 +199,9 @@ Deno.serve(async (req) => {
           data: { message: 'تم إنهاء الجلسة بنجاح' }
         }
         break
+      }
 
-      case 'list':
+      case 'list': {
         // قائمة الجلسات النشطة للمستخدم
         if (!user_id) {
           throw new Error('معرف المستخدم مطلوب لقائمة الجلسات')
@@ -223,8 +226,9 @@ Deno.serve(async (req) => {
           }
         }
         break
+      }
 
-      case 'terminate_all':
+      case 'terminate_all': {
         // إنهاء جميع الجلسات للمستخدم
         if (!user_id) {
           throw new Error('معرف المستخدم مطلوب لإنهاء جميع الجلسات')
@@ -249,6 +253,7 @@ Deno.serve(async (req) => {
           }
         }
         break
+      }
 
       default:
         throw new Error('عملية غير مدعومة')

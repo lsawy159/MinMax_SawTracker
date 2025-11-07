@@ -51,6 +51,7 @@ export default function Employees() {
   useEffect(() => {
     loadEmployees()
     handleUrlParams()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Clear selection when filters change
