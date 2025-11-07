@@ -1,50 +1,416 @@
-# React + TypeScript + Vite
+# 🏢 MinMax SawTracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> نظام متكامل لإدارة الموظفين والمؤسسات مع تنبيهات ذكية لمتابعة العقود والإقامات والتأمينات
 
-Currently, two official plugins are available:
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646cff.svg)](https://vitejs.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Latest-3ecf8e.svg)](https://supabase.com/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 📋 جدول المحتويات
 
-## Expanding the ESLint configuration
+- [نظرة عامة](#-نظرة-عامة)
+- [الميزات الرئيسية](#-الميزات-الرئيسية)
+- [التقنيات المستخدمة](#-التقنيات-المستخدمة)
+- [المتطلبات](#-المتطلبات)
+- [التثبيت](#-التثبيت)
+- [إعداد Supabase](#-إعداد-supabase)
+- [التشغيل](#-التشغيل)
+- [البناء للإنتاج](#-البناء-للإنتاج)
+- [بنية المشروع](#-بنية-المشروع)
+- [المساهمة](#-المساهمة)
+- [الترخيص](#-الترخيص)
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+---
 
-- Configure the top-level `parserOptions` property like this:
+## 🎯 نظرة عامة
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+**MinMax SawTracker** هو نظام إدارة متكامل مصمم لتتبع ومراقبة:
+
+- 👥 **الموظفين**: بيانات شاملة مع العقود والإقامات والتأمينات
+- 🏢 **المؤسسات**: إدارة كاملة مع متابعة السجلات التجارية واشتراكات التأمين
+- 🔔 **التنبيهات الذكية**: إشعارات تلقائية قبل انتهاء المواعيد الحرجة
+- 📊 **التقارير والإحصائيات**: لوحة قيادة تفاعلية مع رسوم بيانية شاملة
+- 📤 **الاستيراد والتصدير**: دعم Excel لسهولة نقل البيانات
+
+---
+
+## ✨ الميزات الرئيسية
+
+### 🏢 إدارة المؤسسات
+- ➕ إضافة وتعديل وحذف المؤسسات
+- 📋 متابعة السجل التجاري وتاريخ انتهائه
+- 🛡️ إدارة اشتراكات التأمين والقوى العاملة والمقيم
+- 📊 عرض عدد الموظفين والأماكن الشاغرة
+- 🎯 حالة المؤسسة (سارية، متوسطة، حرجة، منتهية)
+
+### 👥 إدارة الموظفين
+- 📝 بيانات شاملة (الاسم، المهنة، الجنسية، رقم الإقامة، إلخ)
+- 📅 متابعة تواريخ انتهاء العقود والإقامات
+- 💰 إدارة الرواتب والبدلات
+- 📄 رفع صور الإقامات والمستندات
+- 🔍 بحث متقدم وفلترة ذكية
+
+### 🔔 نظام التنبيهات الذكي
+- ⚡ تنبيهات فورية للمواعيد الحرجة
+- 📊 تصنيف حسب الأولوية (عاجل، متوسط، عادي)
+- 🎯 تنبيهات مخصصة لكل نوع:
+  - عقود الموظفين
+  - إقامات الموظفين
+  - تأمين الموظفين
+  - السجلات التجارية
+  - اشتراكات التأمين للمؤسسات
+- 📈 إحصائيات مفصلة للتنبيهات
+
+### 📊 لوحة القيادة التفاعلية
+- 📈 إحصائيات فورية ومحدثة
+- 📉 رسوم بيانية تفاعلية
+- 🎯 مؤشرات الأداء الرئيسية (KPIs)
+- 🔍 نظرة سريعة على الحالة العامة
+
+### 📤 الاستيراد والتصدير
+- 📥 استيراد من Excel (XLSX)
+- 📤 تصدير إلى Excel مع تنسيق احترافي
+- 🔄 مزامنة البيانات
+
+### 🔐 إدارة المستخدمين والصلاحيات
+- 👤 نظام مصادقة آمن
+- 🔑 صلاحيات متعددة المستويات
+- 📝 سجل الأنشطة (Activity Logs)
+- 🛡️ أمان متقدم
+
+---
+
+## 🛠️ التقنيات المستخدمة
+
+### Frontend
+- **React 18.3** - مكتبة UI الحديثة
+- **TypeScript 5.6** - للكود الآمن والموثوق
+- **Vite 6.0** - أداة بناء سريعة جداً
+- **Tailwind CSS** - تصميم عصري وسريع الاستجابة
+- **Radix UI** - مكونات UI متاحة وعالية الجودة
+
+### Backend & Database
+- **Supabase** - Backend-as-a-Service
+  - PostgreSQL Database
+  - Authentication
+  - Real-time subscriptions
+  - Row Level Security (RLS)
+  - Edge Functions
+
+### Libraries & Tools
+- **React Router v6** - التنقل بين الصفحات
+- **date-fns** - معالجة التواريخ
+- **Chart.js / Recharts** - الرسوم البيانية
+- **XLSX** - معالجة ملفات Excel
+- **Sonner** - Toast notifications
+- **Lucide React** - الأيقونات
+
+---
+
+## 📦 المتطلبات
+
+قبل البدء، تأكد من تثبيت:
+
+- **Node.js** >= 18.0.0
+- **pnpm** >= 8.0.0 (مفضل) أو npm/yarn
+- **Git**
+- حساب **Supabase** (مجاني)
+
+---
+
+## 🚀 التثبيت
+
+### 1. استنساخ المشروع
+
+```bash
+git clone https://github.com/lsawy159/MinMax_SawTracker.git
+cd MinMax_SawTracker
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### 2. تثبيت المكتبات
+
+```bash
+# باستخدام pnpm (مفضل)
+pnpm install
+
+# أو باستخدام npm
+npm install
+
+# أو باستخدام yarn
+yarn install
+```
+
+### 3. إعداد متغيرات البيئة
+
+انسخ ملف `.env.example` إلى `.env`:
+
+```bash
+cp .env.example .env
+```
+
+ثم افتح `.env` وأضف بيانات Supabase الخاصة بك:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+---
+
+## 🗄️ إعداد Supabase
+
+### 1. إنشاء مشروع جديد
+
+1. اذهب إلى [Supabase](https://supabase.com)
+2. أنشئ حساب جديد أو سجل دخول
+3. أنشئ مشروع جديد
+
+### 2. تطبيق Schema
+
+افتح **SQL Editor** في Supabase وقم بتشغيل الـ migrations من مجلد `supabase/migrations/`:
+
+```sql
+-- ابدأ بـ
+supabase/migrations/20251106_complete_fix.sql
+```
+
+### 3. إعداد Authentication
+
+1. اذهب إلى **Authentication** > **Providers**
+2. فعّل **Email** provider
+3. يمكنك تفعيل providers إضافية حسب الحاجة
+
+### 4. الحصول على المفاتيح
+
+1. اذهب إلى **Settings** > **API**
+2. انسخ:
+   - **Project URL** → `VITE_SUPABASE_URL`
+   - **anon/public key** → `VITE_SUPABASE_ANON_KEY`
+
+### 5. إعداد Row Level Security (RLS)
+
+تأكد من تطبيق RLS policies على الجداول للأمان:
+
+```sql
+-- مثال: سياسة للقراءة
+CREATE POLICY "Enable read access for authenticated users"
+ON companies FOR SELECT
+TO authenticated
+USING (true);
+```
+
+---
+
+## 💻 التشغيل
+
+### وضع التطوير
+
+```bash
+# باستخدام pnpm
+pnpm dev
+
+# أو npm
+npm run dev
+
+# أو yarn
+yarn dev
+```
+
+افتح المتصفح على: `http://localhost:5173`
+
+### المعاينة (Preview)
+
+```bash
+pnpm preview
+```
+
+---
+
+## 🏗️ البناء للإنتاج
+
+```bash
+# بناء للإنتاج
+pnpm build
+
+# بناء مع optimizations إضافية
+pnpm build:prod
+```
+
+الملفات المبنية ستكون في مجلد `dist/`
+
+---
+
+## 📁 بنية المشروع
+
+```
+MinMax_SawTracker/
+├── 📁 public/              # الملفات الثابتة
+├── 📁 src/
+│   ├── 📁 components/     # مكونات React
+│   │   ├── alerts/       # مكونات التنبيهات
+│   │   ├── companies/    # مكونات المؤسسات
+│   │   ├── employees/    # مكونات الموظفين
+│   │   ├── layout/       # Layout components
+│   │   └── ...
+│   ├── 📁 contexts/       # React Contexts (Auth, Theme)
+│   ├── 📁 hooks/          # Custom React Hooks
+│   ├── 📁 lib/            # المكتبات الأساسية
+│   │   ├── supabase.ts   # Supabase client & types
+│   │   └── utils.ts      # Utility functions
+│   ├── 📁 pages/          # صفحات التطبيق
+│   │   ├── Dashboard.tsx
+│   │   ├── Companies.tsx
+│   │   ├── Employees.tsx
+│   │   └── ...
+│   ├── 📁 utils/          # Helper functions
+│   │   ├── alerts.ts
+│   │   ├── autoCompanyStatus.ts
+│   │   └── ...
+│   ├── App.tsx            # المكون الرئيسي
+│   └── main.tsx           # نقطة الدخول
+├── 📁 supabase/
+│   ├── migrations/        # Database migrations
+│   └── functions/         # Edge Functions
+├── 📁 archive/            # ملفات قديمة للمرجع
+├── 📁 docs/               # التوثيق
+├── .env                   # متغيرات البيئة (لا تُرفع لـ Git)
+├── .env.example           # مثال لمتغيرات البيئة
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
+```
+
+---
+
+## 🧪 الاختبارات
+
+```bash
+# تشغيل جميع الاختبارات
+pnpm test
+
+# تشغيل الاختبارات مع watch mode
+pnpm test:watch
+
+# تقرير التغطية
+pnpm test:coverage
+```
+
+---
+
+## 🔍 Linting & Formatting
+
+```bash
+# تشغيل ESLint
+pnpm lint
+
+# إصلاح مشاكل Linting تلقائياً
+pnpm lint:fix
+
+# تنسيق الكود باستخدام Prettier
+pnpm format
+```
+
+---
+
+## 🎨 التخصيص
+
+### تغيير الألوان
+
+عدّل ملف `tailwind.config.js`:
 
 ```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#your-color',
+        // ...
+      }
+    }
+  }
+}
 ```
+
+### إضافة مكونات جديدة
+
+استخدم shadcn/ui CLI:
+
+```bash
+npx shadcn-ui@latest add [component-name]
+```
+
+---
+
+## 🤝 المساهمة
+
+نرحب بالمساهمات! إليك كيفية المساهمة:
+
+1. **Fork** المشروع
+2. أنشئ branch جديد: `git checkout -b feature/amazing-feature`
+3. Commit التغييرات: `git commit -m 'Add amazing feature'`
+4. Push للـ branch: `git push origin feature/amazing-feature`
+5. افتح **Pull Request**
+
+### إرشادات المساهمة
+
+- اتبع نمط الكود الموجود
+- أضف tests للميزات الجديدة
+- حدّث التوثيق عند الحاجة
+- تأكد من عدم وجود أخطاء linting
+
+---
+
+## 📝 الترخيص
+
+هذا المشروع مرخص تحت [MIT License](LICENSE).
+
+---
+
+## 👥 الفريق
+
+- **Developer**: [lsawy159](https://github.com/lsawy159)
+
+---
+
+## 📞 الدعم
+
+إذا واجهت مشكلة أو لديك سؤال:
+
+1. تحقق من [Issues](https://github.com/lsawy159/MinMax_SawTracker/issues)
+2. افتح issue جديد إذا لم تجد حلاً
+3. راجع التوثيق في مجلد `docs/`
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] PWA Support
+- [ ] Multi-language (i18n)
+- [ ] Dark Mode كامل
+- [ ] Push Notifications
+- [ ] Mobile App (React Native)
+- [ ] Advanced Analytics
+- [ ] PDF Reports
+- [ ] Email Notifications
+- [ ] SMS Integration
+
+---
+
+## 🙏 شكر خاص
+
+- [Supabase](https://supabase.com) - Backend amazing
+- [Radix UI](https://www.radix-ui.com/) - مكونات UI رائعة
+- [Tailwind CSS](https://tailwindcss.com/) - CSS framework مذهل
+- [Lucide Icons](https://lucide.dev/) - أيقونات جميلة
+
+---
+
+<div align="center">
+
+**صُنع بـ ❤️ في السعودية**
+
+⭐ إذا أعجبك المشروع، لا تنسَ وضع نجمة!
+
+</div>
