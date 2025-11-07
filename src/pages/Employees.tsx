@@ -3,7 +3,7 @@ import { supabase, Employee, Company } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import EmployeeCard from '../components/employee/EmployeeCard'
 import AddEmployeeModal from '../components/employees/AddEmployeeModal'
-import { Search, Calendar, AlertCircle, X, UserPlus } from 'lucide-react'
+import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit } from 'lucide-react'
 import { differenceInDays, format } from 'date-fns'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -38,11 +38,25 @@ export default function Employees() {
   // Delete modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [employeeToDelete, setEmployeeToDelete] = useState<(Employee & { company: Company }) | null>(null)
+  
+  // Bulk selection states
+  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set())
+  
+  // Bulk action modals
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [showBulkResidenceModal, setShowBulkResidenceModal] = useState(false)
+  const [showBulkInsuranceModal, setShowBulkInsuranceModal] = useState(false)
+  const [showBulkContractModal, setShowBulkContractModal] = useState(false)
 
   useEffect(() => {
     loadEmployees()
     handleUrlParams()
   }, [])
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedEmployees(new Set())
+  }, [searchTerm, residenceNumberSearch, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, residenceFilter, insuranceFilter])
 
   const handleUrlParams = () => {
     const params = new URLSearchParams(location.search)
@@ -212,7 +226,10 @@ export default function Employees() {
         .delete()
         .eq('id', employeeToDelete.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Delete error:', error)
+        throw error
+      }
 
       // Log activity
       await logActivity(employeeToDelete.id, 'حذف موظف', {
@@ -220,8 +237,10 @@ export default function Employees() {
         company: employeeToDelete.company?.name
       })
 
+      toast.success(`تم حذف الموظف "${employeeToDelete.name}" بنجاح`)
+      
       // Refresh employees list
-      loadEmployees()
+      await loadEmployees()
       setShowDeleteModal(false)
       setEmployeeToDelete(null)
       
@@ -230,9 +249,181 @@ export default function Employees() {
         setIsCardOpen(false)
         setSelectedEmployee(null)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting employee:', error)
-      toast.error('فشل في حذف الموظف')
+      toast.error(error.message || 'فشل في حذف الموظف')
+    }
+  }
+
+  // Bulk selection functions
+  const toggleEmployeeSelection = (employeeId: string) => {
+    setSelectedEmployees(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(employeeId)) {
+        newSet.delete(employeeId)
+      } else {
+        newSet.add(employeeId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedEmployees.size === filteredEmployees.length) {
+      setSelectedEmployees(new Set())
+    } else {
+      setSelectedEmployees(new Set(filteredEmployees.map(emp => emp.id)))
+    }
+  }
+
+  const clearSelection = () => {
+    setSelectedEmployees(new Set())
+  }
+
+  // Bulk delete function
+  const handleBulkDelete = async () => {
+    if (selectedEmployees.size === 0) return
+
+    try {
+      const employeeIds = Array.from(selectedEmployees)
+      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+
+      // Delete all selected employees
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .in('id', employeeIds)
+
+      if (error) throw error
+
+      // Log activity for each employee
+      for (const employee of selectedEmployeesData) {
+        await logActivity(employee.id, 'حذف موظف (جماعي)', {
+          employee_name: employee.name,
+          company: employee.company?.name
+        })
+      }
+
+      toast.success(`تم حذف ${selectedEmployees.size} موظف بنجاح`)
+      
+      // Refresh and clear selection
+      await loadEmployees()
+      clearSelection()
+      setShowBulkDeleteModal(false)
+    } catch (error: any) {
+      console.error('Error bulk deleting employees:', error)
+      toast.error(error.message || 'فشل في حذف الموظفين')
+    }
+  }
+
+  // Bulk update residence expiry date
+  const handleBulkUpdateResidence = async (newDate: string) => {
+    if (selectedEmployees.size === 0) return
+
+    try {
+      const employeeIds = Array.from(selectedEmployees)
+      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+
+      // Update all selected employees
+      const { error } = await supabase
+        .from('employees')
+        .update({ residence_expiry: newDate })
+        .in('id', employeeIds)
+
+      if (error) throw error
+
+      // Log activity for each employee
+      for (const employee of selectedEmployeesData) {
+        await logActivity(employee.id, 'تعديل تاريخ انتهاء الإقامة (جماعي)', {
+          employee_name: employee.name,
+          old_date: employee.residence_expiry,
+          new_date: newDate
+        })
+      }
+
+      toast.success(`تم تحديث تاريخ انتهاء الإقامة لـ ${selectedEmployees.size} موظف`)
+      
+      // Refresh and clear selection
+      await loadEmployees()
+      clearSelection()
+      setShowBulkResidenceModal(false)
+    } catch (error: any) {
+      console.error('Error bulk updating residence:', error)
+      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء الإقامة')
+    }
+  }
+
+  // Bulk update insurance expiry date
+  const handleBulkUpdateInsurance = async (newDate: string) => {
+    if (selectedEmployees.size === 0) return
+
+    try {
+      const employeeIds = Array.from(selectedEmployees)
+      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+
+      // Update all selected employees
+      const { error } = await supabase
+        .from('employees')
+        .update({ ending_subscription_insurance_date: newDate })
+        .in('id', employeeIds)
+
+      if (error) throw error
+
+      // Log activity for each employee
+      for (const employee of selectedEmployeesData) {
+        await logActivity(employee.id, 'تعديل تاريخ انتهاء التأمين (جماعي)', {
+          employee_name: employee.name,
+          old_date: employee.ending_subscription_insurance_date,
+          new_date: newDate
+        })
+      }
+
+      toast.success(`تم تحديث تاريخ انتهاء التأمين لـ ${selectedEmployees.size} موظف`)
+      
+      // Refresh and clear selection
+      await loadEmployees()
+      clearSelection()
+      setShowBulkInsuranceModal(false)
+    } catch (error: any) {
+      console.error('Error bulk updating insurance:', error)
+      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء التأمين')
+    }
+  }
+
+  // Bulk update contract expiry date
+  const handleBulkUpdateContract = async (newDate: string) => {
+    if (selectedEmployees.size === 0) return
+
+    try {
+      const employeeIds = Array.from(selectedEmployees)
+      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+
+      // Update all selected employees
+      const { error } = await supabase
+        .from('employees')
+        .update({ contract_expiry: newDate })
+        .in('id', employeeIds)
+
+      if (error) throw error
+
+      // Log activity for each employee
+      for (const employee of selectedEmployeesData) {
+        await logActivity(employee.id, 'تعديل تاريخ انتهاء العقد (جماعي)', {
+          employee_name: employee.name,
+          old_date: employee.contract_expiry,
+          new_date: newDate
+        })
+      }
+
+      toast.success(`تم تحديث تاريخ انتهاء العقد لـ ${selectedEmployees.size} موظف`)
+      
+      // Refresh and clear selection
+      await loadEmployees()
+      clearSelection()
+      setShowBulkContractModal(false)
+    } catch (error: any) {
+      console.error('Error bulk updating contract:', error)
+      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء العقد')
     }
   }
 
@@ -465,6 +656,59 @@ export default function Employees() {
           )}
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedEmployees.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 text-white px-3 py-1 rounded-lg font-medium">
+                  {selectedEmployees.size} موظف محدد
+                </div>
+                <button
+                  onClick={clearSelection}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  إلغاء التحديد
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowBulkResidenceModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                  title="تعديل تاريخ انتهاء الإقامة"
+                >
+                  <Calendar className="w-4 h-4" />
+                  تعديل تاريخ الإقامة
+                </button>
+                <button
+                  onClick={() => setShowBulkInsuranceModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium"
+                  title="تعديل تاريخ انتهاء التأمين"
+                >
+                  <Calendar className="w-4 h-4" />
+                  تعديل تاريخ التأمين
+                </button>
+                <button
+                  onClick={() => setShowBulkContractModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
+                  title="تعديل تاريخ انتهاء العقد"
+                >
+                  <Calendar className="w-4 h-4" />
+                  تعديل تاريخ العقد
+                </button>
+                <button
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                  title="حذف الموظفين المحددين"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  حذف المحددين
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -475,6 +719,19 @@ export default function Employees() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase w-12">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="flex items-center justify-center w-5 h-5"
+                        title={selectedEmployees.size === filteredEmployees.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                      >
+                        {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+                    </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الاسم</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">المهنة</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الجنسية</th>
@@ -499,16 +756,51 @@ export default function Employees() {
                     return (
                       <tr 
                         key={employee.id} 
-                        className="hover:bg-gray-50 transition cursor-pointer"
-                        onClick={() => handleEmployeeClick(employee)}
+                        className="hover:bg-gray-50 transition"
                       >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleEmployeeSelection(employee.id)
+                            }}
+                            className="flex items-center justify-center w-5 h-5"
+                          >
+                            {selectedEmployees.has(employee.id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm font-medium text-gray-900 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           {employee.name}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{employee.profession}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{employee.nationality}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{employee.company?.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {employee.profession}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {employee.nationality}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {employee.company?.name}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           {employee.project_name ? (
                             <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
                               {employee.project_name}
@@ -517,13 +809,34 @@ export default function Employees() {
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm font-mono text-gray-900">{employee.residence_number}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{format(new Date(employee.birth_date), 'yyyy-MM-dd')}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{format(new Date(employee.joining_date), 'yyyy-MM-dd')}</td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        <td 
+                          className="px-6 py-4 text-sm font-mono text-gray-900 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {employee.residence_number}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {format(new Date(employee.birth_date), 'yyyy-MM-dd')}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm text-gray-700 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
+                          {format(new Date(employee.joining_date), 'yyyy-MM-dd')}
+                        </td>
+                        <td 
+                          className="px-6 py-4 text-sm font-medium text-gray-900 cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           {employee.salary ? `${employee.salary.toLocaleString()} ريال` : <span className="text-gray-400">غير محدد</span>}
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td 
+                          className="px-6 py-4 text-sm cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           <div className="flex flex-col gap-1">
                             <span className="text-gray-700">
                               {employee.contract_expiry ? format(new Date(employee.contract_expiry), 'yyyy-MM-dd') : '-'}
@@ -536,7 +849,10 @@ export default function Employees() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td 
+                          className="px-6 py-4 text-sm cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           <div className="flex flex-col gap-1">
                             <span className="text-gray-700">
                               {format(new Date(employee.residence_expiry), 'yyyy-MM-dd')}
@@ -547,7 +863,10 @@ export default function Employees() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td 
+                          className="px-6 py-4 text-sm cursor-pointer"
+                          onClick={() => handleEmployeeClick(employee)}
+                        >
                           <div className="flex flex-col gap-1">
                             <span className="text-gray-700">
                               {insuranceDays === null ? 'لا يوجد' : format(new Date(employee.ending_subscription_insurance_date!), 'yyyy-MM-dd')}
@@ -666,6 +985,178 @@ export default function Employees() {
           </div>
         </div>
       )}
+
+      {/* مودال حذف جماعي */}
+      {showBulkDeleteModal && (
+        <BulkDeleteModal
+          selectedCount={selectedEmployees.size}
+          selectedEmployees={employees.filter(emp => selectedEmployees.has(emp.id))}
+          onConfirm={handleBulkDelete}
+          onCancel={() => setShowBulkDeleteModal(false)}
+        />
+      )}
+
+      {/* مودال تعديل تاريخ الإقامة */}
+      {showBulkResidenceModal && (
+        <BulkDateModal
+          title="تعديل تاريخ انتهاء الإقامة"
+          selectedCount={selectedEmployees.size}
+          onConfirm={handleBulkUpdateResidence}
+          onCancel={() => setShowBulkResidenceModal(false)}
+        />
+      )}
+
+      {/* مودال تعديل تاريخ التأمين */}
+      {showBulkInsuranceModal && (
+        <BulkDateModal
+          title="تعديل تاريخ انتهاء التأمين"
+          selectedCount={selectedEmployees.size}
+          onConfirm={handleBulkUpdateInsurance}
+          onCancel={() => setShowBulkInsuranceModal(false)}
+        />
+      )}
+
+      {/* مودال تعديل تاريخ العقد */}
+      {showBulkContractModal && (
+        <BulkDateModal
+          title="تعديل تاريخ انتهاء العقد"
+          selectedCount={selectedEmployees.size}
+          onConfirm={handleBulkUpdateContract}
+          onCancel={() => setShowBulkContractModal(false)}
+        />
+      )}
     </Layout>
+  )
+}
+
+// مكون مودال الحذف الجماعي
+function BulkDeleteModal({ 
+  selectedCount, 
+  selectedEmployees, 
+  onConfirm, 
+  onCancel 
+}: { 
+  selectedCount: number
+  selectedEmployees: (Employee & { company: Company })[]
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-red-100 p-3 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">تأكيد حذف الموظفين</h3>
+              <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+            </div>
+          </div>
+          <p className="text-gray-700 mb-4">
+            هل أنت متأكد من حذف <strong>{selectedCount} موظف</strong>؟
+            <br />
+            <span className="text-sm text-red-600 mt-2 block">
+              سيتم حذف جميع بيانات هؤلاء الموظفين نهائياً
+            </span>
+          </p>
+          <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">الموظفون المحددون:</p>
+            <ul className="space-y-1">
+              {selectedEmployees.map(emp => (
+                <li key={emp.id} className="text-sm text-gray-600">
+                  • {emp.name} {emp.company?.name && `(${emp.company.name})`}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onConfirm}
+              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+            >
+              نعم، احذف ({selectedCount})
+            </button>
+            <button
+              onClick={onCancel}
+              className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// مكون مودال تعديل التاريخ
+function BulkDateModal({ 
+  title, 
+  selectedCount, 
+  onConfirm, 
+  onCancel 
+}: { 
+  title: string
+  selectedCount: number
+  onConfirm: (date: string) => void
+  onCancel: () => void
+}) {
+  const [selectedDate, setSelectedDate] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (selectedDate) {
+      onConfirm(selectedDate)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <Calendar className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-600">{selectedCount} موظف محدد</p>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                التاريخ الجديد
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={!selectedDate}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                تأكيد التعديل
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+              >
+                إلغاء
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   )
 }
