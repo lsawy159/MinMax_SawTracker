@@ -27,6 +27,8 @@ export interface Company {
   commercial_registration_expiry?: string
   insurance_subscription_expiry?: string
   insurance_subscription_start?: string
+  ending_subscription_power_date?: string
+  ending_subscription_moqeem_date?: string
   government_docs_renewal?: string
   created_at: string
   updated_at: string
@@ -49,6 +51,18 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
     const insuranceAlert = await checkInsuranceSubscriptionExpiry(company)
     if (insuranceAlert) {
       alerts.push(insuranceAlert)
+    }
+    
+    // إضافة تنبيهات اشتراك قوى
+    const powerAlert = await checkPowerSubscriptionExpiry(company)
+    if (powerAlert) {
+      alerts.push(powerAlert)
+    }
+    
+    // إضافة تنبيهات اشتراك مقيم
+    const moqeemAlert = await checkMoqeemSubscriptionExpiry(company)
+    if (moqeemAlert) {
+      alerts.push(moqeemAlert)
     }
   }
   
@@ -269,6 +283,162 @@ export async function checkInsuranceSubscriptionExpiry(company: Company): Promis
 }
 
 /**
+ * فحص انتهاء صلاحية اشتراك قوى للمؤسسة
+ */
+export async function checkPowerSubscriptionExpiry(company: Company): Promise<Alert | null> {
+  if (!company.ending_subscription_power_date) {
+    return null
+  }
+  
+  const today = new Date()
+  const expiryDate = new Date(company.ending_subscription_power_date)
+  const timeDiff = expiryDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+  
+  const thresholds = await getNotificationThresholds()
+  
+  // لا يوجد تنبيه إذا كان التاريخ سارياً لأكثر من الحد الأقصى
+  if (daysRemaining > thresholds.commercial_reg_medium_days) {
+    return null
+  }
+  
+  // تحديد الأولوية حسب عدد الأيام المتبقية
+  let priority: Alert['priority']
+  let badgeText: string
+  
+  if (daysRemaining < 0) {
+    priority = 'urgent'
+    badgeText = 'منتهي'
+  } else if (daysRemaining <= 7) {
+    priority = 'urgent'
+    badgeText = 'عاجل'
+  } else if (daysRemaining <= 30) {
+    priority = 'medium'
+    badgeText = 'متوسط'
+  } else {
+    priority = 'low'
+    badgeText = 'طفيف'
+  }
+  
+  // إنشاء رسالة التنبيه
+  let message: string
+  let actionRequired: string
+  
+  if (daysRemaining < 0) {
+    const daysExpired = Math.abs(daysRemaining)
+    message = `انتهت صلاحية اشتراك قوى للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+  } else if (daysRemaining === 0) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" اليوم. يجب تجديده قبل نهاية اليوم.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" قبل نهاية اليوم.`
+  } else if (daysRemaining === 1) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" غداً. يفضل تجديده اليوم.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" قبل انتهاء مدته غداً.`
+  } else if (daysRemaining <= 7) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+    actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+  } else {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+    actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+  }
+  
+  return {
+    id: `power_${company.id}_${company.ending_subscription_power_date}`,
+    type: 'power_subscription',
+    priority,
+    title: 'انتهاء صلاحية اشتراك قوى',
+    message,
+    company: {
+      id: company.id,
+      name: company.name,
+      commercial_registration_number: company.commercial_registration_number
+    },
+    expiry_date: company.ending_subscription_power_date,
+    days_remaining: daysRemaining,
+    action_required: actionRequired,
+    created_at: new Date().toISOString()
+  }
+}
+
+/**
+ * فحص انتهاء صلاحية اشتراك مقيم للمؤسسة
+ */
+export async function checkMoqeemSubscriptionExpiry(company: Company): Promise<Alert | null> {
+  if (!company.ending_subscription_moqeem_date) {
+    return null
+  }
+  
+  const today = new Date()
+  const expiryDate = new Date(company.ending_subscription_moqeem_date)
+  const timeDiff = expiryDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+  
+  const thresholds = await getNotificationThresholds()
+  
+  // لا يوجد تنبيه إذا كان التاريخ سارياً لأكثر من الحد الأقصى
+  if (daysRemaining > thresholds.commercial_reg_medium_days) {
+    return null
+  }
+  
+  // تحديد الأولوية حسب عدد الأيام المتبقية
+  let priority: Alert['priority']
+  let badgeText: string
+  
+  if (daysRemaining < 0) {
+    priority = 'urgent'
+    badgeText = 'منتهي'
+  } else if (daysRemaining <= 7) {
+    priority = 'urgent'
+    badgeText = 'عاجل'
+  } else if (daysRemaining <= 30) {
+    priority = 'medium'
+    badgeText = 'متوسط'
+  } else {
+    priority = 'low'
+    badgeText = 'طفيف'
+  }
+  
+  // إنشاء رسالة التنبيه
+  let message: string
+  let actionRequired: string
+  
+  if (daysRemaining < 0) {
+    const daysExpired = Math.abs(daysRemaining)
+    message = `انتهت صلاحية اشتراك مقيم للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+  } else if (daysRemaining === 0) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" اليوم. يجب تجديده قبل نهاية اليوم.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" قبل نهاية اليوم.`
+  } else if (daysRemaining === 1) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" غداً. يفضل تجديده اليوم.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" قبل انتهاء مدته غداً.`
+  } else if (daysRemaining <= 7) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+    actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+  } else {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+    actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+  }
+  
+  return {
+    id: `moqeem_${company.id}_${company.ending_subscription_moqeem_date}`,
+    type: 'moqeem_subscription',
+    priority,
+    title: 'انتهاء صلاحية اشتراك مقيم',
+    message,
+    company: {
+      id: company.id,
+      name: company.name,
+      commercial_registration_number: company.commercial_registration_number
+    },
+    expiry_date: company.ending_subscription_moqeem_date,
+    days_remaining: daysRemaining,
+    action_required: actionRequired,
+    created_at: new Date().toISOString()
+  }
+}
+
+/**
  * فلترة التنبيهات حسب الأولوية
  */
 export function filterAlertsByPriority(alerts: Alert[], priority: Alert['priority']): Alert[] {
@@ -292,6 +462,8 @@ export function getAlertsStats(alerts: Alert[]) {
   const low = alerts.filter(a => a.priority === 'low').length
   const commercialRegAlerts = alerts.filter(a => a.type === 'commercial_registration').length
   const insuranceAlerts = alerts.filter(a => a.type === 'insurance_subscription').length
+  const powerAlerts = alerts.filter(a => a.type === 'power_subscription').length
+  const moqeemAlerts = alerts.filter(a => a.type === 'moqeem_subscription').length
   
   return {
     total,
@@ -299,7 +471,9 @@ export function getAlertsStats(alerts: Alert[]) {
     medium,
     low,
     commercialRegAlerts,
-    insuranceAlerts
+    insuranceAlerts,
+    powerAlerts,
+    moqeemAlerts
   }
 }
 

@@ -1,7 +1,9 @@
 import { Building2, Users, Edit2, Trash2 } from 'lucide-react'
 import { 
   calculateCommercialRegistrationStatus, 
-  calculateInsuranceSubscriptionStatus
+  calculateInsuranceSubscriptionStatus,
+  calculatePowerSubscriptionStatus,
+  calculateMoqeemSubscriptionStatus
 } from '../../utils/autoCompanyStatus'
 import { Company } from '../../lib/supabase'
 
@@ -29,12 +31,21 @@ export default function CompanyCard({
   // حساب حالات المؤسسة
   const commercialRegStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
   const insuranceStatus = calculateInsuranceSubscriptionStatus(company.insurance_subscription_expiry)
+  const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
+  const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
 
-  // تحديد لون الحدود حسب حالة السجل التجاري
+  // تحديد لون الحدود حسب أعلى أولوية (حرج > متوسط > ساري)
   const getBorderColor = () => {
-    if (commercialRegStatus.priority === 'critical') return 'border-red-400'
-    if (commercialRegStatus.priority === 'medium') return 'border-yellow-400'
-    if (commercialRegStatus.priority === 'low') return 'border-green-400'
+    const priorities = [
+      commercialRegStatus.priority,
+      insuranceStatus.priority,
+      powerStatus.priority,
+      moqeemStatus.priority
+    ]
+    
+    if (priorities.includes('critical')) return 'border-red-400'
+    if (priorities.includes('medium')) return 'border-yellow-400'
+    if (priorities.includes('low')) return 'border-green-400'
     return 'border-gray-200'
   }
 
@@ -153,6 +164,50 @@ export default function CompanyCard({
                 <div className="flex flex-col">
                   <span className="font-bold">{insuranceStatus.status}</span>
                   <span className="text-xs opacity-75">{insuranceStatus.description}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+            غير محدد
+          </div>
+        )}
+      </div>
+
+      {/* حالة اشتراك قوى - مربع توضيحي ملون */}
+      <div className="pt-4 border-t border-gray-200">
+        <div className="text-xs font-medium text-gray-600 mb-2">حالة اشتراك قوى</div>
+        {company.ending_subscription_power_date ? (
+          <>
+            <div className={`px-4 py-3 rounded-lg text-sm font-medium border-2 ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
+              <div className="flex items-center gap-2">
+                <div className="text-lg">{powerStatus.status === 'حرج' ? '🚨' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                <div className="flex flex-col">
+                  <span className="font-bold">{powerStatus.status}</span>
+                  <span className="text-xs opacity-75">{powerStatus.description}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+            غير محدد
+          </div>
+        )}
+      </div>
+
+      {/* حالة اشتراك مقيم - مربع توضيحي ملون */}
+      <div className="pt-4 border-t border-gray-200">
+        <div className="text-xs font-medium text-gray-600 mb-2">حالة اشتراك مقيم</div>
+        {company.ending_subscription_moqeem_date ? (
+          <>
+            <div className={`px-4 py-3 rounded-lg text-sm font-medium border-2 ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
+              <div className="flex items-center gap-2">
+                <div className="text-lg">{moqeemStatus.status === 'حرج' ? '🚨' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                <div className="flex flex-col">
+                  <span className="font-bold">{moqeemStatus.status}</span>
+                  <span className="text-xs opacity-75">{moqeemStatus.description}</span>
                 </div>
               </div>
             </div>

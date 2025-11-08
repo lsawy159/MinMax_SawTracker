@@ -8,6 +8,8 @@ import { AlertCard, Alert } from '../components/alerts/AlertCard'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateInsuranceSubscriptionStatus,
+  calculatePowerSubscriptionStatus,
+  calculateMoqeemSubscriptionStatus,
   calculateCompanyStatusStats
 } from '../utils/autoCompanyStatus'
 import { 
@@ -61,6 +63,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
+  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [showAlerts, setShowAlerts] = useState(false)
   const navigate = useNavigate()
 
@@ -95,7 +98,28 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData()
+    loadReadAlerts()
   }, [])
+
+  // جلب التنبيهات المقروءة من قاعدة البيانات
+  const loadReadAlerts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('read_alerts')
+        .select('alert_id')
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
+      setReadAlerts(readAlertIds)
+    } catch (error) {
+      console.error('خطأ في جلب التنبيهات المقروءة:', error)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -249,12 +273,14 @@ const Dashboard = () => {
       return diff >= 0 && diff <= 90
     }).length
 
-    // حساب إحصائيات المؤسسات مع النظام الجديد
+    // حساب إحصائيات المؤسسات مع النظام الجديد (يشمل جميع الحالات)
     const companyStatusStats = calculateCompanyStatusStats(companies.map(c => ({
       id: c.id,
       name: c.name,
       commercial_registration_expiry: c.commercial_registration_expiry,
-      insurance_subscription_expiry: c.insurance_subscription_expiry
+      insurance_subscription_expiry: c.insurance_subscription_expiry,
+      ending_subscription_power_date: c.ending_subscription_power_date,
+      ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
     })))
 
     return {
@@ -300,25 +326,46 @@ const Dashboard = () => {
     }
   }
 
-  const handleMarkAsRead = (alertId: string) => {
-    // تحديث حالة التنبيه كمقروء (يمكن حفظه في قاعدة البيانات لاحقاً)
-    setCompanyAlerts(prev => 
-      prev.map(alert => 
-        alert.id === alertId ? { ...alert } : alert
-      )
-    )
-    setEmployeeAlerts(prev => 
-      prev.map(alert => 
-        alert.id === alertId ? { ...alert } : alert
-      )
-    )
+  const handleMarkAsRead = async (alertId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('المستخدم غير مسجل دخول')
+        return
+      }
+
+      // حفظ التنبيه كمقروء في قاعدة البيانات
+      const { error } = await supabase
+        .from('read_alerts')
+        .upsert({
+          user_id: user.id,
+          alert_id: alertId,
+          read_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,alert_id'
+        })
+
+      if (error) throw error
+
+      // تحديث حالة التنبيه محلياً
+      setReadAlerts(prev => new Set([...prev, alertId]))
+      
+      // إعادة تحميل الإحصائيات لتحديث العدد في شريط التنقل
+      window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
+    } catch (error) {
+      console.error('خطأ في حفظ التنبيه كمقروء:', error)
+    }
   }
 
-  // إحصائيات التنبيهات
-  const companyAlertsStats = getAlertsStats(companyAlerts)
-  const companyUrgentAlerts = getUrgentAlerts(companyAlerts)
-  const commercialRegAlerts = filterAlertsByType(companyAlerts, 'commercial_registration')
-  const insuranceAlerts = filterAlertsByType(companyAlerts, 'insurance_subscription')
+  // تصفية التنبيهات المقروءة
+  const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlerts.has(alert.id))
+  const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlerts.has(alert.id))
+
+  // إحصائيات التنبيهات (فقط غير المقروءة)
+  const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
+  const companyUrgentAlerts = getUrgentAlerts(unreadCompanyAlerts)
+  const commercialRegAlerts = filterAlertsByType(unreadCompanyAlerts, 'commercial_registration')
+  const insuranceAlerts = filterAlertsByType(unreadCompanyAlerts, 'insurance_subscription')
   
   // إحصائيات مفصلة للمؤسسات
   const commercialRegExpired = commercialRegAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length
@@ -326,11 +373,11 @@ const Dashboard = () => {
   const insuranceExpired = insuranceAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length
   const insuranceUrgent = insuranceAlerts.filter(a => a.priority === 'urgent').length
 
-  // إحصائيات تنبيهات الموظفين
-  const employeeAlertsStats = getEmployeeAlertsStats(employeeAlerts)
-  const employeeUrgentAlerts = getUrgentEmployeeAlerts(employeeAlerts)
-  const contractAlerts = filterEmployeeAlertsByType(employeeAlerts, 'contract_expiry')
-  const residenceAlerts = filterEmployeeAlertsByType(employeeAlerts, 'residence_expiry')
+  // إحصائيات تنبيهات الموظفين (فقط غير المقروءة)
+  const employeeAlertsStats = getEmployeeAlertsStats(unreadEmployeeAlerts)
+  const employeeUrgentAlerts = getUrgentEmployeeAlerts(unreadEmployeeAlerts)
+  const contractAlerts = filterEmployeeAlertsByType(unreadEmployeeAlerts, 'contract_expiry')
+  const residenceAlerts = filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry')
 
   // إجمالي التنبيهات
   const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
@@ -610,6 +657,7 @@ const Dashboard = () => {
                                 onViewCompany={handleViewCompany}
                                 onShowCompanyCard={handleViewCompany}
                                 onMarkAsRead={handleMarkAsRead}
+                                isRead={readAlerts.has(alert.id)}
                               />
                             ))}
                           </div>

@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase, Company } from '../../lib/supabase'
 import { X, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { calculateCommercialRegistrationStatus, calculateInsuranceSubscriptionStatus } from '../../utils/autoCompanyStatus'
+import { 
+  calculateCommercialRegistrationStatus, 
+  calculateInsuranceSubscriptionStatus,
+  calculatePowerSubscriptionStatus,
+  calculateMoqeemSubscriptionStatus
+} from '../../utils/autoCompanyStatus'
 
 interface CompanyModalProps {
   isOpen: boolean
@@ -656,6 +661,52 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 ) : (
                   <div className="text-gray-500 text-sm">
                     يرجى إدخال تاريخ انتهاء اشتراك التأمينات أولاً
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* عرض حالة اشتراك قوى المحسوبة تلقائياً */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                حالة اشتراك قوى
+              </label>
+              <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                {formData.ending_subscription_power_date ? (
+                  <div className={`p-2 rounded-md ${calculatePowerSubscriptionStatus(formData.ending_subscription_power_date).color.backgroundColor}`}>
+                    <div className={`font-medium ${calculatePowerSubscriptionStatus(formData.ending_subscription_power_date).color.textColor}`}>
+                      {calculatePowerSubscriptionStatus(formData.ending_subscription_power_date).status}
+                    </div>
+                    <div className={`text-sm mt-1 ${calculatePowerSubscriptionStatus(formData.ending_subscription_power_date).color.textColor}`}>
+                      {calculatePowerSubscriptionStatus(formData.ending_subscription_power_date).description}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm">
+                    يرجى إدخال تاريخ انتهاء اشتراك قوى أولاً
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* عرض حالة اشتراك مقيم المحسوبة تلقائياً */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                حالة اشتراك مقيم
+              </label>
+              <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                {formData.ending_subscription_moqeem_date ? (
+                  <div className={`p-2 rounded-md ${calculateMoqeemSubscriptionStatus(formData.ending_subscription_moqeem_date).color.backgroundColor}`}>
+                    <div className={`font-medium ${calculateMoqeemSubscriptionStatus(formData.ending_subscription_moqeem_date).color.textColor}`}>
+                      {calculateMoqeemSubscriptionStatus(formData.ending_subscription_moqeem_date).status}
+                    </div>
+                    <div className={`text-sm mt-1 ${calculateMoqeemSubscriptionStatus(formData.ending_subscription_moqeem_date).color.textColor}`}>
+                      {calculateMoqeemSubscriptionStatus(formData.ending_subscription_moqeem_date).description}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm">
+                    يرجى إدخال تاريخ انتهاء اشتراك مقيم أولاً
                   </div>
                 )}
               </div>

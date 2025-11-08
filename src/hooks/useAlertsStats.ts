@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, Company, Employee } from '../lib/supabase'
 import { generateCompanyAlertsSync } from '../utils/alerts'
 import { generateEmployeeAlerts, enrichEmployeeAlertsWithCompanyData } from '../utils/employeeAlerts'
@@ -30,14 +30,51 @@ export function useAlertsStats() {
     residenceAlerts: 0
   })
   const [loading, setLoading] = useState(true)
+  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
+
+  // جلب التنبيهات المقروءة من قاعدة البيانات
+  const loadReadAlerts = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('read_alerts')
+        .select('alert_id')
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
+      setReadAlerts(readAlertIds)
+      return readAlertIds
+    } catch (error) {
+      console.error('خطأ في جلب التنبيهات المقروءة:', error)
+      return new Set<string>()
+    }
+  }, [])
 
   useEffect(() => {
     fetchAlertsStats()
+    
+    // الاستماع لحدث تحديث التنبيه كمقروء
+    const handleAlertMarkedAsRead = () => {
+      fetchAlertsStats()
+    }
+    
+    window.addEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+    
+    return () => {
+      window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+    }
   }, [])
 
   const fetchAlertsStats = async () => {
     try {
       setLoading(true)
+
+      // جلب التنبيهات المقروءة أولاً
+      const readAlertsSet = await loadReadAlerts()
 
       // جلب البيانات من قاعدة البيانات
       const [companiesResult, employeesResult] = await Promise.all([
@@ -58,20 +95,24 @@ export function useAlertsStats() {
       const employeeAlertsGenerated = generateEmployeeAlerts(employees, companies)
       const employeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
 
-      // حساب الإحصائيات
-      const companyUrgentAlerts = companyAlerts.filter(alert => alert.priority === 'urgent').length
-      const employeeUrgentAlerts = employeeAlerts.filter(alert => alert.priority === 'urgent').length
-      const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration').length
-      const insuranceAlerts = companyAlerts.filter(alert => alert.type === 'insurance_subscription').length
-      const contractAlerts = employeeAlerts.filter(alert => alert.type === 'contract_expiry').length
-      const residenceAlerts = employeeAlerts.filter(alert => alert.type === 'residence_expiry').length
+      // تصفية التنبيهات المقروءة
+      const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlertsSet.has(alert.id))
+      const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlertsSet.has(alert.id))
+
+      // حساب الإحصائيات (فقط غير المقروءة)
+      const companyUrgentAlerts = unreadCompanyAlerts.filter(alert => alert.priority === 'urgent').length
+      const employeeUrgentAlerts = unreadEmployeeAlerts.filter(alert => alert.priority === 'urgent').length
+      const commercialRegAlerts = unreadCompanyAlerts.filter(alert => alert.type === 'commercial_registration').length
+      const insuranceAlerts = unreadCompanyAlerts.filter(alert => alert.type === 'insurance_subscription').length
+      const contractAlerts = unreadEmployeeAlerts.filter(alert => alert.type === 'contract_expiry').length
+      const residenceAlerts = unreadEmployeeAlerts.filter(alert => alert.type === 'residence_expiry').length
 
       const stats: AlertsStats = {
-        total: companyAlerts.length + employeeAlerts.length,
+        total: unreadCompanyAlerts.length + unreadEmployeeAlerts.length,
         urgent: companyUrgentAlerts + employeeUrgentAlerts,
-        companyAlerts: companyAlerts.length,
+        companyAlerts: unreadCompanyAlerts.length,
         companyUrgent: companyUrgentAlerts,
-        employeeAlerts: employeeAlerts.length,
+        employeeAlerts: unreadEmployeeAlerts.length,
         employeeUrgent: employeeUrgentAlerts,
         commercialRegAlerts,
         insuranceAlerts,
@@ -87,13 +128,27 @@ export function useAlertsStats() {
     }
   }
 
-  const refreshStats = () => {
+  const refreshStats = useCallback(() => {
     fetchAlertsStats()
-  }
+  }, [])
+
+  // دالة لتحديث التنبيه كمقروء محلياً
+  const markAlertAsRead = useCallback((alertId: string) => {
+    setReadAlerts(prev => {
+      const newSet = new Set(prev)
+      newSet.add(alertId)
+      return newSet
+    })
+    // إعادة حساب الإحصائيات بعد تحديث readAlerts
+    setTimeout(() => {
+      fetchAlertsStats()
+    }, 100)
+  }, [])
 
   return {
     alertsStats,
     loading,
-    refreshStats
+    refreshStats,
+    markAlertAsRead
   }
 }

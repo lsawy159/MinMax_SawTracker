@@ -1,9 +1,9 @@
 import React from 'react'
-import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw, Zap, Home } from 'lucide-react'
 
 export interface Alert {
   id: string
-  type: 'commercial_registration' | 'insurance_subscription'
+  type: 'commercial_registration' | 'insurance_subscription' | 'power_subscription' | 'moqeem_subscription'
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -69,6 +69,10 @@ export function AlertCard({
         return <Building2 className="h-5 w-5" />
       case 'insurance_subscription':
         return <Shield className="h-5 w-5" />
+      case 'power_subscription':
+        return <Zap className="h-5 w-5" />
+      case 'moqeem_subscription':
+        return <Home className="h-5 w-5" />
       default:
         return <AlertTriangle className="h-5 w-5" />
     }
@@ -201,12 +205,14 @@ export function AlertCard({
           عرض المؤسسة
         </button>
 
-        <button
-          onClick={() => onMarkAsRead(alert.id)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-        >
-          تم الاطلاع
-        </button>
+        {!isRead && (
+          <button
+            onClick={() => onMarkAsRead(alert.id)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+          >
+            تم الاطلاع
+          </button>
+        )}
       </div>
 
       {/* Footer */}

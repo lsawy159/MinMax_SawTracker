@@ -850,12 +850,12 @@ export default function Companies() {
           </div>
         )}
 
-        {/* Commercial Registration Statistics Section */}
+        {/* Company Status Statistics Section - إحصائيات موحدة تشمل جميع الحالات */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
-              إحصائيات السجل التجاري
+              إحصائيات المؤسسات (موحدة - تشمل جميع الحالات)
             </h3>
           </div>
           {(() => {
@@ -863,7 +863,9 @@ export default function Companies() {
               id: c.id,
               name: c.name,
               commercial_registration_expiry: c.commercial_registration_expiry,
-              insurance_subscription_expiry: c.insurance_subscription_expiry
+              insurance_subscription_expiry: c.insurance_subscription_expiry,
+              ending_subscription_power_date: c.ending_subscription_power_date,
+              ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
             })))
             return (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -873,22 +875,22 @@ export default function Companies() {
                   <div className="text-sm text-gray-600">إجمالي المؤسسات</div>
                 </div>
                 
-                {/* ساري */}
+                {/* ساري - جميع الحالات سارية */}
                 <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-2xl font-bold text-green-700">{stats.commercialRegStats.valid}</div>
-                  <div className="text-sm text-green-600">ساري ({stats.commercialRegStats.percentageValid}%)</div>
+                  <div className="text-2xl font-bold text-green-700">{stats.totalValid}</div>
+                  <div className="text-sm text-green-600">ساري ({stats.totalValidPercentage}%)</div>
                 </div>
                 
-                {/* متوسطة الأهمية */}
+                {/* متوسطة الأهمية - حالة واحدة على الأقل متوسطة */}
                 <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="text-2xl font-bold text-yellow-700">{stats.commercialRegStats.medium}</div>
-                  <div className="text-sm text-yellow-600">متوسطة الأهمية ({stats.commercialRegStats.percentageMedium}%)</div>
+                  <div className="text-2xl font-bold text-yellow-700">{stats.totalMedium}</div>
+                  <div className="text-sm text-yellow-600">متوسطة الأهمية ({stats.totalMediumPercentage}%)</div>
                 </div>
                 
-                {/* حرج/منتهي */}
+                {/* حرج/منتهي - حالة واحدة على الأقل حرجة أو منتهية */}
                 <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-2xl font-bold text-red-700">{stats.commercialRegStats.critical + stats.commercialRegStats.expired}</div>
-                  <div className="text-sm text-red-600">حرج/منتهي ({stats.commercialRegStats.percentageCritical + stats.commercialRegStats.percentageExpired}%)</div>
+                  <div className="text-2xl font-bold text-red-700">{stats.totalCritical + stats.totalExpired}</div>
+                  <div className="text-sm text-red-600">حرج/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)</div>
                 </div>
               </div>
             )

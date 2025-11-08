@@ -33,6 +33,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
   const [loading, setLoading] = useState(true)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
+  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'companies' | 'employees' | 'all'>(initialTab)
   const [activeFilter, setActiveFilter] = useState<'all' | 'urgent' | 'medium' | 'low'>(initialFilter)
   const [searchTerm, setSearchTerm] = useState('')
@@ -42,7 +43,28 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
 
   useEffect(() => {
     fetchData()
+    loadReadAlerts()
   }, [])
+
+  // جلب التنبيهات المقروءة من قاعدة البيانات
+  const loadReadAlerts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('read_alerts')
+        .select('alert_id')
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
+      setReadAlerts(readAlertIds)
+    } catch (error) {
+      console.error('خطأ في جلب التنبيهات المقروءة:', error)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -103,22 +125,43 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
     navigate('/companies?action=renew')
   }
 
-  const handleMarkAsRead = (alertId: string) => {
-    setCompanyAlerts(prev => 
-      prev.map(alert => 
-        alert.id === alertId ? { ...alert } : alert
-      )
-    )
-    setEmployeeAlerts(prev => 
-      prev.map(alert => 
-        alert.id === alertId ? { ...alert } : alert
-      )
-    )
+  const handleMarkAsRead = async (alertId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('المستخدم غير مسجل دخول')
+        return
+      }
+
+      // حفظ التنبيه كمقروء في قاعدة البيانات
+      const { error } = await supabase
+        .from('read_alerts')
+        .upsert({
+          user_id: user.id,
+          alert_id: alertId,
+          read_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,alert_id'
+        })
+
+      if (error) throw error
+
+      // تحديث حالة التنبيه محلياً
+      setReadAlerts(prev => new Set([...prev, alertId]))
+      
+      // إعادة تحميل الإحصائيات لتحديث العدد في شريط التنقل
+      window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
+    } catch (error) {
+      console.error('خطأ في حفظ التنبيه كمقروء:', error)
+    }
   }
 
-  // فلترة التنبيهات
+  // فلترة التنبيهات (تصفية المقروءة أولاً)
+  const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlerts.has(alert.id))
+  const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlerts.has(alert.id))
+
   const getFilteredCompanyAlerts = () => {
-    let filtered = companyAlerts
+    let filtered = unreadCompanyAlerts
 
     if (activeFilter !== 'all') {
       filtered = filterAlertsByPriority(filtered, activeFilter)
@@ -135,7 +178,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
   }
 
   const getFilteredEmployeeAlerts = () => {
-    let filtered = employeeAlerts
+    let filtered = unreadEmployeeAlerts
 
     if (activeFilter !== 'all') {
       filtered = filterEmployeeAlertsByPriority(filtered, activeFilter)
@@ -152,9 +195,9 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
     return filtered
   }
 
-  // إحصائيات التنبيهات
-  const companyAlertsStats = getAlertsStats(companyAlerts)
-  const employeeAlertsStats = getEmployeeAlertsStats(employeeAlerts)
+  // إحصائيات التنبيهات (فقط غير المقروءة)
+  const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
+  const employeeAlertsStats = getEmployeeAlertsStats(unreadEmployeeAlerts)
   const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
   const totalUrgentAlerts = companyAlertsStats.urgent + employeeAlertsStats.urgent
 
@@ -318,6 +361,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
                     onViewCompany={handleViewCompany}
                     onShowCompanyCard={handleShowCompanyCard}
                     onMarkAsRead={handleMarkAsRead}
+                    isRead={readAlerts.has(alert.id)}
                   />
                 ))}
               </div>
@@ -343,6 +387,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
                     onViewCompany={handleViewCompany}
                     onRenewAction={handleRenewAction}
                     onMarkAsRead={handleMarkAsRead}
+                    isRead={readAlerts.has(alert.id)}
                   />
                 ))}
               </div>
