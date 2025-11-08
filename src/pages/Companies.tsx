@@ -529,9 +529,15 @@ export default function Companies() {
     setSelectedCompany(null)
   }
 
-  const handleModalSuccess = () => {
-    handleModalClose()
-    loadCompanies()
+  const handleModalSuccess = async () => {
+    try {
+      handleModalClose()
+      await loadCompanies()
+    } catch (error) {
+      console.error('Error in handleModalSuccess:', error)
+      // لا نعيد تحميل القائمة في حالة الخطأ - نترك المودال مفتوحاً
+      toast.error('حدث خطأ أثناء تحديث القائمة')
+    }
   }
 
   const activeFiltersCount = [

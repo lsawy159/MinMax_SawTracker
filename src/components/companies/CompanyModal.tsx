@@ -219,20 +219,87 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
     try {
       // تحضير البيانات مع معالجة محسنة للقيم الفارغة
-      const companyData = {
-        name: formData.name.trim() || null,
-        tax_number: formData.tax_number.trim() ? parseInt(formData.tax_number.trim()) : null,
-        unified_number: formData.unified_number.trim() ? parseInt(formData.unified_number.trim()) : null,
-        labor_subscription_number: formData.labor_subscription_number.trim() || null,
-        company_type: formData.company_type.trim() || null,
-        commercial_registration_expiry: formData.commercial_registration_expiry?.trim() || null,
-        insurance_subscription_expiry: formData.insurance_subscription_expiry?.trim() || null,
-        government_docs_renewal: formData.government_docs_renewal?.trim() || null,
-        // الحقول الجديدة
-        ending_subscription_power_date: formData.ending_subscription_power_date?.trim() || null,
-        ending_subscription_moqeem_date: formData.ending_subscription_moqeem_date?.trim() || null,
-        max_employees: formData.max_employees.trim() ? parseInt(formData.max_employees.trim()) : null
+      // معالجة الأرقام بشكل آمن
+      const taxNumber = formData.tax_number.trim() ? (() => {
+        const parsed = parseInt(formData.tax_number.trim())
+        return isNaN(parsed) ? null : parsed
+      })() : null
+      
+      // unified_number مطلوب - يجب أن يكون موجوداً وصحيحاً
+      const unifiedNumber = formData.unified_number.trim() ? (() => {
+        const parsed = parseInt(formData.unified_number.trim())
+        if (isNaN(parsed)) {
+          throw new Error('الرقم الموحد يجب أن يكون رقماً صحيحاً')
+        }
+        return parsed
+      })() : (() => {
+        // إذا كان فارغاً، نحاول استخدام القيمة الحالية من company
+        if (isEditing && company?.unified_number) {
+          return company.unified_number
+        }
+        throw new Error('الرقم الموحد مطلوب')
+      })()
+      
+      const maxEmployees = formData.max_employees.trim() ? (() => {
+        const parsed = parseInt(formData.max_employees.trim())
+        return isNaN(parsed) ? null : parsed
+      })() : null
+
+      // معالجة التواريخ - التأكد من أنها بصيغة صحيحة أو null
+      const formatDate = (dateStr: string | undefined): string | null => {
+        if (!dateStr || !dateStr.trim()) return null
+        const trimmed = dateStr.trim()
+        // التحقق من أن التاريخ بصيغة YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+          return trimmed
+        }
+        // محاولة تحويل التاريخ إذا كان بصيغة أخرى
+        try {
+          const date = new Date(trimmed)
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]
+          }
+        } catch {
+          // ignore
+        }
+        return null
       }
+
+      // labor_subscription_number مطلوب أيضاً
+      const laborSubscriptionNumber = formData.labor_subscription_number.trim() || (() => {
+        if (isEditing && company?.labor_subscription_number) {
+          return company.labor_subscription_number
+        }
+        throw new Error('رقم اشتراك التأمينات مطلوب')
+      })()
+
+      const companyData: any = {
+        name: formData.name.trim() || null,
+        tax_number: taxNumber,
+        unified_number: unifiedNumber,
+        labor_subscription_number: laborSubscriptionNumber,
+        company_type: formData.company_type.trim() || null,
+        commercial_registration_expiry: formatDate(formData.commercial_registration_expiry),
+        insurance_subscription_expiry: formatDate(formData.insurance_subscription_expiry),
+        government_docs_renewal: formatDate(formData.government_docs_renewal),
+        // الحقول الجديدة
+        ending_subscription_power_date: formatDate(formData.ending_subscription_power_date),
+        ending_subscription_moqeem_date: formatDate(formData.ending_subscription_moqeem_date),
+        max_employees: maxEmployees
+      }
+
+      // إزالة الحقول null فقط (وليس الحقول المطلوبة) من البيانات المرسلة
+      // الحقول المطلوبة: name, unified_number, labor_subscription_number
+      Object.keys(companyData).forEach(key => {
+        // لا نحذف الحقول المطلوبة حتى لو كانت null
+        if (key === 'name' || key === 'unified_number' || key === 'labor_subscription_number') {
+          return
+        }
+        // نحذف الحقول الاختيارية إذا كانت null أو undefined أو ''
+        if (companyData[key] === null || companyData[key] === undefined || companyData[key] === '') {
+          delete companyData[key]
+        }
+      })
 
       console.log('📊 البيانات المحضرة للحفظ:', companyData)
 
@@ -275,15 +342,25 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
       if (error) {
         console.error('❌ خطأ في قاعدة البيانات:', error)
+        console.error('❌ تفاصيل الخطأ:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        console.error('❌ البيانات المرسلة:', companyData)
+        
         // تحسين رسائل الأخطاء
         let errorMessage = `فشل ${isEditing ? 'تحديث' : 'إضافة'} المؤسسة`
         
-        if (error.message?.includes('duplicate key')) {
+        if (error.message?.includes('duplicate key') || error.code === '23505') {
           errorMessage = 'رقم اشتراك التأمينات أو الرقم الموحد موجود مسبقاً'
-        } else if (error.message?.includes('violates')) {
-          errorMessage = 'بيانات غير صحيحة أو ناقصة'
-        } else if (error.message?.includes('network')) {
-          errorMessage = 'خطأ في الاتصال بالخادم'
+        } else if (error.message?.includes('violates') || error.code === '23502') {
+          errorMessage = 'بيانات غير صحيحة أو ناقصة - يرجى التحقق من جميع الحقول المطلوبة'
+        } else if (error.message?.includes('network') || error.code === 'PGRST301') {
+          errorMessage = 'خطأ في الاتصال بالخادم - يرجى المحاولة مرة أخرى'
+        } else if (error.message?.includes('invalid input') || error.code === '22P02') {
+          errorMessage = 'صيغة البيانات غير صحيحة - يرجى التحقق من الأرقام والتواريخ'
         } else if (error.message) {
           errorMessage += `: ${error.message}`
         }
@@ -317,7 +394,15 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       } else {
         toast.success('✅ تم إضافة المؤسسة الجديدة بنجاح')
       }
-      onSuccess()
+      
+      // إغلاق المودال وإعادة تحميل القائمة فقط في حالة النجاح
+      try {
+        onSuccess()
+      } catch (error) {
+        console.error('Error calling onSuccess:', error)
+        // حتى لو فشل onSuccess، نغلق المودال
+        onClose()
+      }
     } catch (error: any) {
       const errorMsg = error.message || `حدث خطأ غير متوقع أثناء ${isEditing ? 'تحديث' : 'إضافة'} المؤسسة`
       console.error('💥 خطأ في حفظ المؤسسة:', {
@@ -328,6 +413,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         companyId: company?.id
       })
       toast.error(errorMsg)
+      // لا نغلق المودال في حالة الخطأ - نترك المستخدم يرى الخطأ ويصححه
+      // setLoading(false) في finally سيتولى إيقاف حالة التحميل
     } finally {
       setLoading(false)
       console.log('🏁 انتهت عملية حفظ المؤسسة')
