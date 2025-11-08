@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔍 [AUTH] Fetching user from Supabase Auth...')
         const authPromise = supabase.auth.getUser()
         const authTimeout = new Promise<{ data: { user: null }, error: { message: 'Timeout' } }>((resolve) => 
-          setTimeout(() => resolve({ data: { user: null }, error: { message: 'Timeout' } }), 3000)
+          setTimeout(() => resolve({ data: { user: null }, error: { message: 'Timeout' } }), 10000)
         )
         
         const authResult = await Promise.race([authPromise, authTimeout])
