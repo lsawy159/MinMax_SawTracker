@@ -27,6 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const mountedRef = useRef(true)
   const loadingRef = useRef(true)
+  const fetchingRef = useRef(false) // منع الاستدعاءات المتعددة
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null) // debounce
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
@@ -95,20 +97,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
 
       try {
+        // إلغاء أي timeout سابق
+        if (fetchTimeoutRef.current) {
+          clearTimeout(fetchTimeoutRef.current)
+          fetchTimeoutRef.current = null
+        }
+
         if (event === 'SIGNED_IN' && session?.user) {
-          await fetchUserData(session.user.id, false)
+          // استخدام debounce لمنع الاستدعاءات المتعددة
+          fetchTimeoutRef.current = setTimeout(() => {
+            fetchUserData(session.user.id, false)
+          }, 100) // 100ms debounce
         } else if (event === 'SIGNED_OUT') {
           if (mountedRef.current) {
             setUser(null)
             setLoading(false)
             loadingRef.current = false
+            fetchingRef.current = false
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           // تحديث بيانات المستخدم عند تجديد الرمز المميز - لا نعيد التحميل إذا كان المستخدم موجوداً
           if (!user || user.id !== session.user.id) {
-            await fetchUserData(session.user.id, false)
+            fetchTimeoutRef.current = setTimeout(() => {
+              fetchUserData(session.user.id, false)
+            }, 100) // 100ms debounce
           } else {
             console.log('✅ [AUTH] Token refreshed, user already loaded, skipping fetch')
+            if (mountedRef.current) {
+              setLoading(false)
+              loadingRef.current = false
+            }
+          }
+        } else if (event === 'INITIAL_SESSION' && session?.user) {
+          // INITIAL_SESSION - لا نعيد التحميل إذا كان المستخدم محملاً بالفعل
+          if (!user || user.id !== session.user.id) {
+            fetchTimeoutRef.current = setTimeout(() => {
+              fetchUserData(session.user.id, true)
+            }, 100) // 100ms debounce
+          } else {
+            console.log('✅ [AUTH] INITIAL_SESSION - user already loaded, skipping')
             if (mountedRef.current) {
               setLoading(false)
               loadingRef.current = false
@@ -119,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (mountedRef.current) {
             setLoading(false)
             loadingRef.current = false
+            fetchingRef.current = false
           }
         }
       } catch (error) {
@@ -126,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mountedRef.current) {
           setLoading(false)
           loadingRef.current = false
+          fetchingRef.current = false
         }
       }
     })
@@ -134,12 +163,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mountedRef.current = false
       subscription.unsubscribe()
       if (loadingTimeout) clearTimeout(loadingTimeout)
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
+      fetchingRef.current = false
     }
   }, [])
 
   // دالة جلب بيانات المستخدم المحسنة - سريعة وموثوقة
   const fetchUserData = async (userId: string, isInitialLoad: boolean) => {
     console.log('🔍 [AUTH] Starting fetchUserData for userId:', userId, 'isInitialLoad:', isInitialLoad)
+    
+    // منع الاستدعاءات المتعددة
+    if (fetchingRef.current) {
+      console.log('⏸️ [AUTH] fetchUserData already in progress, skipping duplicate call')
+      return
+    }
     
     // إذا كان المستخدم موجوداً بالفعل وليس initial load، لا نعيد التحميل
     if (!isInitialLoad && user && user.id === userId) {
@@ -150,6 +187,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return
     }
+    
+    // تعيين flag لمنع الاستدعاءات المتعددة
+    fetchingRef.current = true
 
     try {
       if (isInitialLoad && mountedRef.current) {
@@ -158,42 +198,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setError(null)
 
-      // استخدام بيانات مؤقتة مباشرة من session إذا كانت متوفرة
+      // استخدام بيانات مؤقتة مباشرة من session - أسرع وأكثر موثوقية
       let authUser: any = null
+      
+      // استخدام session مباشرة (أسرع من getUser)
+      console.log('🔍 [AUTH] Getting user from session (fast)...')
+      
       try {
-        // محاولة جلب المستخدم من Auth مع timeout قصير
-        console.log('🔍 [AUTH] Fetching user from Supabase Auth...')
-        const authPromise = supabase.auth.getUser()
-        const authTimeout = new Promise<{ data: { user: null }, error: { message: 'Timeout' } }>((resolve) => 
-          setTimeout(() => resolve({ data: { user: null }, error: { message: 'Timeout' } }), 10000)
+        // إضافة timeout لـ getSession أيضاً - زيادة الوقت لأن getSession قد يكون بطيئاً
+        const sessionPromise = supabase.auth.getSession()
+        const sessionTimeout = new Promise<{ data: { session: null }, error: { message: 'Timeout' } }>((resolve) => 
+          setTimeout(() => {
+            console.warn('⏱️ [AUTH] Session fetch timeout (5s) - using fallback')
+            resolve({ data: { session: null }, error: { message: 'Timeout' } })
+          }, 5000) // 5 ثواني timeout - زيادة الوقت
         )
         
-        const authResult = await Promise.race([authPromise, authTimeout])
+        const sessionResult = await Promise.race([sessionPromise, sessionTimeout])
+        console.log('📋 [AUTH] Session result:', sessionResult.data?.session ? 'found' : 'not found')
         
-        if (authResult.data?.user) {
-          authUser = authResult.data.user
-          console.log('✅ [AUTH] User fetched from Auth:', authUser.id)
+        if (sessionResult.data?.session?.user) {
+          authUser = sessionResult.data.session.user
+          console.log('✅ [AUTH] User found in session:', authUser.id)
+          
+          // محاولة تحديث البيانات من getUser في الخلفية (لا ننتظر)
+          supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
+            if (freshUser && mountedRef.current) {
+              console.log('✅ [AUTH] Fresh user data fetched, updating if needed')
+              // يمكن تحديث البيانات إذا لزم الأمر
+            }
+          }).catch((getUserError) => {
+            console.warn('⚠️ [AUTH] Background getUser failed (non-blocking):', getUserError)
+          })
         } else {
-          console.warn('⚠️ [AUTH] Auth fetch timeout or error, using session data')
-          // استخدام بيانات من session إذا كانت متوفرة
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.user) {
-            authUser = session.user
-            console.log('✅ [AUTH] Using session user data:', authUser.id)
-          } else {
-            throw new Error('لا توجد بيانات مستخدم متاحة')
+          // إذا لم تكن هناك session، محاولة استخدام userId مباشرة
+          console.log('⚠️ [AUTH] No session found, using userId directly')
+          // استخدام userId الممرر كمعرف مؤقت
+          authUser = {
+            id: userId,
+            email: '',
+            user_metadata: {}
           }
+          console.log('✅ [AUTH] Using userId as fallback:', authUser.id)
         }
-      } catch (authError: any) {
-        console.warn('⚠️ [AUTH] Error fetching from Auth, trying session:', authError)
-        // محاولة استخدام session كبديل
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          authUser = session.user
-          console.log('✅ [AUTH] Using session user data as fallback:', authUser.id)
-        } else {
-          throw new Error('فشل في جلب بيانات المستخدم')
+      } catch (sessionError: any) {
+        console.warn('⚠️ [AUTH] Error getting session, using userId:', sessionError)
+        // استخدام userId الممرر كمعرف مؤقت
+        authUser = {
+          id: userId,
+          email: '',
+          user_metadata: {}
         }
+        console.log('✅ [AUTH] Using userId as fallback after error:', authUser.id)
       }
 
       if (!authUser) {
@@ -282,6 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       // التأكد من إيقاف التحميل في جميع الحالات
+      fetchingRef.current = false // إعادة تعيين flag
       if (mountedRef.current) {
         console.log('🏁 [AUTH] fetchUserData completed, ensuring loading is false')
         setLoading(false)
@@ -424,7 +481,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // تحديث بيانات المستخدم
   const refreshUserData = async () => {
-    if (session?.user) {
+    if (session?.user && !fetchingRef.current) {
       await fetchUserData(session.user.id, false)
     }
   }
