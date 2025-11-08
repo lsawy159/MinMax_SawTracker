@@ -9,8 +9,8 @@ export default function ExportTab() {
   const [employees, setEmployees] = useState<(Employee & { company: Company })[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedEmployees, setSelectedEmployees] = useState<Set<number>>(new Set())
-  const [selectedCompanies, setSelectedCompanies] = useState<Set<number>>(new Set())
+  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set())
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCompany, setFilterCompany] = useState<string>('all')
 
@@ -43,7 +43,7 @@ export default function ExportTab() {
     return matchesSearch && matchesCompany
   })
 
-  const toggleEmployeeSelection = (id: number) => {
+  const toggleEmployeeSelection = (id: string) => {
     const newSet = new Set(selectedEmployees)
     if (newSet.has(id)) {
       newSet.delete(id)
@@ -61,7 +61,7 @@ export default function ExportTab() {
     }
   }
 
-  const toggleCompanySelection = (id: number) => {
+  const toggleCompanySelection = (id: string) => {
     const newSet = new Set(selectedCompanies)
     if (newSet.has(id)) {
       newSet.delete(id)
@@ -337,8 +337,8 @@ export default function ExportTab() {
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">{company.name}</div>
                   <div className="text-sm text-gray-600">
-                    {company.insurance_number && `تأميني: ${company.insurance_number}`}
-                    {company.employee_limit && ` | الحد: ${company.employee_limit} موظف`}
+                    {company.insurance_subscription_expiry && `انتهاء التأمين: ${company.insurance_subscription_expiry}`}
+                    {company.max_employees && ` | الحد: ${company.max_employees} موظف`}
                   </div>
                 </div>
               </div>
