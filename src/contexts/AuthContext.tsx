@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react'
 import { supabase, User } from '../lib/supabase'
 import { Session, AuthError } from '@supabase/supabase-js'
 
@@ -104,8 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             loadingRef.current = false
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // تحديث بيانات المستخدم عند تجديد الرمز المميز
-          await fetchUserData(session.user.id, false)
+          // تحديث بيانات المستخدم عند تجديد الرمز المميز - لا نعيد التحميل إذا كان المستخدم موجوداً
+          if (!user || user.id !== session.user.id) {
+            await fetchUserData(session.user.id, false)
+          } else {
+            console.log('✅ [AUTH] Token refreshed, user already loaded, skipping fetch')
+            if (mountedRef.current) {
+              setLoading(false)
+              loadingRef.current = false
+            }
+          }
         } else if (!session) {
           // لا توجد جلسة - إيقاف التحميل
           if (mountedRef.current) {
@@ -129,9 +137,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // دالة جلب بيانات المستخدم المحسنة
+  // دالة جلب بيانات المستخدم المحسنة - سريعة وموثوقة
   const fetchUserData = async (userId: string, isInitialLoad: boolean) => {
     console.log('🔍 [AUTH] Starting fetchUserData for userId:', userId, 'isInitialLoad:', isInitialLoad)
+    
+    // إذا كان المستخدم موجوداً بالفعل وليس initial load، لا نعيد التحميل
+    if (!isInitialLoad && user && user.id === userId) {
+      console.log('✅ [AUTH] User already loaded, skipping fetch')
+      if (mountedRef.current) {
+        setLoading(false)
+        loadingRef.current = false
+      }
+      return
+    }
+
     try {
       if (isInitialLoad && mountedRef.current) {
         setLoading(true)
@@ -139,90 +158,114 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setError(null)
 
-      // جلب بيانات المستخدم من Supabase Auth
-      console.log('🔍 [AUTH] Fetching user from Supabase Auth...')
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !authUser) {
-        console.error('❌ [AUTH] Error fetching user from Auth:', authError)
-        throw new Error('فشل في جلب بيانات المستخدم')
-      }
-
-      console.log('✅ [AUTH] User fetched from Auth:', authUser.id)
-
-      if (authUser.id !== userId) {
-        console.warn('⚠️ [AUTH] User ID mismatch:', authUser.id, 'vs', userId)
-      }
-
-      // محاولة جلب بيانات المستخدم من جدول users مع timeout
-      let userData: User | null = null
+      // استخدام بيانات مؤقتة مباشرة من session إذا كانت متوفرة
+      let authUser: any = null
       try {
-        console.log('🔍 [AUTH] Fetching user from database...')
-        const dbPromise = fetchUserFromDatabase(userId)
-        const timeoutPromise = new Promise<null>((resolve) => 
-          setTimeout(() => {
-            console.warn('⏱️ [AUTH] Database fetch timeout, using fallback')
-            resolve(null)
-          }, 5000) // 5 ثواني timeout
+        // محاولة جلب المستخدم من Auth مع timeout قصير
+        console.log('🔍 [AUTH] Fetching user from Supabase Auth...')
+        const authPromise = supabase.auth.getUser()
+        const authTimeout = new Promise<{ data: { user: null }, error: { message: 'Timeout' } }>((resolve) => 
+          setTimeout(() => resolve({ data: { user: null }, error: { message: 'Timeout' } }), 3000)
         )
         
-        userData = await Promise.race([dbPromise, timeoutPromise])
-        if (userData) {
-          console.log('✅ [AUTH] User found in database')
+        const authResult = await Promise.race([authPromise, authTimeout])
+        
+        if (authResult.data?.user) {
+          authUser = authResult.data.user
+          console.log('✅ [AUTH] User fetched from Auth:', authUser.id)
         } else {
-          console.log('ℹ️ [AUTH] User not found in database or timeout')
+          console.warn('⚠️ [AUTH] Auth fetch timeout or error, using session data')
+          // استخدام بيانات من session إذا كانت متوفرة
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            authUser = session.user
+            console.log('✅ [AUTH] Using session user data:', authUser.id)
+          } else {
+            throw new Error('لا توجد بيانات مستخدم متاحة')
+          }
         }
-      } catch (dbError) {
-        console.warn('⚠️ [AUTH] Error fetching user from database:', dbError)
-      }
-      
-      if (!userData) {
-        console.log('🔍 [AUTH] Creating new user in database...')
-        try {
-          // استخدام بيانات مؤقتة مباشرة بدون انتظار إنشاء في قاعدة البيانات
-          userData = {
-            id: authUser.id,
-            email: authUser.email || '',
-            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'مستخدم',
-            role: 'admin',
-            permissions: {},
-            is_active: true,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
-          }
-          
-          // محاولة إنشاء المستخدم في الخلفية (لا ننتظر)
-          createUserFromAuthData(authUser).catch((createError) => {
-            console.warn('⚠️ [AUTH] Failed to create user in database (non-blocking):', createError)
-          })
-          
-          console.log('✅ [AUTH] Using temporary user data')
-        } catch (createError) {
-          console.error('❌ [AUTH] Error creating user:', createError)
-          // استخدام بيانات مؤقتة في حالة الفشل
-          userData = {
-            id: authUser.id,
-            email: authUser.email || '',
-            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'مستخدم',
-            role: 'admin',
-            permissions: {},
-            is_active: true,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
-          }
+      } catch (authError: any) {
+        console.warn('⚠️ [AUTH] Error fetching from Auth, trying session:', authError)
+        // محاولة استخدام session كبديل
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          authUser = session.user
+          console.log('✅ [AUTH] Using session user data as fallback:', authUser.id)
+        } else {
+          throw new Error('فشل في جلب بيانات المستخدم')
         }
       }
 
+      if (!authUser) {
+        throw new Error('لا توجد بيانات مستخدم متاحة')
+      }
+
+      // إنشاء بيانات مستخدم مؤقتة مباشرة بدون انتظار قاعدة البيانات
+      const tempUserData: User = {
+        id: authUser.id,
+        email: authUser.email || '',
+        full_name: authUser.user_metadata?.full_name || 
+                   authUser.user_metadata?.name || 
+                   authUser.email?.split('@')[0] || 
+                   'مستخدم',
+        role: 'admin',
+        permissions: {},
+        is_active: true,
+        created_at: new Date().toISOString(),
+        last_login: new Date().toISOString()
+      }
+
+      // تعيين البيانات المؤقتة فوراً
       if (mountedRef.current) {
-        console.log('✅ [AUTH] Setting user data and stopping loading')
-        setUser(userData)
+        console.log('✅ [AUTH] Setting temporary user data immediately')
+        setUser(tempUserData)
         setLoading(false)
         loadingRef.current = false
       }
+
+      // محاولة جلب/إنشاء المستخدم من قاعدة البيانات في الخلفية (لا ننتظر)
+      Promise.race([
+        fetchUserFromDatabase(userId),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
+      ]).then((dbUser) => {
+        if (dbUser && mountedRef.current) {
+          console.log('✅ [AUTH] Database user found, updating user data')
+          setUser(dbUser)
+        } else if (!dbUser) {
+          // محاولة إنشاء المستخدم في الخلفية
+          createUserFromAuthData(authUser).then((createdUser) => {
+            if (createdUser && mountedRef.current) {
+              console.log('✅ [AUTH] User created in database, updating user data')
+              setUser(createdUser)
+            }
+          }).catch((createError) => {
+            console.warn('⚠️ [AUTH] Failed to create user in database (non-blocking):', createError)
+          })
+        }
+      }).catch((dbError) => {
+        console.warn('⚠️ [AUTH] Database fetch error (non-blocking):', dbError)
+      })
+
     } catch (error: any) {
       console.error('❌ [AUTH] Error in fetchUserData:', error)
       
       if (mountedRef.current) {
+        // حتى في حالة الخطأ، نستخدم بيانات مؤقتة
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const fallbackUser: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'مستخدم',
+            role: 'admin',
+            permissions: {},
+            is_active: true,
+            created_at: new Date().toISOString(),
+            last_login: new Date().toISOString()
+          }
+          setUser(fallbackUser)
+        }
+        
         setError(error.message || 'خطأ في جلب بيانات المستخدم')
         setLoading(false)
         loadingRef.current = false
