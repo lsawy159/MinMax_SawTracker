@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
 import { Search, Filter, X, Save, Download, Star, ChevronDown, ChevronUp, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -131,32 +131,8 @@ export default function AdvancedSearch() {
     ? filteredCompanies.slice(Math.max(0, startIndex - filteredEmployees.length), Math.max(0, endIndex - filteredEmployees.length))
     : filteredCompanies.slice(startIndex, endIndex)
 
-  useEffect(() => {
-    loadData()
-    loadSavedSearches()
-  }, [])
-
-  useEffect(() => {
-    applyFilters()
-    setCurrentPage(1) // Reset to first page when filters change
-  }, [
-    searchQuery,
-    searchType,
-    employees,
-    companies,
-    selectedNationality,
-    selectedCompany,
-    selectedProfession,
-    selectedProject,
-    residenceStatus,
-    contractStatus,
-    selectedCompanyType,
-    commercialRegStatus,
-    insuranceStatus,
-    companyDateFilter
-  ])
-
-  const loadData = async () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       // Load employees with additional_fields
@@ -213,9 +189,10 @@ export default function AdvancedSearch() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, []) // <-- [FIX] مصفوفة اعتماديات فارغة (setters مستقرة)
 
-  const loadSavedSearches = async () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const loadSavedSearches = useCallback(async () => {
     if (!user?.id) return
     
     const { data, error } = await supabase
@@ -230,9 +207,10 @@ export default function AdvancedSearch() {
     }
     
     if (data) setSavedSearches(data)
-  }
+  }, [user]) // <-- [FIX] تعتمد على user
 
-  const applyFilters = () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const applyFilters = useCallback(() => {
     let filteredEmps = [...employees]
     let filteredComps = [...companies]
 
@@ -500,7 +478,40 @@ export default function AdvancedSearch() {
 
     setFilteredEmployees(filteredEmps)
     setFilteredCompanies(filteredComps)
-  }
+  }, [ // [FIX] مصفوفة الاعتماديات لـ useCallback
+    employees, 
+    companies, 
+    searchQuery, 
+    searchType, 
+    selectedNationality, 
+    selectedCompany, 
+    selectedProfession, 
+    selectedProject, 
+    residenceStatus, 
+    contractStatus, 
+    hasInsuranceExpiry, 
+    hasBankAccount, 
+    birthDateRange, 
+    joiningDateRange, 
+    selectedCompanyType, 
+    commercialRegStatus, 
+    insuranceStatus, 
+    companyDateFilter, 
+    powerSubscriptionStatus, 
+    moqeemSubscriptionStatus, 
+    employeeCountFilter, 
+    availableSlotsFilter
+  ])
+
+  useEffect(() => {
+    loadData()
+    loadSavedSearches()
+  }, [loadData, loadSavedSearches]) // [FIX] تم التحديث
+
+  useEffect(() => {
+    applyFilters()
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [applyFilters]) // [FIX] تم التحديث
 
   const clearFilters = () => {
     setSearchQuery('')
@@ -567,7 +578,7 @@ export default function AdvancedSearch() {
       }
       
       toast.success('تم حفظ البحث بنجاح')
-      loadSavedSearches()
+      loadSavedSearches() // [FIX] نستخدم الدالة المغلفة
     } catch (error: any) {
       console.error('Error saving search:', error)
       toast.error(error?.message || 'فشل حفظ البحث')
@@ -597,7 +608,7 @@ export default function AdvancedSearch() {
     try {
       await supabase.from('saved_searches').delete().eq('id', id)
       toast.success('تم حذف البحث المحفوظ')
-      loadSavedSearches()
+      loadSavedSearches() // [FIX] نستخدم الدالة المغلفة
     } catch (error) {
       console.error('Error deleting saved search:', error)
       toast.error('فشل حذف البحث')

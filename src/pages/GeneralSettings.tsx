@@ -29,6 +29,47 @@ export default function GeneralSettings() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
+  // --- [BEGIN FIX] ---
+  // تم نقل الـ Hook والدالة التي يعتمد عليها إلى هنا (قبل الـ return الشرطي)
+
+  const loadSettings = async () => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('general_settings')
+        .select('*')
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = table doesn't exist
+        console.error('Error loading settings:', error)
+      }
+
+      if (data) {
+        const settingsMap: Record<string, any> = {}
+        data.forEach(setting => {
+          settingsMap[setting.setting_key] = setting.setting_value
+        })
+        setSettings(settingsMap)
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // [FIX] تم نقل الـ Hook إلى هنا ليكون قبل الـ return الشرطي
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      loadSettings()
+    } else {
+      // إذا لم يكن المستخدم admin، لا نزال بحاجة لإنهاء التحميل
+      // (سيتم إيقافه بواسطة الـ return الشرطي أدناه)
+      setIsLoading(false)
+    }
+  }, [user]) // أضفنا user كـ dependency
+
+  // --- [END FIX] ---
+
   // Check if user is admin
   if (!user || user.role !== 'admin') {
     return (
@@ -353,34 +394,7 @@ export default function GeneralSettings() {
     }
   ]
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
-    setIsLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('general_settings')
-        .select('*')
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = table doesn't exist
-        console.error('Error loading settings:', error)
-      }
-
-      if (data) {
-        const settingsMap: Record<string, any> = {}
-        data.forEach(setting => {
-          settingsMap[setting.setting_key] = setting.setting_value
-        })
-        setSettings(settingsMap)
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // تم نقل الـ useEffect للأعلى
 
   const saveSettings = async () => {
     setIsSaving(true)

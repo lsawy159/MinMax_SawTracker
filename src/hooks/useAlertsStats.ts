@@ -52,24 +52,12 @@ export function useAlertsStats() {
       console.error('خطأ في جلب التنبيهات المقروءة:', error)
       return new Set<string>()
     }
-  }, [])
+  }, []) // <-- مصفوفة فارغة، دالة مستقرة
 
-  useEffect(() => {
-    fetchAlertsStats()
-    
-    // الاستماع لحدث تحديث التنبيه كمقروء
-    const handleAlertMarkedAsRead = () => {
-      fetchAlertsStats()
-    }
-    
-    window.addEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
-    
-    return () => {
-      window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
-    }
-  }, [])
+  // --- [BEGIN FIX] ---
 
-  const fetchAlertsStats = async () => {
+  // [FIX] تم تغليف الدالة الرئيسية بـ useCallback لجعلها مستقرة
+  const fetchAlertsStats = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -126,11 +114,28 @@ export function useAlertsStats() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadReadAlerts]) // <-- [FIX] أضفنا اعتماديتها
+
+  useEffect(() => {
+    fetchAlertsStats()
+    
+    // الاستماع لحدث تحديث التنبيه كمقروء
+    const handleAlertMarkedAsRead = () => {
+      fetchAlertsStats()
+    }
+    
+    window.addEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+    
+    return () => {
+      window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+    }
+  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
+
+  // (الدالة الأصلية كانت هنا)
 
   const refreshStats = useCallback(() => {
     fetchAlertsStats()
-  }, [])
+  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
 
   // دالة لتحديث التنبيه كمقروء محلياً
   const markAlertAsRead = useCallback((alertId: string) => {
@@ -143,7 +148,9 @@ export function useAlertsStats() {
     setTimeout(() => {
       fetchAlertsStats()
     }, 100)
-  }, [])
+  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
+
+  // --- [END FIX] ---
 
   return {
     alertsStats,

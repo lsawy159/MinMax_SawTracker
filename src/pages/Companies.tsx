@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import { supabase, Company } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import CompanyModal from '../components/companies/CompanyModal'
@@ -56,34 +56,8 @@ export default function Companies() {
   // Company types list
   const [companyTypes, setCompanyTypes] = useState<string[]>([])
 
-  useEffect(() => {
-    loadCompanies()
-    // Load saved filters from localStorage
-    loadSavedFilters()
-  }, [])
-
-  useEffect(() => {
-    applyFiltersAndSort()
-    // Save filters to localStorage
-    saveFiltersToStorage()
-  }, [
-    companies,
-    searchTerm,
-    companyTypeFilter,
-    commercialRegStatus,
-    insuranceStatus,
-    powerSubscriptionStatus,
-    moqeemSubscriptionStatus,
-    employeeCountFilter,
-    availableSlotsFilter,
-    dateRangeFilter,
-    customStartDate,
-    customEndDate,
-    sortField,
-    sortDirection
-  ])
-
-  const loadSavedFilters = () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const loadSavedFilters = useCallback(() => {
     try {
       const saved = localStorage.getItem('companiesFilters')
       if (saved) {
@@ -104,9 +78,10 @@ export default function Companies() {
     } catch (error) {
       console.error('Error loading saved filters:', error)
     }
-  }
+  }, []) // <-- [FIX] مصفوفة اعتماديات فارغة لأنها لا تعتمد على state
 
-  const saveFiltersToStorage = () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const saveFiltersToStorage = useCallback(() => {
     try {
       const filters = {
         searchTerm,
@@ -126,9 +101,22 @@ export default function Companies() {
     } catch (error) {
       console.error('Error saving filters:', error)
     }
-  }
+  }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
+    searchTerm,
+    companyTypeFilter,
+    commercialRegStatus,
+    insuranceStatus,
+    powerSubscriptionStatus,
+    moqeemSubscriptionStatus,
+    employeeCountFilter,
+    availableSlotsFilter,
+    dateRangeFilter,
+    sortField,
+    sortDirection
+  ])
 
-  const loadCompanies = async () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const loadCompanies = useCallback(async () => {
     console.log('🔍 [DEBUG] Starting loadCompanies...')
     
     try {
@@ -231,9 +219,10 @@ export default function Companies() {
       console.log('🏁 [DEBUG] loadCompanies completed, setting loading to false')
       setLoading(false)
     }
-  }
+  }, []) // <-- [FIX] مصفوفة فارغة لأنها لا تعتمد على state (setters مستقرة)
 
-  const applyFiltersAndSort = () => {
+  // [FIX] تم تغليف الدالة بـ useCallback
+  const applyFiltersAndSort = useCallback(() => {
     let filtered = [...companies]
 
     // Apply search filter
@@ -412,7 +401,35 @@ export default function Companies() {
     })
 
     setFilteredCompanies(filtered)
-  }
+  }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
+    companies,
+    searchTerm,
+    companyTypeFilter,
+    commercialRegStatus,
+    insuranceStatus,
+    powerSubscriptionStatus,
+    moqeemSubscriptionStatus,
+    employeeCountFilter,
+    availableSlotsFilter,
+    dateRangeFilter,
+    customStartDate,
+    customEndDate,
+    sortField,
+    sortDirection
+  ])
+
+
+  useEffect(() => {
+    loadCompanies()
+    // Load saved filters from localStorage
+    loadSavedFilters()
+  }, [loadCompanies, loadSavedFilters]) // <-- [FIX] تم التحديث
+  
+  useEffect(() => {
+    applyFiltersAndSort()
+    // Save filters to localStorage
+    saveFiltersToStorage()
+  }, [applyFiltersAndSort, saveFiltersToStorage]) // <-- [FIX] تم التحديث
 
   const getDaysRemaining = (date: string) => {
     return differenceInDays(new Date(date), new Date())

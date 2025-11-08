@@ -79,36 +79,9 @@ export default function PermissionsManagement() {
   const [selectedUser, setSelectedUser] = useState<string>('all')
   const [selectedResource, setSelectedResource] = useState<string>('all')
 
-  // Check if user is admin
-  if (!currentUser || currentUser.role !== 'admin') {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    setIsLoading(true)
-    try {
-      await Promise.all([loadUsers(), loadPermissions()])
-    } catch (error) {
-      console.error('Error loading data:', error)
-      toast.error('حدث خطأ أثناء تحميل البيانات')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // --- [BEGIN FIX] ---
+  // تم نقل الدوال التي يعتمد عليها الـ useEffect إلى هنا (قبل الـ Hook)
+  // وتم نقل الـ Hook نفسه إلى هنا (قبل الـ return الشرطي)
 
   const loadUsers = async () => {
     const { data } = await supabase
@@ -147,6 +120,47 @@ export default function PermissionsManagement() {
     ]
     setPermissions(mockPermissions)
   }
+
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      await Promise.all([loadUsers(), loadPermissions()])
+    } catch (error) {
+      console.error('Error loading data:', error)
+      toast.error('حدث خطأ أثناء تحميل البيانات')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // [FIX] تم نقل الـ Hook إلى هنا ليكون قبل الـ return الشرطي
+  useEffect(() => {
+    // التأكد من أن المستخدم هو admin قبل تحميل البيانات
+    // (على الرغم من أن الواجهة ستعرض "غير مصرح" أدناه)
+    if (currentUser && currentUser.role === 'admin') {
+      loadData()
+    }
+  }, [currentUser]) // أضفنا currentUser كـ dependency
+
+  // --- [END FIX] ---
+
+
+  // Check if user is admin
+  if (!currentUser || currentUser.role !== 'admin') {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // تم نقل الدوال والـ useEffect للأعلى
 
   const filteredPermissions = permissions.filter(permission => {
     if (selectedUser !== 'all' && permission.user_id !== selectedUser) return false
