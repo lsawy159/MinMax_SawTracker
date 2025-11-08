@@ -131,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // دالة جلب بيانات المستخدم المحسنة
   const fetchUserData = async (userId: string, isInitialLoad: boolean) => {
+    console.log('🔍 [AUTH] Starting fetchUserData for userId:', userId, 'isInitialLoad:', isInitialLoad)
     try {
       if (isInitialLoad && mountedRef.current) {
         setLoading(true)
@@ -139,31 +140,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
 
       // جلب بيانات المستخدم من Supabase Auth
+      console.log('🔍 [AUTH] Fetching user from Supabase Auth...')
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
       
       if (authError || !authUser) {
-        console.error('خطأ في جلب بيانات المستخدم:', authError)
+        console.error('❌ [AUTH] Error fetching user from Auth:', authError)
         throw new Error('فشل في جلب بيانات المستخدم')
       }
 
+      console.log('✅ [AUTH] User fetched from Auth:', authUser.id)
+
       if (authUser.id !== userId) {
-        console.warn('عدم تطابق معرف المستخدم')
+        console.warn('⚠️ [AUTH] User ID mismatch:', authUser.id, 'vs', userId)
       }
 
-      // محاولة جلب بيانات المستخدم من جدول users
+      // محاولة جلب بيانات المستخدم من جدول users مع timeout
       let userData: User | null = null
       try {
-        userData = await fetchUserFromDatabase(userId)
+        console.log('🔍 [AUTH] Fetching user from database...')
+        const dbPromise = fetchUserFromDatabase(userId)
+        const timeoutPromise = new Promise<null>((resolve) => 
+          setTimeout(() => {
+            console.warn('⏱️ [AUTH] Database fetch timeout, using fallback')
+            resolve(null)
+          }, 5000) // 5 ثواني timeout
+        )
+        
+        userData = await Promise.race([dbPromise, timeoutPromise])
+        if (userData) {
+          console.log('✅ [AUTH] User found in database')
+        } else {
+          console.log('ℹ️ [AUTH] User not found in database or timeout')
+        }
       } catch (dbError) {
-        console.warn('خطأ في جلب المستخدم من قاعدة البيانات، سيتم إنشاء حساب جديد:', dbError)
+        console.warn('⚠️ [AUTH] Error fetching user from database:', dbError)
       }
       
       if (!userData) {
-        console.log('لم يتم العثور على المستخدم في قاعدة البيانات، إنشاء حساب جديد...')
+        console.log('🔍 [AUTH] Creating new user in database...')
         try {
-          userData = await createUserFromAuthData(authUser)
+          // استخدام بيانات مؤقتة مباشرة بدون انتظار إنشاء في قاعدة البيانات
+          userData = {
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'مستخدم',
+            role: 'admin',
+            permissions: {},
+            is_active: true,
+            created_at: new Date().toISOString(),
+            last_login: new Date().toISOString()
+          }
+          
+          // محاولة إنشاء المستخدم في الخلفية (لا ننتظر)
+          createUserFromAuthData(authUser).catch((createError) => {
+            console.warn('⚠️ [AUTH] Failed to create user in database (non-blocking):', createError)
+          })
+          
+          console.log('✅ [AUTH] Using temporary user data')
         } catch (createError) {
-          console.error('خطأ في إنشاء المستخدم:', createError)
+          console.error('❌ [AUTH] Error creating user:', createError)
           // استخدام بيانات مؤقتة في حالة الفشل
           userData = {
             id: authUser.id,
@@ -179,12 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (mountedRef.current) {
+        console.log('✅ [AUTH] Setting user data and stopping loading')
         setUser(userData)
         setLoading(false)
         loadingRef.current = false
       }
     } catch (error: any) {
-      console.error('خطأ في جلب بيانات المستخدم:', error)
+      console.error('❌ [AUTH] Error in fetchUserData:', error)
       
       if (mountedRef.current) {
         setError(error.message || 'خطأ في جلب بيانات المستخدم')
@@ -193,17 +229,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // في حالة خطأ 403/406، محاولة تسجيل خروج تلقائي
         if (error.message?.includes('403') || error.message?.includes('406')) {
-          console.log('خطأ وصول، تسجيل خروج تلقائي...')
+          console.log('🔐 [AUTH] Access error, signing out...')
           try {
             await supabase.auth.signOut()
           } catch (signOutError) {
-            console.error('خطأ في تسجيل الخروج:', signOutError)
+            console.error('❌ [AUTH] Error signing out:', signOutError)
           }
         }
       }
     } finally {
       // التأكد من إيقاف التحميل في جميع الحالات
       if (mountedRef.current) {
+        console.log('🏁 [AUTH] fetchUserData completed, ensuring loading is false')
         setLoading(false)
         loadingRef.current = false
       }
