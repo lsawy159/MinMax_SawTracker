@@ -26,12 +26,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const mountedRef = useRef(true)
+  const loadingRef = useRef(true)
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
 
   useEffect(() => {
     mountedRef.current = true
+    let loadingTimeout: NodeJS.Timeout | null = null
+
+    // إضافة timeout للتحميل لمنع التعليق
+    loadingTimeout = setTimeout(() => {
+      if (mountedRef.current && loadingRef.current) {
+        console.warn('انتهت مهلة التحميل - إيقاف التحميل تلقائياً')
+        setLoading(false)
+        loadingRef.current = false
+        setError('انتهت مهلة التحميل. يرجى إعادة تحميل الصفحة.')
+      }
+    }, 10000) // 10 ثواني
 
     // جلب الجلسة الحالية
     const initializeAuth = async () => {
@@ -41,7 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionError) {
           console.error('خطأ في جلب الجلسة:', sessionError)
           setError('خطأ في تحميل بيانات الجلسة')
-          if (mountedRef.current) setLoading(false)
+          if (mountedRef.current) {
+            setLoading(false)
+            loadingRef.current = false
+          }
+          if (loadingTimeout) clearTimeout(loadingTimeout)
           return
         }
 
@@ -50,15 +66,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (currentSession?.user) {
             await fetchUserData(currentSession.user.id, true)
           } else {
-            if (mountedRef.current) setLoading(false)
+            if (mountedRef.current) {
+              setLoading(false)
+              loadingRef.current = false
+            }
           }
+          if (loadingTimeout) clearTimeout(loadingTimeout)
         }
       } catch (err) {
         console.error('خطأ في تهيئة المصادقة:', err)
         if (mountedRef.current) {
           setError('فشل في تهيئة نظام المصادقة')
           setLoading(false)
+          loadingRef.current = false
         }
+        if (loadingTimeout) clearTimeout(loadingTimeout)
       }
     }
 
@@ -72,27 +94,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setError(null)
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        await fetchUserData(session.user.id, false)
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setLoading(false)
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // تحديث بيانات المستخدم عند تجديد الرمز المميز
-        await fetchUserData(session.user.id, false)
+      try {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await fetchUserData(session.user.id, false)
+        } else if (event === 'SIGNED_OUT') {
+          if (mountedRef.current) {
+            setUser(null)
+            setLoading(false)
+            loadingRef.current = false
+          }
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // تحديث بيانات المستخدم عند تجديد الرمز المميز
+          await fetchUserData(session.user.id, false)
+        } else if (!session) {
+          // لا توجد جلسة - إيقاف التحميل
+          if (mountedRef.current) {
+            setLoading(false)
+            loadingRef.current = false
+          }
+        }
+      } catch (error) {
+        console.error('خطأ في معالجة تغيير حالة المصادقة:', error)
+        if (mountedRef.current) {
+          setLoading(false)
+          loadingRef.current = false
+        }
       }
     })
 
     return () => {
       mountedRef.current = false
       subscription.unsubscribe()
+      if (loadingTimeout) clearTimeout(loadingTimeout)
     }
   }, [])
 
   // دالة جلب بيانات المستخدم المحسنة
   const fetchUserData = async (userId: string, isInitialLoad: boolean) => {
     try {
-      if (isInitialLoad) setLoading(true)
+      if (isInitialLoad && mountedRef.current) {
+        setLoading(true)
+        loadingRef.current = true
+      }
       setError(null)
 
       // جلب بيانات المستخدم من Supabase Auth
@@ -108,16 +151,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // محاولة جلب بيانات المستخدم من جدول users
-      let userData = await fetchUserFromDatabase(userId)
+      let userData: User | null = null
+      try {
+        userData = await fetchUserFromDatabase(userId)
+      } catch (dbError) {
+        console.warn('خطأ في جلب المستخدم من قاعدة البيانات، سيتم إنشاء حساب جديد:', dbError)
+      }
       
       if (!userData) {
         console.log('لم يتم العثور على المستخدم في قاعدة البيانات، إنشاء حساب جديد...')
-        userData = await createUserFromAuthData(authUser)
+        try {
+          userData = await createUserFromAuthData(authUser)
+        } catch (createError) {
+          console.error('خطأ في إنشاء المستخدم:', createError)
+          // استخدام بيانات مؤقتة في حالة الفشل
+          userData = {
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'مستخدم',
+            role: 'admin',
+            permissions: {},
+            is_active: true,
+            created_at: new Date().toISOString(),
+            last_login: new Date().toISOString()
+          }
+        }
       }
 
       if (mountedRef.current) {
         setUser(userData)
         setLoading(false)
+        loadingRef.current = false
       }
     } catch (error: any) {
       console.error('خطأ في جلب بيانات المستخدم:', error)
@@ -125,12 +189,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) {
         setError(error.message || 'خطأ في جلب بيانات المستخدم')
         setLoading(false)
+        loadingRef.current = false
         
         // في حالة خطأ 403/406، محاولة تسجيل خروج تلقائي
         if (error.message?.includes('403') || error.message?.includes('406')) {
           console.log('خطأ وصول، تسجيل خروج تلقائي...')
-          await supabase.auth.signOut()
+          try {
+            await supabase.auth.signOut()
+          } catch (signOutError) {
+            console.error('خطأ في تسجيل الخروج:', signOutError)
+          }
         }
+      }
+    } finally {
+      // التأكد من إيقاف التحميل في جميع الحالات
+      if (mountedRef.current) {
+        setLoading(false)
+        loadingRef.current = false
       }
     }
   }
