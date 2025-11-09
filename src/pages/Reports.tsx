@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase, Employee, Company } from '../lib/supabase'
-import Layout from '../components/layout/Layout'
-// @ts-expect-error - recharts types issue
+import { supabase, Employee, Company } from 'lib/supabase'
+import Layout from 'components/layout/Layout'
 import {
   BarChart,
   Bar,
@@ -204,17 +203,11 @@ export default function Reports() {
               توزيع الموظفين حسب الجنسية
             </h3>
             <ResponsiveContainer width="100%" height={320}>
-              {/* @ts-expect-error */}
               <BarChart data={nationalityData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                {/* @ts-expect-error */}
                 <CartesianGrid strokeDasharray="3 3" />
-                {/* @ts-expect-error */}
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                {/* @ts-expect-error */}
                 <YAxis />
-                {/* @ts-expect-error */}
                 <Tooltip />
-                {/* @ts-expect-error */}
                 <Bar dataKey="count" fill="#3B82F6" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -224,17 +217,11 @@ export default function Reports() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع الموظفين حسب المؤسسة</h3>
             <ResponsiveContainer width="100%" height={320}>
-              {/* @ts-expect-error */}
               <BarChart data={companyDistributionData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                {/* @ts-expect-error */}
                 <CartesianGrid strokeDasharray="3 3" />
-                {/* @ts-expect-error */}
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                {/* @ts-expect-error */}
                 <YAxis />
-                {/* @ts-expect-error */}
                 <Tooltip />
-                {/* @ts-expect-error */}
                 <Bar dataKey="count" fill="#10B981" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -244,20 +231,13 @@ export default function Reports() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">انتهاء الإقامات خلال الأشهر القادمة</h3>
             <ResponsiveContainer width="100%" height={320}>
-              {/* @ts-expect-error */}
               <BarChart data={residencyExpiryData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                {/* @ts-expect-error */}
                 <CartesianGrid strokeDasharray="3 3" />
-                {/* @ts-expect-error */}
                 <XAxis dataKey="month" />
-                {/* @ts-expect-error */}
                 <YAxis />
-                {/* @ts-expect-error */}
                 <Tooltip />
-                {/* @ts-expect-error */}
                 <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                   {residencyExpiryData().map((_, index) => (
-                    // @ts-expect-error
                     <Cell key={`cell-${index}`} fill={['#EF4444', '#F59E0B', '#F59E0B', '#10B981', '#3B82F6'][index]} />
                   ))}
                 </Bar>
@@ -269,19 +249,12 @@ export default function Reports() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">انتهاء العقود خلال الأشهر القادمة</h3>
             <ResponsiveContainer width="100%" height={320}>
-              {/* @ts-expect-error */}
               <LineChart data={contractExpiryData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                {/* @ts-expect-error */}
                 <CartesianGrid strokeDasharray="3 3" />
-                {/* @ts-expect-error */}
                 <XAxis dataKey="month" />
-                {/* @ts-expect-error */}
                 <YAxis />
-                {/* @ts-expect-error */}
                 <Tooltip />
-                {/* @ts-expect-error */}
                 <Legend />
-                {/* @ts-expect-error */}
                 <Line type="monotone" dataKey="count" stroke="#8B5CF6" strokeWidth={3} name="عدد العقود" />
               </LineChart>
             </ResponsiveContainer>
@@ -291,9 +264,7 @@ export default function Reports() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-2">
             <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع الموظفين حسب المهنة (أكثر 8 مهن)</h3>
             <ResponsiveContainer width="100%" height={400}>
-              {/* @ts-expect-error */}
               <PieChart>
-                {/* @ts-expect-error */}
                 <Pie
                   data={professionData()}
                   cx="50%"
@@ -305,13 +276,10 @@ export default function Reports() {
                   dataKey="value"
                 >
                   {professionData().map((_, index) => (
-                    // @ts-expect-error
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                {/* @ts-expect-error */}
                 <Tooltip />
-                {/* @ts-expect-error */}
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

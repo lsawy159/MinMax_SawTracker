@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import Layout from '@/components/layout/Layout'
+import { useState, useEffect, useCallback } from 'react' // [FIX] Added useCallback
+import Layout from '../components/layout/Layout' // [FIX] Changed path from alias to relative
 import { Shield, Database, Key, Users, Activity, Settings, Download, Upload, Trash2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../lib/supabase' // [FIX] Changed path from alias to relative
 import { toast } from 'sonner'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '../contexts/AuthContext' // [FIX] Changed path from alias to relative
 
 interface SecuritySetting {
   id: string
@@ -40,6 +40,10 @@ export default function SecurityManagement() {
   const [activeTab, setActiveTab] = useState<'settings' | 'backups' | 'sessions' | 'audit'>('settings')
   const [isLoading, setIsLoading] = useState(false)
   
+  // --- [BEGIN FIX] ---
+  // تم نقل جميع الـ Hooks (useState, useEffect, useCallback) إلى هنا
+  // قبل الـ return الشرطي الخاص بالـ admin
+  
   // Security Settings
   const [securitySettings, setSecuritySettings] = useState<SecuritySetting[]>([])
   
@@ -49,22 +53,7 @@ export default function SecurityManagement() {
   
   // Sessions
   const [activeSessions, setActiveSessions] = useState<UserSession[]>([])
-  
-  // Check if user is admin
-  if (!user || user.role !== 'admin') {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
-  
+
   // Audit Stats
   const [auditStats, setAuditStats] = useState({
     total_logs: 0,
@@ -73,11 +62,9 @@ export default function SecurityManagement() {
     active_sessions: 0
   })
 
-  useEffect(() => {
-    loadData()
-  }, [activeTab])
-
-  const loadData = async () => {
+  // [FIX] تم تغليف loadData بـ useCallback لجعلها مستقرة
+  // هذا يمنع إعادة إنشائها مع كل render ويجعلها آمنة للاستخدام في useEffect
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       if (activeTab === 'settings') {
@@ -95,7 +82,30 @@ export default function SecurityManagement() {
     } finally {
       setIsLoading(false)
     }
+  }, [activeTab]) // [FIX] أضفنا activeTab كاعتمادية لأن loadData تعتمد عليها
+
+  useEffect(() => {
+    loadData()
+  }, [activeTab, loadData]) // [FIX] تم إضافة loadData إلى مصفوفة الاعتماديات
+  
+  // --- [END FIX] ---
+
+  // Check if user is admin
+  if (!user || user.role !== 'admin') {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
+          </div>
+        </div>
+      </Layout>
+    )
   }
+  
+  // تم نقل الـ Hooks للأعلى
 
   const loadSecuritySettings = async () => {
     const { data } = await supabase

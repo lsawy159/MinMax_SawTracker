@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { supabase, Company } from '../lib/supabase'
-import Layout from '../components/layout/Layout'
+import { supabase } from '@/lib/supabase' // [PATH FIX] Reverted to alias path
+import Layout from '@/components/layout/Layout' // [PATH FIX] Reverted to alias path
 import { Settings as SettingsIcon, Save, Building2, Users, AlertCircle, Globe, Plus, Trash2, Edit2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
 
 interface CompanyLimit {
   company_id: string
@@ -21,6 +21,10 @@ interface Nationality {
 
 export default function Settings() {
   const { user } = useAuth()
+  
+  // --- [BEGIN FIX] ---
+  // تم نقل جميع الـ Hooks (useState, useEffect) إلى هنا
+  // قبل الـ return الشرطي الخاص بالـ admin
   const [companyLimits, setCompanyLimits] = useState<CompanyLimit[]>([])
   const [nationalities, setNationalities] = useState<Nationality[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +35,15 @@ export default function Settings() {
   const [showNationalityModal, setShowNationalityModal] = useState(false)
   const [editingNationality, setEditingNationality] = useState<Nationality | null>(null)
   const [nationalityName, setNationalityName] = useState('')
+
+  useEffect(() => {
+    // التأكد من أن المستخدم موجود قبل تحميل البيانات
+    if (user && user.role === 'admin') {
+      loadCompanyLimits()
+      loadNationalities()
+    }
+  }, [user]) // [FIX] أضفنا user كاعتمادية
+  // --- [END FIX] ---
 
   // Check if user is admin
   if (!user || user.role !== 'admin') {
@@ -47,12 +60,11 @@ export default function Settings() {
     )
   }
 
-  useEffect(() => {
-    loadCompanyLimits()
-    loadNationalities()
-  }, [])
+  // تم نقل الـ Hooks للأعلى
+  // [NOTE] تم نقل useEffect للأعلى أيضاً
 
   const loadCompanyLimits = async () => {
+    setLoading(true) // [FIX] نقل setLoading هنا ليبدأ مع تحميل هذا التبويب
     try {
       // جلب جميع الشركات
       const { data: companies, error: companiesError } = await supabase
@@ -79,7 +91,9 @@ export default function Settings() {
       // حساب عدد الموظفين لكل شركة
       const employeeCounts: Record<string, number> = {}
       employees?.forEach(emp => {
-        employeeCounts[emp.company_id] = (employeeCounts[emp.company_id] || 0) + 1
+        if (emp.company_id) { // التأكد من أن company_id ليس null
+          employeeCounts[emp.company_id] = (employeeCounts[emp.company_id] || 0) + 1
+        }
       })
 
       // دمج البيانات
@@ -97,9 +111,9 @@ export default function Settings() {
       setCompanyLimits(companyLimitsData)
     } catch (error) {
       console.error('Error loading company limits:', error)
-      toast.error('حدث خطأ أثناء تحميل البيانات')
+      toast.error('حدث خطأ أثناء تحميل بيانات حدود الشركات')
     } finally {
-      setLoading(false)
+      setLoading(false) // [FIX] نقل setLoading هنا
     }
   }
 
@@ -139,6 +153,7 @@ export default function Settings() {
   }
 
   const getStatusColor = (current: number, max: number) => {
+    if (max <= 0) return 'bg-gray-100 text-gray-700 border-gray-300'; // حالة خاصة
     const percentage = (current / max) * 100
     if (current > max) return 'bg-red-100 text-red-700 border-red-300'
     if (percentage >= 90) return 'bg-orange-100 text-orange-700 border-orange-300'
@@ -148,6 +163,7 @@ export default function Settings() {
 
   // دوال إدارة الجنسيات
   const loadNationalities = async () => {
+    setLoading(true) // [FIX] نقل setLoading هنا ليبدأ مع تحميل هذا التبويب
     try {
       // جلب الجنسيات الموجودة في جدول الموظفين
       const { data: employees, error: employeesError } = await supabase
@@ -160,16 +176,20 @@ export default function Settings() {
       // استخراج الجنسيات الفريدة
       const uniqueNationalities = [...new Set(employees?.map(emp => emp.nationality) || [])]
       
-      const nationalitiesData: Nationality[] = uniqueNationalities.map((name, index) => ({
-        id: `nat_${index}`,
-        name: name,
-        created_at: new Date().toISOString()
+      const nationalitiesData: Nationality[] = uniqueNationalities
+        .filter(name => name) // فلترة الأسماء الفارغة
+        .map((name, index) => ({
+          id: `nat_${index}`,
+          name: name,
+          created_at: new Date().toISOString()
       }))
 
       setNationalities(nationalitiesData)
     } catch (error) {
       console.error('Error loading nationalities:', error)
       toast.error('حدث خطأ أثناء تحميل الجنسيات')
+    } finally {
+      setLoading(false) // [FIX] نقل setLoading هنا
     }
   }
 
@@ -243,7 +263,10 @@ export default function Settings() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="flex border-b border-gray-200">
             <button
-              onClick={() => setActiveTab('companies')}
+              onClick={() => {
+                setActiveTab('companies');
+                loadCompanyLimits(); // تحميل البيانات عند الضغط
+              }}
               className={`flex items-center gap-3 px-6 py-4 font-medium transition ${
                 activeTab === 'companies'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
@@ -254,7 +277,10 @@ export default function Settings() {
               حدود الشركات
             </button>
             <button
-              onClick={() => setActiveTab('nationalities')}
+              onClick={() => {
+                setActiveTab('nationalities');
+                loadNationalities(); // تحميل البيانات عند الضغط
+              }}
               className={`flex items-center gap-3 px-6 py-4 font-medium transition ${
                 activeTab === 'nationalities'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
@@ -312,7 +338,7 @@ export default function Settings() {
                     <tbody className="divide-y divide-gray-200">
                       {companyLimits.map((limit) => {
                         const isOverLimit = limit.current_employees > limit.max_employees
-                        const percentage = (limit.current_employees / limit.max_employees) * 100
+                        const percentage = limit.max_employees > 0 ? (limit.current_employees / limit.max_employees) * 100 : 0
 
                         return (
                           <tr key={limit.company_id} className="hover:bg-gray-50 transition">
