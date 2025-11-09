@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react' // [FIX] Added useCallback
-import { supabase, User } from '@/lib/supabase' // [PATH FIX] Reverted to alias path
-import Layout from '@/components/layout/Layout' // [PATH FIX] Reverted to alias path
+import { useEffect, useState } from 'react'
+import { supabase, User } from '../lib/supabase'
+import Layout from '../components/layout/Layout'
 import { 
   UserPlus, 
   Edit2, 
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
+import { useAuth } from '../contexts/AuthContext'
 
 interface PermissionMatrix {
   employees: { view: boolean; create: boolean; edit: boolean; delete: boolean }
@@ -41,10 +41,6 @@ const adminPermissions: PermissionMatrix = {
 
 export default function Users() {
   const { user: currentUser } = useAuth()
-  
-  // --- [BEGIN FIX] ---
-  // تم نقل جميع الـ Hooks (useState, useEffect) إلى هنا
-  // قبل الـ return الشرطي الخاص بالـ admin
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -63,32 +59,6 @@ export default function Users() {
     is_active: true
   })
 
-  // [FIX] تم تغليف loadUsers بـ useCallback لجعلها مستقرة
-  const loadUsers = useCallback(async () => {
-    setLoading(true); // [FIX] تم نقل setLoading هنا
-    try {
-      // استخدام RPC function للحصول على المستخدمين مع مراعاة الصلاحيات
-      const { data, error } = await supabase
-        .rpc('get_all_users_for_admin')
-
-      if (error) throw error
-      setUsers(data || [])
-    } catch (error) {
-      console.error('Error loading users:', error)
-      toast.error('فشل تحميل المستخدمين')
-    } finally {
-      setLoading(false)
-    }
-  }, []); // [FIX] مصفوفة اعتماديات فارغة لأنها لا تعتمد على شيء من خارجها
-
-  useEffect(() => {
-    // [FIX] التأكد من أن المستخدم admin قبل تحميل البيانات
-    if (currentUser && currentUser.role === 'admin') {
-      loadUsers()
-    }
-  }, [currentUser, loadUsers]) // [FIX] إضافة الاعتماديات
-  // --- [END FIX] ---
-
   // Check if user is admin
   if (!currentUser || currentUser.role !== 'admin') {
     return (
@@ -104,8 +74,25 @@ export default function Users() {
     )
   }
 
-  // [NOTE] تم نقل useEffect للأعلى
-  // [NOTE] تم نقل loadUsers للأعلى وتغليفها
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  const loadUsers = async () => {
+    try {
+      // استخدام RPC function للحصول على المستخدمين مع مراعاة الصلاحيات
+      const { data, error } = await supabase
+        .rpc('get_all_users_for_admin')
+
+      if (error) throw error
+      setUsers(data || [])
+    } catch (error) {
+      console.error('Error loading users:', error)
+      toast.error('فشل تحميل المستخدمين')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const openAddModal = () => {
     setEditingUser(null)
@@ -125,9 +112,9 @@ export default function Users() {
     setFormData({
       email: user.email,
       full_name: user.full_name,
-      password: '', // لا نعرض كلمة المرور الحالية
+      password: '',
       role: user.role,
-      permissions: (user.permissions as PermissionMatrix) || defaultPermissions,
+      permissions: user.permissions as PermissionMatrix || defaultPermissions,
       is_active: user.is_active
     })
     setShowModal(true)
@@ -208,9 +195,8 @@ export default function Users() {
 
   const toggleUserStatus = async (user: User) => {
     try {
-      // يجب استخدام rpc لتحديث جدول users وليس auth.users
       const { error } = await supabase
-        .from('users') // التحديث على جدول 'users' العام
+        .from('users')
         .update({ is_active: !user.is_active })
         .eq('id', user.id)
 
@@ -230,7 +216,7 @@ export default function Users() {
       permissions: {
         ...prev.permissions,
         [category]: {
-          ...(prev.permissions[category] || {}), // التأكد من وجود الكائن
+          ...prev.permissions[category],
           [action]: value
         }
       }
@@ -246,8 +232,8 @@ export default function Users() {
   }
 
   const filteredUsers = users.filter(user =>
-    (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -594,7 +580,7 @@ export default function Users() {
                 </p>
                 <p className="text-sm text-gray-700">
                   <span className="font-medium">البريد:</span> {deletingUser.email}
-                </T>
+                </p>
               </div>
 
               <div className="flex gap-3">
