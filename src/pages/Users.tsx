@@ -59,6 +59,13 @@ export default function Users() {
     is_active: true
   })
 
+  // ← [تم النقل] useEffect يجب أن يكون قبل return الشرطي
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      loadUsers()
+    }
+  }, [currentUser])
+
   // Check if user is admin
   if (!currentUser || currentUser.role !== 'admin') {
     return (
@@ -73,10 +80,6 @@ export default function Users() {
       </Layout>
     )
   }
-
-  useEffect(() => {
-    loadUsers()
-  }, [])
 
   const loadUsers = async () => {
     try {

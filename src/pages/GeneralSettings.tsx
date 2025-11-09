@@ -488,12 +488,12 @@ export default function GeneralSettings() {
           <label className="flex items-center cursor-pointer">
             <input
               type="checkbox"
-              checked={Boolean(value)}
+              checked={!!value}
               onChange={(e) => updateSetting(setting.setting_key, e.target.checked)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <span className="mr-2 text-sm text-gray-600">
-              {Boolean(value) ? 'مفعل' : 'معطل'}
+              {value ? 'مفعل' : 'معطل'}
             </span>
           </label>
         )

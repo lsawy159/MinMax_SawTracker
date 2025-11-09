@@ -99,6 +99,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchData()
     loadReadAlerts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // جلب التنبيهات المقروءة من قاعدة البيانات

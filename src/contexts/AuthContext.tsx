@@ -312,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 10000)
     
     return () => clearTimeout(criticalTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // -----------------------------------------------------------------

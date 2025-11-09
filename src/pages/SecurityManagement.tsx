@@ -82,6 +82,7 @@ export default function SecurityManagement() {
     } finally {
       setIsLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]) // [FIX] أضفنا activeTab كاعتمادية لأن loadData تعتمد عليها
 
   useEffect(() => {

@@ -1,16 +1,35 @@
 {
-  "name": "react_repo",
+  "name": "minmax-sawtracker",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "MinMax SawTracker - نظام متقدم لإدارة الموظفين والشركات",
+  "author": "MinMax Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "scripts": {
-    "dev": "pnpm install --prefer-offline && vite",
-    "build": "pnpm install --prefer-offline && tsc -b && vite build",
-    "build:prod": "pnpm install --prefer-offline && tsc -b && BUILD_MODE=prod vite build",
-    "lint": "pnpm install --prefer-offline && eslint .",
-    "preview": "pnpm install --prefer-offline && vite preview",
-    "install-deps": "pnpm install --prefer-offline",
-    "clean": "rm -rf node_modules .pnpm-store pnpm-lock.yaml && pnpm store prune"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:prod": "tsc -b && BUILD_MODE=prod vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "validate": "pnpm type-check && pnpm lint && pnpm test",
+    "clean": "rimraf node_modules .pnpm-store dist .turbo coverage",
+    "clean:cache": "rimraf node_modules/.vite node_modules/.cache",
+    "reinstall": "pnpm clean && pnpm install",
+    "prepare": "husky install",
+    "analyze": "vite-bundle-visualizer"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -45,7 +64,7 @@
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "1.0.0",
+    "cmdk": "^1.0.0",
     "date-fns": "^3.0.0",
     "embla-carousel-react": "^8.5.2",
     "file-saver": "^2.0.5",
@@ -53,14 +72,13 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.364.0",
     "next-themes": "^0.4.4",
-    "pnpm-store": "link:/tmp/pnpm-store",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.1",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
-    "react-router-dom": "^6",
+    "react-router-dom": "^6.28.0",
     "recharts": "^2.12.4",
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",
@@ -70,25 +88,56 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@eslint/js": "^9.15.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.10.7",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/react-router-dom": "^5",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "10.4.20",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "autoprefixer": "^10.4.20",
     "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.12.0",
-    "postcss": "8.4.49",
+    "happy-dom": "^15.11.7",
+    "husky": "^9.1.7",
+    "jsdom": "^27.1.0",
+    "lint-staged": "^15.2.10",
+    "postcss": "^8.4.49",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
     "rimraf": "^6.1.0",
-    "tailwindcss": "v3.4.16",
+    "tailwindcss": "^3.4.16",
     "tsx": "^4.20.6",
-    "typescript": "~5.6.2",
+    "typescript": "^5.6.2",
     "typescript-eslint": "^8.15.0",
     "vite": "^6.0.1",
-    "vite-plugin-source-identifier": "1.1.2"
+    "vite-bundle-visualizer": "^1.2.1",
+    "vite-plugin-source-identifier": "^1.1.2",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.6.2"
+    }
   }
 }

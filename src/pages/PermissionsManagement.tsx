@@ -140,6 +140,7 @@ export default function PermissionsManagement() {
     if (currentUser && currentUser.role === 'admin') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]) // أضفنا currentUser كـ dependency
 
   // --- [END FIX] ---
