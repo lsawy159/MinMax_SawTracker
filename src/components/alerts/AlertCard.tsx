@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw, Zap, Home } from 'lucide-react'
+import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw, Zap, Home, Eye } from 'lucide-react'
 
 export interface Alert {
   id: string
@@ -23,7 +23,7 @@ interface AlertCardProps {
   onViewCompany: (companyId: string) => void
   onShowCompanyCard: (companyId: string) => void
   onMarkAsRead: (alertId: string) => void
-  isRead?: boolean
+  isRead?: boolean // ← [NEW] الإضافة الجديدة
 }
 
 export function AlertCard({ 
@@ -31,7 +31,7 @@ export function AlertCard({
   onViewCompany, 
   onShowCompanyCard,
   onMarkAsRead,
-  isRead = false 
+  isRead = false  // ← [NEW] القيمة الافتراضية false
 }: AlertCardProps) {
   const getPriorityConfig = (priority: Alert['priority']) => {
     const configs = {
@@ -105,8 +105,9 @@ export function AlertCard({
   return (
     <div className={`
       bg-white rounded-lg shadow-sm border-r-4 ${priorityConfig.borderColor} p-6
-      transition-all hover:shadow-md ${isRead ? 'opacity-75' : ''}
+      transition-all hover:shadow-md
       ${priorityConfig.bgColor} border border-gray-200
+      ${isRead ? 'opacity-60' : ''}
     `}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
@@ -126,6 +127,13 @@ export function AlertCard({
               `}>
                 {priorityConfig.badgeText}
               </span>
+              {/* ← [NEW] شارة "مقروء" */}
+              {isRead && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
+                  <Eye className="h-3 w-3" />
+                  مقروء
+                </span>
+              )}
             </div>
             
             <div className="space-y-1">
@@ -148,6 +156,7 @@ export function AlertCard({
           </div>
         </div>
 
+        {/* ← [MODIFIED] زر تحديد كمقروء - يظهر فقط إذا لم يكن مقروءاً */}
         {!isRead && (
           <button
             onClick={() => onMarkAsRead(alert.id)}
@@ -205,6 +214,7 @@ export function AlertCard({
           عرض المؤسسة
         </button>
 
+        {/* ← [MODIFIED] زر "تم الاطلاع" - يظهر فقط إذا لم يكن مقروءاً */}
         {!isRead && (
           <button
             onClick={() => onMarkAsRead(alert.id)}
@@ -212,6 +222,14 @@ export function AlertCard({
           >
             تم الاطلاع
           </button>
+        )}
+        
+        {/* ← [NEW] رسالة "تم الاطلاع" - تظهر إذا كان مقروءاً */}
+        {isRead && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Eye className="h-4 w-4" />
+            <span>تم الاطلاع على هذا التنبيه</span>
+          </div>
         )}
       </div>
 

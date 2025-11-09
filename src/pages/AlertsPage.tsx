@@ -17,7 +17,7 @@ import {
   filterEmployeeAlertsByType,
   filterEmployeeAlertsByPriority
 } from '../utils/employeeAlerts'
-import { Bell, Filter, Search, AlertTriangle, Building2, Users, Calendar, Clock, X } from 'lucide-react'
+import { Bell, Filter, Search, AlertTriangle, Building2, Users, Calendar, Clock, X, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import CompanyCard from '../components/companies/CompanyCard'
@@ -35,6 +35,10 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'companies' | 'employees' | 'all'>(initialTab)
+  
+  // [NEW] تبويب لـ "جديد" و "مقروء"
+  const [readFilterTab, setReadFilterTab] = useState<'new' | 'read'>('new')
+  
   const [activeFilter, setActiveFilter] = useState<'all' | 'urgent' | 'medium' | 'low'>(initialFilter)
   const [searchTerm, setSearchTerm] = useState('')
   const [showCompanyCard, setShowCompanyCard] = useState(false)
@@ -149,24 +153,83 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
       // تحديث حالة التنبيه محلياً
       setReadAlerts(prev => new Set([...prev, alertId]))
       
-      // إعادة تحميل الإحصائيات لتحديث العدد في شريط التنقل
+      // [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
       window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
     } catch (error) {
       console.error('خطأ في حفظ التنبيه كمقروء:', error)
     }
   }
 
-  // فلترة التنبيهات (تصفية المقروءة أولاً)
+  // [NEW] دالة لتمييز كل التنبيهات "الجديدة" كمقروءة
+  const handleMarkAllAsRead = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('المستخدم غير مسجل دخول')
+        return
+      }
+
+      // 1. جمع كل الـ IDs غير المقروءة
+      const unreadCompanyAlertIds = companyAlerts
+        .filter(alert => !readAlerts.has(alert.id))
+        .map(alert => alert.id)
+      
+      const unreadEmployeeAlertIds = employeeAlerts
+        .filter(alert => !readAlerts.has(alert.id))
+        .map(alert => alert.id)
+
+      const allUnreadIds = [...unreadCompanyAlertIds, ...unreadEmployeeAlertIds]
+      
+      if (allUnreadIds.length === 0) return
+
+      // 2. تحضير السجلات للإرسال
+      const recordsToUpsert = allUnreadIds.map(alertId => ({
+        user_id: user.id,
+        alert_id: alertId,
+        read_at: new Date().toISOString()
+      }))
+
+      // 3. إرسالها إلى قاعدة البيانات
+      const { error } = await supabase
+        .from('read_alerts')
+        .upsert(recordsToUpsert, {
+          onConflict: 'user_id,alert_id'
+        })
+
+      if (error) throw error
+
+      // 4. تحديث الحالة المحلية
+      setReadAlerts(prev => new Set([...prev, ...allUnreadIds]))
+
+      // 5. [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
+      window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
+    } catch (error) {
+      console.error('خطأ في حفظ جميع التنبيهات كمقروءة:', error)
+    }
+  }
+
+
+  // إحصائيات التنبيهات (فقط غير المقروءة) - هذه خاصة بالصفحة الداخلية
   const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlerts.has(alert.id))
   const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlerts.has(alert.id))
 
-  const getFilteredCompanyAlerts = () => {
-    let filtered = unreadCompanyAlerts
+  const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
+  const employeeAlertsStats = getEmployeeAlertsStats(unreadEmployeeAlerts)
+  const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
+  const totalUrgentAlerts = companyAlertsStats.urgent + employeeAlertsStats.urgent
 
+
+  // [MODIFIED] فلترة التنبيهات بناءً على التبويب "جديد" أو "مقروء"
+  const getFilteredCompanyAlerts = () => {
+    // 1. ابدأ بجميع تنبيهات المؤسسات
+    let filtered = companyAlerts
+
+    // 2. فلتر الأولوية
     if (activeFilter !== 'all') {
       filtered = filterAlertsByPriority(filtered, activeFilter)
     }
 
+    // 3. فلتر البحث
     if (searchTerm) {
       filtered = filtered.filter(alert => 
         alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,16 +237,27 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
       )
     }
 
+    // 4. [NEW] فلتر المقروء/غير المقروء
+    if (readFilterTab === 'new') {
+      filtered = filtered.filter(alert => !readAlerts.has(alert.id))
+    } else {
+      filtered = filtered.filter(alert => readAlerts.has(alert.id))
+    }
+
     return filtered
   }
 
+  // [MODIFIED] فلترة التنبيهات بناءً على التبويب "جديد" أو "مقروء"
   const getFilteredEmployeeAlerts = () => {
-    let filtered = unreadEmployeeAlerts
+    // 1. ابدأ بجميع تنبيهات الموظفين
+    let filtered = employeeAlerts
 
+    // 2. فلتر الأولوية
     if (activeFilter !== 'all') {
       filtered = filterEmployeeAlertsByPriority(filtered, activeFilter)
     }
 
+    // 3. فلتر البحث
     if (searchTerm) {
       filtered = filtered.filter(alert => 
         alert.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -192,17 +266,23 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
       )
     }
 
+    // 4. [NEW] فلتر المقروء/غير المقروء
+    if (readFilterTab === 'new') {
+      filtered = filtered.filter(alert => !readAlerts.has(alert.id))
+    } else {
+      filtered = filtered.filter(alert => readAlerts.has(alert.id))
+    }
+
     return filtered
   }
 
-  // إحصائيات التنبيهات (فقط غير المقروءة)
-  const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
-  const employeeAlertsStats = getEmployeeAlertsStats(unreadEmployeeAlerts)
-  const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
-  const totalUrgentAlerts = companyAlertsStats.urgent + employeeAlertsStats.urgent
-
   const filteredCompanyAlerts = getFilteredCompanyAlerts()
   const filteredEmployeeAlerts = getFilteredEmployeeAlerts()
+
+  // [NEW] حساب عدد المقروءة (لأجل تبويب "مقروء")
+  const readCompanyAlertsCount = companyAlerts.filter(alert => readAlerts.has(alert.id)).length
+  const readEmployeeAlertsCount = employeeAlerts.filter(alert => readAlerts.has(alert.id)).length
+  const totalReadAlerts = readCompanyAlertsCount + readEmployeeAlertsCount
 
   if (loading) {
     return (
@@ -224,7 +304,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
           </p>
         </div>
 
-        {/* إحصائيات سريعة */}
+        {/* إحصائيات سريعة (تبقى كما هي، تعرض غير المقروء فقط لهذه الصفحة) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
@@ -277,8 +357,8 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
 
         {/* فلاتر البحث والتنقل */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* تبويبات */}
+          {/* تبويبات (المؤسسات / الموظفين) */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab('all')}
@@ -339,9 +419,48 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
               </select>
             </div>
           </div>
+
+          {/* [NEW] تبويبات (جديد / مقروء) */}
+          <div className="border-t border-gray-200 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex border border-gray-300 rounded-lg p-1 w-full sm:w-auto">
+                <button
+                  onClick={() => setReadFilterTab('new')}
+                  className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
+                    readFilterTab === 'new' 
+                      ? 'bg-blue-600 text-white shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  تنبيهات جديدة ({totalAlerts})
+                </button>
+                <button
+                  onClick={() => setReadFilterTab('read')}
+                  className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
+                    readFilterTab === 'read' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  مقروءة ({totalReadAlerts})
+                </button>
+              </div>
+
+              {/* [NEW] زر تم الاطلاع على الكل */}
+              {readFilterTab === 'new' && totalAlerts > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>تم الاطلاع على الكل</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* عرض التنبيهات */}
+        {/* عرض التنبيهات (مقسّمة الآن) */}
         <div className="space-y-8">
           {/* تنبيهات المؤسسات */}
           {(activeTab === 'all' || activeTab === 'companies') && filteredCompanyAlerts.length > 0 && (
@@ -361,7 +480,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
                     onViewCompany={handleViewCompany}
                     onShowCompanyCard={handleShowCompanyCard}
                     onMarkAsRead={handleMarkAsRead}
-                    isRead={readAlerts.has(alert.id)}
+                    isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
                   />
                 ))}
               </div>
@@ -387,7 +506,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
                     onViewCompany={handleViewCompany}
                     onRenewAction={handleRenewAction}
                     onMarkAsRead={handleMarkAsRead}
-                    isRead={readAlerts.has(alert.id)}
+                    isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
                   />
                 ))}
               </div>
@@ -395,18 +514,22 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
           )}
 
           {/* لا توجد نتائج */}
-          {((activeTab === 'all' && totalAlerts === 0) ||
-            (activeTab === 'companies' && filteredCompanyAlerts.length === 0) ||
-            (activeTab === 'employees' && filteredEmployeeAlerts.length === 0)) && (
+          {(filteredCompanyAlerts.length === 0 && filteredEmployeeAlerts.length === 0) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <Bell className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm ? 'لا توجد نتائج' : 'لا توجد تنبيهات'}
+                {searchTerm 
+                  ? 'لا توجد نتائج' 
+                  : (readFilterTab === 'new' ? 'لا توجد تنبيهات جديدة' : 'لا توجد تنبيهات مقروءة')
+                }
               </h3>
               <p className="text-gray-600">
                 {searchTerm 
                   ? `لم يتم العثور على تنبيهات تحتوي على "${searchTerm}"`
-                  : 'جميع مؤسساتك وموظفيك محدثون ولا يحتاجون إلى إجراءات فورية'
+                  : (readFilterTab === 'new' 
+                      ? 'جميع مؤسساتك وموظفيك محدثون ولا يحتاجون إلى إجراءات فورية'
+                      : 'لم تقم بالاطلاع على أي تنبيهات بعد'
+                    )
                 }
               </p>
             </div>
@@ -414,7 +537,7 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
         </div>
       </div>
 
-      {/* كارت المؤسسة المنبثق */}
+      {/* كارت المؤسسة المنبثق (لا تغيير) */}
       {showCompanyCard && selectedCompany && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">

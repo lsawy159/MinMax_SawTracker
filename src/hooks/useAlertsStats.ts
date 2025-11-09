@@ -32,7 +32,7 @@ export function useAlertsStats() {
   const [loading, setLoading] = useState(true)
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
 
-  // جلب التنبيهات المقروءة من قاعدة البيانات
+  // [MODIFIED] أعدنا دالة جلب المقروء
   const loadReadAlerts = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -52,11 +52,9 @@ export function useAlertsStats() {
       console.error('خطأ في جلب التنبيهات المقروءة:', error)
       return new Set<string>()
     }
-  }, []) // <-- مصفوفة فارغة، دالة مستقرة
+  }, [])
 
-  // --- [BEGIN FIX] ---
-
-  // [FIX] تم تغليف الدالة الرئيسية بـ useCallback لجعلها مستقرة
+  // [MODIFIED] تم تعديل الدالة الرئيسية لتطبيق المنطق المزدوج
   const fetchAlertsStats = useCallback(async () => {
     try {
       setLoading(true)
@@ -76,36 +74,48 @@ export function useAlertsStats() {
       const companies = companiesResult.data || []
       const employees = employeesResult.data || []
 
-      // توليد تنبيهات المؤسسات
+      // --- الخطوة 1: توليد القوائم الكاملة (لشارات "المؤسسات" و "الموظفين") ---
       const companyAlerts = generateCompanyAlertsSync(companies)
-      
-      // توليد تنبيهات الموظفين
       const employeeAlertsGenerated = generateEmployeeAlerts(employees, companies)
       const employeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
 
-      // تصفية التنبيهات المقروءة
+      // --- الخطوة 2: توليد القوائم "غير المقروءة" (لشارة "التنبيهات") ---
       const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlertsSet.has(alert.id))
       const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlertsSet.has(alert.id))
 
-      // حساب الإحصائيات (فقط غير المقروءة)
-      const companyUrgentAlerts = unreadCompanyAlerts.filter(alert => alert.priority === 'urgent').length
-      const employeeUrgentAlerts = unreadEmployeeAlerts.filter(alert => alert.priority === 'urgent').length
-      const commercialRegAlerts = unreadCompanyAlerts.filter(alert => alert.type === 'commercial_registration').length
-      const insuranceAlerts = unreadCompanyAlerts.filter(alert => alert.type === 'insurance_subscription').length
-      const contractAlerts = unreadEmployeeAlerts.filter(alert => alert.type === 'contract_expiry').length
-      const residenceAlerts = unreadEmployeeAlerts.filter(alert => alert.type === 'residence_expiry').length
+      // --- الخطوة 3: حساب الإحصائيات (المنطق المزدوج) ---
+
+      // إحصائيات "المشاكل" (لشارات المؤسسات والموظفين - تتجاهل المقروء)
+      const companyProblemAlerts = companyAlerts.length
+      const companyProblemUrgent = companyAlerts.filter(alert => alert.priority === 'urgent').length
+      const employeeProblemAlerts = employeeAlerts.length
+      const employeeProblemUrgent = employeeAlerts.filter(alert => alert.priority === 'urgent').length
+      const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration').length
+      const insuranceAlerts = companyAlerts.filter(alert => alert.type === 'insurance_subscription').length
+      const contractAlerts = employeeAlerts.filter(alert => alert.type === 'contract_expiry').length
+      const residenceAlerts = employeeAlerts.filter(alert => alert.type === 'residence_expiry').length
+
+      // إحصائيات "غير المقروء" (لشارة التنبيهات الرئيسية - تعتمد على المقروء)
+      const totalUnread = unreadCompanyAlerts.length + unreadEmployeeAlerts.length
+      const urgentUnread = unreadCompanyAlerts.filter(alert => alert.priority === 'urgent').length +
+                           unreadEmployeeAlerts.filter(alert => alert.priority === 'urgent').length
 
       const stats: AlertsStats = {
-        total: unreadCompanyAlerts.length + unreadEmployeeAlerts.length,
-        urgent: companyUrgentAlerts + employeeUrgentAlerts,
-        companyAlerts: unreadCompanyAlerts.length,
-        companyUrgent: companyUrgentAlerts,
-        employeeAlerts: unreadEmployeeAlerts.length,
-        employeeUrgent: employeeUrgentAlerts,
-        commercialRegAlerts,
-        insuranceAlerts,
-        contractAlerts,
-        residenceAlerts
+        // [MODIFIED] total و urgent أصبحت لـ "غير المقروء"
+        total: totalUnread,
+        urgent: urgentUnread,
+        
+        // [MODIFIED] companyAlerts و employeeAlerts أصبحت لـ "كل المشاكل"
+        companyAlerts: companyProblemAlerts,
+        companyUrgent: companyProblemUrgent,
+        employeeAlerts: employeeProblemAlerts,
+        employeeUrgent: employeeProblemUrgent,
+
+        // هذه الإحصائيات التفصيلية يجب أن تعكس "كل المشاكل" أيضاً
+        commercialRegAlerts: commercialRegAlerts,
+        insuranceAlerts: insuranceAlerts,
+        contractAlerts: contractAlerts,
+        residenceAlerts: residenceAlerts
       }
 
       setAlertsStats(stats)
@@ -114,12 +124,12 @@ export function useAlertsStats() {
     } finally {
       setLoading(false)
     }
-  }, [loadReadAlerts]) // <-- [FIX] أضفنا اعتماديتها
+  }, [loadReadAlerts]) // [MODIFIED] أعدنا الاعتمادية
 
   useEffect(() => {
     fetchAlertsStats()
     
-    // الاستماع لحدث تحديث التنبيه كمقروء
+    // [MODIFIED] أعدنا المستمع، ليقوم بتحديث شارة "التنبيهات"
     const handleAlertMarkedAsRead = () => {
       fetchAlertsStats()
     }
@@ -129,15 +139,13 @@ export function useAlertsStats() {
     return () => {
       window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
     }
-  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
-
-  // (الدالة الأصلية كانت هنا)
+  }, [fetchAlertsStats])
 
   const refreshStats = useCallback(() => {
     fetchAlertsStats()
-  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
+  }, [fetchAlertsStats])
 
-  // دالة لتحديث التنبيه كمقروء محلياً
+  // [MODIFIED] أعدنا هذه الدالة
   const markAlertAsRead = useCallback((alertId: string) => {
     setReadAlerts(prev => {
       const newSet = new Set(prev)
@@ -148,14 +156,12 @@ export function useAlertsStats() {
     setTimeout(() => {
       fetchAlertsStats()
     }, 100)
-  }, [fetchAlertsStats]) // <-- [FIX] أضفنا الاعتمادية
-
-  // --- [END FIX] ---
+  }, [fetchAlertsStats])
 
   return {
     alertsStats,
     loading,
     refreshStats,
-    markAlertAsRead
+    markAlertAsRead // [MODIFIED] أعدنا إرجاعها
   }
 }
