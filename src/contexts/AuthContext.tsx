@@ -192,7 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       loadingRef.current = false
     }
-  }, [session, user, fetchUserData]) // <-- [FIX] تم إضافة user و fetchUserData
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, user]) // fetchUserData is a stable useCallback, no need to include it
 
 
   // --- دوال المصادقة ---
