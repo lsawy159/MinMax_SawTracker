@@ -91,10 +91,16 @@ jobs:
       - name: Run tests
         run: pnpm test -- --run --reporter=verbose
         continue-on-error: false
+        env:
+          # تحميل fix-symbol.js قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
+          NODE_OPTIONS: '--require ./scripts/fix-symbol.js'
 
       - name: Run tests with coverage
         run: pnpm test:coverage
         continue-on-error: false
+        env:
+          # تحميل fix-symbol.js قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
+          NODE_OPTIONS: '--require ./scripts/fix-symbol.js'
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3

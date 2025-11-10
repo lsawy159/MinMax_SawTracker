@@ -20,6 +20,13 @@ export default defineConfig({
       './src/test/setup.ts',        // Then load other setup
     ],
     css: true,
+    // استخدام forks pool مع single fork لضمان تنفيذ setup في نفس العملية
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true, // استخدام fork واحد فقط لضمان تنفيذ setup قبل تحميل الوحدات
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
