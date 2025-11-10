@@ -6,32 +6,32 @@
 
 (function() {
   'use strict'
-  
+
   // Ensure Symbol exists
   if (typeof Symbol === 'undefined') {
     throw new Error('Symbol is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Ensure Map exists
   if (typeof Map === 'undefined') {
     throw new Error('Map is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Ensure Set exists
   if (typeof Set === 'undefined') {
     throw new Error('Set is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Ensure WeakMap exists
   if (typeof WeakMap === 'undefined') {
     throw new Error('WeakMap is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Ensure WeakSet exists
   if (typeof WeakSet === 'undefined') {
     throw new Error('WeakSet is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Fix for Node.js global object
   if (typeof global !== 'undefined') {
     try {
@@ -44,7 +44,7 @@
       // Ignore
     }
   }
-  
+
   // Fix for globalThis
   if (typeof globalThis !== 'undefined') {
     try {
@@ -57,7 +57,7 @@
       // Ignore
     }
   }
-  
+
   // Ensure global.globalThis exists (for older Node.js)
   if (typeof global !== 'undefined' && typeof (global as any).globalThis === 'undefined') {
     try {
@@ -81,17 +81,19 @@ export default defineConfig({
     },
   },
   test: {
-    // Ensure the Symbol polyfill/setup runs first, then register jest-dom matchers
-    // setup-symbol ensures Symbol/Map/WeakMap etc exist very early
-    // setup-tests registers @testing-library/jest-dom so toBeInTheDocument works
-    setupFiles: ['src/test/setup-symbol.ts', 'src/test/setup-tests.ts'],
-
+    // Ensure the Symbol polyfill/setup runs first, then register jest-dom matchers,
+    // then register the unhandled-errors catcher. Order matters.
+    setupFiles: [
+      'src/test/setup-symbol.ts',
+      'src/test/setup-tests.ts',
+      'src/test/test-handled-errors.ts'
+    ],
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
-
     // Recommended for CI stability: disable worker threads when globals are sensitive
     threads: false,
+    // Restore mocks between tests to avoid leaking state
     restoreMocks: true,
   },
 })
