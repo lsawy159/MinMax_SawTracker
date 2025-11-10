@@ -1,6 +1,5 @@
-// 💡✨ --- هذا هو الإصلاح --- 💡✨
+// 💡✨ --- إصلاح نهائي لـ CI - نسخة 3 --- 💡✨
 // إصلاح مشكلة Symbol قبل استيراد أي شيء
-// هذا ضروري لـ JSDOM في بيئات الـ CI
 if (typeof global !== 'undefined' && typeof global.Symbol === 'undefined' && typeof Symbol !== 'undefined') {
   (global as any).Symbol = Symbol
 }
