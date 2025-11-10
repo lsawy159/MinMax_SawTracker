@@ -184,14 +184,65 @@
     }
   }
   
-  // Ensure Map.prototype.get exists (this is what webidl-conversions needs)
-  if (typeof Map !== 'undefined' && Map.prototype && !Map.prototype.get) {
-    console.error('ERROR: Map.prototype.get is not available. This should not happen in Node.js 18+.')
+  // CRITICAL: Ensure Map.prototype.get exists (this is what webidl-conversions needs)
+  // webidl-conversions tries to access Map.prototype.get before it's initialized
+  if (typeof Map !== 'undefined' && Map.prototype) {
+    if (!Map.prototype.get) {
+      console.error('ERROR: Map.prototype.get is not available. This should not happen in Node.js 18+.')
+    } else {
+      // Force ensure Map.prototype.get is accessible
+      try {
+        const testMap = new Map()
+        testMap.set('test', 'value')
+        const result = testMap.get('test')
+        if (result !== 'value') {
+          console.error('ERROR: Map.prototype.get is not working correctly')
+        }
+      } catch (e) {
+        console.error('ERROR: Map.prototype.get test failed:', e.message)
+      }
+    }
   }
   
-  // Ensure WeakMap.prototype.get exists
-  if (typeof WeakMap !== 'undefined' && WeakMap.prototype && !WeakMap.prototype.get) {
-    console.error('ERROR: WeakMap.prototype.get is not available. This should not happen in Node.js 18+.')
+  // CRITICAL: Ensure WeakMap.prototype.get exists
+  if (typeof WeakMap !== 'undefined' && WeakMap.prototype) {
+    if (!WeakMap.prototype.get) {
+      console.error('ERROR: WeakMap.prototype.get is not available. This should not happen in Node.js 18+.')
+    }
+  }
+  
+  // Force ensure all globals are set on all possible global objects
+  // This is critical for webidl-conversions to work
+  const globalObjects = [global, globalThis]
+  if (typeof window !== 'undefined') {
+    globalObjects.push(window)
+  }
+  
+  globalObjects.forEach((obj) => {
+    if (obj && typeof obj !== 'undefined') {
+      try {
+        if (!obj.Symbol && typeof Symbol !== 'undefined') obj.Symbol = Symbol
+        if (!obj.Map && typeof Map !== 'undefined') obj.Map = Map
+        if (!obj.Set && typeof Set !== 'undefined') obj.Set = Set
+        if (!obj.WeakMap && typeof WeakMap !== 'undefined') obj.WeakMap = WeakMap
+        if (!obj.WeakSet && typeof WeakSet !== 'undefined') obj.WeakSet = WeakSet
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+  })
+  
+  // Final verification log
+  if (process.env.NODE_ENV === 'test' || process.env.CI || process.argv.some(arg => arg.includes('vitest'))) {
+    console.log('[fix-globals] All globals verified and set:', {
+      Symbol: typeof Symbol !== 'undefined',
+      Map: typeof Map !== 'undefined',
+      Set: typeof Set !== 'undefined',
+      WeakMap: typeof WeakMap !== 'undefined',
+      WeakSet: typeof WeakSet !== 'undefined',
+      MapPrototypeGet: typeof Map !== 'undefined' && Map.prototype && typeof Map.prototype.get === 'function',
+      WeakMapPrototypeGet: typeof WeakMap !== 'undefined' && WeakMap.prototype && typeof WeakMap.prototype.get === 'function'
+    })
   }
 })()
 
