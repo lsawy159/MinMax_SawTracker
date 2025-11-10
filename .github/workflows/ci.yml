@@ -92,15 +92,17 @@ jobs:
         run: pnpm test -- --run --reporter=verbose
         continue-on-error: false
         env:
-          # تحميل fix-symbol.js قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
-          NODE_OPTIONS: '--require ./scripts/fix-symbol.js'
+          # تحميل fix-symbol.cjs قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
+          # استخدام .cjs لأن المشروع يستخدم "type": "module" في package.json
+          NODE_OPTIONS: '--require ./scripts/fix-symbol.cjs'
 
       - name: Run tests with coverage
         run: pnpm test:coverage
         continue-on-error: false
         env:
-          # تحميل fix-symbol.js قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
-          NODE_OPTIONS: '--require ./scripts/fix-symbol.js'
+          # تحميل fix-symbol.cjs قبل vitest لضمان توفر Symbol قبل تحميل أي وحدات
+          # استخدام .cjs لأن المشروع يستخدم "type": "module" في package.json
+          NODE_OPTIONS: '--require ./scripts/fix-symbol.cjs'
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
