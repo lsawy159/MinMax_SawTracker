@@ -7,10 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build, Reports, and SSR
 dist
 dist-ssr
-*.local
+coverage/  # <-- ✨ هذا هو الإضافة الرئيسية لمنع أخطاء LINT
+.vercel/
+
+# Environment files (Secrets)
+.env       # <-- ✨ إضافة هامة جداً للأمان
+.env.local
+.env.*.local
+# *.local  # (تم استبداله بالأسطر الأكثر تحديداً في الأعلى)
 
 # Editor directories and files
 .vscode/*

@@ -1,23 +1,19 @@
-// Fix Symbol issue before importing anything
-if (typeof global !== 'undefined' && typeof global.Symbol === 'undefined' && typeof Symbol !== 'undefined') {
-  (global as any).Symbol = Symbol
-}
-if (typeof globalThis !== 'undefined' && typeof globalThis.Symbol === 'undefined' && typeof Symbol !== 'undefined') {
-  (globalThis as any).Symbol = Symbol
-}
+// تم إزالة الـ Polyfill اليدوي من هنا لأنه يُحمّل الآن عبر setupFiles
 
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+// 'vite-plugin-source-identifier' غير مستخدم هنا، يمكن إزالته
+// import { sourceIdentifierPlugin } from 'vite-plugin-source-identifier' 
 
 export default defineConfig({
   plugins: [react()],
-  test: {
+  test: { // هذه هي الكتلة الوحيدة والصحيحة للإعدادات
     globals: true,
     environment: 'jsdom',
     setupFiles: [
-      './src/test/setup-symbol.ts', // Load Symbol fix first (before any modules)
-      './src/test/setup.ts',        // Then load other setup
+      './vitest.setup.ts',    // المسار الصحيح لملف إعداد Symbol
+      './src/test/setup.ts',    // ملف الإعداد الإضافي
     ],
     css: true,
     // استخدام forks pool مع single fork لضمان تنفيذ setup في نفس العملية
@@ -46,4 +42,5 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // تم حذف كتلة test: { ... } المكررة من هنا
 })
