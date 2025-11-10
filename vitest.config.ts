@@ -1,10 +1,13 @@
-// Fix Symbol issue before importing anything
+// 💡✨ --- هذا هو الإصلاح --- 💡✨
+// إصلاح مشكلة Symbol قبل استيراد أي شيء
+// هذا ضروري لـ JSDOM في بيئات الـ CI
 if (typeof global !== 'undefined' && typeof global.Symbol === 'undefined' && typeof Symbol !== 'undefined') {
   (global as any).Symbol = Symbol
 }
 if (typeof globalThis !== 'undefined' && typeof globalThis.Symbol === 'undefined' && typeof Symbol !== 'undefined') {
   (globalThis as any).Symbol = Symbol
 }
+// 💡✨ --- نهاية الإصلاح --- 💡✨
 
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
@@ -16,15 +19,15 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: [
-      './src/test/setup-symbol.ts', // Load Symbol fix first (before any modules)
-      './src/test/setup.ts',        // Then load other setup
+      './vitest.setup.ts',    // المسار الصحيح لملف إعداد Symbol
+      './src/test/setup.ts',    // ملف الإعداد الإضافي (إذا كان موجوداً)
     ],
     css: true,
     // استخدام forks pool مع single fork لضمان تنفيذ setup في نفس العملية
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true, // استخدام fork واحد فقط لضمان تنفيذ setup قبل تحميل الوحدات
+        singleFork: true, 
       },
     },
     coverage: {
