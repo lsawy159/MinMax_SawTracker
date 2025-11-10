@@ -18,6 +18,7 @@ export default {
         'revert',   // revert commit سابق
       ],
     ],
+    // Scope اختياري - إذا كان موجوداً يجب أن يكون من القائمة
     'scope-enum': [
       2,
       'always',
@@ -33,8 +34,11 @@ export default {
         'api',
         'deps',
         'config',
+        'test',
       ],
     ],
+    // السماح بـ commit بدون scope
+    'scope-empty': [0, 'always'],
     'subject-case': [0],
   },
 }
