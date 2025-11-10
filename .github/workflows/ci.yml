@@ -90,11 +90,15 @@ jobs:
 
       - name: Run tests
         run: pnpm test -- --run --reporter=verbose
+        env:
+          NODE_OPTIONS: '--require ./scripts/fix-globals.cjs'
         continue-on-error: false
         
 
       - name: Run tests with coverage
         run: pnpm test:coverage
+        env:
+          NODE_OPTIONS: '--require ./scripts/fix-globals.cjs'
         continue-on-error: false
         
 
