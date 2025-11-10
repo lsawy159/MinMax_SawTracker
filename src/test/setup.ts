@@ -1,14 +1,7 @@
+// Symbol fix is now in setup-symbol.ts which is loaded first
 import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
-
-// Fix for webidl-conversions Symbol issue
-if (typeof globalThis.Symbol === 'undefined') {
-  (globalThis as any).Symbol = Symbol
-}
-
-// Or use this alternative:
-global.Symbol = global.Symbol || Symbol
 
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
@@ -8,8 +8,23 @@ export default function Login() {
   const [password, setPassword] = useState('password123')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+
+  // إذا كان المستخدم مسجل دخول بالفعل، انتقل إلى Dashboard
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, authLoading, navigate])
+
+  // الانتقال إلى Dashboard بعد نجاح تسجيل الدخول
+  useEffect(() => {
+    if (user && !authLoading && loading) {
+      // الانتقال فقط بعد اكتمال تسجيل الدخول وجلب بيانات المستخدم
+      setLoading(false)
+    }
+  }, [user, authLoading, loading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,10 +32,10 @@ export default function Login() {
     setLoading(true)
     try {
       await signIn(email, password)
-      navigate('/dashboard')
+      // لا ننتقل هنا مباشرة، بل ننتظر useEffect أعلاه
+      // useEffect سينتقل تلقائياً عندما يكون user موجود و authLoading = false
     } catch (err: any) {
       setError('فشل تسجيل الدخول')
-    } finally {
       setLoading(false)
     }
   }
