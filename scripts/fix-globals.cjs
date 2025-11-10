@@ -8,6 +8,11 @@
 (function() {
   'use strict'
   
+  // Debug log to verify this file is loaded early (only in test/CI environment)
+  if (process.env.NODE_ENV === 'test' || process.env.CI || process.argv.some(arg => arg.includes('vitest'))) {
+    console.log('[fix-globals] preloaded at process start')
+  }
+  
   // Ensure Symbol exists
   if (typeof Symbol === 'undefined') {
     console.error('ERROR: Symbol is not available in this environment. Node.js version may be too old.')
