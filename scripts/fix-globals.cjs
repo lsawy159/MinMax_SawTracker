@@ -168,7 +168,7 @@
         value: global,
         writable: true,
         enumerable: false,
-        configable: true,
+          configurable: true,
       })
     } catch (e) {
       try {
