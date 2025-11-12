@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase, Company } from '../../lib/supabase'
-import { X, UserPlus, AlertCircle, CheckCircle, Users } from 'lucide-react'
+import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface AddEmployeeModalProps {
@@ -17,6 +17,9 @@ interface CompanyWithStats extends Company {
 export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmployeeModalProps) {
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
   const [loading, setLoading] = useState(false)
+  const [companySearchQuery, setCompanySearchQuery] = useState('')
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
+  const companyDropdownRef = useRef<HTMLDivElement>(null)
   const [formData, setFormData] = useState({
     name: '',
     profession: '',
@@ -54,8 +57,39 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         bank_account: '',
         company_id: ''
       })
+      setCompanySearchQuery('')
+      setIsCompanyDropdownOpen(false)
     }
   }, [isOpen])
+
+  // تحديث نص البحث عند تغيير المؤسسة المختارة (فقط عند اختيار مؤسسة، وليس عند الكتابة)
+  useEffect(() => {
+    if (formData.company_id && companies.length > 0) {
+      const selectedCompany = companies.find(c => c.id === formData.company_id)
+      if (selectedCompany) {
+        const displayText = `${selectedCompany.name} - ${selectedCompany.unified_number} - (${selectedCompany.employee_count}/${selectedCompany.max_employees})`
+        // تحديث فقط إذا كان النص مختلف (لتجنب التداخل مع الكتابة)
+        if (companySearchQuery !== displayText) {
+          setCompanySearchQuery(displayText)
+        }
+      }
+    } else if (!formData.company_id && companySearchQuery) {
+      // إعادة تعيين فقط إذا لم تكن هناك مؤسسة مختارة
+      setCompanySearchQuery('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.company_id]) // companies يتم تحديثه عند loadCompanies، لذلك لا نحتاج إضافته
+
+  // إغلاق القائمة عند النقر خارجها
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+        setIsCompanyDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const loadCompanies = async () => {
     try {
@@ -107,6 +141,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     if (availableSlots === 1) return 'مكان واحد متبقي'
     return `${availableSlots} أماكن متاحة`
   }
+
+  // تصفية المؤسسات: إخفاء المكتملة والبحث
+  const filteredCompanies = companies.filter(company => {
+    // إخفاء المؤسسات المكتملة
+    if (company.available_slots === 0) return false
+    
+    // البحث في الاسم أو الرقم الموحد
+    if (companySearchQuery.trim()) {
+      const query = companySearchQuery.toLowerCase().trim()
+      const nameMatch = company.name?.toLowerCase().includes(query)
+      const unifiedNumberMatch = company.unified_number?.toString().includes(query)
+      return nameMatch || unifiedNumberMatch
+    }
+    
+    return true
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -388,28 +438,66 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 المؤسسة <span className="text-red-500">*</span>
               </label>
-              <select
+              <div className="relative" ref={companyDropdownRef}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={companySearchQuery}
+                    onChange={(e) => {
+                      setCompanySearchQuery(e.target.value)
+                      setIsCompanyDropdownOpen(true)
+                    }}
+                    onFocus={() => setIsCompanyDropdownOpen(true)}
+                    placeholder="ابحث بالاسم أو الرقم الموحد..."
+                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    disabled={loading}
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <Search className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={loading}
+                  >
+                    <ChevronDown className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                
+                {isCompanyDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {filteredCompanies.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مؤسسات متاحة'}
+                      </div>
+                    ) : (
+                      filteredCompanies.map(company => (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, company_id: company.id }))
+                            setCompanySearchQuery(`${company.name} - ${company.unified_number} - (${company.employee_count}/${company.max_employees})`)
+                            setIsCompanyDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                        >
+                          {company.name} - {company.unified_number} - ({company.employee_count}/{company.max_employees})
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Hidden input for form validation */}
+              <input
+                type="hidden"
                 name="company_id"
                 value={formData.company_id}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 required
-                disabled={loading}
-              >
-                <option value="">اختر المؤسسة</option>
-                {companies.map(company => {
-                  const isFull = company.available_slots === 0
-                  return (
-                    <option 
-                      key={company.id} 
-                      value={company.id}
-                      disabled={isFull}
-                    >
-                      {company.name} - {company.unified_number} - ({company.employee_count}/{company.max_employees})
-                    </option>
-                  )
-                })}
-              </select>
+              />
               
               {/* عرض تفاصيل المؤسسة المختارة */}
               {formData.company_id && (
