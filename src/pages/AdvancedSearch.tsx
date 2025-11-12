@@ -17,13 +17,19 @@ interface Employee {
   phone: string
   passport_number?: string
   birth_date?: string
-  residence_number?: string
+  residence_number?: number | string
   joining_date?: string
   residence_expiry: string
   contract_expiry?: string
   project_name?: string
   bank_account?: string
   ending_subscription_insurance_date?: string
+  salary?: number
+  housing_allowance?: number
+  transport_allowance?: number
+  employee_number?: string
+  contract_number?: string
+  insurance_number?: string
   additional_fields?: Record<string, any>
   companies?: { name: string }
 }
@@ -38,7 +44,10 @@ interface Company {
   insurance_subscription_expiry?: string
   ending_subscription_power_date?: string
   ending_subscription_moqeem_date?: string
+  ending_subscription_insurance_date?: string
   exemptions?: string | null
+  max_employees?: number
+  created_at?: string
 
   additional_fields?: Record<string, any>
   commercial_registration_status?: string
@@ -88,10 +97,20 @@ export default function AdvancedSearch() {
   
   // فلاتر جديدة للموظفين
   const [hasInsuranceExpiry, setHasInsuranceExpiry] = useState<string>('all')
+  const [insuranceExpiryStatus, setInsuranceExpiryStatus] = useState<string>('all')
+  const [hasPassport, setHasPassport] = useState<string>('all')
 
   const [hasBankAccount, setHasBankAccount] = useState<string>('all')
   const [birthDateRange, setBirthDateRange] = useState<string>('all')
   const [joiningDateRange, setJoiningDateRange] = useState<string>('all')
+  
+  // فلاتر البحث النصي للموظفين
+  const [passportNumberSearch, setPassportNumberSearch] = useState<string>('')
+  const [residenceNumberSearch, setResidenceNumberSearch] = useState<string>('')
+  const [phoneSearch, setPhoneSearch] = useState<string>('')
+  const [employeeNumberSearch, setEmployeeNumberSearch] = useState<string>('')
+  const [contractNumberSearch, setContractNumberSearch] = useState<string>('')
+  const [insuranceNumberSearch, setInsuranceNumberSearch] = useState<string>('')
 
   // Filter states for companies
   const [commercialRegStatus, setCommercialRegStatus] = useState<CompanyStatus>('all')
@@ -105,6 +124,16 @@ export default function AdvancedSearch() {
   const [employeeCountFilter, setEmployeeCountFilter] = useState<string>('all')
   const [availableSlotsFilter, setAvailableSlotsFilter] = useState<string>('all')
   const [exemptionsFilter, setExemptionsFilter] = useState<string>('all')
+  
+  // فلاتر إضافية للمؤسسات
+  const [companyInsuranceExpiryStatus, setCompanyInsuranceExpiryStatus] = useState<string>('all')
+  const [unifiedNumberSearch, setUnifiedNumberSearch] = useState<string>('')
+  const [taxNumberSearch, setTaxNumberSearch] = useState<string>('')
+  const [laborSubscriptionNumberSearch, setLaborSubscriptionNumberSearch] = useState<string>('')
+  const [maxEmployeesRange, setMaxEmployeesRange] = useState<string>('all')
+  const [companyCreatedDateRange, setCompanyCreatedDateRange] = useState<string>('all')
+  const [companyCreatedStartDate, setCompanyCreatedStartDate] = useState<string>('')
+  const [companyCreatedEndDate, setCompanyCreatedEndDate] = useState<string>('')
 
   // Filter lists
   const [nationalities, setNationalities] = useState<string[]>([])
@@ -301,6 +330,69 @@ export default function AdvancedSearch() {
         })
       }
 
+      // حالة انتهاء اشتراك التأمين (محسّن)
+      if (insuranceExpiryStatus !== 'all') {
+        const today = new Date()
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+        
+        filteredEmps = filteredEmps.filter(e => {
+          if (!e.ending_subscription_insurance_date) return insuranceExpiryStatus === 'no_expiry'
+          const expiryDate = new Date(e.ending_subscription_insurance_date)
+          
+          if (insuranceExpiryStatus === 'expired') return expiryDate < today
+          if (insuranceExpiryStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (insuranceExpiryStatus === 'valid') return expiryDate > thirtyDaysLater
+          if (insuranceExpiryStatus === 'no_expiry') return false
+          return true
+        })
+      }
+
+      // حالة رقم الجواز
+      if (hasPassport !== 'all') {
+        filteredEmps = filteredEmps.filter(e => {
+          const hasPassportNum = e.passport_number
+          return hasPassport === 'yes' ? !!hasPassportNum : !hasPassportNum
+        })
+      }
+
+
+      // فلاتر البحث النصي
+      if (passportNumberSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.passport_number?.toLowerCase().includes(passportNumberSearch.toLowerCase().trim())
+        )
+      }
+
+      if (residenceNumberSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.residence_number?.toString().includes(residenceNumberSearch.trim())
+        )
+      }
+
+      if (phoneSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.phone?.includes(phoneSearch.trim())
+        )
+      }
+
+      if (employeeNumberSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.employee_number?.toLowerCase().includes(employeeNumberSearch.toLowerCase().trim())
+        )
+      }
+
+      if (contractNumberSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.contract_number?.toLowerCase().includes(contractNumberSearch.toLowerCase().trim())
+        )
+      }
+
+      if (insuranceNumberSearch.trim()) {
+        filteredEmps = filteredEmps.filter(e => 
+          e.insurance_number?.toLowerCase().includes(insuranceNumberSearch.toLowerCase().trim())
+        )
+      }
+
 
 
       if (hasBankAccount !== 'all') {
@@ -453,6 +545,83 @@ export default function AdvancedSearch() {
           return c.exemptions === exemptionsFilter
         })
       }
+
+      // حالة انتهاء اشتراك التأمين للمؤسسة
+      if (companyInsuranceExpiryStatus !== 'all') {
+        const today = new Date()
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+        
+        filteredComps = filteredComps.filter(c => {
+          if (!c.ending_subscription_insurance_date) return companyInsuranceExpiryStatus === 'no_expiry'
+          const expiryDate = new Date(c.ending_subscription_insurance_date)
+          
+          if (companyInsuranceExpiryStatus === 'expired') return expiryDate < today
+          if (companyInsuranceExpiryStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (companyInsuranceExpiryStatus === 'valid') return expiryDate > thirtyDaysLater
+          if (companyInsuranceExpiryStatus === 'no_expiry') return false
+          return true
+        })
+      }
+
+      // فلاتر البحث النصي للمؤسسات
+      if (unifiedNumberSearch.trim()) {
+        filteredComps = filteredComps.filter(c => 
+          c.unified_number?.toString().includes(unifiedNumberSearch.trim())
+        )
+      }
+
+      if (taxNumberSearch.trim()) {
+        filteredComps = filteredComps.filter(c => 
+          c.tax_number?.toString().includes(taxNumberSearch.trim())
+        )
+      }
+
+      if (laborSubscriptionNumberSearch.trim()) {
+        filteredComps = filteredComps.filter(c => 
+          c.labor_subscription_number?.toLowerCase().includes(laborSubscriptionNumberSearch.toLowerCase().trim())
+        )
+      }
+
+      // فلتر الحد الأقصى للموظفين
+      if (maxEmployeesRange !== 'all') {
+        filteredComps = filteredComps.filter(c => {
+          const maxEmp = c.max_employees || 0
+          if (maxEmployeesRange === '1_2') return maxEmp >= 1 && maxEmp <= 2
+          if (maxEmployeesRange === '3_4') return maxEmp >= 3 && maxEmp <= 4
+          if (maxEmployeesRange === '5_10') return maxEmp >= 5 && maxEmp <= 10
+          if (maxEmployeesRange === 'over_10') return maxEmp > 10
+          return true
+        })
+      }
+
+      // فلتر تاريخ إنشاء المؤسسة
+      if (companyCreatedDateRange !== 'all') {
+        const today = new Date()
+        let startDate: Date | null = null
+        let endDate: Date | null = null
+
+        if (companyCreatedDateRange === 'last_month') {
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())
+          endDate = today
+        } else if (companyCreatedDateRange === 'last_3_months') {
+          startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate())
+          endDate = today
+        } else if (companyCreatedDateRange === 'last_year') {
+          startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+          endDate = today
+        } else if (companyCreatedDateRange === 'custom' && companyCreatedStartDate && companyCreatedEndDate) {
+          startDate = new Date(companyCreatedStartDate)
+          endDate = new Date(companyCreatedEndDate)
+        }
+
+        if (startDate && endDate) {
+          filteredComps = filteredComps.filter(c => {
+            if (!c.created_at) return false
+            const createdDate = new Date(c.created_at)
+            return createdDate >= startDate! && createdDate <= endDate!
+          })
+        }
+      }
     }
 
     setFilteredEmployees(filteredEmps)
@@ -468,10 +637,18 @@ export default function AdvancedSearch() {
     selectedProject, 
     residenceStatus, 
     contractStatus, 
-    hasInsuranceExpiry, 
+    hasInsuranceExpiry,
+    insuranceExpiryStatus,
+    hasPassport,
     hasBankAccount, 
     birthDateRange, 
-    joiningDateRange, 
+    joiningDateRange,
+    passportNumberSearch,
+    residenceNumberSearch,
+    phoneSearch,
+    employeeNumberSearch,
+    contractNumberSearch,
+    insuranceNumberSearch,
     commercialRegStatus, 
     insuranceStatus, 
     companyDateFilter, 
@@ -479,7 +656,15 @@ export default function AdvancedSearch() {
     moqeemSubscriptionStatus, 
     employeeCountFilter, 
     availableSlotsFilter,
-    exemptionsFilter
+    exemptionsFilter,
+    companyInsuranceExpiryStatus,
+    unifiedNumberSearch,
+    taxNumberSearch,
+    laborSubscriptionNumberSearch,
+    maxEmployeesRange,
+    companyCreatedDateRange,
+    companyCreatedStartDate,
+    companyCreatedEndDate
   ])
 
   useEffect(() => {
@@ -503,9 +688,17 @@ export default function AdvancedSearch() {
     
     // فلاتر جديدة للموظفين
     setHasInsuranceExpiry('all')
+    setInsuranceExpiryStatus('all')
+    setHasPassport('all')
     setHasBankAccount('all')
     setBirthDateRange('all')
     setJoiningDateRange('all')
+    setPassportNumberSearch('')
+    setResidenceNumberSearch('')
+    setPhoneSearch('')
+    setEmployeeNumberSearch('')
+    setContractNumberSearch('')
+    setInsuranceNumberSearch('')
     
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
@@ -515,9 +708,16 @@ export default function AdvancedSearch() {
     // فلاتر جديدة للشركات
     setPowerSubscriptionStatus('all')
     setMoqeemSubscriptionStatus('all')
-
     setEmployeeCountFilter('all')
     setAvailableSlotsFilter('all')
+    setCompanyInsuranceExpiryStatus('all')
+    setUnifiedNumberSearch('')
+    setTaxNumberSearch('')
+    setLaborSubscriptionNumberSearch('')
+    setMaxEmployeesRange('all')
+    setCompanyCreatedDateRange('all')
+    setCompanyCreatedStartDate('')
+    setCompanyCreatedEndDate('')
     
     setCurrentPage(1)
   }
@@ -544,9 +744,34 @@ export default function AdvancedSearch() {
           project: selectedProject,
           residenceStatus,
           contractStatus,
+          hasInsuranceExpiry,
+          insuranceExpiryStatus,
+          hasPassport,
+          hasBankAccount,
+          birthDateRange,
+          joiningDateRange,
+          passportNumberSearch,
+          residenceNumberSearch,
+          phoneSearch,
+          employeeNumberSearch,
+          contractNumberSearch,
+          insuranceNumberSearch,
           commercialRegStatus,
           insuranceStatus,
-          companyDateFilter
+          companyDateFilter,
+          powerSubscriptionStatus,
+          moqeemSubscriptionStatus,
+          employeeCountFilter,
+          availableSlotsFilter,
+          exemptionsFilter,
+          companyInsuranceExpiryStatus,
+          unifiedNumberSearch,
+          taxNumberSearch,
+          laborSubscriptionNumberSearch,
+          maxEmployeesRange,
+          companyCreatedDateRange,
+          companyCreatedStartDate,
+          companyCreatedEndDate
         }
       })
 
@@ -573,9 +798,34 @@ export default function AdvancedSearch() {
       setSelectedProject(saved.filters.project || 'all')
       setResidenceStatus(saved.filters.residenceStatus || 'all')
       setContractStatus(saved.filters.contractStatus || 'all')
+      setHasInsuranceExpiry(saved.filters.hasInsuranceExpiry || 'all')
+      setInsuranceExpiryStatus(saved.filters.insuranceExpiryStatus || 'all')
+      setHasPassport(saved.filters.hasPassport || 'all')
+      setHasBankAccount(saved.filters.hasBankAccount || 'all')
+      setBirthDateRange(saved.filters.birthDateRange || 'all')
+      setJoiningDateRange(saved.filters.joiningDateRange || 'all')
+      setPassportNumberSearch(saved.filters.passportNumberSearch || '')
+      setResidenceNumberSearch(saved.filters.residenceNumberSearch || '')
+      setPhoneSearch(saved.filters.phoneSearch || '')
+      setEmployeeNumberSearch(saved.filters.employeeNumberSearch || '')
+      setContractNumberSearch(saved.filters.contractNumberSearch || '')
+      setInsuranceNumberSearch(saved.filters.insuranceNumberSearch || '')
       setCommercialRegStatus(saved.filters.commercialRegStatus || 'all')
       setInsuranceStatus(saved.filters.insuranceStatus || 'all')
       setCompanyDateFilter(saved.filters.companyDateFilter || 'all')
+      setPowerSubscriptionStatus(saved.filters.powerSubscriptionStatus || 'all')
+      setMoqeemSubscriptionStatus(saved.filters.moqeemSubscriptionStatus || 'all')
+      setEmployeeCountFilter(saved.filters.employeeCountFilter || 'all')
+      setAvailableSlotsFilter(saved.filters.availableSlotsFilter || 'all')
+      setExemptionsFilter(saved.filters.exemptionsFilter || 'all')
+      setCompanyInsuranceExpiryStatus(saved.filters.companyInsuranceExpiryStatus || 'all')
+      setUnifiedNumberSearch(saved.filters.unifiedNumberSearch || '')
+      setTaxNumberSearch(saved.filters.taxNumberSearch || '')
+      setLaborSubscriptionNumberSearch(saved.filters.laborSubscriptionNumberSearch || '')
+      setMaxEmployeesRange(saved.filters.maxEmployeesRange || 'all')
+      setCompanyCreatedDateRange(saved.filters.companyCreatedDateRange || 'all')
+      setCompanyCreatedStartDate(saved.filters.companyCreatedStartDate || '')
+      setCompanyCreatedEndDate(saved.filters.companyCreatedEndDate || '')
     }
     setCurrentPage(1)
     toast.success(`تم تحميل البحث: ${saved.name}`)
@@ -790,6 +1040,112 @@ export default function AdvancedSearch() {
                           <option value="أخرى">أخرى</option>
                         </select>
                       </div>
+
+                      {/* فلاتر الحالات للمؤسسات */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">حالة انتهاء اشتراك التأمين</label>
+                        <select
+                          value={companyInsuranceExpiryStatus}
+                          onChange={(e) => setCompanyInsuranceExpiryStatus(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="expired">منتهي</option>
+                          <option value="expiring_soon">قريب الانتهاء (30 يوم)</option>
+                          <option value="valid">ساري</option>
+                          <option value="no_expiry">غير محدد</option>
+                        </select>
+                      </div>
+
+                      {/* فلاتر البحث النصي للمؤسسات */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث الرقم الموحد</label>
+                        <input
+                          type="text"
+                          value={unifiedNumberSearch}
+                          onChange={(e) => setUnifiedNumberSearch(e.target.value)}
+                          placeholder="ابحث بالرقم الموحد..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث الرقم التأميني</label>
+                        <input
+                          type="text"
+                          value={taxNumberSearch}
+                          onChange={(e) => setTaxNumberSearch(e.target.value)}
+                          placeholder="ابحث بالرقم التأميني..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم اشتراك قوى</label>
+                        <input
+                          type="text"
+                          value={laborSubscriptionNumberSearch}
+                          onChange={(e) => setLaborSubscriptionNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم اشتراك قوى..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      {/* فلاتر النطاقات للمؤسسات */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">الحد الأقصى للموظفين</label>
+                        <select
+                          value={maxEmployeesRange}
+                          onChange={(e) => setMaxEmployeesRange(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="1_2">1 - 2</option>
+                          <option value="3_4">3 - 4</option>
+                          <option value="5_10">5 - 10</option>
+                          <option value="over_10">أكثر من 10</option>
+                        </select>
+                      </div>
+
+                      {/* فلتر تاريخ إنشاء المؤسسة */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">تاريخ إنشاء المؤسسة</label>
+                        <select
+                          value={companyCreatedDateRange}
+                          onChange={(e) => setCompanyCreatedDateRange(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="last_month">آخر شهر</option>
+                          <option value="last_3_months">آخر 3 أشهر</option>
+                          <option value="last_year">آخر سنة</option>
+                          <option value="custom">مخصص</option>
+                        </select>
+                      </div>
+
+                      {/* Custom Date Range */}
+                      {companyCreatedDateRange === 'custom' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">من تاريخ</label>
+                            <input
+                              type="date"
+                              value={companyCreatedStartDate}
+                              onChange={(e) => setCompanyCreatedStartDate(e.target.value)}
+                              className="w-full px-3 py-2 border rounded-md"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">إلى تاريخ</label>
+                            <input
+                              type="date"
+                              value={companyCreatedEndDate}
+                              onChange={(e) => setCompanyCreatedEndDate(e.target.value)}
+                              className="w-full px-3 py-2 border rounded-md"
+                            />
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                   {(searchType === 'employees' || searchType === 'both') && (
@@ -876,6 +1232,102 @@ export default function AdvancedSearch() {
                           <option value="expiring_soon">سينتهي قريباً (30 يوم)</option>
                           <option value="valid">ساري</option>
                         </select>
+                      </div>
+
+                      {/* فلاتر الحالات للموظفين */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">حالة انتهاء اشتراك التأمين</label>
+                        <select
+                          value={insuranceExpiryStatus}
+                          onChange={(e) => setInsuranceExpiryStatus(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="expired">منتهي</option>
+                          <option value="expiring_soon">قريب الانتهاء (30 يوم)</option>
+                          <option value="valid">ساري</option>
+                          <option value="no_expiry">غير محدد</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">رقم الجواز</label>
+                        <select
+                          value={hasPassport}
+                          onChange={(e) => setHasPassport(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="yes">موجود</option>
+                          <option value="no">غير موجود</option>
+                        </select>
+                      </div>
+
+                      {/* فلاتر البحث النصي للموظفين */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم الجواز</label>
+                        <input
+                          type="text"
+                          value={passportNumberSearch}
+                          onChange={(e) => setPassportNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم الجواز..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم الإقامة</label>
+                        <input
+                          type="text"
+                          value={residenceNumberSearch}
+                          onChange={(e) => setResidenceNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم الإقامة..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم الهاتف</label>
+                        <input
+                          type="text"
+                          value={phoneSearch}
+                          onChange={(e) => setPhoneSearch(e.target.value)}
+                          placeholder="ابحث برقم الهاتف..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم الموظف</label>
+                        <input
+                          type="text"
+                          value={employeeNumberSearch}
+                          onChange={(e) => setEmployeeNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم الموظف..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم العقد</label>
+                        <input
+                          type="text"
+                          value={contractNumberSearch}
+                          onChange={(e) => setContractNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم العقد..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">بحث رقم التأمين</label>
+                        <input
+                          type="text"
+                          value={insuranceNumberSearch}
+                          onChange={(e) => setInsuranceNumberSearch(e.target.value)}
+                          placeholder="ابحث برقم التأمين..."
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
                       </div>
                     </>
                   )}
