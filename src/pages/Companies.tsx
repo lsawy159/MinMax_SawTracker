@@ -681,7 +681,7 @@ export default function Companies() {
 
               {/* Date Range */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">فلتر التاريخ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">فلتر تاريخ انشاء المؤسسة</label>
                 <select
                   value={dateRangeFilter}
                   onChange={(e) => setDateRangeFilter(e.target.value as DateRange)}
