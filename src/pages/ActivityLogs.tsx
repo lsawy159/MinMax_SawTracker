@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, ActivityLog } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
+import { useAuth } from '../contexts/AuthContext'
 import { 
   Activity, 
   User, 
@@ -12,7 +13,9 @@ import {
   Trash2,
   Plus,
   RefreshCw,
-  Download
+  Download,
+  CheckSquare,
+  Square
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -22,6 +25,9 @@ type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
 
 export default function ActivityLogs() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  
   const [logs, setLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -29,6 +35,10 @@ export default function ActivityLogs() {
   const [entityFilter, setEntityFilter] = useState<EntityFilter>('all')
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null)
   const [showRawData, setShowRawData] = useState(false)
+  const [selectedLogIds, setSelectedLogIds] = useState<Set<number>>(new Set())
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteAllMode, setDeleteAllMode] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadLogs()
@@ -348,6 +358,94 @@ export default function ActivityLogs() {
     return true
   })
 
+  // دوال التحديد والحذف
+  const handleSelectAll = () => {
+    if (selectedLogIds.size === filteredLogs.length) {
+      setSelectedLogIds(new Set())
+    } else {
+      setSelectedLogIds(new Set(filteredLogs.map(log => log.id)))
+    }
+  }
+
+  const handleSelectLog = (logId: number) => {
+    const newSelected = new Set(selectedLogIds)
+    if (newSelected.has(logId)) {
+      newSelected.delete(logId)
+    } else {
+      newSelected.add(logId)
+    }
+    setSelectedLogIds(newSelected)
+  }
+
+  const handleDeleteSelected = () => {
+    if (selectedLogIds.size === 0) {
+      toast.error('لم يتم تحديد أي نشاطات للحذف')
+      return
+    }
+    setDeleteAllMode(false)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteAll = () => {
+    if (filteredLogs.length === 0) {
+      toast.error('لا توجد نشاطات للحذف')
+      return
+    }
+    setDeleteAllMode(true)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!isAdmin) {
+      toast.error('غير مصرح لك بحذف سجل النشاطات')
+      return
+    }
+
+    setDeleting(true)
+    try {
+      if (deleteAllMode) {
+        // حذف جميع النشاطات
+        // الحصول على جميع IDs أولاً
+        const allIds = logs.map(log => log.id)
+        if (allIds.length > 0) {
+          const { error } = await supabase
+            .from('activity_log')
+            .delete()
+            .in('id', allIds)
+
+          if (error) throw error
+        }
+
+        toast.success(`تم حذف جميع النشاطات (${logs.length} نشاط) بنجاح`)
+        setLogs([])
+      } else {
+        // حذف النشاطات المحددة
+        const idsToDelete = Array.from(selectedLogIds)
+        const { error } = await supabase
+          .from('activity_log')
+          .delete()
+          .in('id', idsToDelete)
+
+        if (error) throw error
+
+        toast.success(`تم حذف ${idsToDelete.length} نشاط بنجاح`)
+        setLogs(logs.filter(log => !selectedLogIds.has(log.id)))
+        setSelectedLogIds(new Set())
+      }
+
+      setShowDeleteModal(false)
+      setDeleteAllMode(false)
+    } catch (error: any) {
+      console.error('Error deleting logs:', error)
+      toast.error(error.message || 'فشل في حذف النشاطات')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const allSelected = filteredLogs.length > 0 && selectedLogIds.size === filteredLogs.length
+  const someSelected = selectedLogIds.size > 0 && selectedLogIds.size < filteredLogs.length
+
   return (
     <Layout>
       <div className="p-6">
@@ -363,6 +461,24 @@ export default function ActivityLogs() {
             </div>
           </div>
           <div className="flex gap-3">
+            {isAdmin && selectedLogIds.size > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                <Trash2 className="w-5 h-5" />
+                حذف المحدد ({selectedLogIds.size})
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={handleDeleteAll}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                <Trash2 className="w-5 h-5" />
+                حذف الكل
+              </button>
+            )}
             <button
               onClick={loadLogs}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
@@ -477,6 +593,22 @@ export default function ActivityLogs() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase w-12">
+                        <button
+                          onClick={handleSelectAll}
+                          className="flex items-center justify-center w-5 h-5"
+                        >
+                          {allSelected ? (
+                            <CheckSquare className="w-5 h-5 text-purple-600" />
+                          ) : someSelected ? (
+                            <div className="w-5 h-5 border-2 border-purple-600 rounded bg-purple-100" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-400" />
+                          )}
+                        </button>
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">العملية</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">نوع الكيان</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">المستخدم</th>
@@ -488,6 +620,20 @@ export default function ActivityLogs() {
                 <tbody className="divide-y divide-gray-200">
                   {filteredLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 transition">
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => handleSelectLog(log.id)}
+                            className="flex items-center justify-center w-5 h-5"
+                          >
+                            {selectedLogIds.has(log.id) ? (
+                              <CheckSquare className="w-5 h-5 text-purple-600" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getActionColor(log.action)}`}>
                           {getActionIcon(log.action)}
@@ -528,6 +674,68 @@ export default function ActivityLogs() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 bg-red-100 rounded-full">
+                    <Trash2 className="w-6 h-6 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">تأكيد الحذف</h3>
+                </div>
+                
+                <p className="text-gray-700 mb-6">
+                  {deleteAllMode ? (
+                    <>
+                      هل أنت متأكد من حذف <span className="font-bold text-red-600">جميع النشاطات</span> ({logs.length} نشاط)؟
+                      <br />
+                      <span className="text-sm text-red-600 mt-2 block">هذه العملية لا يمكن التراجع عنها!</span>
+                    </>
+                  ) : (
+                    <>
+                      هل أنت متأكد من حذف <span className="font-bold text-red-600">{selectedLogIds.size} نشاط</span> محدد؟
+                      <br />
+                      <span className="text-sm text-red-600 mt-2 block">هذه العملية لا يمكن التراجع عنها!</span>
+                    </>
+                  )}
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false)
+                      setDeleteAllMode(false)
+                    }}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        جاري الحذف...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        تأكيد الحذف
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
