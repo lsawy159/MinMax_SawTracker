@@ -33,6 +33,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     residence_expiry: '',
     project_name: '',
     bank_account: '',
+    salary: '',
     ending_subscription_insurance_date: '',
     notes: '',
     company_id: ''
@@ -56,6 +57,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         residence_expiry: '',
         project_name: '',
         bank_account: '',
+        salary: '',
         ending_subscription_insurance_date: '',
         notes: '',
         company_id: ''
@@ -269,6 +271,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         residence_expiry: formData.residence_expiry,
         project_name: formData.project_name.trim() || null,
         bank_account: formData.bank_account.trim() || null,
+        salary: Number(formData.salary) || 0,
         ending_subscription_insurance_date: formData.ending_subscription_insurance_date || null,
         notes: formData.notes.trim() || null,
         company_id: formData.company_id
@@ -299,6 +302,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         residence_expiry: '',
         project_name: '',
         bank_account: '',
+        salary: '',
         ending_subscription_insurance_date: '',
         notes: '',
         company_id: ''
@@ -408,33 +412,85 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               />
             </div>
 
-            {/* تاريخ انتهاء الإقامة */}
+            {/* رقم الجواز */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                تاريخ انتهاء الإقامة <span className="text-red-500">*</span>
+                رقم الجواز <span className="text-red-500">*</span>
               </label>
               <input
-                type="date"
-                name="residence_expiry"
-                value={formData.residence_expiry}
+                type="text"
+                name="passport_number"
+                value={formData.passport_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                placeholder="أدخل رقم الجواز"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* تاريخ انتهاء العقد */}
+            {/* رقم الجوال */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                تاريخ انتهاء العقد
+                رقم الجوال
               </label>
               <input
-                type="date"
-                name="contract_expiry"
-                value={formData.contract_expiry}
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                placeholder="05xxxxxxxx"
+                disabled={loading}
+              />
+            </div>
+
+            {/* الحساب البنكي */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                الحساب البنكي
+              </label>
+              <input
+                type="text"
+                name="bank_account"
+                value={formData.bank_account}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                placeholder="أدخل رقم الحساب البنكي"
+                disabled={loading}
+              />
+            </div>
+
+            {/* الراتب */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                الراتب
+              </label>
+              <input
+                type="number"
+                name="salary"
+                value={formData.salary}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="أدخل الراتب"
+                min="0"
+                step="0.01"
+                disabled={loading}
+              />
+            </div>
+
+            {/* المشروع */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                المشروع (اختياري)
+              </label>
+              <input
+                type="text"
+                name="project_name"
+                value={formData.project_name}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="أدخل اسم المشروع"
                 disabled={loading}
               />
             </div>
@@ -566,51 +622,21 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 })()
               )}
             </div>
+          </div>
 
-            {/* المشروع */}
+          {/* حقول التواريخ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {/* تاريخ الميلاد */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                المشروع (اختياري)
+                تاريخ الميلاد
               </label>
               <input
-                type="text"
-                name="project_name"
-                value={formData.project_name}
+                type="date"
+                name="birth_date"
+                value={formData.birth_date}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="أدخل اسم المشروع"
-                disabled={loading}
-              />
-            </div>
-
-            {/* رقم الجوال */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الجوال
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                placeholder="05xxxxxxxx"
-                disabled={loading}
-              />
-            </div>
-
-            {/* الحساب البنكي */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الحساب البنكي
-              </label>
-              <input
-                type="text"
-                name="bank_account"
-                value={formData.bank_account}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                placeholder="أدخل رقم الحساب البنكي"
                 disabled={loading}
               />
             </div>
@@ -631,32 +657,31 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               />
             </div>
 
-            {/* رقم الجواز */}
+            {/* تاريخ انتهاء الإقامة */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الجواز <span className="text-red-500">*</span>
+                تاريخ انتهاء الإقامة <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
-                name="passport_number"
-                value={formData.passport_number}
+                type="date"
+                name="residence_expiry"
+                value={formData.residence_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                placeholder="أدخل رقم الجواز"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* تاريخ الميلاد */}
+            {/* تاريخ انتهاء العقد */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                تاريخ الميلاد
+                تاريخ انتهاء العقد
               </label>
               <input
                 type="date"
-                name="birth_date"
-                value={formData.birth_date}
+                name="contract_expiry"
+                value={formData.contract_expiry}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={loading}

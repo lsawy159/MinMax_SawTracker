@@ -350,45 +350,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 />
               </div>
 
-              {/* الهاتف */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  رقم الهاتف
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
-              </div>
-
-              {/* الشركة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  الشركة
-                </label>
-                <select
-                  value={formData.company_id || ''}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                >
-                  {companies.map(company => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* رقم الإقامة */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -420,13 +381,33 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 />
               </div>
 
-              {/* المشروع */}
+              {/* الهاتف */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">المشروع</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  رقم الهاتف
+                </label>
                 <input
                   type="text"
-                  value={formData.project_name || ''}
-                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                  }`}
+                />
+              </div>
+
+              {/* الحساب البنكي */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  الحساب البنكي
+                </label>
+                <input
+                  type="text"
+                  value={formData.bank_account || ''}
+                  onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
@@ -452,65 +433,40 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 />
               </div>
 
-              {/* تاريخ انتهاء اشتراك التأمين */}
+              {/* المشروع */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  تاريخ انتهاء اشتراك التأمين
-                </label>
-                <input
-                  type="date"
-                  value={formData.ending_subscription_insurance_date || ''}
-                  onChange={(e) => setFormData({ ...formData, ending_subscription_insurance_date: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
-              </div>
-
-              {/* تاريخ انتهاء العقد */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">انتهاء العقد</label>
-                <input
-                  type="date"
-                  value={formData.contract_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, contract_expiry: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
-              </div>
-
-              {/* تاريخ انتهاء الإقامة */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">انتهاء الإقامة</label>
-                <input
-                  type="date"
-                  value={formData.residence_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, residence_expiry: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
-              </div>
-
-              {/* الحساب البنكي */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  الحساب البنكي
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">المشروع</label>
                 <input
                   type="text"
-                  value={formData.bank_account || ''}
-                  onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
+                  value={formData.project_name || ''}
+                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
                   }`}
                 />
+              </div>
+
+              {/* الشركة */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  الشركة
+                </label>
+                <select
+                  value={formData.company_id || ''}
+                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                  }`}
+                >
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* تاريخ الميلاد */}
@@ -540,6 +496,50 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   type="date"
                   value={formData.joining_date || ''}
                   onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                  }`}
+                />
+              </div>
+
+              {/* تاريخ انتهاء الإقامة */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">انتهاء الإقامة</label>
+                <input
+                  type="date"
+                  value={formData.residence_expiry || ''}
+                  onChange={(e) => setFormData({ ...formData, residence_expiry: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                  }`}
+                />
+              </div>
+
+              {/* تاريخ انتهاء العقد */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">انتهاء العقد</label>
+                <input
+                  type="date"
+                  value={formData.contract_expiry || ''}
+                  onChange={(e) => setFormData({ ...formData, contract_expiry: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                  }`}
+                />
+              </div>
+
+              {/* تاريخ انتهاء اشتراك التأمين */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  تاريخ انتهاء اشتراك التأمين
+                </label>
+                <input
+                  type="date"
+                  value={formData.ending_subscription_insurance_date || ''}
+                  onChange={(e) => setFormData({ ...formData, ending_subscription_insurance_date: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
