@@ -28,6 +28,7 @@ export default function ActivityLogs() {
   const [actionFilter, setActionFilter] = useState<ActionFilter>('all')
   const [entityFilter, setEntityFilter] = useState<EntityFilter>('all')
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null)
+  const [showRawData, setShowRawData] = useState(false)
 
   useEffect(() => {
     loadLogs()
@@ -93,6 +94,181 @@ export default function ActivityLogs() {
       'custom_field': 'حقل مخصص'
     }
     return labels[entity?.toLowerCase()] || entity
+  }
+
+  const generateActivityDescription = (log: ActivityLog): string => {
+    const action = log.action.toLowerCase()
+    const entityType = log.entity_type?.toLowerCase() || ''
+    const entityLabel = getEntityLabel(entityType)
+    
+    // استخراج المعلومات من details
+    const details = log.details || {}
+    const employeeName = details.employee_name || details.name
+    const companyName = details.company_name || details.company
+    const changes = details.changes || {}
+    
+    // محاولة استخراج old_data و new_data إذا كانت موجودة
+    let oldData: any = null
+    let newData: any = null
+    
+    try {
+      if (typeof log.old_data === 'string') {
+        oldData = JSON.parse(log.old_data)
+      } else if (log.old_data) {
+        oldData = log.old_data
+      }
+      
+      if (typeof log.new_data === 'string') {
+        newData = JSON.parse(log.new_data)
+      } else if (log.new_data) {
+        newData = log.new_data
+      }
+    } catch (e) {
+      // تجاهل أخطاء التحليل
+    }
+
+    // بناء النص حسب نوع العملية
+    if (action.includes('create') || action.includes('add') || action.includes('إنشاء') || action.includes('إضافة')) {
+      if (entityType === 'employee' && employeeName) {
+        return `تم إنشاء موظف جديد باسم "${employeeName}"${companyName ? ` في المؤسسة "${companyName}"` : ''}.`
+      } else if (entityType === 'company' && companyName) {
+        return `تم إنشاء مؤسسة جديدة باسم "${companyName}".`
+      } else if (entityType === 'user') {
+        return `تم إنشاء مستخدم جديد.`
+      } else {
+        return `تم إنشاء ${entityLabel} جديد.`
+      }
+    }
+    
+    if (action.includes('update') || action.includes('edit') || action.includes('تحديث') || action.includes('تعديل')) {
+      const changeList: string[] = []
+      
+      // استخراج التغييرات من changes
+      if (typeof changes === 'object' && Object.keys(changes).length > 0) {
+        Object.entries(changes).forEach(([key, value]) => {
+          const fieldLabels: Record<string, string> = {
+            'name': 'الاسم',
+            'phone': 'رقم الهاتف',
+            'profession': 'المهنة',
+            'nationality': 'الجنسية',
+            'residence_number': 'رقم الإقامة',
+            'passport_number': 'رقم الجواز',
+            'bank_account': 'الحساب البنكي',
+            'salary': 'الراتب',
+            'project_name': 'المشروع',
+            'company_id': 'المؤسسة',
+            'birth_date': 'تاريخ الميلاد',
+            'joining_date': 'تاريخ الالتحاق',
+            'residence_expiry': 'تاريخ انتهاء الإقامة',
+            'contract_expiry': 'تاريخ انتهاء العقد',
+            'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
+            'notes': 'الملاحظات',
+            'unified_number': 'الرقم الموحد',
+            'tax_number': 'الرقم الضريبي',
+            'commercial_registration_number': 'رقم السجل التجاري',
+            'exemptions': 'الاعفاءات'
+          }
+          
+          const fieldLabel = fieldLabels[key] || key
+          if (value && typeof value === 'object' && 'old_value' in value && 'new_value' in value) {
+            changeList.push(`${fieldLabel}: من "${value.old_value}" إلى "${value.new_value}"`)
+          } else if (value) {
+            changeList.push(`${fieldLabel}: "${value}"`)
+          }
+        })
+      }
+      
+      // استخراج التغييرات من old_data و new_data
+      if (oldData && newData) {
+        Object.keys(newData).forEach(key => {
+          if (oldData[key] !== newData[key]) {
+            const fieldLabels: Record<string, string> = {
+              'name': 'الاسم',
+              'phone': 'رقم الهاتف',
+              'profession': 'المهنة',
+              'nationality': 'الجنسية',
+              'residence_number': 'رقم الإقامة',
+              'passport_number': 'رقم الجواز',
+              'bank_account': 'الحساب البنكي',
+              'salary': 'الراتب',
+              'project_name': 'المشروع',
+              'company_id': 'المؤسسة',
+              'birth_date': 'تاريخ الميلاد',
+              'joining_date': 'تاريخ الالتحاق',
+              'residence_expiry': 'تاريخ انتهاء الإقامة',
+              'contract_expiry': 'تاريخ انتهاء العقد',
+              'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
+              'notes': 'الملاحظات',
+              'unified_number': 'الرقم الموحد',
+              'tax_number': 'الرقم الضريبي',
+              'commercial_registration_number': 'رقم السجل التجاري',
+              'exemptions': 'الاعفاءات'
+            }
+            
+            const fieldLabel = fieldLabels[key] || key
+            const oldValue = oldData[key] || 'فارغ'
+            const newValue = newData[key] || 'فارغ'
+            
+            if (!changeList.some(c => c.includes(fieldLabel))) {
+              changeList.push(`${fieldLabel}: من "${oldValue}" إلى "${newValue}"`)
+            }
+          }
+        })
+      }
+      
+      if (entityType === 'employee' && employeeName) {
+        if (changeList.length > 0) {
+          return `تم تحديث بيانات الموظف "${employeeName}". التغييرات: ${changeList.join('، ')}.`
+        }
+        return `تم تحديث بيانات الموظف "${employeeName}".`
+      } else if (entityType === 'company' && companyName) {
+        if (changeList.length > 0) {
+          return `تم تحديث بيانات المؤسسة "${companyName}". التغييرات: ${changeList.join('، ')}.`
+        }
+        return `تم تحديث بيانات المؤسسة "${companyName}".`
+      } else if (changeList.length > 0) {
+        return `تم تحديث ${entityLabel}. التغييرات: ${changeList.join('، ')}.`
+      } else {
+        return `تم تحديث ${entityLabel}.`
+      }
+    }
+    
+    if (action.includes('delete') || action.includes('remove') || action.includes('حذف')) {
+      if (entityType === 'employee' && employeeName) {
+        return `تم حذف الموظف "${employeeName}"${companyName ? ` من المؤسسة "${companyName}"` : ''}.`
+      } else if (entityType === 'company' && companyName) {
+        return `تم حذف المؤسسة "${companyName}".`
+      } else if (entityType === 'user') {
+        return `تم حذف مستخدم.`
+      } else {
+        return `تم حذف ${entityLabel}.`
+      }
+    }
+    
+    if (action.includes('login') || action.includes('دخول')) {
+      return `تم تسجيل دخول المستخدم.`
+    }
+    
+    if (action.includes('logout') || action.includes('خروج')) {
+      return `تم تسجيل خروج المستخدم.`
+    }
+    
+    if (action.includes('export') || action.includes('تصدير')) {
+      return `تم تصدير البيانات.`
+    }
+    
+    if (action.includes('import') || action.includes('استيراد')) {
+      return `تم استيراد البيانات.`
+    }
+    
+    // إذا لم يتم التعرف على العملية، إرجاع نص عام
+    if (employeeName) {
+      return `تم تنفيذ العملية "${getActionLabel(log.action)}" على الموظف "${employeeName}".`
+    } else if (companyName) {
+      return `تم تنفيذ العملية "${getActionLabel(log.action)}" على المؤسسة "${companyName}".`
+    } else {
+      return `تم تنفيذ العملية "${getActionLabel(log.action)}" على ${entityLabel}.`
+    }
   }
 
   const filteredLogs = logs.filter(log => {
@@ -305,7 +481,10 @@ export default function ActivityLogs() {
               <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
                 <h3 className="text-xl font-bold">تفاصيل النشاط</h3>
                 <button
-                  onClick={() => setSelectedLog(null)}
+                  onClick={() => {
+                    setSelectedLog(null)
+                    setShowRawData(false)
+                  }}
                   className="p-2 hover:bg-white/20 rounded-lg transition"
                 >
                   <Search className="w-5 h-5" />
@@ -353,18 +532,40 @@ export default function ActivityLogs() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">التفاصيل الكاملة</label>
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
-                      {JSON.stringify(selectedLog.details, null, 2)}
-                    </pre>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">وصف النشاط</label>
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <p className="text-gray-900 text-base leading-relaxed">
+                      {generateActivityDescription(selectedLog)}
+                    </p>
                   </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">البيانات الخام (JSON)</label>
+                    <button
+                      onClick={() => setShowRawData(!showRawData)}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      {showRawData ? 'إخفاء' : 'عرض'}
+                    </button>
+                  </div>
+                  {showRawData && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono overflow-x-auto">
+                        {JSON.stringify(selectedLog.details, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6">
                 <button
-                  onClick={() => setSelectedLog(null)}
+                  onClick={() => {
+                    setSelectedLog(null)
+                    setShowRawData(false)
+                  }}
                   className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                 >
                   إغلاق
