@@ -524,12 +524,15 @@ export default function Companies() {
       if (error) throw error
 
       // Log activity
-      await supabase.from('activity_logs').insert({
+      await supabase.from('activity_log').insert({
         action: 'حذف مؤسسة',
         entity_type: 'company',
         entity_id: selectedCompany.id,
         details: { company_name: selectedCompany.name }
       })
+
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('companyUpdated'))
 
       // Refresh companies list
       loadCompanies()

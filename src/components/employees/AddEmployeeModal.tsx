@@ -228,6 +228,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
 
       toast.success('تم إضافة الموظف بنجاح')
       
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('employeeUpdated'))
+      
       // إعادة تعيين النموذج
       setFormData({
         name: '',

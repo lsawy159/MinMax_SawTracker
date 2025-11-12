@@ -76,7 +76,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const logActivity = async (action: string, changes: any) => {
     try {
       await supabase
-        .from('activity_logs')
+        .from('activity_log')
         .insert({
           entity_type: 'employee',
           entity_id: employee.id,
@@ -133,6 +133,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
       toast.success('تم حفظ التعديلات بنجاح')
       setIsEditMode(false) // العودة إلى وضع القراءة فقط
+      
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('employeeUpdated'))
+      
       onUpdate()
     } catch (error: any) {
       console.error('Error saving employee:', error)

@@ -134,10 +134,23 @@ export function useAlertsStats() {
       fetchAlertsStats()
     }
     
+    // إضافة مستمعين لتحديثات الموظفين والمؤسسات
+    const handleEmployeeUpdated = () => {
+      fetchAlertsStats()
+    }
+    
+    const handleCompanyUpdated = () => {
+      fetchAlertsStats()
+    }
+    
     window.addEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
+    window.addEventListener('companyUpdated', handleCompanyUpdated)
     
     return () => {
       window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
+      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
+      window.removeEventListener('companyUpdated', handleCompanyUpdated)
     }
   }, [fetchAlertsStats])
 

@@ -197,7 +197,7 @@ export default function Employees() {
     try {
       const employee = employees.find(e => e.id === employeeId)
       await supabase
-        .from('activity_logs')
+        .from('activity_log')
         .insert({
           entity_type: 'employee',
           entity_id: employeeId,
@@ -239,6 +239,9 @@ export default function Employees() {
       })
 
       toast.success(`تم حذف الموظف "${employeeToDelete.name}" بنجاح`)
+      
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('employeeUpdated'))
       
       // Refresh employees list
       await loadEmployees()
@@ -306,6 +309,9 @@ export default function Employees() {
       }
 
       toast.success(`تم حذف ${selectedEmployees.size} موظف بنجاح`)
+      
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('employeeUpdated'))
       
       // Refresh and clear selection
       await loadEmployees()

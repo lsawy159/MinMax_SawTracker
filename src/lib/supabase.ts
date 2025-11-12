@@ -112,9 +112,16 @@ export interface ActivityLog {
   user_id?: string
   action: string
   entity_type?: string
-  entity_id?: number
+  entity_id?: string | number // يمكن أن يكون UUID (string) أو number
   details: Record<string, any>
   ip_address?: string
+  user_agent?: string
+  session_id?: string
+  operation?: string
+  operation_status?: string
+  affected_rows?: number
+  old_data?: Record<string, any>
+  new_data?: Record<string, any>
   created_at: string
 }
 

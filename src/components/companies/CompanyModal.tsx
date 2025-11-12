@@ -321,7 +321,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
         if (!error) {
           console.log('✅ تم تحديث المؤسسة بنجاح')
-          await supabase.from('activity_logs').insert({
+          await supabase.from('activity_log').insert({
             action: 'تعديل مؤسسة',
             entity_type: 'company',
             entity_id: company.id,
@@ -337,7 +337,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
         if (!error) {
           console.log('✅ تم إضافة المؤسسة بنجاح')
-          await supabase.from('activity_logs').insert({
+          await supabase.from('activity_log').insert({
             action: 'إضافة مؤسسة جديدة',
             entity_type: 'company',
             details: { company_name: formData.name, created_fields: Object.keys(companyData) }
@@ -399,6 +399,9 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       } else {
         toast.success('✅ تم إضافة المؤسسة الجديدة بنجاح')
       }
+      
+      // إرسال event لتحديث إحصائيات التنبيهات
+      window.dispatchEvent(new CustomEvent('companyUpdated'))
       
       // إغلاق المودال وإعادة تحميل القائمة فقط في حالة النجاح
       try {
