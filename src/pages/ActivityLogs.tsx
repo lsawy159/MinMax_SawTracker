@@ -156,12 +156,19 @@ export default function ActivityLogs() {
     // استخراج التغييرات من changes
     if (typeof changes === 'object' && Object.keys(changes).length > 0) {
       Object.entries(changes).forEach(([key, value]) => {
+        // الحالة 1: كائن يحتوي على old_value و new_value
         if (value && typeof value === 'object' && 'old_value' in value && 'new_value' in value) {
           changeList.push({
             field: getFieldLabel(key),
             oldValue: value.old_value,
             newValue: value.new_value
           })
+        }
+        // الحالة 2: قيمة مباشرة (للتوافق مع البيانات القديمة)
+        else if (value !== null && value !== undefined) {
+          // إذا كانت القيمة مختلفة عن null/undefined، نعتبرها قيمة جديدة
+          // لكن لا نعرف القيمة القديمة، لذا نعرضها كقيمة جديدة فقط
+          // (هذه حالة للبيانات القديمة التي لم تكن تحتوي على old_value)
         }
       })
     }

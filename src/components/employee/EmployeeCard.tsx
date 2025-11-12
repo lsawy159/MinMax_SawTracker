@@ -130,8 +130,45 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
       if (error) throw error
 
+      // إنشاء قائمة التغييرات بمقارنة البيانات القديمة والجديدة
+      const changes: Record<string, { old_value: any; new_value: any }> = {}
+      
+      // الحقول التي يجب تتبعها
+      const fieldsToTrack = [
+        'name', 'profession', 'nationality', 'phone', 'passport_number',
+        'project_name', 'bank_account', 'birth_date', 'residence_number',
+        'joining_date', 'contract_expiry', 'residence_expiry', 'salary',
+        'ending_subscription_insurance_date', 'notes', 'company_id'
+      ]
+      
+      fieldsToTrack.forEach(field => {
+        const oldValue = employee[field as keyof typeof employee]
+        const newValue = updateData[field]
+        
+        // مقارنة القيم (معالجة null و undefined)
+        const oldVal = oldValue === null || oldValue === undefined ? null : oldValue
+        const newVal = newValue === null || newValue === undefined ? null : newValue
+        
+        // التحقق من التغيير (مع مراعاة التحويلات الرقمية)
+        if (field === 'residence_number' || field === 'salary') {
+          const oldNum = oldVal ? Number(oldVal) : null
+          const newNum = newVal ? Number(newVal) : null
+          if (oldNum !== newNum) {
+            changes[field] = {
+              old_value: oldNum,
+              new_value: newNum
+            }
+          }
+        } else if (oldVal !== newVal) {
+          changes[field] = {
+            old_value: oldVal,
+            new_value: newVal
+          }
+        }
+      })
+
       // تسجيل النشاط
-      await logActivity(actionType, updateData)
+      await logActivity(actionType, changes)
 
       toast.success('تم حفظ التعديلات بنجاح')
       setIsEditMode(false) // العودة إلى وضع القراءة فقط
