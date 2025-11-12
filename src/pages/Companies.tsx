@@ -109,6 +109,7 @@ export default function Companies() {
     employeeCountFilter,
     availableSlotsFilter,
     dateRangeFilter,
+    exemptionsFilter,
     sortField,
     sortDirection
   ])
