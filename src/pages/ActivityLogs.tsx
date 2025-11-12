@@ -96,7 +96,147 @@ export default function ActivityLogs() {
     return labels[entity?.toLowerCase()] || entity
   }
 
-  const generateActivityDescription = (log: ActivityLog): string => {
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'name': 'الاسم',
+      'phone': 'رقم الهاتف',
+      'profession': 'المهنة',
+      'nationality': 'الجنسية',
+      'residence_number': 'رقم الإقامة',
+      'passport_number': 'رقم الجواز',
+      'bank_account': 'الحساب البنكي',
+      'salary': 'الراتب',
+      'project_name': 'المشروع',
+      'company_id': 'المؤسسة',
+      'birth_date': 'تاريخ الميلاد',
+      'joining_date': 'تاريخ الالتحاق',
+      'residence_expiry': 'تاريخ انتهاء الإقامة',
+      'contract_expiry': 'تاريخ انتهاء العقد',
+      'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
+      'notes': 'الملاحظات',
+      'unified_number': 'الرقم الموحد',
+      'tax_number': 'الرقم الضريبي',
+      'commercial_registration_number': 'رقم السجل التجاري',
+      'exemptions': 'الاعفاءات'
+    }
+    return fieldLabels[key] || key
+  }
+
+  const renderUpdateDetails = (log: ActivityLog): JSX.Element => {
+    const entityType = log.entity_type?.toLowerCase() || ''
+    const entityLabel = getEntityLabel(entityType)
+    const details = log.details || {}
+    const employeeName = details.employee_name || details.name
+    const companyName = details.company_name || details.company
+    const changes = details.changes || {}
+    
+    // محاولة استخراج old_data و new_data
+    let oldData: any = null
+    let newData: any = null
+    
+    try {
+      if (typeof log.old_data === 'string') {
+        oldData = JSON.parse(log.old_data)
+      } else if (log.old_data) {
+        oldData = log.old_data
+      }
+      
+      if (typeof log.new_data === 'string') {
+        newData = JSON.parse(log.new_data)
+      } else if (log.new_data) {
+        newData = log.new_data
+      }
+    } catch (e) {
+      // تجاهل أخطاء التحليل
+    }
+
+    // جمع التغييرات
+    const changeList: Array<{ field: string; oldValue: any; newValue: any }> = []
+    
+    // استخراج التغييرات من changes
+    if (typeof changes === 'object' && Object.keys(changes).length > 0) {
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && 'old_value' in value && 'new_value' in value) {
+          changeList.push({
+            field: getFieldLabel(key),
+            oldValue: value.old_value,
+            newValue: value.new_value
+          })
+        }
+      })
+    }
+    
+    // استخراج التغييرات من old_data و new_data
+    if (oldData && newData) {
+      Object.keys(newData).forEach(key => {
+        if (oldData[key] !== newData[key]) {
+          const fieldLabel = getFieldLabel(key)
+          // تجنب التكرار
+          if (!changeList.some(c => c.field === fieldLabel)) {
+            changeList.push({
+              field: fieldLabel,
+              oldValue: oldData[key] || 'فارغ',
+              newValue: newData[key] || 'فارغ'
+            })
+          }
+        }
+      })
+    }
+
+    // تحديد اسم الكيان
+    let entityName = ''
+    if (entityType === 'employee' && employeeName) {
+      entityName = employeeName
+    } else if (entityType === 'company' && companyName) {
+      entityName = companyName
+    }
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">
+            {entityName 
+              ? `تم تحديث ${entityLabel} "${entityName}"`
+              : `تم تحديث ${entityLabel}`
+            }
+          </h4>
+        </div>
+        
+        {changeList.length > 0 ? (
+          <div>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">الحقول المحدثة:</h5>
+            <div className="space-y-3">
+              {changeList.map((change, index) => (
+                <div key={index} className="border-r-4 border-purple-300 pr-3">
+                  <div className="font-medium text-gray-800 mb-2">
+                    • {change.field}:
+                  </div>
+                  <div className="space-y-2 mr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">قبل:</span>
+                      <span className="px-3 py-1 bg-red-50 text-red-700 rounded-md text-sm font-medium border border-red-200">
+                        {String(change.oldValue || 'فارغ')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">بعد:</span>
+                      <span className="px-3 py-1 bg-green-50 text-green-700 rounded-md text-sm font-medium border border-green-200">
+                        {String(change.newValue || 'فارغ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-600">لا توجد تفاصيل تغييرات متاحة.</p>
+        )}
+      </div>
+    )
+  }
+
+  const generateActivityDescription = (log: ActivityLog): string | JSX.Element => {
     const action = log.action.toLowerCase()
     const entityType = log.entity_type?.toLowerCase() || ''
     const entityLabel = getEntityLabel(entityType)
@@ -141,96 +281,7 @@ export default function ActivityLogs() {
     }
     
     if (action.includes('update') || action.includes('edit') || action.includes('تحديث') || action.includes('تعديل')) {
-      const changeList: string[] = []
-      
-      // استخراج التغييرات من changes
-      if (typeof changes === 'object' && Object.keys(changes).length > 0) {
-        Object.entries(changes).forEach(([key, value]) => {
-          const fieldLabels: Record<string, string> = {
-            'name': 'الاسم',
-            'phone': 'رقم الهاتف',
-            'profession': 'المهنة',
-            'nationality': 'الجنسية',
-            'residence_number': 'رقم الإقامة',
-            'passport_number': 'رقم الجواز',
-            'bank_account': 'الحساب البنكي',
-            'salary': 'الراتب',
-            'project_name': 'المشروع',
-            'company_id': 'المؤسسة',
-            'birth_date': 'تاريخ الميلاد',
-            'joining_date': 'تاريخ الالتحاق',
-            'residence_expiry': 'تاريخ انتهاء الإقامة',
-            'contract_expiry': 'تاريخ انتهاء العقد',
-            'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
-            'notes': 'الملاحظات',
-            'unified_number': 'الرقم الموحد',
-            'tax_number': 'الرقم الضريبي',
-            'commercial_registration_number': 'رقم السجل التجاري',
-            'exemptions': 'الاعفاءات'
-          }
-          
-          const fieldLabel = fieldLabels[key] || key
-          if (value && typeof value === 'object' && 'old_value' in value && 'new_value' in value) {
-            changeList.push(`${fieldLabel}: من "${value.old_value}" إلى "${value.new_value}"`)
-          } else if (value) {
-            changeList.push(`${fieldLabel}: "${value}"`)
-          }
-        })
-      }
-      
-      // استخراج التغييرات من old_data و new_data
-      if (oldData && newData) {
-        Object.keys(newData).forEach(key => {
-          if (oldData[key] !== newData[key]) {
-            const fieldLabels: Record<string, string> = {
-              'name': 'الاسم',
-              'phone': 'رقم الهاتف',
-              'profession': 'المهنة',
-              'nationality': 'الجنسية',
-              'residence_number': 'رقم الإقامة',
-              'passport_number': 'رقم الجواز',
-              'bank_account': 'الحساب البنكي',
-              'salary': 'الراتب',
-              'project_name': 'المشروع',
-              'company_id': 'المؤسسة',
-              'birth_date': 'تاريخ الميلاد',
-              'joining_date': 'تاريخ الالتحاق',
-              'residence_expiry': 'تاريخ انتهاء الإقامة',
-              'contract_expiry': 'تاريخ انتهاء العقد',
-              'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
-              'notes': 'الملاحظات',
-              'unified_number': 'الرقم الموحد',
-              'tax_number': 'الرقم الضريبي',
-              'commercial_registration_number': 'رقم السجل التجاري',
-              'exemptions': 'الاعفاءات'
-            }
-            
-            const fieldLabel = fieldLabels[key] || key
-            const oldValue = oldData[key] || 'فارغ'
-            const newValue = newData[key] || 'فارغ'
-            
-            if (!changeList.some(c => c.includes(fieldLabel))) {
-              changeList.push(`${fieldLabel}: من "${oldValue}" إلى "${newValue}"`)
-            }
-          }
-        })
-      }
-      
-      if (entityType === 'employee' && employeeName) {
-        if (changeList.length > 0) {
-          return `تم تحديث بيانات الموظف "${employeeName}". التغييرات: ${changeList.join('، ')}.`
-        }
-        return `تم تحديث بيانات الموظف "${employeeName}".`
-      } else if (entityType === 'company' && companyName) {
-        if (changeList.length > 0) {
-          return `تم تحديث بيانات المؤسسة "${companyName}". التغييرات: ${changeList.join('، ')}.`
-        }
-        return `تم تحديث بيانات المؤسسة "${companyName}".`
-      } else if (changeList.length > 0) {
-        return `تم تحديث ${entityLabel}. التغييرات: ${changeList.join('، ')}.`
-      } else {
-        return `تم تحديث ${entityLabel}.`
-      }
+      return renderUpdateDetails(log)
     }
     
     if (action.includes('delete') || action.includes('remove') || action.includes('حذف')) {
@@ -534,9 +585,16 @@ export default function ActivityLogs() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">وصف النشاط</label>
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <p className="text-gray-900 text-base leading-relaxed">
-                      {generateActivityDescription(selectedLog)}
-                    </p>
+                    {(() => {
+                      const description = generateActivityDescription(selectedLog)
+                      return typeof description === 'string' ? (
+                        <p className="text-gray-900 text-base leading-relaxed">
+                          {description}
+                        </p>
+                      ) : (
+                        description
+                      )
+                    })()}
                   </div>
                 </div>
 
