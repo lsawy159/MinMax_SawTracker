@@ -40,10 +40,8 @@ interface Company {
   ending_subscription_moqeem_date?: string
 
   additional_fields?: Record<string, any>
-  company_type?: string
   commercial_registration_status?: string
   insurance_subscription_status?: string
-  government_docs_renewal?: string
   employee_count?: number
   available_slots?: number
 }
@@ -95,7 +93,6 @@ export default function AdvancedSearch() {
   const [joiningDateRange, setJoiningDateRange] = useState<string>('all')
 
   // Filter states for companies
-  const [selectedCompanyType, setSelectedCompanyType] = useState<string>('all')
   const [commercialRegStatus, setCommercialRegStatus] = useState<CompanyStatus>('all')
   const [insuranceStatus, setInsuranceStatus] = useState<CompanyStatus>('all')
   const [companyDateFilter, setCompanyDateFilter] = useState<'all' | 'commercial_expiring' | 'insurance_expiring'>('all')
@@ -112,7 +109,6 @@ export default function AdvancedSearch() {
   const [companyList, setCompanyList] = useState<{ id: string; name: string }[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
-  const [companyTypes, setCompanyTypes] = useState<string[]>([])
 
   // Pagination calculations
   const totalEmployees = filteredEmployees.length
@@ -165,23 +161,6 @@ export default function AdvancedSearch() {
         setCompanies(companiesData)
         setCompanyList(companiesData.map(c => ({ id: c.id, name: c.name })))
         
-        // Extract company types from additional_fields or company_type column
-        const companyTypesSet = new Set<string>()
-        companiesData.forEach(company => {
-          // Check company_type column first
-          if (company.company_type) {
-            companyTypesSet.add(company.company_type)
-          }
-          // Check additional_fields for company_type
-          if (company.additional_fields && company.additional_fields.company_type) {
-            companyTypesSet.add(company.additional_fields.company_type)
-          }
-          // Check additional_fields for type
-          if (company.additional_fields && company.additional_fields.type) {
-            companyTypesSet.add(company.additional_fields.type)
-          }
-        })
-        setCompanyTypes(Array.from(companyTypesSet).sort())
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -247,14 +226,13 @@ export default function AdvancedSearch() {
             comp.name,
             comp.tax_number?.toString(),
             comp.unified_number?.toString(),
-            comp.company_type,
             // Add additional_fields values to search
             ...(comp.additional_fields ? Object.values(comp.additional_fields).filter(v => v && typeof v === 'string') : [])
           ].filter(Boolean).join(' ')
         }))
 
         const fuseCompanies = new Fuse(searchableCompanies, {
-          keys: ['name', 'tax_number', 'unified_number', 'company_type', 'searchableText'],
+          keys: ['name', 'tax_number', 'unified_number', 'searchableText'],
           threshold: 0.3,
           includeScore: true
         })
@@ -363,14 +341,6 @@ export default function AdvancedSearch() {
 
     // Apply company filters
     if (searchType === 'companies' || searchType === 'both') {
-      // Company type filter
-      if (selectedCompanyType !== 'all') {
-        filteredComps = filteredComps.filter(c => {
-          return c.company_type === selectedCompanyType ||
-                 (c.additional_fields?.company_type === selectedCompanyType) ||
-                 (c.additional_fields?.type === selectedCompanyType)
-        })
-      }
 
       // Commercial registration status filter
       if (commercialRegStatus !== 'all') {
@@ -493,7 +463,6 @@ export default function AdvancedSearch() {
     hasBankAccount, 
     birthDateRange, 
     joiningDateRange, 
-    selectedCompanyType, 
     commercialRegStatus, 
     insuranceStatus, 
     companyDateFilter, 
@@ -565,7 +534,6 @@ export default function AdvancedSearch() {
           project: selectedProject,
           residenceStatus,
           contractStatus,
-          companyType: selectedCompanyType,
           commercialRegStatus,
           insuranceStatus,
           companyDateFilter
@@ -652,7 +620,6 @@ export default function AdvancedSearch() {
           'اسم المؤسسة': comp.name,
           'رقم اشتراك التأمينات': comp.tax_number,
           'رقم موحد': comp.unified_number,
-          'نوع المؤسسة': comp.company_type || '',
           'انتهاء السجل التجاري': comp.commercial_registration_expiry,
           'انتهاء التأمينات': comp.insurance_subscription_expiry
         }
@@ -761,19 +728,6 @@ export default function AdvancedSearch() {
                   {/* Company Filters */}
                   {(searchType === 'companies' || searchType === 'both') && (
                     <>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">نوع المؤسسة</label>
-                        <select
-                          value={selectedCompanyType}
-                          onChange={(e) => setSelectedCompanyType(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-md"
-                        >
-                          <option value="all">الكل</option>
-                          {companyTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </select>
-                      </div>
 
                       <div>
                         <label className="block text-sm font-medium mb-1">حالة السجل التجاري</label>
@@ -1133,9 +1087,6 @@ export default function AdvancedSearch() {
                             <div className="space-y-1 text-sm">
                               <p><span className="text-gray-600">رقم اشتراك التأمينات:</span> {comp.tax_number}</p>
                               <p><span className="text-gray-600">رقم موحد:</span> {comp.unified_number}</p>
-                              {comp.company_type && (
-                                <p><span className="text-gray-600">نوع المؤسسة:</span> {comp.company_type}</p>
-                              )}
                               {comp.commercial_registration_expiry && (
                                 <p><span className="text-gray-600">انتهاء السجل:</span> {comp.commercial_registration_expiry}</p>
                               )}
@@ -1163,7 +1114,6 @@ export default function AdvancedSearch() {
                                 <th className="px-4 py-2 text-right">اسم المؤسسة</th>
                                 <th className="px-4 py-2 text-right">رقم اشتراك التأمينات</th>
                                 <th className="px-4 py-2 text-right">رقم موحد</th>
-                                <th className="px-4 py-2 text-right">نوع المؤسسة</th>
                                 <th className="px-4 py-2 text-right">انتهاء السجل</th>
                                 <th className="px-4 py-2 text-right">انتهاء التأمينات</th>
                               </tr>
@@ -1174,7 +1124,6 @@ export default function AdvancedSearch() {
                                   <td className="px-4 py-2 font-medium">{comp.name}</td>
                                   <td className="px-4 py-2">{comp.tax_number}</td>
                                   <td className="px-4 py-2">{comp.unified_number}</td>
-                                  <td className="px-4 py-2">{comp.company_type || '-'}</td>
                                   <td className="px-4 py-2">{comp.commercial_registration_expiry || '-'}</td>
                                   <td className="px-4 py-2">{comp.insurance_subscription_expiry || '-'}</td>
                                 </tr>

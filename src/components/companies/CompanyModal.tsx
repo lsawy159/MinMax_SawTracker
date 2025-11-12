@@ -23,14 +23,13 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     tax_number: '',
     unified_number: '',
     labor_subscription_number: '',
-    company_type: '',
     commercial_registration_expiry: '',
     insurance_subscription_expiry: '',
-    government_docs_renewal: '',
     // الحقول الجديدة
     ending_subscription_power_date: '',
     ending_subscription_moqeem_date: '',
-    max_employees: ''
+    max_employees: '',
+    notes: ''
   })
 
   const isEditing = !!company
@@ -51,13 +50,12 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           tax_number: company.tax_number?.toString() || '',
           unified_number: company.unified_number?.toString() || '',
           labor_subscription_number: company.labor_subscription_number || '',
-          company_type: company.company_type || '',
           commercial_registration_expiry: company.commercial_registration_expiry || '',
           insurance_subscription_expiry: company.insurance_subscription_expiry || '',
-          government_docs_renewal: company.government_docs_renewal || '',
           ending_subscription_power_date: company.ending_subscription_power_date || '',
           ending_subscription_moqeem_date: company.ending_subscription_moqeem_date || '',
-          max_employees: company.max_employees?.toString() || ''
+          max_employees: company.max_employees?.toString() || '',
+          notes: company.notes || ''
         })
       } else {
         console.log('🆕 إعادة تعيين النموذج للإضافة الجديدة')
@@ -66,19 +64,18 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           tax_number: '',
           unified_number: '',
           labor_subscription_number: '',
-          company_type: '',
           commercial_registration_expiry: '',
           insurance_subscription_expiry: '',
-          government_docs_renewal: '',
           ending_subscription_power_date: '',
           ending_subscription_moqeem_date: '',
-          max_employees: ''
+          max_employees: '',
+          notes: ''
         })
       }
     }
   }, [isOpen, company])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     const oldValue = formData[name as keyof typeof formData]
     
@@ -144,7 +141,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     const dateFields = [
       { key: 'commercial_registration_expiry', name: 'انتهاء السجل التجاري' },
       { key: 'insurance_subscription_expiry', name: 'انتهاء التأمين' },
-      { key: 'government_docs_renewal', name: 'تجديد الوثائق الحكومية' },
       { key: 'ending_subscription_power_date', name: 'انتهاء اشتراك قوى' },
       { key: 'ending_subscription_moqeem_date', name: 'انتهاء اشتراك مقيم' }
     ]
@@ -183,7 +179,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     const allDates = {
       'انتهاء السجل التجاري': formData.commercial_registration_expiry,
       'انتهاء التأمين': formData.insurance_subscription_expiry,
-      'تجديد الوثائق الحكومية': formData.government_docs_renewal,
       'انتهاء اشتراك قوى': formData.ending_subscription_power_date,
       'انتهاء اشتراك مقيم': formData.ending_subscription_moqeem_date
     }
@@ -283,14 +278,13 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         tax_number: taxNumber,
         unified_number: unifiedNumber,
         labor_subscription_number: laborSubscriptionNumber,
-        company_type: formData.company_type.trim() || null,
         commercial_registration_expiry: formatDate(formData.commercial_registration_expiry),
         insurance_subscription_expiry: formatDate(formData.insurance_subscription_expiry),
-        government_docs_renewal: formatDate(formData.government_docs_renewal),
         // الحقول الجديدة
         ending_subscription_power_date: formatDate(formData.ending_subscription_power_date),
         ending_subscription_moqeem_date: formatDate(formData.ending_subscription_moqeem_date),
-        max_employees: maxEmployees
+        max_employees: maxEmployees,
+        notes: formData.notes.trim() || null
       }
 
       // إزالة الحقول null فقط (وليس الحقول المطلوبة) من البيانات المرسلة
@@ -507,30 +501,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               />
             </div>
 
-            {/* نوع المؤسسة */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                نوع المؤسسة
-              </label>
-              <select
-                name="company_type"
-                value={formData.company_type}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                disabled={loading}
-              >
-                <option value="">اختر نوع المؤسسة</option>
-                <option value="شركة">شركة</option>
-                <option value="مؤسسة">مؤسسة</option>
-                <option value="مكتب">مكتب</option>
-                <option value="محل">محل</option>
-                <option value="مستشفى">مستشفى</option>
-                <option value="مدرسة">مدرسة</option>
-                <option value="جامعة">جامعة</option>
-                <option value="أخرى">أخرى</option>
-              </select>
-            </div>
-
             {/* عدد الموظفين الأقصى */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -715,20 +685,22 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               </div>
             </div>
 
-            {/* تجديد الوثائق الحكومية */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                تجديد الوثائق الحكومية
-              </label>
-              <input
-                type="date"
-                name="government_docs_renewal"
-                value={formData.government_docs_renewal}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-            </div>
+          </div>
+
+          {/* الملاحظات */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              الملاحظات
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={4}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="أدخل أي ملاحظات إضافية عن المؤسسة..."
+              disabled={loading}
+            />
           </div>
 
           {/* Footer */}

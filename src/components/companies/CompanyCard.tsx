@@ -1,4 +1,4 @@
-import { Building2, Users, Edit2, Trash2 } from 'lucide-react'
+import { Building2, Users, Edit2, Trash2, FileText } from 'lucide-react'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateInsuranceSubscriptionStatus,
@@ -123,12 +123,6 @@ export default function CompanyCard({
             )}
           </div>
         </div>
-        {(company.company_type || company.additional_fields?.company_type) && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">نوع المؤسسة:</span>
-            <span className="text-gray-900">{company.company_type || company.additional_fields?.company_type}</span>
-          </div>
-        )}
       </div>
 
       {/* حالة السجل التجاري - مربع توضيحي ملون */}
@@ -217,6 +211,17 @@ export default function CompanyCard({
             غير محدد
           </div>
         )}
+      </div>
+
+      {/* الملاحظات */}
+      <div className="pt-4 border-t border-gray-200">
+        <div className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          الملاحظات
+        </div>
+        <div className="px-4 py-3 rounded-lg text-sm bg-gray-50 text-gray-700 border border-gray-200 whitespace-pre-wrap min-h-[60px]">
+          {company.notes || 'لا توجد ملاحظات'}
+        </div>
       </div>
     </div>
   )

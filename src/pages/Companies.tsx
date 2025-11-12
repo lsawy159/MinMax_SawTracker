@@ -12,7 +12,7 @@ import {
   calculateCompanyStatusStats
 } from '../utils/autoCompanyStatus'
 
-type SortField = 'name' | 'company_type' | 'created_at' | 'commercial_registration_status' | 'insurance_subscription_status' | 'employee_count' | 'power_subscription_status' | 'moqeem_subscription_status'
+type SortField = 'name' | 'created_at' | 'commercial_registration_status' | 'insurance_subscription_status' | 'employee_count' | 'power_subscription_status' | 'moqeem_subscription_status'
 type SortDirection = 'asc' | 'desc'
 type CommercialRegStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type InsuranceStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
@@ -36,7 +36,6 @@ export default function Companies() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
-  const [companyTypeFilter, setCompanyTypeFilter] = useState<string>('all')
   const [commercialRegStatus, setCommercialRegStatus] = useState<CommercialRegStatus>('all')
   const [insuranceStatus, setInsuranceStatus] = useState<InsuranceStatus>('all')
   const [powerSubscriptionStatus, setPowerSubscriptionStatus] = useState<PowerSubscriptionStatus>('all')
@@ -53,8 +52,6 @@ export default function Companies() {
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
-  // Company types list
-  const [companyTypes, setCompanyTypes] = useState<string[]>([])
 
   // [FIX] تم تغليف الدالة بـ useCallback
   const loadSavedFilters = useCallback(() => {
@@ -63,7 +60,6 @@ export default function Companies() {
       if (saved) {
         const filters = JSON.parse(saved)
         setSearchTerm(filters.searchTerm || '')
-        setCompanyTypeFilter(filters.companyTypeFilter || 'all')
         setCommercialRegStatus(filters.commercialRegStatus || 'all')
         setInsuranceStatus(filters.insuranceStatus || 'all')
         setPowerSubscriptionStatus(filters.powerSubscriptionStatus || 'all')
@@ -85,7 +81,6 @@ export default function Companies() {
     try {
       const filters = {
         searchTerm,
-        companyTypeFilter,
         commercialRegStatus,
         insuranceStatus,
         powerSubscriptionStatus,
@@ -103,7 +98,6 @@ export default function Companies() {
     }
   }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
     searchTerm,
-    companyTypeFilter,
     commercialRegStatus,
     insuranceStatus,
     powerSubscriptionStatus,
@@ -182,26 +176,7 @@ export default function Companies() {
       console.log('💾 [DEBUG] Setting companies data:', companiesWithCount.length, 'companies')
       setCompanies(companiesWithCount)
 
-      // Extract unique company types
-      console.log('🏷️ [DEBUG] Extracting company types...')
-      const typesSet = new Set<string>()
-      companiesWithCount.forEach(company => {
-        if (company?.company_type) {
-          typesSet.add(company.company_type)
-        }
-        if (company?.additional_fields?.company_type) {
-          typesSet.add(company.additional_fields.company_type)
-        }
-        if (company?.additional_fields?.type) {
-          typesSet.add(company.additional_fields.type)
-        }
-      })
-      
-      const sortedTypes = Array.from(typesSet).sort()
-      console.log('🏷️ [DEBUG] Company types extracted:', sortedTypes)
-      setCompanyTypes(sortedTypes)
-
-      console.log(`✅ [DEBUG] Successfully loaded ${companiesWithCount.length} companies with ${sortedTypes.length} types`)
+      console.log(`✅ [DEBUG] Successfully loaded ${companiesWithCount.length} companies`)
       
     } catch (error) {
       console.error('❌ [DEBUG] Critical error in loadCompanies:', error)
@@ -214,7 +189,6 @@ export default function Companies() {
       
       // في حالة الخطأ، قم بمسح البيانات وتعيين قائمة فارغة
       setCompanies([])
-      setCompanyTypes([])
     } finally {
       console.log('🏁 [DEBUG] loadCompanies completed, setting loading to false')
       setLoading(false)
@@ -235,14 +209,6 @@ export default function Companies() {
       )
     }
 
-    // Apply company type filter
-    if (companyTypeFilter !== 'all') {
-      filtered = filtered.filter(company =>
-        company.company_type === companyTypeFilter ||
-        company.additional_fields?.company_type === companyTypeFilter ||
-        company.additional_fields?.type === companyTypeFilter
-      )
-    }
 
     // Apply commercial registration status filter
     if (commercialRegStatus !== 'all') {
@@ -359,10 +325,6 @@ export default function Companies() {
           aValue = a.name.toLowerCase()
           bValue = b.name.toLowerCase()
           break
-        case 'company_type':
-          aValue = a.company_type || a.additional_fields?.company_type || ''
-          bValue = b.company_type || b.additional_fields?.company_type || ''
-          break
         case 'created_at':
           aValue = a.created_at ? new Date(a.created_at).getTime() : 0
           bValue = b.created_at ? new Date(b.created_at).getTime() : 0
@@ -404,7 +366,6 @@ export default function Companies() {
   }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
     companies,
     searchTerm,
-    companyTypeFilter,
     commercialRegStatus,
     insuranceStatus,
     powerSubscriptionStatus,
@@ -563,7 +524,6 @@ export default function Companies() {
 
   const activeFiltersCount = [
     searchTerm !== '',
-    companyTypeFilter !== 'all',
     commercialRegStatus !== 'all',
     insuranceStatus !== 'all',
     powerSubscriptionStatus !== 'all',
@@ -626,20 +586,6 @@ export default function Companies() {
                 </div>
               </div>
 
-              {/* Company Type Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">نوع المؤسسة</label>
-                <select
-                  value={companyTypeFilter}
-                  onChange={(e) => setCompanyTypeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">الكل</option>
-                  {companyTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
 
               {/* Commercial Registration Status */}
               <div>

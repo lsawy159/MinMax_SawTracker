@@ -17,12 +17,10 @@ export interface Company {
   tax_number?: number | null
   unified_number: number
   labor_subscription_number: string
-  company_type?: string
   commercial_registration_expiry?: string
   insurance_subscription_expiry?: string
   commercial_registration_status?: string
   insurance_subscription_status?: string
-  government_docs_renewal?: string
   additional_fields?: Record<string, any>
   // حقول انتهاء الاشتراكات الجديدة
   ending_subscription_power_date?: string
@@ -31,6 +29,8 @@ export interface Company {
   // عدد الموظفين والعدد الأقصى (للحسابات)
   employee_count?: number
   max_employees?: number
+  // حقل الملاحظات
+  notes?: string
   created_at: string
   updated_at: string
 }
