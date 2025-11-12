@@ -60,6 +60,8 @@ export interface Employee {
   transport_allowance?: number
   // حقل انتهاء اشتراك التأمين
   ending_subscription_insurance_date?: string
+  // حقل الملاحظات
+  notes?: string
   additional_fields?: Record<string, any>
   created_at: string
   updated_at: string

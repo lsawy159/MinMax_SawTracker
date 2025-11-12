@@ -20,7 +20,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     additional_fields: employee.additional_fields || {},
     // إضافة الحقول الجديدة
     ending_subscription_insurance_date: employee.ending_subscription_insurance_date || '',
-    salary: employee.salary || 0
+    salary: employee.salary || 0,
+    notes: employee.notes || ''
   })
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'basic' | 'custom'>('basic')
@@ -111,6 +112,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         residence_expiry: formData.residence_expiry,
         salary: Number(formData.salary) || 0,
         ending_subscription_insurance_date: formData.ending_subscription_insurance_date || null,
+        notes: formData.notes || null,
         additional_fields: formData.additional_fields
       }
 
@@ -153,7 +155,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       company_id: employee.company_id,
       additional_fields: employee.additional_fields || {},
       ending_subscription_insurance_date: employee.ending_subscription_insurance_date || '',
-      salary: employee.salary || 0
+      salary: employee.salary || 0,
+      notes: employee.notes || ''
     })
     setIsEditMode(false)
   }
@@ -542,6 +545,27 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                     isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
                   }`}
                 />
+              </div>
+
+              {/* الملاحظات */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  الملاحظات
+                </label>
+                {isEditMode ? (
+                  <textarea
+                    value={formData.notes || ''}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="أدخل أي ملاحظات إضافية عن الموظف..."
+                  />
+                ) : (
+                  <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 min-h-[100px] whitespace-pre-wrap">
+                    {formData.notes || 'لا توجد ملاحظات'}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
