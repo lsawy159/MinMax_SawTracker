@@ -38,6 +38,7 @@ interface Company {
   insurance_subscription_expiry?: string
   ending_subscription_power_date?: string
   ending_subscription_moqeem_date?: string
+  exemptions?: string | null
 
   additional_fields?: Record<string, any>
   commercial_registration_status?: string
@@ -103,6 +104,7 @@ export default function AdvancedSearch() {
 
   const [employeeCountFilter, setEmployeeCountFilter] = useState<string>('all')
   const [availableSlotsFilter, setAvailableSlotsFilter] = useState<string>('all')
+  const [exemptionsFilter, setExemptionsFilter] = useState<string>('all')
 
   // Filter lists
   const [nationalities, setNationalities] = useState<string[]>([])
@@ -444,6 +446,13 @@ export default function AdvancedSearch() {
           return true
         })
       }
+
+      if (exemptionsFilter !== 'all') {
+        filteredComps = filteredComps.filter(c => {
+          if (!c.exemptions) return false
+          return c.exemptions === exemptionsFilter
+        })
+      }
     }
 
     setFilteredEmployees(filteredEmps)
@@ -469,7 +478,8 @@ export default function AdvancedSearch() {
     powerSubscriptionStatus, 
     moqeemSubscriptionStatus, 
     employeeCountFilter, 
-    availableSlotsFilter
+    availableSlotsFilter,
+    exemptionsFilter
   ])
 
   useEffect(() => {
@@ -500,6 +510,7 @@ export default function AdvancedSearch() {
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
     setCompanyDateFilter('all')
+    setExemptionsFilter('all')
     
     // فلاتر جديدة للشركات
     setPowerSubscriptionStatus('all')
@@ -763,6 +774,20 @@ export default function AdvancedSearch() {
                           <option value="all">الكل</option>
                           <option value="commercial_expiring">السجل التجاري ينتهي قريباً</option>
                           <option value="insurance_expiring">التأمينات تنتهي قريباً</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">الاعفاءات</label>
+                        <select
+                          value={exemptionsFilter}
+                          onChange={(e) => setExemptionsFilter(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="all">الكل</option>
+                          <option value="تم الاعفاء">تم الاعفاء</option>
+                          <option value="لم يتم الاعفاء">لم يتم الاعفاء</option>
+                          <option value="أخرى">أخرى</option>
                         </select>
                       </div>
                     </>

@@ -31,6 +31,8 @@ export interface Company {
   max_employees?: number
   // حقل الملاحظات
   notes?: string
+  // حقل الاعفاءات
+  exemptions?: string | null
   created_at: string
   updated_at: string
 }

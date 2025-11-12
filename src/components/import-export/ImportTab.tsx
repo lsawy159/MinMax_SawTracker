@@ -315,7 +315,8 @@ export default function ImportTab() {
               commercial_registration_expiry: row['تاريخ انتهاء السجل التجاري'] || null,
               insurance_subscription_expiry: row['تاريخ انتهاء اشتراك التأمين'] || null,
               employee_count: row['عدد الموظفين'] ? Number(row['عدد الموظفين']) : 0,
-              max_employees: row['الحد الأقصى للموظفين'] ? Number(row['الحد الأقصى للموظفين']) : 0
+              max_employees: row['الحد الأقصى للموظفين'] ? Number(row['الحد الأقصى للموظفين']) : 0,
+              exemptions: row['الاعفاءات'] || null
             }
 
             // Handle additional fields

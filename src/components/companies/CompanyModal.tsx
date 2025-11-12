@@ -29,7 +29,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     ending_subscription_power_date: '',
     ending_subscription_moqeem_date: '',
     max_employees: '',
-    notes: ''
+    notes: '',
+    exemptions: ''
   })
 
   const isEditing = !!company
@@ -55,7 +56,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           ending_subscription_power_date: company.ending_subscription_power_date || '',
           ending_subscription_moqeem_date: company.ending_subscription_moqeem_date || '',
           max_employees: company.max_employees?.toString() || '',
-          notes: company.notes || ''
+          notes: company.notes || '',
+          exemptions: company.exemptions || ''
         })
       } else {
         console.log('🆕 إعادة تعيين النموذج للإضافة الجديدة')
@@ -69,7 +71,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           ending_subscription_power_date: '',
           ending_subscription_moqeem_date: '',
           max_employees: '',
-          notes: ''
+          notes: '',
+          exemptions: ''
         })
       }
     }
@@ -284,7 +287,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         ending_subscription_power_date: formatDate(formData.ending_subscription_power_date),
         ending_subscription_moqeem_date: formatDate(formData.ending_subscription_moqeem_date),
         max_employees: maxEmployees,
-        notes: formData.notes.trim() || null
+        notes: formData.notes.trim() || null,
+        exemptions: formData.exemptions.trim() || null
       }
 
       // إزالة الحقول null فقط (وليس الحقول المطلوبة) من البيانات المرسلة
@@ -701,6 +705,25 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               placeholder="أدخل أي ملاحظات إضافية عن المؤسسة..."
               disabled={loading}
             />
+          </div>
+
+          {/* الاعفاءات */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              الاعفاءات
+            </label>
+            <select
+              name="exemptions"
+              value={formData.exemptions}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={loading}
+            >
+              <option value="">اختر حالة الاعفاءات</option>
+              <option value="تم الاعفاء">تم الاعفاء</option>
+              <option value="لم يتم الاعفاء">لم يتم الاعفاء</option>
+              <option value="أخرى">أخرى</option>
+            </select>
           </div>
 
           {/* Footer */}

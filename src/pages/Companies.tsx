@@ -22,6 +22,7 @@ type MoqeemSubscriptionStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type EmployeeCountFilter = 'all' | '1' | '2' | '3' | '4+'
 type AvailableSlotsFilter = 'all' | '1' | '2' | '3' | '4+'
 type DateRange = 'all' | 'last_month' | 'last_3_months' | 'last_year' | 'custom'
+type ExemptionsFilter = 'all' | 'تم الاعفاء' | 'لم يتم الاعفاء' | 'أخرى'
 
 export default function Companies() {
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
@@ -46,6 +47,7 @@ export default function Companies() {
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange>('all')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
+  const [exemptionsFilter, setExemptionsFilter] = useState<ExemptionsFilter>('all')
   const [showFilters, setShowFilters] = useState(true)
 
   // Sort states
@@ -68,6 +70,7 @@ export default function Companies() {
         setEmployeeCountFilter(filters.employeeCountFilter || 'all')
         setAvailableSlotsFilter(filters.availableSlotsFilter || 'all')
         setDateRangeFilter(filters.dateRangeFilter || 'all')
+        setExemptionsFilter(filters.exemptionsFilter || 'all')
         setSortField(filters.sortField || 'name')
         setSortDirection(filters.sortDirection || 'asc')
       }
@@ -89,6 +92,7 @@ export default function Companies() {
         employeeCountFilter,
         availableSlotsFilter,
         dateRangeFilter,
+        exemptionsFilter,
         sortField,
         sortDirection
       }
@@ -314,6 +318,14 @@ export default function Companies() {
       }
     }
 
+    // Apply exemptions filter
+    if (exemptionsFilter !== 'all') {
+      filtered = filtered.filter(company => {
+        if (!company.exemptions) return false
+        return company.exemptions === exemptionsFilter
+      })
+    }
+
     // Apply sorting
     filtered.sort((a, b) => {
       let aValue: any
@@ -374,6 +386,7 @@ export default function Companies() {
     dateRangeFilter,
     customStartDate,
     customEndDate,
+    exemptionsFilter,
     sortField,
     sortDirection
   ])
@@ -438,6 +451,7 @@ export default function Companies() {
     setDateRangeFilter('all')
     setCustomStartDate('')
     setCustomEndDate('')
+    setExemptionsFilter('all')
   }
 
   const handleSort = (field: SortField) => {
@@ -529,7 +543,8 @@ export default function Companies() {
 
     employeeCountFilter !== 'all',
     availableSlotsFilter !== 'all',
-    dateRangeFilter !== 'all'
+    dateRangeFilter !== 'all',
+    exemptionsFilter !== 'all'
   ].filter(Boolean).length
 
   return (
@@ -692,6 +707,21 @@ export default function Companies() {
                   <option value="last_3_months">آخر 3 أشهر</option>
                   <option value="last_year">آخر سنة</option>
                   <option value="custom">مخصص</option>
+                </select>
+              </div>
+
+              {/* Exemptions Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">الاعفاءات</label>
+                <select
+                  value={exemptionsFilter}
+                  onChange={(e) => setExemptionsFilter(e.target.value as ExemptionsFilter)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">الكل</option>
+                  <option value="تم الاعفاء">تم الاعفاء</option>
+                  <option value="لم يتم الاعفاء">لم يتم الاعفاء</option>
+                  <option value="أخرى">أخرى</option>
                 </select>
               </div>
 

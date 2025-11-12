@@ -123,6 +123,12 @@ export default function CompanyCard({
             )}
           </div>
         </div>
+        {company.exemptions && (
+          <div className="flex justify-between">
+            <span className="text-gray-600">الاعفاءات:</span>
+            <span className="font-medium text-gray-900">{company.exemptions}</span>
+          </div>
+        )}
       </div>
 
       {/* حالة السجل التجاري - مربع توضيحي ملون */}

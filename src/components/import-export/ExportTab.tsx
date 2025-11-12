@@ -171,6 +171,7 @@ export default function ExportTab() {
         'تاريخ انتهاء اشتراك قوى': company.additional_fields?.ending_subscription_power_date || '',
         'عدد الموظفين': company.employee_count || 0,
         'الحد الأقصى للموظفين': company.max_employees || 0,
+        'الاعفاءات': company.exemptions || '',
         'حقول إضافية': company.additional_fields ? JSON.stringify(company.additional_fields) : ''
       }))
 
