@@ -312,10 +312,8 @@ export default function ImportTab() {
               tax_number: row['الرقم التأميني'] ? Number(row['الرقم التأميني']) : null,
               unified_number: row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null,
               labor_subscription_number: row['رقم اشتراك قوى'] || null,
-              company_type: row['نوع المؤسسة'] || null,
               commercial_registration_expiry: row['تاريخ انتهاء السجل التجاري'] || null,
               insurance_subscription_expiry: row['تاريخ انتهاء اشتراك التأمين'] || null,
-              government_docs_renewal: row['تاريخ تجديد الوثائق الحكومية'] || null,
               employee_count: row['عدد الموظفين'] ? Number(row['عدد الموظفين']) : 0,
               max_employees: row['الحد الأقصى للموظفين'] ? Number(row['الحد الأقصى للموظفين']) : 0
             }

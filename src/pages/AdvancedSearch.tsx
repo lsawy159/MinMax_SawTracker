@@ -497,7 +497,6 @@ export default function AdvancedSearch() {
     setBirthDateRange('all')
     setJoiningDateRange('all')
     
-    setSelectedCompanyType('all')
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
     setCompanyDateFilter('all')
@@ -563,7 +562,6 @@ export default function AdvancedSearch() {
       setSelectedProject(saved.filters.project || 'all')
       setResidenceStatus(saved.filters.residenceStatus || 'all')
       setContractStatus(saved.filters.contractStatus || 'all')
-      setSelectedCompanyType(saved.filters.companyType || 'all')
       setCommercialRegStatus(saved.filters.commercialRegStatus || 'all')
       setInsuranceStatus(saved.filters.insuranceStatus || 'all')
       setCompanyDateFilter(saved.filters.companyDateFilter || 'all')

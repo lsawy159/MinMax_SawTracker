@@ -135,7 +135,6 @@ export default function Companies() {
       if (!companiesData) {
         console.warn('⚠️ [DEBUG] No companies data received, setting empty array')
         setCompanies([])
-        setCompanyTypes([])
         return
       }
 
@@ -429,7 +428,6 @@ export default function Companies() {
 
   const clearFilters = () => {
     setSearchTerm('')
-    setCompanyTypeFilter('all')
     setCommercialRegStatus('all')
     setInsuranceStatus('all')
     setPowerSubscriptionStatus('all')
@@ -746,15 +744,6 @@ export default function Companies() {
                 >
                   {getSortIcon('name')}
                   الاسم
-                </button>
-                <button
-                  onClick={() => handleSort('company_type')}
-                  className={`px-3 py-1.5 rounded-md border transition flex items-center gap-1 text-sm ${
-                    sortField === 'company_type' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {getSortIcon('company_type')}
-                  نوع المؤسسة
                 </button>
                 <button
                   onClick={() => handleSort('created_at')}

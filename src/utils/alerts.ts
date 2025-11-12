@@ -29,7 +29,6 @@ export interface Company {
   insurance_subscription_start?: string
   ending_subscription_power_date?: string
   ending_subscription_moqeem_date?: string
-  government_docs_renewal?: string
   created_at: string
   updated_at: string
 }
