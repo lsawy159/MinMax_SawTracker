@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
 import { Search, Filter, X, Save, Download, Star, ChevronDown, ChevronUp, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
-import { supabase, Company as CompanyType } from '@/lib/supabase'
+import { supabase, Company as CompanyType, Employee as EmployeeType } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
 import * as XLSX from 'xlsx'
@@ -9,54 +9,6 @@ import { saveAs } from 'file-saver'
 import { useAuth } from '@/contexts/AuthContext'
 import EmployeeCard from '@/components/employee/EmployeeCard'
 import CompanyModal from '@/components/companies/CompanyModal'
-
-interface Employee {
-  id: string
-  company_id: string
-  name: string
-  profession: string
-  nationality: string
-  phone: string
-  passport_number?: string
-  birth_date?: string
-  residence_number?: number | string
-  joining_date?: string
-  residence_expiry: string
-  contract_expiry?: string
-  project_name?: string
-  bank_account?: string
-  ending_subscription_insurance_date?: string
-  salary?: number
-  housing_allowance?: number
-  transport_allowance?: number
-  employee_number?: string
-  contract_number?: string
-  insurance_number?: string
-  additional_fields?: Record<string, any>
-  companies?: { name: string }
-}
-
-interface Company {
-  id: string
-  name: string
-  tax_number: number
-  unified_number: number
-  labor_subscription_number?: string
-  commercial_registration_expiry?: string
-  insurance_subscription_expiry?: string
-  ending_subscription_power_date?: string
-  ending_subscription_moqeem_date?: string
-  ending_subscription_insurance_date?: string
-  exemptions?: string | null
-  max_employees?: number
-  created_at?: string
-
-  additional_fields?: Record<string, any>
-  commercial_registration_status?: string
-  insurance_subscription_status?: string
-  employee_count?: number
-  available_slots?: number
-}
 
 interface SavedSearch {
   id: string
@@ -76,10 +28,10 @@ export default function AdvancedSearch() {
   const { user } = useAuth()
   const [searchType, setSearchType] = useState<SearchType>('employees')
   const [searchQuery, setSearchQuery] = useState('')
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
-  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
+  const [employees, setEmployees] = useState<EmployeeType[]>([])
+  const [companies, setCompanies] = useState<CompanyType[]>([])
+  const [filteredEmployees, setFilteredEmployees] = useState<EmployeeType[]>([])
+  const [filteredCompanies, setFilteredCompanies] = useState<CompanyType[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
@@ -144,9 +96,9 @@ export default function AdvancedSearch() {
   const [projects, setProjects] = useState<string[]>([])
 
   // Modal states for cards
-  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: CompanyType }) | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<(EmployeeType & { company: CompanyType }) | null>(null)
   const [isEmployeeCardOpen, setIsEmployeeCardOpen] = useState(false)
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<CompanyType | null>(null)
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
 
   // Pagination calculations
@@ -538,7 +490,7 @@ export default function AdvancedSearch() {
 
       if (availableSlotsFilter !== 'all') {
         filteredComps = filteredComps.filter(c => {
-          const slots = c.available_slots || 0
+          const slots = (c as CompanyType & { available_slots?: number }).available_slots || 0
           if (availableSlotsFilter === '1') return slots === 1
           if (availableSlotsFilter === '2') return slots === 2
           if (availableSlotsFilter === '3') return slots === 3
@@ -951,7 +903,7 @@ export default function AdvancedSearch() {
   }
 
   // Handle employee click - fetch full employee data with company
-  const handleEmployeeClick = async (employee: Employee) => {
+  const handleEmployeeClick = async (employee: EmployeeType) => {
     try {
       const { data, error } = await supabase
         .from('employees')
@@ -974,7 +926,7 @@ export default function AdvancedSearch() {
         delete (employeeWithCompany as any).companies
         
         if (employeeWithCompany.company) {
-          setSelectedEmployee(employeeWithCompany as Employee & { company: CompanyType })
+          setSelectedEmployee(employeeWithCompany as EmployeeType & { company: CompanyType })
           setIsEmployeeCardOpen(true)
         } else {
           toast.error('فشل تحميل بيانات المؤسسة المرتبطة بالموظف')
@@ -989,7 +941,7 @@ export default function AdvancedSearch() {
   }
 
   // Handle company click
-  const handleCompanyClick = (company: Company) => {
+  const handleCompanyClick = (company: CompanyType) => {
     setSelectedCompany(company)
     setIsCompanyModalOpen(true)
   }
