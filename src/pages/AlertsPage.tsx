@@ -21,6 +21,7 @@ import { Bell, Filter, Search, AlertTriangle, Building2, Users, Calendar, Clock,
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import CompanyCard from '../components/companies/CompanyCard'
+import EmployeeCard from '../components/employee/EmployeeCard'
 
 interface AlertsPageProps {
   initialTab?: 'companies' | 'employees' | 'all'
@@ -43,6 +44,8 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
   const [searchTerm, setSearchTerm] = useState('')
   const [showCompanyCard, setShowCompanyCard] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [showEmployeeCard, setShowEmployeeCard] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company }) | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -120,13 +123,51 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
     }
   }
 
-  const handleViewEmployee = (employeeId: string) => {
-    navigate(`/employees?id=${employeeId}`)
+  const handleViewEmployee = async (employeeId: string) => {
+    try {
+      // جلب بيانات الموظف من قاعدة البيانات
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', employeeId)
+        .single()
+
+      if (employeeError) throw employeeError
+
+      if (employeeData) {
+        // جلب بيانات المؤسسة المرتبطة بالموظف
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', employeeData.company_id)
+          .single()
+
+        if (companyError) throw companyError
+
+        if (companyData) {
+          // إعداد بيانات الموظف مع المؤسسة
+          const employeeWithCompany = {
+            ...employeeData,
+            company: companyData
+          } as Employee & { company: Company }
+
+          setSelectedEmployee(employeeWithCompany)
+          setShowEmployeeCard(true)
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب بيانات الموظف:', error)
+    }
   }
 
-  const handleRenewAction = (alertId: string) => {
-    // يمكن تحديد المعالج المناسب حسب نوع التنبيه
-    navigate('/companies?action=renew')
+  const handleCloseEmployeeCard = () => {
+    setShowEmployeeCard(false)
+    setSelectedEmployee(null)
+  }
+
+  const handleUpdateEmployee = async () => {
+    // إعادة جلب البيانات بعد التحديث
+    await fetchData()
   }
 
   const handleMarkAsRead = async (alertId: string) => {
@@ -503,8 +544,6 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
                     key={alert.id}
                     alert={alert}
                     onViewEmployee={handleViewEmployee}
-                    onViewCompany={handleViewCompany}
-                    onRenewAction={handleRenewAction}
                     onMarkAsRead={handleMarkAsRead}
                     isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
                   />
@@ -570,6 +609,15 @@ const AlertsPage = ({ initialTab = 'all', initialFilter = 'all' }: AlertsPagePro
             </div>
           </div>
         </div>
+      )}
+
+      {/* كارت الموظف المنبثق */}
+      {showEmployeeCard && selectedEmployee && (
+        <EmployeeCard
+          employee={selectedEmployee}
+          onClose={handleCloseEmployeeCard}
+          onUpdate={handleUpdateEmployee}
+        />
       )}
     </Layout>
   )

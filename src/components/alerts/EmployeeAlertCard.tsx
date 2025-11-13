@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, Calendar, User, Building2, Shield, Clock, ExternalLink, RefreshCw, Phone, Eye } from 'lucide-react'
+import { AlertTriangle, Calendar, User, Shield, Clock, Eye } from 'lucide-react'
 
 export interface EmployeeAlert {
   id: string
@@ -28,8 +28,6 @@ export interface EmployeeAlert {
 interface EmployeeAlertCardProps {
   alert: EmployeeAlert
   onViewEmployee: (employeeId: string) => void
-  onViewCompany: (companyId: string) => void
-  onRenewAction: (alertId: string) => void
   onMarkAsRead: (alertId: string) => void
   isRead?: boolean // ← [NEW] الإضافة الجديدة
 }
@@ -37,8 +35,6 @@ interface EmployeeAlertCardProps {
 export function EmployeeAlertCard({ 
   alert, 
   onViewEmployee, 
-  onViewCompany, 
-  onRenewAction, 
   onMarkAsRead,
   isRead = false  // ← [NEW] القيمة الافتراضية false
 }: EmployeeAlertCardProps) {
@@ -225,22 +221,6 @@ export function EmployeeAlertCard({
         >
           <User className="h-4 w-4" />
           عرض الموظف
-        </button>
-
-        <button
-          onClick={() => onViewCompany(alert.company.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-        >
-          <Building2 className="h-4 w-4" />
-          عرض المؤسسة
-        </button>
-
-        <button
-          onClick={() => onRenewAction(alert.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-        >
-          <RefreshCw className="h-4 w-4" />
-          تجديد الوثيقة
         </button>
 
         {/* ← [MODIFIED] زر "تم الاطلاع" - يظهر فقط إذا لم يكن مقروءاً */}
