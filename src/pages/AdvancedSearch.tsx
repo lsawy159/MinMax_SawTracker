@@ -91,7 +91,7 @@ export default function AdvancedSearch() {
 
   // Filter states for employees
   const [selectedNationality, setSelectedNationality] = useState<string>('all')
-  const [selectedCompany, setSelectedCompany] = useState<string>('all')
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('all')
   const [selectedProfession, setSelectedProfession] = useState<string>('all')
   const [selectedProject, setSelectedProject] = useState<string>('all')
   const [residenceStatus, setResidenceStatus] = useState<ResidenceStatus>('all')
@@ -286,8 +286,8 @@ export default function AdvancedSearch() {
         filteredEmps = filteredEmps.filter(e => e.nationality === selectedNationality)
       }
 
-      if (selectedCompany !== 'all') {
-        filteredEmps = filteredEmps.filter(e => e.company_id === selectedCompany)
+      if (selectedCompanyFilter !== 'all') {
+        filteredEmps = filteredEmps.filter(e => e.company_id === selectedCompanyFilter)
       }
 
       if (selectedProfession !== 'all') {
@@ -640,7 +640,7 @@ export default function AdvancedSearch() {
     searchQuery, 
     searchType, 
     selectedNationality, 
-    selectedCompany, 
+    selectedCompanyFilter, 
     selectedProfession, 
     selectedProject, 
     residenceStatus, 
@@ -688,7 +688,7 @@ export default function AdvancedSearch() {
   const clearFilters = () => {
     setSearchQuery('')
     setSelectedNationality('all')
-    setSelectedCompany('all')
+    setSelectedCompanyFilter('all')
     setSelectedProfession('all')
     setSelectedProject('all')
     setResidenceStatus('all')
@@ -747,7 +747,7 @@ export default function AdvancedSearch() {
         search_query: searchQuery,
         filters: {
           nationality: selectedNationality,
-          company: selectedCompany,
+          company: selectedCompanyFilter,
           profession: selectedProfession,
           project: selectedProject,
           residenceStatus,
@@ -801,7 +801,7 @@ export default function AdvancedSearch() {
     setSearchQuery(saved.search_query || '')
     if (saved.filters) {
       setSelectedNationality(saved.filters.nationality || 'all')
-      setSelectedCompany(saved.filters.company || 'all')
+      setSelectedCompanyFilter(saved.filters.company || 'all')
       setSelectedProfession(saved.filters.profession || 'all')
       setSelectedProject(saved.filters.project || 'all')
       setResidenceStatus(saved.filters.residenceStatus || 'all')
@@ -1242,8 +1242,8 @@ export default function AdvancedSearch() {
                       <div>
                         <label className="block text-sm font-medium mb-1">المؤسسة</label>
                         <select
-                          value={selectedCompany}
-                          onChange={(e) => setSelectedCompany(e.target.value)}
+                          value={selectedCompanyFilter}
+                          onChange={(e) => setSelectedCompanyFilter(e.target.value)}
                           className="w-full px-3 py-2 border rounded-md"
                         >
                           <option value="all">الكل</option>
