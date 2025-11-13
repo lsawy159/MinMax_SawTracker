@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
 import { Search, Filter, X, Save, Download, Star, ChevronDown, ChevronUp, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, Company as CompanyType } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { useAuth } from '@/contexts/AuthContext'
+import EmployeeCard from '@/components/employee/EmployeeCard'
+import CompanyModal from '@/components/companies/CompanyModal'
 
 interface Employee {
   id: string
@@ -140,6 +142,12 @@ export default function AdvancedSearch() {
   const [companyList, setCompanyList] = useState<{ id: string; name: string }[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
+
+  // Modal states for cards
+  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: CompanyType }) | null>(null)
+  const [isEmployeeCardOpen, setIsEmployeeCardOpen] = useState(false)
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
 
   // Pagination calculations
   const totalEmployees = filteredEmployees.length
@@ -942,6 +950,73 @@ export default function AdvancedSearch() {
     return pageNumbers
   }
 
+  // Handle employee click - fetch full employee data with company
+  const handleEmployeeClick = async (employee: Employee) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*, companies(*)')
+        .eq('id', employee.id)
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        // Convert companies array to company object (EmployeeCard expects company, not companies)
+        const employeeWithCompany = {
+          ...data,
+          company: Array.isArray(data.companies) && data.companies.length > 0 
+            ? data.companies[0] 
+            : (data.companies || null)
+        }
+        
+        // Remove companies array as we now have company object
+        delete (employeeWithCompany as any).companies
+        
+        if (employeeWithCompany.company) {
+          setSelectedEmployee(employeeWithCompany as Employee & { company: CompanyType })
+          setIsEmployeeCardOpen(true)
+        } else {
+          toast.error('فشل تحميل بيانات المؤسسة المرتبطة بالموظف')
+        }
+      } else {
+        toast.error('فشل تحميل بيانات الموظف')
+      }
+    } catch (error) {
+      console.error('Error loading employee:', error)
+      toast.error('حدث خطأ أثناء تحميل بيانات الموظف')
+    }
+  }
+
+  // Handle company click
+  const handleCompanyClick = (company: Company) => {
+    setSelectedCompany(company)
+    setIsCompanyModalOpen(true)
+  }
+
+  // Handle close employee card
+  const handleCloseEmployeeCard = () => {
+    setIsEmployeeCardOpen(false)
+    setSelectedEmployee(null)
+  }
+
+  // Handle close company modal
+  const handleCloseCompanyModal = () => {
+    setIsCompanyModalOpen(false)
+    setSelectedCompany(null)
+  }
+
+  // Handle employee update - reload data
+  const handleEmployeeUpdate = async () => {
+    await loadData()
+  }
+
+  // Handle company update - reload data
+  const handleCompanyUpdate = async () => {
+    await loadData()
+    handleCloseCompanyModal()
+  }
+
   return (
     <Layout>
       <div className="container mx-auto p-6">
@@ -1472,7 +1547,11 @@ export default function AdvancedSearch() {
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {paginatedEmployees.map(emp => (
-                          <div key={emp.id} className="bg-white border rounded-lg p-4">
+                          <div 
+                            key={emp.id} 
+                            onClick={() => handleEmployeeClick(emp)}
+                            className="bg-white border rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                          >
                             <h3 className="font-bold text-lg mb-2">{emp.name}</h3>
                             <div className="space-y-1 text-sm">
                               <p><span className="text-gray-600">المهنة:</span> {emp.profession}</p>
@@ -1522,7 +1601,11 @@ export default function AdvancedSearch() {
                             </thead>
                             <tbody>
                               {paginatedEmployees.map(emp => (
-                                <tr key={emp.id} className="border-t hover:bg-gray-50">
+                                <tr 
+                                  key={emp.id} 
+                                  onClick={() => handleEmployeeClick(emp)}
+                                  className="border-t hover:bg-gray-50 cursor-pointer"
+                                >
                                   <td className="px-4 py-2 font-medium">{emp.name}</td>
                                   <td className="px-4 py-2">{emp.profession}</td>
                                   <td className="px-4 py-2">{emp.nationality}</td>
@@ -1557,7 +1640,11 @@ export default function AdvancedSearch() {
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {paginatedCompanies.map(comp => (
-                          <div key={comp.id} className="bg-white border rounded-lg p-4">
+                          <div 
+                            key={comp.id} 
+                            onClick={() => handleCompanyClick(comp)}
+                            className="bg-white border rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                          >
                             <h3 className="font-bold text-lg mb-2">{comp.name}</h3>
                             <div className="space-y-1 text-sm">
                               <p><span className="text-gray-600">رقم اشتراك التأمينات:</span> {comp.tax_number}</p>
@@ -1595,7 +1682,11 @@ export default function AdvancedSearch() {
                             </thead>
                             <tbody>
                               {paginatedCompanies.map(comp => (
-                                <tr key={comp.id} className="border-t hover:bg-gray-50">
+                                <tr 
+                                  key={comp.id} 
+                                  onClick={() => handleCompanyClick(comp)}
+                                  className="border-t hover:bg-gray-50 cursor-pointer"
+                                >
                                   <td className="px-4 py-2 font-medium">{comp.name}</td>
                                   <td className="px-4 py-2">{comp.tax_number}</td>
                                   <td className="px-4 py-2">{comp.unified_number}</td>
@@ -1665,6 +1756,25 @@ export default function AdvancedSearch() {
           </div>
         </div>
       </div>
+
+      {/* Employee Card Modal */}
+      {isEmployeeCardOpen && selectedEmployee && (
+        <EmployeeCard
+          employee={selectedEmployee}
+          onClose={handleCloseEmployeeCard}
+          onUpdate={handleEmployeeUpdate}
+        />
+      )}
+
+      {/* Company Modal */}
+      {isCompanyModalOpen && (
+        <CompanyModal
+          isOpen={isCompanyModalOpen}
+          company={selectedCompany}
+          onClose={handleCloseCompanyModal}
+          onSuccess={handleCompanyUpdate}
+        />
+      )}
     </Layout>
   )
 }
