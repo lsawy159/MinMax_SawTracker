@@ -30,9 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingRef = useRef(false) // منع الاستدعاءات المتعددة
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null) // debounce
   const currentFetchingUserIdRef = useRef<string | null>(null) // تتبع معرف المستخدم الذي يتم جلب بياناته حالياً
+  const userRef = useRef<User | null>(null) // تخزين user الحالي لتجنب إعادة تسجيل listeners
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
+
+  // تحديث userRef عند تغيير user
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   useEffect(() => {
     mountedRef.current = true
@@ -95,11 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // إعادة تعيين fetchingRef عند الأحداث التي تحتاج إلى جلب بيانات المستخدم
         // فقط إذا كان المستخدم مختلف أو لم يكن هناك مستخدم محمل
+        // استخدام userRef.current بدلاً من user لتجنب إعادة تسجيل listener
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
           if (newSession) {
             // إعادة تعيين fetchingRef فقط إذا كان المستخدم مختلف أو لم يكن هناك user محمل
             // هذا يمنع إعادة تعيين fetchingRef إذا كان fetchUserData قيد التنفيذ لنفس المستخدم
-            if (!user || newSession.user.id !== user.id) {
+            if (!userRef.current || newSession.user.id !== userRef.current.id) {
               fetchingRef.current = false
             }
           }
@@ -137,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(fetchTimeoutRef.current)
       }
     }
-  }, [user]) // إضافة user لأنها مستخدمة في onAuthStateChange callback
+  }, []) // لا نضيف user هنا لأننا نستخدم userRef.current لتجنب إعادة تسجيل listener
 
 
   // --- جلب بيانات المستخدم المخصصة ---
