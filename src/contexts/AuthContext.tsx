@@ -92,6 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userId: newSession?.user?.id 
         })
         
+        // إعادة تعيين fetchingRef عند SIGNED_IN لضمان استدعاء fetchUserData
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          fetchingRef.current = false
+        }
+        
         setSession(newSession)
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
@@ -101,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setError(null)
+          fetchingRef.current = false
         }
         
         // توقف عن التحميل فقط إذا لم يكن هناك جلسة
@@ -201,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true)
     setError(null)
-    fetchingRef.current = true
+    // لا نعين fetchingRef هنا لأن onAuthStateChange سيتولى استدعاء fetchUserData
     
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -215,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // onAuthStateChange سيتولى الباقي (تحديث الجلسة وجلب بيانات المستخدم)
+      // سيتم إعادة تعيين fetchingRef.current = false في onAuthStateChange عند SIGNED_IN
       console.log('[Auth] Sign in successful, waiting for auth state change...')
       
     } catch (err: any) {
