@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadingRef = useRef(true)
   const fetchingRef = useRef(false) // منع الاستدعاءات المتعددة
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null) // debounce
+  const currentFetchingUserIdRef = useRef<string | null>(null) // تتبع معرف المستخدم الذي يتم جلب بياناته حالياً
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
@@ -92,9 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userId: newSession?.user?.id 
         })
         
-        // إعادة تعيين fetchingRef عند SIGNED_IN لضمان استدعاء fetchUserData
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          fetchingRef.current = false
+        // إعادة تعيين fetchingRef عند الأحداث التي تحتاج إلى جلب بيانات المستخدم
+        // فقط إذا كان المستخدم مختلف أو لم يكن هناك مستخدم محمل
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
+          if (newSession) {
+            // إعادة تعيين fetchingRef فقط إذا كان المستخدم مختلف أو لم يكن هناك user محمل
+            // هذا يمنع إعادة تعيين fetchingRef إذا كان fetchUserData قيد التنفيذ لنفس المستخدم
+            if (!user || newSession.user.id !== user.id) {
+              fetchingRef.current = false
+            }
+          }
         }
         
         setSession(newSession)
@@ -129,29 +137,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(fetchTimeoutRef.current)
       }
     }
-  }, []) // هذا الـ Hook يجب أن يعمل مرة واحدة فقط عند التحميل
+  }, [user]) // إضافة user لأنها مستخدمة في onAuthStateChange callback
 
 
   // --- جلب بيانات المستخدم المخصصة ---
   // يتم تشغيل هذا الـ Hook عند تغير الجلسة
   
   const fetchUserData = useCallback(async (session: Session) => {
-    if (fetchingRef.current) {
-      console.log('[Auth] Skipping fetchUserData, already in progress')
+    const currentUserId = session.user.id
+    
+    // التحقق من أن fetchUserData لا يزال قيد التنفيذ لنفس المستخدم
+    if (fetchingRef.current && currentFetchingUserIdRef.current === currentUserId) {
+      console.log('[Auth] Skipping fetchUserData, already in progress for this user')
       return
     }
     
-    console.log(`[Auth] Fetching user data for user ID: ${session.user.id}`)
+    // التحقق من أن المستخدم لم يتغير (إذا كان هناك user محمل بالفعل)
+    // هذا يمنع جلب بيانات المستخدم إذا كان المستخدم مختلف
+    if (user && user.id === currentUserId) {
+      console.log('[Auth] User data already loaded, skipping fetchUserData')
+      setLoading(false)
+      loadingRef.current = false
+      return
+    }
+    
+    console.log(`[Auth] Fetching user data for user ID: ${currentUserId}`)
     fetchingRef.current = true
+    currentFetchingUserIdRef.current = currentUserId // حفظ معرف المستخدم الحالي
 
     try {
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', currentUserId)
         .single()
       
       if (!mountedRef.current) return
+      
+      // التحقق من أن المستخدم لم يتغير أثناء التنفيذ
+      if (currentFetchingUserIdRef.current !== currentUserId) {
+        console.log('[Auth] User changed during fetch, aborting')
+        return
+      }
       
       if (userError) {
         console.error('[Auth] Error fetching user data:', userError)
@@ -183,23 +210,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false) // توقف عن التحميل بعد اكتمال جلب البيانات
         loadingRef.current = false
         fetchingRef.current = false
+        currentFetchingUserIdRef.current = null
       }
     }
-  }, []) // مصفوفة فارغة صحيحة لأنها لا تعتمد على state (setters مستقرة)
+  }, [user]) // إضافة user للتحقق من التغييرات
 
   // [FIX] تم إصلاح مصفوفة الاعتماديات هنا
   useEffect(() => {
-    if (session && (!user || session.user.id !== user.id)) {
-      // لدينا جلسة، ولكن بيانات المستخدم غير متطابقة أو غير موجودة
-      fetchUserData(session)
-    } else if (!session) {
+    // التحقق من أن fetchUserData لا يزال قيد التنفيذ قبل الاستدعاء
+    if (fetchingRef.current) {
+      console.log('[Auth] useEffect: fetchUserData already in progress, skipping')
+      return
+    }
+    
+    if (session) {
+      // لدينا جلسة - تحقق من الحاجة إلى جلب بيانات المستخدم
+      if (!user || session.user.id !== user.id) {
+        // بيانات المستخدم غير متطابقة أو غير موجودة - جلب البيانات
+        console.log('[Auth] useEffect: Session exists but user data missing or different, fetching...')
+        fetchUserData(session)
+      } else {
+        // بيانات المستخدم موجودة ومتطابقة - لا حاجة للجلب
+        console.log('[Auth] useEffect: User data already loaded and matches session')
+        setLoading(false)
+        loadingRef.current = false
+      }
+    } else {
       // لا توجد جلسة
+      console.log('[Auth] useEffect: No session, clearing user')
       setUser(null)
       setLoading(false)
       loadingRef.current = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, user]) // fetchUserData is a stable useCallback, no need to include it
+  }, [session, user, fetchUserData]) // fetchUserData يعتمد على user، لذلك يجب إضافته
 
 
   // --- دوال المصادقة ---
