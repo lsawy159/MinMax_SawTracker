@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 
 export default function Login() {
-  const [email, setEmail] = useState('admin@sawtracker.com')
-  const [password, setPassword] = useState('password123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signIn, user, loading: authLoading } = useAuth()
