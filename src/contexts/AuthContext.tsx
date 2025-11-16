@@ -104,9 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // استخدام userRef.current بدلاً من user لتجنب إعادة تسجيل listener
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
           if (newSession) {
-            // إعادة تعيين fetchingRef فقط إذا كان المستخدم مختلف أو لم يكن هناك user محمل
-            // هذا يمنع إعادة تعيين fetchingRef إذا كان fetchUserData قيد التنفيذ لنفس المستخدم
-            if (!userRef.current || newSession.user.id !== userRef.current.id) {
+            const newUserId = newSession.user.id
+            // التحقق من أن fetchUserData لا يزال قيد التنفيذ لنفس المستخدم
+            const isFetchingSameUser = fetchingRef.current && currentFetchingUserIdRef.current === newUserId
+            
+            // إعادة تعيين fetchingRef فقط إذا:
+            // 1. لم يكن هناك user محمل، أو
+            // 2. المستخدم مختلف عن المستخدم المحمل، أو
+            // 3. fetchUserData ليس قيد التنفيذ لنفس المستخدم
+            if (!isFetchingSameUser && (!userRef.current || newUserId !== userRef.current.id)) {
               fetchingRef.current = false
             }
           }
