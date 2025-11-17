@@ -25,12 +25,18 @@ export default defineConfig({
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      // Preserve entry signatures to avoid TDZ issues with lazy loading
-      preserveEntrySignatures: 'strict',
+      // Use 'allow-extension' instead of 'strict' to avoid issues with React Scheduler
+      preserveEntrySignatures: 'allow-extension',
       output: {
         manualChunks: (id) => {
           // React vendor chunk - must be loaded first
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+          // Include scheduler with React to avoid 'unstable_now' errors
+          if (
+            id.includes('node_modules/react') || 
+            id.includes('node_modules/react-dom') || 
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/scheduler')
+          ) {
             return 'react-vendor'
           }
           
@@ -86,6 +92,7 @@ export default defineConfig({
       'react',
       'react-dom',
       'react-router-dom',
+      'scheduler',
       '@supabase/supabase-js',
     ],
     exclude: ['@vite/client', '@vite/env'],
