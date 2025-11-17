@@ -18,7 +18,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
     // Ensure single instance of React to avoid TDZ issues
-    dedupe: ['react', 'react-dom', 'scheduler'],
+    // Note: scheduler is NOT in dedupe as it's an internal React dependency
+    // It will be handled automatically via manualChunks to ensure it's in the same chunk as React
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     target: 'esnext',
