@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useTransition, startTransition as startTransitionFn } from 'react'
 import { supabase, Employee, Company } from '../lib/supabase'
 import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell } from 'lucide-react'
 import Layout from '../components/layout/Layout'
@@ -61,11 +61,13 @@ const Dashboard = () => {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingSecondary, setLoadingSecondary] = useState(true)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [showAlerts, setShowAlerts] = useState(false)
   const navigate = useNavigate()
+  const [isPending, startTransition] = useTransition()
 
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
@@ -97,10 +99,32 @@ const Dashboard = () => {
   })
 
   useEffect(() => {
-    fetchData()
+    // Load critical data first (basic stats)
+    fetchBasicData()
     loadReadAlerts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Load secondary data (alerts) after basic data is loaded
+  useEffect(() => {
+    if (!loading && employees.length > 0 && companies.length > 0) {
+      // Use requestIdleCallback for non-critical work
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window.requestIdleCallback as (callback: IdleRequestCallback, options?: IdleRequestOptions) => number)(
+          () => {
+            fetchSecondaryData()
+          },
+          { timeout: 2000 }
+        )
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(() => {
+          fetchSecondaryData()
+        }, 100)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, employees.length, companies.length])
 
   // جلب التنبيهات المقروءة من قاعدة البيانات
   const loadReadAlerts = async () => {
@@ -122,44 +146,60 @@ const Dashboard = () => {
     }
   }
 
-  const fetchData = async () => {
+  // Phase 1: Load basic data and stats (critical)
+  const fetchBasicData = async () => {
     try {
       setLoading(true)
 
-      // جلب الموظفين
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('employees')
-        .select('*')
+      // Fetch employees and companies in parallel
+      const [employeesResult, companiesResult] = await Promise.all([
+        supabase.from('employees').select('*'),
+        supabase.from('companies').select('*')
+      ])
 
-      if (employeesError) throw employeesError
+      if (employeesResult.error) throw employeesResult.error
+      if (companiesResult.error) throw companiesResult.error
 
-      // جلب المؤسسات
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('companies')
-        .select('*')
+      const employeesData = employeesResult.data || []
+      const companiesData = companiesResult.data || []
 
-      if (companiesError) throw companiesError
+      setEmployees(employeesData)
+      setCompanies(companiesData)
 
-      setEmployees(employeesData || [])
-      setCompanies(companiesData || [])
-
-      if (employeesData && companiesData) {
+      if (employeesData.length > 0 && companiesData.length > 0) {
+        // Calculate basic stats immediately (critical)
         const calculatedStats = calculateStats(employeesData, companiesData)
         setStats(calculatedStats)
-        
-        // توليد تنبيهات المؤسسات
-        const companyAlertsGenerated = generateCompanyAlertsSync(companiesData)
-        setCompanyAlerts(companyAlertsGenerated)
-        
-        // توليد تنبيهات الموظفين
-        const employeeAlertsGenerated = generateEmployeeAlerts(employeesData, companiesData)
-        const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companiesData)
-        setEmployeeAlerts(enrichedEmployeeAlerts)
       }
     } catch (error) {
-      console.error('خطأ في جلب البيانات:', error)
+      console.error('خطأ في جلب البيانات الأساسية:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Phase 2: Load alerts (non-critical, can be deferred)
+  const fetchSecondaryData = async () => {
+    try {
+      setLoadingSecondary(true)
+
+      // Generate alerts asynchronously (non-blocking)
+      if (employees.length > 0 && companies.length > 0) {
+        startTransitionFn(() => {
+          // توليد تنبيهات المؤسسات
+          const companyAlertsGenerated = generateCompanyAlertsSync(companies)
+          setCompanyAlerts(companyAlertsGenerated)
+          
+          // توليد تنبيهات الموظفين
+          const employeeAlertsGenerated = generateEmployeeAlerts(employees, companies)
+          const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
+          setEmployeeAlerts(enrichedEmployeeAlerts)
+        })
+      }
+    } catch (error) {
+      console.error('خطأ في جلب البيانات الثانوية:', error)
+    } finally {
+      setLoadingSecondary(false)
     }
   }
 
@@ -358,31 +398,74 @@ const Dashboard = () => {
     }
   }
 
-  // تصفية التنبيهات المقروءة
-  const unreadCompanyAlerts = companyAlerts.filter(alert => !readAlerts.has(alert.id))
-  const unreadEmployeeAlerts = employeeAlerts.filter(alert => !readAlerts.has(alert.id))
-
-  // إحصائيات التنبيهات (فقط غير المقروءة)
-  const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
-  const companyUrgentAlerts = getUrgentAlerts(unreadCompanyAlerts)
-  const commercialRegAlerts = filterAlertsByType(unreadCompanyAlerts, 'commercial_registration')
-  const insuranceAlerts = filterAlertsByType(unreadCompanyAlerts, 'insurance_subscription')
+  // Memoize filtered alerts to avoid recalculation
+  const unreadCompanyAlerts = useMemo(() => 
+    companyAlerts.filter(alert => !readAlerts.has(alert.id)),
+    [companyAlerts, readAlerts]
+  )
   
-  // إحصائيات مفصلة للمؤسسات
-  const commercialRegExpired = commercialRegAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length
-  const commercialRegUrgent = commercialRegAlerts.filter(a => a.priority === 'urgent').length
-  const insuranceExpired = insuranceAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length
-  const insuranceUrgent = insuranceAlerts.filter(a => a.priority === 'urgent').length
+  const unreadEmployeeAlerts = useMemo(() => 
+    employeeAlerts.filter(alert => !readAlerts.has(alert.id)),
+    [employeeAlerts, readAlerts]
+  )
 
-  // إحصائيات تنبيهات الموظفين (فقط غير المقروءة)
-  const employeeAlertsStats = getEmployeeAlertsStats(unreadEmployeeAlerts)
-  const employeeUrgentAlerts = getUrgentEmployeeAlerts(unreadEmployeeAlerts)
-  const contractAlerts = filterEmployeeAlertsByType(unreadEmployeeAlerts, 'contract_expiry')
-  const residenceAlerts = filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry')
+  // Memoize alert statistics to avoid recalculation
+  const companyAlertsStats = useMemo(() => getAlertsStats(unreadCompanyAlerts), [unreadCompanyAlerts])
+  const companyUrgentAlerts = useMemo(() => getUrgentAlerts(unreadCompanyAlerts), [unreadCompanyAlerts])
+  const commercialRegAlerts = useMemo(() => 
+    filterAlertsByType(unreadCompanyAlerts, 'commercial_registration'),
+    [unreadCompanyAlerts]
+  )
+  const insuranceAlerts = useMemo(() => 
+    filterAlertsByType(unreadCompanyAlerts, 'insurance_subscription'),
+    [unreadCompanyAlerts]
+  )
+  
+  // Memoize detailed company statistics
+  const commercialRegExpired = useMemo(() => 
+    commercialRegAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length,
+    [commercialRegAlerts]
+  )
+  const commercialRegUrgent = useMemo(() => 
+    commercialRegAlerts.filter(a => a.priority === 'urgent').length,
+    [commercialRegAlerts]
+  )
+  const insuranceExpired = useMemo(() => 
+    insuranceAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length,
+    [insuranceAlerts]
+  )
+  const insuranceUrgent = useMemo(() => 
+    insuranceAlerts.filter(a => a.priority === 'urgent').length,
+    [insuranceAlerts]
+  )
 
-  // إجمالي التنبيهات
-  const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
-  const totalUrgentAlerts = companyAlertsStats.urgent + employeeAlertsStats.urgent
+  // Memoize employee alert statistics
+  const employeeAlertsStats = useMemo(() => 
+    getEmployeeAlertsStats(unreadEmployeeAlerts),
+    [unreadEmployeeAlerts]
+  )
+  const employeeUrgentAlerts = useMemo(() => 
+    getUrgentEmployeeAlerts(unreadEmployeeAlerts),
+    [unreadEmployeeAlerts]
+  )
+  const contractAlerts = useMemo(() => 
+    filterEmployeeAlertsByType(unreadEmployeeAlerts, 'contract_expiry'),
+    [unreadEmployeeAlerts]
+  )
+  const residenceAlerts = useMemo(() => 
+    filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry'),
+    [unreadEmployeeAlerts]
+  )
+
+  // Memoize total alerts
+  const totalAlerts = useMemo(() => 
+    companyAlertsStats.total + employeeAlertsStats.total,
+    [companyAlertsStats.total, employeeAlertsStats.total]
+  )
+  const totalUrgentAlerts = useMemo(() => 
+    companyAlertsStats.urgent + employeeAlertsStats.urgent,
+    [companyAlertsStats.urgent, employeeAlertsStats.urgent]
+  )
 
   return (
     <Layout>
