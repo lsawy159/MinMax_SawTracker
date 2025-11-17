@@ -25,9 +25,11 @@ export default defineConfig({
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      // Preserve entry signatures to avoid TDZ issues with lazy loading
+      preserveEntrySignatures: 'strict',
       output: {
         manualChunks: (id) => {
-          // React vendor chunk
+          // React vendor chunk - must be loaded first
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
             return 'react-vendor'
           }
@@ -87,6 +89,10 @@ export default defineConfig({
       '@supabase/supabase-js',
     ],
     exclude: ['@vite/client', '@vite/env'],
+    // Ensure proper order of dependency resolution
+    esbuildOptions: {
+      target: 'esnext',
+    },
   },
 })
 

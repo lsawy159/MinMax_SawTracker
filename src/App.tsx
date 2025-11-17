@@ -2,9 +2,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
+import './App.css'
+
 // Login page is loaded eagerly as it's the entry point
 import Login from './pages/Login'
+
 // Lazy load all other pages for better performance
+// All lazy imports are defined at the top level to avoid TDZ issues
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Employees = lazy(() => import('./pages/Employees'))
 const Companies = lazy(() => import('./pages/Companies'))
@@ -22,7 +26,6 @@ const PermissionsManagement = lazy(() => import('./pages/PermissionsManagement')
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const EnhancedAlertsTestPage = lazy(() => import('./pages/EnhancedAlertsTestPage'))
 const CommercialRegTestPage = lazy(() => import('./pages/CommercialRegTestPage'))
-import './App.css'
 
 // Loading fallback component
 function PageLoader() {
