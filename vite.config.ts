@@ -102,11 +102,12 @@ export default defineConfig({
       'react',
       'react-dom',
       'react-router-dom',
-      'scheduler',
       '@supabase/supabase-js',
     ],
     exclude: ['@vite/client', '@vite/env'],
     // Ensure proper order of dependency resolution
+    // Note: scheduler is NOT included here as it's an internal React dependency
+    // It will be loaded automatically with React and handled via dedupe and manualChunks
     esbuildOptions: {
       target: 'esnext',
     },
