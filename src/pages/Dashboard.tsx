@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, startTransition } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase, Employee, Company } from '../lib/supabase'
 import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell } from 'lucide-react'
 import Layout from '../components/layout/Layout'
@@ -178,13 +178,14 @@ const Dashboard = () => {
   }
 
   // Phase 2: Load alerts (non-critical, can be deferred)
-  const fetchSecondaryData = async () => {
+  const fetchSecondaryData = () => {
     try {
       setLoadingSecondary(true)
 
       // Generate alerts asynchronously (non-blocking)
-      if (employees.length > 0 && companies.length > 0) {
-        startTransition(() => {
+      // Using setTimeout to defer execution and avoid blocking the main thread
+      setTimeout(() => {
+        if (employees.length > 0 && companies.length > 0) {
           // توليد تنبيهات المؤسسات
           const companyAlertsGenerated = generateCompanyAlertsSync(companies)
           setCompanyAlerts(companyAlertsGenerated)
@@ -193,11 +194,11 @@ const Dashboard = () => {
           const employeeAlertsGenerated = generateEmployeeAlerts(employees, companies)
           const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
           setEmployeeAlerts(enrichedEmployeeAlerts)
-        })
-      }
+        }
+        setLoadingSecondary(false)
+      }, 0)
     } catch (error) {
       console.error('خطأ في جلب البيانات الثانوية:', error)
-    } finally {
       setLoadingSecondary(false)
     }
   }
