@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useTransition, startTransition as startTransitionFn } from 'react'
+import { useEffect, useState, useMemo, startTransition } from 'react'
 import { supabase, Employee, Company } from '../lib/supabase'
 import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell } from 'lucide-react'
 import Layout from '../components/layout/Layout'
@@ -67,7 +67,6 @@ const Dashboard = () => {
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [showAlerts, setShowAlerts] = useState(false)
   const navigate = useNavigate()
-  const [isPending, startTransition] = useTransition()
 
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
@@ -185,7 +184,7 @@ const Dashboard = () => {
 
       // Generate alerts asynchronously (non-blocking)
       if (employees.length > 0 && companies.length > 0) {
-        startTransitionFn(() => {
+        startTransition(() => {
           // توليد تنبيهات المؤسسات
           const companyAlertsGenerated = generateCompanyAlertsSync(companies)
           setCompanyAlerts(companyAlertsGenerated)
