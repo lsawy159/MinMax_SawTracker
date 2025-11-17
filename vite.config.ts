@@ -17,6 +17,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Ensure single instance of React to avoid TDZ issues
+    dedupe: ['react', 'react-dom', 'scheduler'],
   },
   build: {
     target: 'esnext',
@@ -25,17 +27,20 @@ export default defineConfig({
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      // Use 'allow-extension' instead of 'strict' to avoid issues with React Scheduler
-      preserveEntrySignatures: 'allow-extension',
+      // Remove preserveEntrySignatures to let Vite handle ordering automatically
+      // This prevents TDZ issues with lazy loading
       output: {
         manualChunks: (id) => {
-          // React vendor chunk - must be loaded first
-          // Include scheduler with React to avoid 'unstable_now' errors
+          // React vendor chunk - must be loaded first and together
+          // Critical: React, React-DOM, and Scheduler must be in the same chunk
+          // to avoid TDZ and 'unstable_now' errors
+          if (id.includes('node_modules/scheduler')) {
+            return 'react-vendor'
+          }
           if (
             id.includes('node_modules/react') || 
             id.includes('node_modules/react-dom') || 
-            id.includes('node_modules/react-router') ||
-            id.includes('node_modules/scheduler')
+            id.includes('node_modules/react-router')
           ) {
             return 'react-vendor'
           }
@@ -85,6 +90,11 @@ export default defineConfig({
           return 'assets/[ext]/[name]-[hash][extname]'
         },
       },
+    },
+    // Ensure proper CommonJS handling to avoid TDZ issues
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
     },
   },
   optimizeDeps: {
