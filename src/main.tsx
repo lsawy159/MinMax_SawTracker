@@ -1,6 +1,6 @@
-// Ensure React is imported first to avoid TDZ errors
-import React from 'react'
-import { StrictMode } from 'react'
+// Import React wrapper first to ensure React is initialized before any other code
+// This prevents TDZ (Temporal Dead Zone) errors in production builds
+import React, { StrictMode } from './react-init'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'

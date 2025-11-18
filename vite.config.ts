@@ -48,8 +48,8 @@ function modulePreloadPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [
-    // Use automatic JSX runtime but ensure React is available
-    // Explicit React imports in main files help prevent TDZ errors
+    // Use automatic JSX runtime but ensure React wrapper is used
+    // React wrapper ensures React is initialized before any JSX is processed
     react({
       jsxRuntime: 'automatic',
       jsxImportSource: 'react',
@@ -101,21 +101,24 @@ export default defineConfig({
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      // Preserve entry signatures to ensure correct module ordering
-      // This helps prevent TDZ issues by maintaining import order
-      preserveEntrySignatures: 'allow-extension',
+      // Preserve entry signatures strictly to ensure correct module ordering
+      // This is critical to prevent TDZ errors by maintaining exact import order
+      preserveEntrySignatures: 'strict',
       output: {
+        // Prevent inlining dynamic imports to maintain chunk structure
+        inlineDynamicImports: false,
         manualChunks: (id) => {
-          // Don't separate React from main chunk to avoid TDZ errors
-          // React, React-DOM, Scheduler, and React Router should stay in main chunk
-          // This ensures React is loaded before any code tries to use it
+          // Create separate React vendor chunk to ensure React loads first
+          // This prevents TDZ errors by loading React before any application code
           if (
             id.includes('node_modules/react') || 
             id.includes('node_modules/react-dom') || 
             id.includes('node_modules/react-router') ||
-            id.includes('node_modules/scheduler')
+            id.includes('node_modules/scheduler') ||
+            // Include react-init wrapper in React vendor chunk
+            id.includes('src/react-init')
           ) {
-            return undefined  // Leave in main chunk
+            return 'react-vendor'  // Separate React into its own chunk
           }
           
           // UI vendor chunk (Radix UI components)

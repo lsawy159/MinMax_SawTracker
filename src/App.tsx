@@ -1,7 +1,7 @@
-// Ensure React is imported first to avoid TDZ errors
-import React from 'react'
+// Import React wrapper to ensure React is initialized before any JSX is processed
+// This prevents TDZ (Temporal Dead Zone) errors in production builds
+import React, { ReactNode } from './react-init'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
 import './App.css'
