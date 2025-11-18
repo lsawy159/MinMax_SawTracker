@@ -48,7 +48,12 @@ function modulePreloadPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [
-    react(), 
+    // Use automatic JSX runtime but ensure React is available
+    // Explicit React imports in main files help prevent TDZ errors
+    react({
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
+    }), 
     sourceIdentifierPlugin({
       enabled: !isProd,
       attributePrefix: 'data-matrix',

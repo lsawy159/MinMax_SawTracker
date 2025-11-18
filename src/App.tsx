@@ -1,3 +1,5 @@
+// Ensure React is imported first to avoid TDZ errors
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
