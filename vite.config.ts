@@ -78,18 +78,16 @@ export default defineConfig({
       // This prevents TDZ issues with lazy loading
       output: {
         manualChunks: (id) => {
-          // React vendor chunk - must be loaded first and together
-          // Critical: React, React-DOM, and Scheduler must be in the same chunk
-          // to avoid TDZ and 'unstable_now' errors
-          if (id.includes('node_modules/scheduler')) {
-            return 'react-vendor'
-          }
+          // Don't separate React from main chunk to avoid TDZ errors
+          // React, React-DOM, Scheduler, and React Router should stay in main chunk
+          // This ensures React is loaded before any code tries to use it
           if (
             id.includes('node_modules/react') || 
             id.includes('node_modules/react-dom') || 
-            id.includes('node_modules/react-router')
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/scheduler')
           ) {
-            return 'react-vendor'
+            return undefined  // Leave in main chunk
           }
           
           // UI vendor chunk (Radix UI components)

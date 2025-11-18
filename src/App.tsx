@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
 import './App.css'
@@ -39,7 +39,7 @@ function PageLoader() {
   )
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
 
   if (loading) {
@@ -57,7 +57,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function PublicRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
 
   if (loading) {
