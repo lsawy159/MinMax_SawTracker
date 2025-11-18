@@ -1,3 +1,5 @@
+// Ensure React is imported first to avoid TDZ errors
+import React from 'react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
