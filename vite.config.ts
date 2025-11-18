@@ -23,8 +23,10 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   build: {
-    target: 'esnext',
-    minify: 'esbuild',
+    target: 'es2022',
+    // Temporarily disable minification to test if TDZ error is caused by minification
+    // If error disappears, we'll switch to terser instead of esbuild
+    minify: false,
     cssCodeSplit: true,
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
@@ -111,7 +113,7 @@ export default defineConfig({
     // Note: scheduler is NOT included here as it's an internal React dependency
     // It will be loaded automatically with React and handled via dedupe and manualChunks
     esbuildOptions: {
-      target: 'esnext',
+      target: 'es2022',
     },
   },
 })
