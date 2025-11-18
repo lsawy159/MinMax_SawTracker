@@ -1,9 +1,51 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig, Plugin } from "vite"
 import sourceIdentifierPlugin from 'vite-plugin-source-identifier'
 
 const isProd = process.env.BUILD_MODE === 'prod'
+
+// Plugin to add modulepreload links for react-vendor chunk
+// This ensures react-vendor is loaded before main chunk to avoid TDZ errors
+function modulePreloadPlugin(): Plugin {
+  return {
+    name: 'module-preload',
+    apply: 'build',
+    transformIndexHtml(html: string, ctx?: { bundle?: Record<string, { type?: string; name?: string; fileName?: string }> }) {
+      if (!ctx?.bundle) return html
+      
+      // Find react-vendor chunk
+      const reactVendorChunk = Object.values(ctx.bundle).find(
+        (chunk): chunk is { type: string; name: string; fileName: string } => 
+          chunk.type === 'chunk' && chunk.name === 'react-vendor'
+      )
+      
+      if (!reactVendorChunk?.fileName) return html
+      
+      const reactVendorPath = reactVendorChunk.fileName
+      const scriptTagIndex = html.indexOf('<script type="module"')
+      
+      if (scriptTagIndex === -1) return html
+      
+      // Check if react-vendor modulepreload already exists before script tag
+      const beforeScript = html.slice(0, scriptTagIndex)
+      if (beforeScript.includes(`href="/${reactVendorPath}"`)) {
+        // Already exists before script, no need to add
+        return html
+      }
+      
+      // Remove any existing react-vendor modulepreload links (after script tag)
+      const afterScript = html.slice(scriptTagIndex)
+      const linkPattern = new RegExp(`<link[^>]*href="/${reactVendorPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>\\s*`, 'g')
+      const cleanedAfterScript = afterScript.replace(linkPattern, '')
+      
+      // Add modulepreload link before script tag
+      const preloadLink = `  <link rel="modulepreload" href="/${reactVendorPath}" />\n`
+      return beforeScript + preloadLink + cleanedAfterScript
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(), 
@@ -11,7 +53,8 @@ export default defineConfig({
       enabled: !isProd,
       attributePrefix: 'data-matrix',
       includeProps: true,
-    })
+    }),
+    modulePreloadPlugin(),
   ],
   resolve: {
     alias: {
