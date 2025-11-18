@@ -67,7 +67,8 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    // Use terser instead of esbuild to avoid TDZ issues with minification
+    // Use terser with optimized settings to avoid TDZ errors
+    // Disabled reduce_vars and reduce_funcs to prevent variable reduction that causes TDZ
     minify: 'terser',
     terserOptions: {
       keep_classnames: true,
@@ -75,6 +76,17 @@ export default defineConfig({
       compress: {
         drop_console: false,
         drop_debugger: true,
+        // Disable optimizations that cause TDZ errors
+        reduce_vars: false,  // Important: prevents variable reduction that causes TDZ
+        reduce_funcs: false, // Prevents function reduction
+        collapse_vars: false, // Prevents variable collapsing
+        inline: false, // Prevents code inlining
+      },
+      mangle: {
+        // Disable aggressive mangling to avoid TDZ
+        keep_classnames: true,
+        keep_fnames: true,
+        reserved: ['React', 'ReactDOM', 'a', 'b', 'c', 'd', 'e', 'f'], // Reserve common minified names
       },
       format: {
         comments: false,
@@ -84,8 +96,9 @@ export default defineConfig({
     sourcemap: !isProd,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-      // Remove preserveEntrySignatures to let Vite handle ordering automatically
-      // This prevents TDZ issues with lazy loading
+      // Preserve entry signatures to ensure correct module ordering
+      // This helps prevent TDZ issues by maintaining import order
+      preserveEntrySignatures: 'allow-extension',
       output: {
         manualChunks: (id) => {
           // Don't separate React from main chunk to avoid TDZ errors
