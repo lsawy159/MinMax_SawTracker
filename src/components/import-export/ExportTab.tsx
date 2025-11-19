@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../../react-init'
+import { useState, useEffect } from 'react'
 import { supabase, Employee, Company } from '../../lib/supabase'
 import { FileDown, CheckSquare, Square, Filter } from 'lucide-react'
 import { toast } from 'sonner'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../../react-init'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, Notification } from '../../lib/supabase'
 import { Bell, X, AlertTriangle, Calendar, Clock, CheckCircle2 } from 'lucide-react'

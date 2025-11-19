@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../../react-init'
+import { useState, useEffect } from 'react'
 import { supabase, Company } from '../../lib/supabase'
 import { X, Building2 } from 'lucide-react'
 import { toast } from 'sonner'

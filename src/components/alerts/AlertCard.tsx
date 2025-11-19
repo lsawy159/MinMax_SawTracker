@@ -1,4 +1,4 @@
-import React from '../../react-init'
+import React from 'react'
 import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw, Zap, Home, Eye } from 'lucide-react'
 
 export interface Alert {

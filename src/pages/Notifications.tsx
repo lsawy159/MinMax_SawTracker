@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../react-init'
+import { useState, useEffect } from 'react'
 import { supabase, Notification } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import { 

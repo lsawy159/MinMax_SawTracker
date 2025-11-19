@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from '../react-init' // [FIX] Added useCallback
+import { useState, useEffect, useCallback } from 'react' // [FIX] Added useCallback
 import Layout from '../components/layout/Layout' // [FIX] Changed path from alias to relative
 import { Shield, Database, Key, Users, Activity, Settings, Download, Upload, Trash2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase' // [FIX] Changed path from alias to relative

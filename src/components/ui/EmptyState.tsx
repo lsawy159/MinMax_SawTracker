@@ -1,4 +1,4 @@
-import { ReactNode } from '../../react-init'
+import { ReactNode } from 'react'
 import { Plus } from 'lucide-react'
 
 interface EmptyStateProps {

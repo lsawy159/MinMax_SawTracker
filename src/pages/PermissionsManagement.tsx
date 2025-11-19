@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../react-init'
+import { useState, useEffect } from 'react'
 import Layout from '@/components/layout/Layout'
 import { Shield, Users, Key, Plus, Edit, Trash2, Save, X, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'

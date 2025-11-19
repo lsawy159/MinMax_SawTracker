@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from '../react-init'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase, Employee, Company } from '../lib/supabase'
 import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell } from 'lucide-react'
 import Layout from '../components/layout/Layout'

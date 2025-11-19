@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../../react-init'
+import { useState, useEffect } from 'react'
 import { Employee, Company, CustomField, supabase } from '../../lib/supabase'
 import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, Edit2, RotateCcw } from 'lucide-react'
 import { differenceInDays, format } from 'date-fns'

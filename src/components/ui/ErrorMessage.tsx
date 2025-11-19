@@ -1,5 +1,5 @@
 import { AlertTriangle, RefreshCw, XCircle } from 'lucide-react'
-import { ReactNode } from '../../react-init'
+import { ReactNode } from 'react'
 
 interface ErrorMessageProps {
   title?: string

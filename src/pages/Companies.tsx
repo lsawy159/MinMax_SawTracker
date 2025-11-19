@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from '../react-init' // [FIX] تم إضافة useCallback
+import { useEffect, useState, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import { supabase, Company } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import CompanyModal from '../components/companies/CompanyModal'

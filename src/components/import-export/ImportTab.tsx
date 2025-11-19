@@ -1,4 +1,4 @@
-import { useState } from '../../react-init'
+import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { FileUp, AlertCircle, CheckCircle, XCircle, Upload } from 'lucide-react'
 import { toast } from 'sonner'

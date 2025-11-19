@@ -1,4 +1,4 @@
-import { useState, useEffect } from '../../react-init'
+import { useState, useEffect } from 'react'
 import { supabase, CustomField } from '../../lib/supabase'
 import { Plus, Edit2, Trash2, Save, X, AlertCircle, Check } from 'lucide-react'
 import { toast } from 'sonner'

@@ -1,4 +1,4 @@
-import React from '../../react-init'
+import React from 'react'
 import { 
   AlertTriangle, 
   Calendar, 
