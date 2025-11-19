@@ -10,13 +10,11 @@ export default defineConfig({
   plugins: [
     react({
       jsxRuntime: 'automatic',
-      jsxImportSource: 'react-init',
     }),
   ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      'react-init': path.resolve(__dirname, 'src/react-init'),
     },
   },
   test: {

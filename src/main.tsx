@@ -1,11 +1,25 @@
-import './react-init'
-// Import React wrapper first to ensure React is initialized before any other code
-// This prevents TDZ (Temporal Dead Zone) errors in production builds
+// Import React and ReactDOM first to ensure they are initialized
 import React, { StrictMode } from 'react'
+import ReactDOM from 'react-dom/client'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'
 import App from './App.tsx'
+
+// Validate that React is loaded correctly
+// This ensures React is initialized before any other code runs
+if (!React) {
+  throw new Error('React failed to initialize - React is undefined')
+}
+
+if (!ReactDOM) {
+  throw new Error('ReactDOM failed to initialize - ReactDOM is undefined')
+}
+
+// Validate React version if needed
+if (typeof React.createElement !== 'function') {
+  throw new Error('React.createElement is not a function - React may not be initialized correctly')
+}
 
 // Global error handlers to catch all errors
 // This helps debug production build issues

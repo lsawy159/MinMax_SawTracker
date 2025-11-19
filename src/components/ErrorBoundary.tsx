@@ -1,5 +1,4 @@
-// Import React from react-init wrapper to ensure consistent React instance
-// This prevents TDZ (Temporal Dead Zone) errors in production builds
+// Import React directly to ensure consistent React instance
 import React, { type ErrorInfo } from 'react';
 
 const serializeError = (error: any) => {
