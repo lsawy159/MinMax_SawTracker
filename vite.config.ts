@@ -50,9 +50,10 @@ export default defineConfig({
   plugins: [
     // Use automatic JSX runtime but ensure React wrapper is used
     // React wrapper ensures React is initialized before any JSX is processed
+    // jsxImportSource points to react-init to ensure JSX runtime functions are in same chunk as React
     react({
       jsxRuntime: 'automatic',
-      jsxImportSource: 'react',
+      jsxImportSource: 'react-init',
     }), 
     sourceIdentifierPlugin({
       enabled: !isProd,
@@ -64,6 +65,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react-init": path.resolve(__dirname, "./src/react-init"),
     },
     // Ensure single instance of React to avoid TDZ issues
     // Note: scheduler is NOT in dedupe as it's an internal React dependency
@@ -116,7 +118,9 @@ export default defineConfig({
             id.includes('node_modules/react-router') ||
             id.includes('node_modules/scheduler') ||
             // Include react-init wrapper in React vendor chunk
-            id.includes('src/react-init')
+            id.includes('src/react-init') ||
+            // Include ErrorBoundary in React vendor chunk to ensure it loads with React
+            id.includes('src/components/ErrorBoundary')
           ) {
             return 'react-vendor'  // Separate React into its own chunk
           }

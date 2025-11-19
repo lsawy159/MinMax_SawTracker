@@ -1,4 +1,6 @@
-import React from 'react';
+// Import React from react-init wrapper to ensure consistent React instance
+// This prevents TDZ (Temporal Dead Zone) errors in production builds
+import React, { type ErrorInfo } from '../react-init';
 
 const serializeError = (error: any) => {
   if (error instanceof Error) {
@@ -10,7 +12,7 @@ const serializeError = (error: any) => {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: any;
-  errorInfo: React.ErrorInfo | null;
+  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends React.Component<
@@ -26,7 +28,7 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true, error, errorInfo: null };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console for debugging
     console.error('ErrorBoundary caught an error:', error);
     console.error('Error Info:', errorInfo);

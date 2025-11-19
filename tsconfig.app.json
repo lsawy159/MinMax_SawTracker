@@ -15,6 +15,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "react-init/jsx-runtime": [
+        "./src/react-init/jsx-runtime"
+      ],
+      "react-init/jsx-dev-runtime": [
+        "./src/react-init/jsx-dev-runtime"
       ]
     },
     /* Bundler mode */
@@ -24,6 +30,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "react-init",
     /* Linting */
     "strict": false,
     "noImplicitAny": false,

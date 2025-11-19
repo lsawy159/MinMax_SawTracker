@@ -32,6 +32,9 @@ export { ReactDOM }
 export default React
 
 // Also export common React utilities
-export { StrictMode, Fragment, useState, useEffect, useContext, useRef, useCallback, useMemo, useReducer } from 'react'
-export type { ReactNode, FC, ComponentType } from 'react'
+export { StrictMode, Fragment, useState, useEffect, useContext, useRef, useCallback, useMemo, useReducer, Component } from 'react'
+export type { ReactNode, FC, ComponentType, ErrorInfo } from 'react'
+
+// Note: JSX Runtime functions (jsx, jsxs) are exported from './react-init/jsx-runtime'
+// This separate file is required for TypeScript's jsxImportSource resolution
 
