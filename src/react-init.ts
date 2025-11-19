@@ -31,9 +31,9 @@ if (typeof React.createElement !== 'function') {
 export { ReactDOM }
 export default React
 
-// Also export common React utilities
-export { StrictMode, Fragment, useState, useEffect, useContext, useRef, useCallback, useMemo, useReducer, Component } from 'react'
-export type { ReactNode, FC, ComponentType, ErrorInfo } from 'react'
+// Export everything from React to act as a complete proxy
+// This ensures all React exports (createContext, useContext, etc.) are available
+export * from 'react'
 
 // Note: JSX Runtime functions (jsx, jsxs) are exported from './react-init/jsx-runtime'
 // This separate file is required for TypeScript's jsxImportSource resolution

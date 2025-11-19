@@ -3,7 +3,7 @@ import { supabase, User } from '../lib/supabase'
 import { Session, AuthError } from '@supabase/supabase-js'
 
 // واجهة موسعة للمصادقة
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
@@ -16,7 +16,7 @@ interface AuthContextType {
   retryLogin: () => Promise<void>
 }
 
-// إنشاء Context
+// إنشاء Context مع نوع صريح
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // AuthProvider متقدم
@@ -509,7 +509,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 // Hook مخصص لاستخدام AuthContext
 // eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error('useAuth يجب أن يُستخدم داخل AuthProvider')
