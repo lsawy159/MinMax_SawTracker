@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from '../../react-init'
 import { Search, X, Clock, Star, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'

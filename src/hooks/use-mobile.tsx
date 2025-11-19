@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "../react-init"
 
 const MOBILE_BREAKPOINT = 768
 

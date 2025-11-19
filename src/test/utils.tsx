@@ -1,4 +1,4 @@
-import { ReactElement, ReactNode } from 'react'
+import { ReactElement, ReactNode } from '../react-init'
 import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '../contexts/AuthContext'

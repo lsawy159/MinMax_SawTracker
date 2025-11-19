@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from '../react-init'
 import { supabase } from '@/lib/supabase' // [PATH FIX] Reverted to alias path
 import Layout from '@/components/layout/Layout' // [PATH FIX] Reverted to alias path
 import { Settings as SettingsIcon, Save, Building2, Users, AlertCircle, Globe, Plus, Trash2, Edit2, Shield } from 'lucide-react'

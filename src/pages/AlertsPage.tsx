@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from '../react-init'
 import { supabase, Employee, Company } from '../lib/supabase'
 import { AlertCard, Alert } from '../components/alerts/AlertCard'
 import { EmployeeAlertCard, EmployeeAlert } from '../components/alerts/EmployeeAlertCard'

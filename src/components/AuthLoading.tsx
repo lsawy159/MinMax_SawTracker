@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from '../react-init'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 

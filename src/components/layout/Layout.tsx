@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode } from '../../react-init'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { LayoutDashboard, Users, Building2, UserCog, Settings, LogOut, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Key, Cog, Bell, AlertTriangle } from 'lucide-react'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from '../react-init'
 import { supabase, ActivityLog } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import { useAuth } from '../contexts/AuthContext'

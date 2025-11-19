@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from '../react-init'
 import { supabase, User } from '../lib/supabase'
 import Layout from '../components/layout/Layout'
 import { 

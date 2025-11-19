@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from '../react-init'
 import Layout from '../components/layout/Layout'
 import { EnhancedAlertsSection } from '../components/dashboard/EnhancedAlertsSection'
 import { EnhancedAlertCard } from '../components/alerts/EnhancedAlertCard'

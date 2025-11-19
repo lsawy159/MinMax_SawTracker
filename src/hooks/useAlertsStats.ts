@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from '../react-init'
 import { supabase, Company, Employee } from '../lib/supabase'
 import { generateCompanyAlertsSync } from '../utils/alerts'
 import { generateEmployeeAlerts, enrichEmployeeAlertsWithCompanyData } from '../utils/employeeAlerts'

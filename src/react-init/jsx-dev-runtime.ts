@@ -6,6 +6,9 @@
  * This prevents TDZ errors by ensuring JSX runtime functions are available before any JSX is processed.
  */
 
+// Import react-init first to ensure React is initialized before any exports
+import '../react-init'
+
 // Re-export JSX DEV runtime functions from react/jsx-dev-runtime (development only)
 // This ensures they are bundled in the same chunk as React (react-vendor)
 export { jsxDEV } from 'react/jsx-dev-runtime'

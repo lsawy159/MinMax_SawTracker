@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from '../react-init'
 import Layout from '../components/layout/Layout'
 import { BarChart3, RefreshCw, Download, FileText, AlertTriangle, Calendar, TrendingUp } from 'lucide-react'
 import { supabase, Employee as EmployeeType, Company as CompanyType } from '../lib/supabase'

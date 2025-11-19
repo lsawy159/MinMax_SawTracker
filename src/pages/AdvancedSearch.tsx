@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
+import { useState, useEffect, useCallback } from '../react-init' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
 import { Search, Filter, X, Save, Download, Star, ChevronDown, ChevronUp, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase, Company as CompanyType, Employee as EmployeeType } from '@/lib/supabase'
