@@ -31,9 +31,35 @@ if (typeof React.createElement !== 'function') {
 export { ReactDOM }
 export default React
 
-// Export everything from React to act as a complete proxy
-// This ensures all React exports (createContext, useContext, etc.) are available
-export * from 'react'
+// Manually export React members to avoid TS2498 error with 'export *'
+// This ensures all React exports are available while maintaining initialization order
+
+// Hooks
+export const useState = React.useState
+export const useEffect = React.useEffect
+export const useContext = React.useContext
+export const createContext = React.createContext
+export const useMemo = React.useMemo
+export const useCallback = React.useCallback
+export const useRef = React.useRef
+export const useReducer = React.useReducer
+
+// Components and utilities
+export const Fragment = React.Fragment
+export const StrictMode = React.StrictMode
+export const Component = React.Component
+
+// Types (re-exporting types directly is allowed)
+export type { 
+  ReactNode, 
+  FC, 
+  ChangeEvent, 
+  FormEvent, 
+  ComponentType, 
+  PropsWithChildren,
+  ReactElement,
+  ErrorInfo
+} from 'react'
 
 // Note: JSX Runtime functions (jsx, jsxs) are exported from './react-init/jsx-runtime'
 // This separate file is required for TypeScript's jsxImportSource resolution
