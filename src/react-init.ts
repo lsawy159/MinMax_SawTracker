@@ -13,6 +13,22 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
+// Import React hooks and utilities directly as named imports
+// This prevents TDZ errors by resolving imports at bundling time, not runtime
+import {
+  useState as _useState,
+  useEffect as _useEffect,
+  useContext as _useContext,
+  createContext as _createContext,
+  useMemo as _useMemo,
+  useCallback as _useCallback,
+  useRef as _useRef,
+  useReducer as _useReducer,
+  Fragment as _Fragment,
+  StrictMode as _StrictMode,
+  Component as _Component,
+} from 'react'
+
 // Validate that React is loaded correctly
 if (!React) {
   throw new Error('React failed to initialize - React is undefined')
@@ -31,23 +47,24 @@ if (typeof React.createElement !== 'function') {
 export { ReactDOM }
 export default React
 
-// Manually export React members to avoid TS2498 error with 'export *'
-// This ensures all React exports are available while maintaining initialization order
+// Re-export React members using direct named imports (Runtime Safe)
+// This ensures all React exports are available while preventing TDZ errors
+// Named imports are resolved at bundling time, not at runtime evaluation
 
 // Hooks
-export const useState = React.useState
-export const useEffect = React.useEffect
-export const useContext = React.useContext
-export const createContext = React.createContext
-export const useMemo = React.useMemo
-export const useCallback = React.useCallback
-export const useRef = React.useRef
-export const useReducer = React.useReducer
+export const useState = _useState
+export const useEffect = _useEffect
+export const useContext = _useContext
+export const createContext = _createContext
+export const useMemo = _useMemo
+export const useCallback = _useCallback
+export const useRef = _useRef
+export const useReducer = _useReducer
 
 // Components and utilities
-export const Fragment = React.Fragment
-export const StrictMode = React.StrictMode
-export const Component = React.Component
+export const Fragment = _Fragment
+export const StrictMode = _StrictMode
+export const Component = _Component
 
 // Types (re-exporting types directly is allowed)
 export type { 
