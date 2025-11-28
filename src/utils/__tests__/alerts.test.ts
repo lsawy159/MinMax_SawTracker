@@ -113,8 +113,8 @@ describe('alerts utils', () => {
   })
 
   describe('generateCompanyAlertsSync', () => {
-    it('should generate alerts for companies with expiring commercial registration', () => {
-      const alerts = generateCompanyAlertsSync(mockCompanies)
+    it('should generate alerts for companies with expiring commercial registration', async () => {
+      const alerts = await generateCompanyAlertsSync(mockCompanies)
       
       expect(alerts).toBeDefined()
       expect(Array.isArray(alerts)).toBe(true)
@@ -123,8 +123,8 @@ describe('alerts utils', () => {
       expect(alerts.length).toBeGreaterThan(0)
     })
 
-    it('should sort alerts by priority and days remaining', () => {
-      const alerts = generateCompanyAlertsSync(mockCompanies)
+    it('should sort alerts by priority and days remaining', async () => {
+      const alerts = await generateCompanyAlertsSync(mockCompanies)
       
       // التنبيهات العاجلة يجب أن تكون أولاً
       const priorities = alerts.map(a => a.priority)
@@ -136,8 +136,8 @@ describe('alerts utils', () => {
       }
     })
 
-    it('should set correct priority based on days remaining', () => {
-      const alerts = generateCompanyAlertsSync(mockCompanies)
+    it('should set correct priority based on days remaining', async () => {
+      const alerts = await generateCompanyAlertsSync(mockCompanies)
       
       alerts.forEach(alert => {
         if (alert.days_remaining !== undefined) {
@@ -150,7 +150,7 @@ describe('alerts utils', () => {
       })
     })
 
-    it('should not generate alerts for companies without expiry dates', () => {
+    it('should not generate alerts for companies without expiry dates', async () => {
       const companiesWithoutDates: Company[] = [
         {
           id: '5',
@@ -160,12 +160,12 @@ describe('alerts utils', () => {
         },
       ]
       
-      const alerts = generateCompanyAlertsSync(companiesWithoutDates)
+      const alerts = await generateCompanyAlertsSync(companiesWithoutDates)
       expect(alerts.length).toBe(0)
     })
 
-    it('should include required fields in each alert', () => {
-      const alerts = generateCompanyAlertsSync(mockCompanies)
+    it('should include required fields in each alert', async () => {
+      const alerts = await generateCompanyAlertsSync(mockCompanies)
       
       alerts.forEach(alert => {
         expect(alert).toHaveProperty('id')
@@ -347,12 +347,12 @@ describe('alerts utils', () => {
   })
 
   describe('edge cases', () => {
-    it('should handle empty companies array', () => {
-      const alerts = generateCompanyAlertsSync([])
+    it('should handle empty companies array', async () => {
+      const alerts = await generateCompanyAlertsSync([])
       expect(alerts).toEqual([])
     })
 
-    it('should handle companies with invalid dates', () => {
+    it('should handle companies with invalid dates', async () => {
       const invalidCompanies: Company[] = [
         {
           id: '1',
@@ -363,13 +363,13 @@ describe('alerts utils', () => {
         },
       ]
       
-      const alerts = generateCompanyAlertsSync(invalidCompanies)
+      const alerts = await generateCompanyAlertsSync(invalidCompanies)
       
       // يجب ألا يسبب خطأ، لكن قد لا ينتج تنبيهات
       expect(Array.isArray(alerts)).toBe(true)
     })
 
-    it('should handle very large days_remaining values', () => {
+    it('should handle very large days_remaining values', async () => {
       const futureDate = new Date()
       futureDate.setFullYear(futureDate.getFullYear() + 10)
       
@@ -383,7 +383,7 @@ describe('alerts utils', () => {
         },
       ]
       
-      const alerts = generateCompanyAlertsSync(farFutureCompanies)
+      const alerts = await generateCompanyAlertsSync(farFutureCompanies)
       
       // لا يجب أن تنشئ تنبيهات للتواريخ البعيدة جداً
       expect(alerts.length).toBe(0)

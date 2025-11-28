@@ -266,7 +266,7 @@ export default function Reports() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab])
+  }, [activeTab, categorizeExpiry, updateTabStatistics])
 
   // Calculate statistics for active tab
   const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
