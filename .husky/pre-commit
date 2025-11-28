@@ -1,0 +1,8 @@
+# Run linting
+pnpm lint
+
+# Run type check
+pnpm exec tsc --noEmit
+
+# Run tests
+pnpm test --run

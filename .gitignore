@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build, Reports, and SSR
+dist
+dist-ssr
+coverage/  # <-- ✨ هذا هو الإضافة الرئيسية لمنع أخطاء LINT
+.vercel/
+
+# Environment files (Secrets)
+.env       # <-- ✨ إضافة هامة جداً للأمان
+.env.local
+.env.*.local
+# *.local  # (تم استبداله بالأسطر الأكثر تحديداً في الأعلى)
+
+# Files containing sensitive information (API keys, passwords, tokens)
+replacements.txt
+*replacements*
+*secret*
+*password*.txt
+*key*.txt
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Documentation files (keep locally, exclude from git)
+*.md
+!.github/**/*.md
