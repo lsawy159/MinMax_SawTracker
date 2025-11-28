@@ -6,17 +6,17 @@ import { supabase } from '@/lib/supabase'
  */
 export const DEFAULT_STATUS_THRESHOLDS = {
   commercial_reg_critical_days: 7,
-  commercial_reg_urgent_days: 30,
-  commercial_reg_medium_days: 45,
+  commercial_reg_urgent_days: 30, // kept for backward compatibility, not used in logic
+  commercial_reg_medium_days: 30,
   social_insurance_critical_days: 7,
-  social_insurance_urgent_days: 30,
-  social_insurance_medium_days: 45,
+  social_insurance_urgent_days: 30, // kept for backward compatibility, not used in logic
+  social_insurance_medium_days: 30,
   power_subscription_critical_days: 7,
-  power_subscription_urgent_days: 30,
-  power_subscription_medium_days: 45,
+  power_subscription_urgent_days: 30, // kept for backward compatibility, not used in logic
+  power_subscription_medium_days: 30,
   moqeem_subscription_critical_days: 7,
-  moqeem_subscription_urgent_days: 30,
-  moqeem_subscription_medium_days: 45
+  moqeem_subscription_urgent_days: 30, // kept for backward compatibility, not used in logic
+  moqeem_subscription_medium_days: 30
 }
 
 // Cache for status thresholds
@@ -142,7 +142,7 @@ export const calculateCommercialRegistrationStatus = (
         textColor: 'text-red-700',
         borderColor: 'border-red-200'
       },
-      description: `انتهت صلاحية السجل التجاري منذ ${expiredDays} يوم`,
+      description: `انتهى السجل التجاري منذ ${expiredDays} يوم`,
       priority: 'critical'
     }
   } else if (daysRemaining <= criticalDays) {
@@ -164,21 +164,8 @@ export const calculateCommercialRegistrationStatus = (
       description,
       priority: 'critical'
     }
-  } else if (daysRemaining <= urgentDays) {
-    // عاجل - من criticalDays+1 إلى urgentDays
-    return {
-      status: 'عاجل',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-orange-50',
-        textColor: 'text-orange-700',
-        borderColor: 'border-orange-200'
-      },
-      description: `ينتهي السجل التجاري خلال ${daysRemaining} يوم - متابعة عاجلة مطلوبة`,
-      priority: 'high'
-    }
   } else if (daysRemaining <= mediumDays) {
-    // متوسط - من urgentDays+1 إلى mediumDays
+    // متوسط - من criticalDays+1 إلى mediumDays
     return {
       status: 'متوسط',
       daysRemaining,
@@ -258,7 +245,7 @@ export const calculateSocialInsuranceStatus = (
         textColor: 'text-red-700',
         borderColor: 'border-red-200'
       },
-      description: `انتهت التأمينات الاجتماعية منذ ${expiredDays} يوم`,
+      description: `انتهى التأمينات الاجتماعية منذ ${expiredDays} يوم`,
       priority: 'critical'
     }
   } else if (daysRemaining <= criticalDays) {
@@ -280,21 +267,8 @@ export const calculateSocialInsuranceStatus = (
       description,
       priority: 'critical'
     }
-  } else if (daysRemaining <= urgentDays) {
-    // عاجل - من criticalDays+1 إلى urgentDays
-    return {
-      status: 'عاجل',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-orange-50',
-        textColor: 'text-orange-700',
-        borderColor: 'border-orange-200'
-      },
-      description: `تنتهي التأمينات الاجتماعية خلال ${daysRemaining} يوم - متابعة عاجلة مطلوبة`,
-      priority: 'high'
-    }
   } else if (daysRemaining <= mediumDays) {
-    // متوسط - من urgentDays+1 إلى mediumDays
+    // متوسط - من criticalDays+1 إلى mediumDays
     return {
       status: 'متوسط',
       daysRemaining,
@@ -542,18 +516,6 @@ export const calculatePowerSubscriptionStatus = (
       description,
       priority: 'critical'
     }
-  } else if (daysRemaining <= urgentDays) {
-    return {
-      status: 'عاجل',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-orange-50',
-        textColor: 'text-orange-700',
-        borderColor: 'border-orange-200'
-      },
-      description: `ينتهي اشتراك قوى خلال ${daysRemaining} يوم - متابعة عاجلة مطلوبة`,
-      priority: 'high'
-    }
   } else if (daysRemaining <= mediumDays) {
     return {
       status: 'متوسط',
@@ -651,18 +613,6 @@ export const calculateMoqeemSubscriptionStatus = (
       },
       description,
       priority: 'critical'
-    }
-  } else if (daysRemaining <= urgentDays) {
-    return {
-      status: 'عاجل',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-orange-50',
-        textColor: 'text-orange-700',
-        borderColor: 'border-orange-200'
-      },
-      description: `ينتهي اشتراك مقيم خلال ${daysRemaining} يوم - متابعة عاجلة مطلوبة`,
-      priority: 'high'
     }
   } else if (daysRemaining <= mediumDays) {
     return {

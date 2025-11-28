@@ -444,7 +444,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     // ملاحظة: لا نقم بتعيين setLoading(false) عند النجاح، لأننا ننتظر fetchUserData
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /**
