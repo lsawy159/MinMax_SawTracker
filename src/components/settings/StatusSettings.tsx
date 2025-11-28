@@ -44,6 +44,7 @@ export default function StatusSettings() {
 
   useEffect(() => {
     loadSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadSettings = async () => {

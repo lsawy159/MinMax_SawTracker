@@ -285,8 +285,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loadingTimeout) {
         clearTimeout(loadingTimeout)
       }
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current)
+      const timeoutId = fetchTimeoutRef.current
+      if (timeoutId) {
+        clearTimeout(timeoutId)
       }
     }
   }, [createUserSession]) // إضافة createUserSession في dependencies
@@ -443,7 +444,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     // ملاحظة: لا نقم بتعيين setLoading(false) عند النجاح، لأننا ننتظر fetchUserData
-  }, [createUserSession])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /**
    * إنهاء جميع الجلسات النشطة للمستخدم عند تسجيل الخروج
