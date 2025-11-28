@@ -1,14 +1,28 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// التأكد من أن المتغيرات موجودة قبل إنشاء العميل
+// إنشاء Supabase client
+// في بيئة الاختبارات، نستخدم mock values إذا لم تكن المتغيرات موجودة
+let supabase: SupabaseClient
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL and Anon Key are required. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.")
+  // في بيئة الاختبارات، نعيد mock client بدلاً من throw error
+  if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
+    // إنشاء mock client للاختبارات
+    supabase = createClient(
+      'https://mock.supabase.co',
+      'mock-anon-key'
+    ) as unknown as SupabaseClient
+  } else {
+    throw new Error("Supabase URL and Anon Key are required. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.")
+  }
+} else {
+  supabase = createClient(supabaseUrl, supabaseAnonKey)
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export { supabase }
 
 // Types
 export interface Company {
