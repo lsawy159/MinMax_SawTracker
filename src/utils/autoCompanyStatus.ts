@@ -342,9 +342,6 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
       case 'حرج':
         stats.critical++
         break
-      case 'عاجل':
-        stats.urgent++
-        break
       case 'متوسط':
         stats.medium++
         break
@@ -416,9 +413,6 @@ export const calculateSocialInsuranceStats = (companies: Array<{ social_insuranc
         break
       case 'حرج':
         stats.critical++
-        break
-      case 'عاجل':
-        stats.urgent++
         break
       case 'متوسط':
         stats.medium++
@@ -687,9 +681,6 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
       case 'حرج':
         stats.critical++
         break
-      case 'عاجل':
-        stats.urgent++
-        break
       case 'متوسط':
         stats.medium++
         break
@@ -760,9 +751,6 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
         break
       case 'حرج':
         stats.critical++
-        break
-      case 'عاجل':
-        stats.urgent++
         break
       case 'متوسط':
         stats.medium++
