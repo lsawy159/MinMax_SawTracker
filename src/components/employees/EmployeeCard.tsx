@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Employee, Company, CustomField, supabase } from '@/lib/supabase'
-import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, Edit2, RotateCcw, Search, ChevronDown } from 'lucide-react'
+import { Employee, Company, Project, CustomField, supabase } from '@/lib/supabase'
+import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, Edit2, RotateCcw, Search, ChevronDown, FolderKanban } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -16,9 +16,11 @@ interface EmployeeCardProps {
 export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: EmployeeCardProps) {
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [formData, setFormData] = useState<any>({
     ...employee,
     company_id: employee.company_id,
+    project_id: employee.project_id || employee.project?.id || null,
     additional_fields: employee.additional_fields || {},
     // التأمين الصحي للموظف
     health_insurance_expiry: employee.health_insurance_expiry || '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
@@ -33,17 +35,24 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
   const companyDropdownRef = useRef<HTMLDivElement>(null)
+  const [projectSearchQuery, setProjectSearchQuery] = useState('')
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
+  const projectDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadCustomFields()
     loadCompanies()
+    loadProjects()
   }, [])
 
-  // إغلاق القائمة عند النقر خارجها
+  // إغلاق القوائم عند النقر خارجها
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
         setIsCompanyDropdownOpen(false)
+      }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -67,6 +76,22 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.company_id, companies])
+
+  // تحديث نص البحث عند تغيير المشروع المختار
+  useEffect(() => {
+    if (formData.project_id && projects.length > 0) {
+      const selectedProject = projects.find(p => p.id === formData.project_id)
+      if (selectedProject) {
+        const displayText = selectedProject.name
+        if (projectSearchQuery !== displayText) {
+          setProjectSearchQuery(displayText)
+        }
+      }
+    } else if (!formData.project_id && projectSearchQuery) {
+      setProjectSearchQuery('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.project_id, projects])
 
   const loadCustomFields = async () => {
     try {
@@ -98,6 +123,21 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     }
   }
 
+  const loadProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'active')
+        .order('name')
+
+      if (error) throw error
+      setProjects(data || [])
+    } catch (error) {
+      console.error('Error loading projects:', error)
+    }
+  }
+
   // تصفية المؤسسات: البحث في الاسم أو الرقم الموحد
   const filteredCompanies = companies.filter(company => {
     if (companySearchQuery.trim()) {
@@ -105,6 +145,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       const nameMatch = company.name?.toLowerCase().includes(query)
       const unifiedNumberMatch = company.unified_number?.toString().includes(query)
       return nameMatch || unifiedNumberMatch
+    }
+    return true
+  })
+
+  // تصفية المشاريع: البحث في الاسم
+  const filteredProjects = projects.filter(project => {
+    if (projectSearchQuery.trim()) {
+      const query = projectSearchQuery.toLowerCase().trim()
+      return project.name?.toLowerCase().includes(query)
     }
     return true
   })
@@ -156,7 +205,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         nationality: formData.nationality,
         phone: formData.phone,
         passport_number: formData.passport_number,
-        project_name: formData.project_name,
+        project_id: formData.project_id || null,
         bank_account: formData.bank_account,
         birth_date: formData.birth_date,
         residence_number: Number(formData.residence_number),
@@ -191,7 +240,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       // الحقول التي يجب تتبعها
       const fieldsToTrack = [
         'name', 'profession', 'nationality', 'phone', 'passport_number',
-        'project_name', 'bank_account', 'birth_date', 'residence_number',
+        'project_id', 'bank_account', 'birth_date', 'residence_number',
         'joining_date', 'contract_expiry', 'hired_worker_contract_expiry', 'residence_expiry', 'residence_image_url', 'salary',
         'health_insurance_expiry', 'notes', 'company_id'  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
       ]
@@ -548,16 +597,89 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
               {/* 9. المشروع */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">المشروع</label>
-                <input
-                  type="text"
-                  value={formData.project_name || ''}
-                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4" />
+                  المشروع
+                </label>
+                <div className="relative" ref={projectDropdownRef}>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={projectSearchQuery}
+                      onChange={(e) => {
+                        setProjectSearchQuery(e.target.value)
+                        setIsProjectDropdownOpen(true)
+                      }}
+                      onFocus={() => {
+                        if (isEditMode) {
+                          setIsProjectDropdownOpen(true)
+                        }
+                      }}
+                      placeholder="ابحث عن مشروع..."
+                      disabled={!isEditMode}
+                      className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                        isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
+                      }`}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <Search className="w-5 h-5 text-gray-400" />
+                    </div>
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isProjectDropdownOpen && isEditMode && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, project_id: null })
+                          setProjectSearchQuery('')
+                          setIsProjectDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2.5 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
+                      >
+                        بدون مشروع
+                      </button>
+                      {filteredProjects.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                          {projectSearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مشاريع متاحة'}
+                        </div>
+                      ) : (
+                        filteredProjects.map(project => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, project_id: project.id })
+                              setProjectSearchQuery(project.name)
+                              setIsProjectDropdownOpen(false)
+                            }}
+                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{project.name}</span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                project.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {project.status === 'active' ? 'نشط' : project.status === 'inactive' ? 'متوقف' : 'مكتمل'}
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 10. الشركة أو المؤسسة */}

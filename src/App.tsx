@@ -11,6 +11,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Employees = lazy(() => import('./pages/Employees'))
 const Companies = lazy(() => import('./pages/Companies'))
+const Projects = lazy(() => import('./pages/Projects'))
 const Users = lazy(() => import('./pages/Users'))
 const Settings = lazy(() => import('./pages/Settings'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
@@ -110,6 +111,13 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <Companies />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/projects" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <Projects />
             </Suspense>
           </ProtectedRoute>
         } />

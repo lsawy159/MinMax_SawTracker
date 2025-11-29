@@ -9,6 +9,7 @@ import { saveAs } from 'file-saver'
 import { useAuth } from '@/contexts/AuthContext'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import CompanyModal from '@/components/companies/CompanyModal'
+import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 
 interface SavedSearch {
   id: string
@@ -105,6 +106,8 @@ export default function AdvancedSearch() {
   const [isEmployeeCardOpen, setIsEmployeeCardOpen] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<CompanyType | null>(null)
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
+  const [showCompanyDetailModal, setShowCompanyDetailModal] = useState(false)
+  const [selectedCompanyForDetail, setSelectedCompanyForDetail] = useState<CompanyType | null>(null)
 
   // Pagination calculations
   const totalEmployees = filteredEmployees.length
@@ -209,25 +212,44 @@ export default function AdvancedSearch() {
       filteredEmps = employeeResults.map(result => result.item)
     }
 
-    // Apply company search query using Fuse.js for fuzzy search
+    // Apply company search query
     if (companySearchQuery.trim()) {
-      // Create searchable data
-      const searchableCompanies = filteredComps.map(comp => ({
-        ...comp,
-        searchableText: [
-          comp.name,
-          comp.unified_number?.toString(),
-          comp.social_insurance_number
-        ].filter(Boolean).join(' ')
-      }))
+      const searchQuery = companySearchQuery.trim()
+      
+      // Check if the search query is a number (unified number or insurance number)
+      const isNumericSearch = /^\d+$/.test(searchQuery)
+      
+      if (isNumericSearch) {
+        // For numeric searches, use exact matching
+        // First, try exact match on unified_number
+        let exactMatches = filteredComps.filter(comp => 
+          comp.unified_number?.toString() === searchQuery
+        )
+        
+        // If no exact match on unified_number, try social_insurance_number
+        if (exactMatches.length === 0) {
+          exactMatches = filteredComps.filter(comp => 
+            comp.social_insurance_number?.toString() === searchQuery
+          )
+        }
+        
+        filteredComps = exactMatches
+      } else {
+        // For text searches (company names), use Fuse.js for fuzzy search
+        // Only search in name field, not in numbers
+        const searchableCompanies = filteredComps.map(comp => ({
+          ...comp,
+          searchableText: comp.name || ''
+        }))
 
-      const fuseCompanies = new Fuse(searchableCompanies, {
-        keys: ['name', 'unified_number', 'social_insurance_number', 'searchableText'],
-        threshold: 0.3,
-        includeScore: true
-      })
-      const companyResults = fuseCompanies.search(companySearchQuery)
-      filteredComps = companyResults.map(result => result.item)
+        const fuseCompanies = new Fuse(searchableCompanies, {
+          keys: ['name', 'searchableText'],
+          threshold: 0.3,
+          includeScore: true
+        })
+        const companyResults = fuseCompanies.search(searchQuery)
+        filteredComps = companyResults.map(result => result.item)
+      }
     }
 
     // Apply employee filters
@@ -948,8 +970,8 @@ export default function AdvancedSearch() {
 
   // Handle company click
   const handleCompanyClick = (company: CompanyType) => {
-    setSelectedCompany(company)
-    setIsCompanyModalOpen(true)
+    setSelectedCompanyForDetail(company)
+    setShowCompanyDetailModal(true)
   }
 
   // Handle close employee card
@@ -962,6 +984,26 @@ export default function AdvancedSearch() {
   const handleCloseCompanyModal = () => {
     setIsCompanyModalOpen(false)
     setSelectedCompany(null)
+  }
+
+  // Handle close company detail modal
+  const handleCloseCompanyDetailModal = () => {
+    setShowCompanyDetailModal(false)
+    setSelectedCompanyForDetail(null)
+  }
+
+  // Handle edit company from detail modal
+  const handleEditCompanyFromDetail = (company: CompanyType) => {
+    setShowCompanyDetailModal(false)
+    setSelectedCompany(company)
+    setIsCompanyModalOpen(true)
+  }
+
+  // Handle delete company from detail modal
+  const handleDeleteCompanyFromDetail = (company: CompanyType) => {
+    // يمكن إضافة confirmation dialog هنا لاحقاً
+    setShowCompanyDetailModal(false)
+    // يمكن تنفيذ حذف مباشر أو فتح modal تأكيد
   }
 
   // Handle employee update - reload data
@@ -1928,6 +1970,21 @@ export default function AdvancedSearch() {
           employee={selectedEmployee}
           onClose={handleCloseEmployeeCard}
           onUpdate={handleEmployeeUpdate}
+        />
+      )}
+
+      {/* Company Detail Modal */}
+      {showCompanyDetailModal && selectedCompanyForDetail && (
+        <CompanyDetailModal
+          company={{
+            ...selectedCompanyForDetail,
+            employee_count: companies.find(c => c.id === selectedCompanyForDetail.id)?.current_employees || 0,
+            available_slots: 0,
+            max_employees: selectedCompanyForDetail.max_employees || 4
+          }}
+          onClose={handleCloseCompanyDetailModal}
+          onEdit={handleEditCompanyFromDetail}
+          onDelete={handleDeleteCompanyFromDetail}
         />
       )}
 
