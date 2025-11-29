@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
-import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -26,7 +26,9 @@ export default function Employees() {
   const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('')  // تحديث: insuranceFilter → healthInsuranceFilter
   
   const [companies, setCompanies] = useState<string[]>([])
-  const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string }>>([])
+  const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string; unified_number?: number }>>([])
+  const [companySearchQuery, setCompanySearchQuery] = useState('')
+  const [isCompanyDropdownOpen, setCompanyDropdownOpen] = useState(false)
   const [nationalities, setNationalities] = useState<string[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
@@ -54,6 +56,7 @@ export default function Employees() {
   // Filter modal and sort states
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const companyDropdownRef = useRef<HTMLDivElement>(null)
   
   // Sort states
   const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
@@ -82,6 +85,46 @@ export default function Employees() {
   useEffect(() => {
     setSelectedEmployees(new Set())
   }, [searchTerm, residenceNumberSearch, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, residenceFilter, healthInsuranceFilter])  // تحديث: insuranceFilter → healthInsuranceFilter
+
+  // إغلاق القائمة عند النقر خارجها
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+        setCompanyDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // تحديث نص البحث عند تغيير الشركة المختارة
+  useEffect(() => {
+    if (companyFilter && companiesWithIds.length > 0) {
+      const selectedCompany = companiesWithIds.find(c => c.name === companyFilter)
+      if (selectedCompany) {
+        const displayText = selectedCompany.unified_number 
+          ? `${selectedCompany.name} (${selectedCompany.unified_number})`
+          : selectedCompany.name
+        if (companySearchQuery !== displayText) {
+          setCompanySearchQuery(displayText)
+        }
+      }
+    } else if (!companyFilter && companySearchQuery) {
+      setCompanySearchQuery('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyFilter, companiesWithIds])
+
+  // تصفية الشركات: البحث في الاسم أو الرقم الموحد
+  const filteredCompanies = companiesWithIds.filter(company => {
+    if (companySearchQuery.trim()) {
+      const query = companySearchQuery.toLowerCase().trim()
+      const nameMatch = company.name?.toLowerCase().includes(query)
+      const unifiedNumberMatch = company.unified_number?.toString().includes(query)
+      return nameMatch || unifiedNumberMatch
+    }
+    return true
+  })
 
   const handleUrlParams = () => {
     const params = new URLSearchParams(location.search)
@@ -142,14 +185,23 @@ export default function Employees() {
       const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
       const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
       
-      // بناء قائمة المؤسسات مع IDs
-      const companiesMap = new Map<string, string>()
+      // بناء قائمة المؤسسات مع IDs و unified_number
+      const companiesMap = new Map<string, { name: string; unified_number?: number }>()
       employeesData.forEach(emp => {
         if (emp.company?.id && emp.company?.name) {
-          companiesMap.set(emp.company.id, emp.company.name)
+          if (!companiesMap.has(emp.company.id)) {
+            companiesMap.set(emp.company.id, {
+              name: emp.company.name,
+              unified_number: emp.company.unified_number
+            })
+          }
         }
       })
-      const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, name]) => ({ id, name }))
+      const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, data]) => ({
+        id,
+        name: data.name,
+        unified_number: data.unified_number
+      }))
       setCompaniesWithIds(companiesWithIdsList.sort((a, b) => a.name.localeCompare(b.name)))
       
       // تحميل المشاريع من جدول projects
@@ -750,16 +802,72 @@ export default function Employees() {
                     {/* فلتر الشركة */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">الشركة</label>
-                      <select
-                        value={companyFilter}
-                        onChange={(e) => setCompanyFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">جميع الشركات</option>
-                        {companies.map(company => (
-                          <option key={company} value={company}>{company}</option>
-                        ))}
-                      </select>
+                      <div className="relative" ref={companyDropdownRef}>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={companySearchQuery}
+                            onChange={(e) => {
+                              setCompanySearchQuery(e.target.value)
+                              setCompanyDropdownOpen(true)
+                            }}
+                            onFocus={() => setCompanyDropdownOpen(true)}
+                            placeholder="ابحث بالاسم أو الرقم الموحد..."
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Search className="w-4 h-4 text-gray-400" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                        </div>
+                        
+                        {isCompanyDropdownOpen && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCompanyFilter('')
+                                setCompanySearchQuery('')
+                                setCompanyDropdownOpen(false)
+                              }}
+                              className="w-full px-3 py-2 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
+                            >
+                              جميع الشركات
+                            </button>
+                            {filteredCompanies.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                                {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
+                              </div>
+                            ) : (
+                              filteredCompanies.map(company => {
+                                const displayText = company.unified_number 
+                                  ? `${company.name} (${company.unified_number})`
+                                  : company.name
+                                return (
+                                  <button
+                                    key={company.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setCompanyFilter(company.name)
+                                      setCompanySearchQuery(displayText)
+                                      setCompanyDropdownOpen(false)
+                                    }}
+                                    className="w-full px-3 py-2 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                                  >
+                                    {displayText}
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* فلتر الجنسية */}
@@ -1129,15 +1237,24 @@ export default function Employees() {
                           className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
                           onClick={() => handleEmployeeClick(employee)}
                         >
-                          {employee.company?.name}
+                          {(() => {
+                            const companyName = employee.company?.name || ''
+                            const unifiedNumber = employee.company?.unified_number
+                            // أخذ أول 3 كلمات من اسم الشركة
+                            const words = companyName.split(' ').slice(0, 3).join(' ')
+                            const displayText = unifiedNumber 
+                              ? `${words}${companyName.split(' ').length > 3 ? '...' : ''} (${unifiedNumber})`
+                              : words
+                            return displayText || '-'
+                          })()}
                         </td>
                         <td 
                           className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
                           onClick={() => handleEmployeeClick(employee)}
                         >
-                          {employee.project_name ? (
+                          {employee.project?.name || employee.project_name ? (
                             <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
-                              {employee.project_name}
+                              {employee.project?.name || employee.project_name}
                             </span>
                           ) : (
                             <span className="text-gray-400">-</span>

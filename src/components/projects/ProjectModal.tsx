@@ -49,6 +49,9 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
     setLoading(true)
     try {
       if (isEditing && project) {
+        // التحقق من تغيير اسم المشروع
+        const nameChanged = project.name !== formData.name.trim()
+        
         // تحديث المشروع
         const { error } = await supabase
           .from('projects')
@@ -61,6 +64,20 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
           .eq('id', project.id)
 
         if (error) throw error
+
+        // إذا تغير اسم المشروع، تحديث project_name في جدول الموظفين
+        if (nameChanged) {
+          const { error: updateError } = await supabase
+            .from('employees')
+            .update({ project_name: formData.name.trim() })
+            .eq('project_id', project.id)
+
+          if (updateError) {
+            console.error('Error updating employees project_name:', updateError)
+            toast.warning('تم تحديث المشروع ولكن فشل تحديث أسماء المشروع في جدول الموظفين')
+          }
+        }
+
         toast.success('تم تحديث المشروع بنجاح')
       } else {
         // إنشاء مشروع جديد
