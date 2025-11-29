@@ -355,7 +355,7 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.totalCompanies).toBe(2)
       expect(stats.commercialRegStats.total).toBe(2)
-      expect(stats.insuranceStats.total).toBe(2)
+      expect(stats.socialInsuranceStats.total).toBe(2)
     })
 
     it('should calculate critical alerts correctly', () => {
@@ -415,7 +415,7 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.totalCompanies).toBe(1)
       expect(stats.commercialRegStats.notSpecified).toBe(1)
-      expect(stats.insuranceStats.notSpecified).toBe(1)
+      expect(stats.socialInsuranceStats.notSpecified).toBe(1)
       expect(stats.totalCriticalAlerts).toBe(0)
     })
 
