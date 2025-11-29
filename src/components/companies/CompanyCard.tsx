@@ -70,7 +70,7 @@ export default function CompanyCard({
             <span className="text-xs">/</span>
             <span className="text-xs">{company.max_employees || 4}</span>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => onEdit(company)}
               className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"

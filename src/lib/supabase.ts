@@ -53,6 +53,15 @@ export interface Company {
   updated_at: string
 }
 
+export interface Project {
+  id: string
+  name: string
+  description?: string
+  status?: 'active' | 'inactive' | 'completed'
+  created_at: string
+  updated_at: string
+}
+
 export interface Employee {
   id: string
   company_id: string
@@ -67,7 +76,9 @@ export interface Employee {
   contract_expiry?: string
   hired_worker_contract_expiry?: string
   residence_expiry: string
-  project_name?: string
+  project_id?: string
+  project_name?: string  // للتوافق مع البيانات القديمة
+  project?: Project  // Relation إلى جدول المشاريع
   bank_account?: string
   residence_image_url?: string
   // التأمين الصحي للموظف

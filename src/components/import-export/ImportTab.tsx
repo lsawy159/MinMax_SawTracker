@@ -716,6 +716,12 @@ export default function ImportTab() {
     let successCount = 0
     let failCount = 0
 
+    // Helper function to clean project name (remove extra spaces, trim)
+    const cleanProjectName = (name: string | null | undefined): string | null => {
+      if (!name) return null
+      return name.trim().replace(/\s+/g, ' ')
+    }
+
     try {
       const data = await file.arrayBuffer()
       const workbook = XLSX.read(data)
@@ -731,9 +737,14 @@ export default function ImportTab() {
         // Get companies for lookup with unified_number
         const { data: companies } = await supabase.from('companies').select('id, name, unified_number')
         
+        // Get projects for lookup
+        const { data: projects } = await supabase.from('projects').select('id, name')
+        
         // Create maps for lookup
         const companyMapByName = new Map<string, string[]>() // name -> array of ids (for duplicates)
         const companyMapByUnifiedNumber = new Map<number, string>() // unified_number -> id
+        const projectMapByName = new Map<string, string>() // name -> id (projects should be unique by name)
+        const newProjectsCreated = new Map<string, string>() // Track newly created projects to avoid duplicates
         
         companies?.forEach(c => {
           // Map by name (support multiple companies with same name)
@@ -746,6 +757,16 @@ export default function ImportTab() {
           // Map by unified_number (should be unique)
           if (c.unified_number) {
             companyMapByUnifiedNumber.set(Number(c.unified_number), c.id)
+          }
+        })
+
+        // Create project map from existing projects
+        projects?.forEach(p => {
+          if (p.name) {
+            const cleaned = cleanProjectName(p.name)
+            if (cleaned) {
+              projectMapByName.set(cleaned.toLowerCase(), p.id)
+            }
           }
         })
 
@@ -778,6 +799,61 @@ export default function ImportTab() {
               }
             }
 
+            // Handle project matching and creation
+            let projectId: string | null = null
+            const projectNameRaw = row['المشروع'] || row['اسم المشروع'] || null
+            const projectNameClean = cleanProjectName(projectNameRaw)
+            
+            if (projectNameClean) {
+              const projectNameLower = projectNameClean.toLowerCase()
+              
+              // 1. Check if project already exists in map
+              if (projectMapByName.has(projectNameLower)) {
+                projectId = projectMapByName.get(projectNameLower) || null
+              }
+              // 2. Check if we already created this project in this import session
+              else if (newProjectsCreated.has(projectNameLower)) {
+                projectId = newProjectsCreated.get(projectNameLower) || null
+              }
+              // 3. Create new project
+              else {
+                try {
+                  const { data: newProject, error: projectError } = await supabase
+                    .from('projects')
+                    .insert({
+                      name: projectNameClean,
+                      status: 'active'
+                    })
+                    .select()
+                    .single()
+
+                  if (projectError) {
+                    // If project already exists (race condition), try to fetch it
+                    if (projectError.code === '23505') {
+                      const { data: existingProject } = await supabase
+                        .from('projects')
+                        .select('id, name')
+                        .eq('name', projectNameClean)
+                        .single()
+                      
+                      if (existingProject) {
+                        projectId = existingProject.id
+                        projectMapByName.set(projectNameLower, existingProject.id)
+                      }
+                    } else {
+                      console.warn(`Failed to create project "${projectNameClean}":`, projectError)
+                    }
+                  } else if (newProject) {
+                    projectId = newProject.id
+                    projectMapByName.set(projectNameLower, newProject.id)
+                    newProjectsCreated.set(projectNameLower, newProject.id)
+                  }
+                } catch (createError) {
+                  console.error(`Error creating project "${projectNameClean}":`, createError)
+                }
+              }
+            }
+
             const employeeData: any = {
               name: row['الاسم'],
               profession: row['المهنة'] || null,
@@ -787,7 +863,7 @@ export default function ImportTab() {
               phone: row['رقم الهاتف']?.toString() || row['رقم الجوال']?.toString() || null,
               bank_account: row['الحساب البنكي'] || null,
               salary: row['الراتب'] ? Number(row['الراتب']) : null,
-              project_name: row['المشروع'] || row['اسم المشروع'] || null,
+              project_id: projectId,
               company_id: companyId,
               birth_date: row['تاريخ الميلاد'] ? new Date(row['تاريخ الميلاد']).toISOString().split('T')[0] : null,
               joining_date: row['تاريخ الالتحاق'] ? new Date(row['تاريخ الالتحاق']).toISOString().split('T')[0] : null,

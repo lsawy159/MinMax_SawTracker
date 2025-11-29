@@ -3,6 +3,7 @@ import { supabase, Company } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyCard from '@/components/companies/CompanyCard'
+import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
@@ -36,7 +37,9 @@ export default function Companies() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showCompanyDetailModal, setShowCompanyDetailModal] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [selectedCompanyForDetail, setSelectedCompanyForDetail] = useState<(Company & { employee_count: number; available_slots?: number }) | null>(null)
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
@@ -500,6 +503,16 @@ export default function Companies() {
   const handleDeleteCompany = (company: Company) => {
     setSelectedCompany(company)
     setShowDeleteModal(true)
+  }
+
+  const handleCompanyCardClick = (company: Company & { employee_count: number; available_slots?: number }) => {
+    setSelectedCompanyForDetail(company)
+    setShowCompanyDetailModal(true)
+  }
+
+  const handleCloseCompanyDetailModal = () => {
+    setShowCompanyDetailModal(false)
+    setSelectedCompanyForDetail(null)
   }
 
   const handleDeleteConfirm = async () => {
@@ -1030,15 +1043,24 @@ export default function Companies() {
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedCompanies.map((company) => (
-                  <CompanyCard
+                  <div
                     key={company.id}
-                    company={company}
-                    onEdit={handleEditCompany}
-                    onDelete={handleDeleteCompany}
-                    getAvailableSlotsColor={getAvailableSlotsColor}
-                    getAvailableSlotsTextColor={getAvailableSlotsTextColor}
-                    getAvailableSlotsText={getAvailableSlotsText}
-                  />
+                    onClick={() => handleCompanyCardClick(company)}
+                    className="cursor-pointer"
+                  >
+                    <CompanyCard
+                      company={company}
+                      onEdit={(comp) => {
+                        handleEditCompany(comp)
+                      }}
+                      onDelete={(comp) => {
+                        handleDeleteCompany(comp)
+                      }}
+                      getAvailableSlotsColor={getAvailableSlotsColor}
+                      getAvailableSlotsTextColor={getAvailableSlotsTextColor}
+                      getAvailableSlotsText={getAvailableSlotsText}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -1067,7 +1089,11 @@ export default function Companies() {
                         const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
                         const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
                         return (
-                          <tr key={company.id} className="border-t hover:bg-gray-50 transition">
+                          <tr 
+                            key={company.id} 
+                            className="border-t hover:bg-gray-50 transition cursor-pointer"
+                            onClick={() => handleCompanyCardClick(company)}
+                          >
                             <td className="px-4 py-3 font-medium text-gray-900">{company.name}</td>
                             <td className="px-4 py-3 text-gray-700">{company.unified_number || '-'}</td>
                             <td className="px-4 py-3 text-gray-700">{company.social_insurance_number || '-'}</td>
@@ -1141,7 +1167,7 @@ export default function Companies() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   onClick={() => handleEditCompany(company)}
                                   className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition text-sm"
@@ -1228,6 +1254,19 @@ export default function Companies() {
             company={selectedCompany}
             onClose={handleModalClose}
             onSuccess={handleModalSuccess}
+          />
+        )}
+
+        {/* Company Detail Modal */}
+        {showCompanyDetailModal && selectedCompanyForDetail && (
+          <CompanyDetailModal
+            company={selectedCompanyForDetail}
+            onClose={handleCloseCompanyDetailModal}
+            onEdit={handleEditCompany}
+            onDelete={handleDeleteCompany}
+            getAvailableSlotsColor={getAvailableSlotsColor}
+            getAvailableSlotsTextColor={getAvailableSlotsTextColor}
+            getAvailableSlotsText={getAvailableSlotsText}
           />
         )}
 

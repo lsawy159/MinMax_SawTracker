@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, Employee, Company } from '@/lib/supabase'
+import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 export default function Employees() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [employees, setEmployees] = useState<(Employee & { company: Company })[]>([])
+  const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [residenceNumberSearch, setResidenceNumberSearch] = useState('')
@@ -26,12 +26,13 @@ export default function Employees() {
   const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('')  // تحديث: insuranceFilter → healthInsuranceFilter
   
   const [companies, setCompanies] = useState<string[]>([])
+  const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string }>>([])
   const [nationalities, setNationalities] = useState<string[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
   
   // حالة المودال
-  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company }) | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company; project?: Project }) | null>(null)
   const [isCardOpen, setIsCardOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -64,6 +65,19 @@ export default function Employees() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Handle company filter from URL after companies are loaded
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const companyId = params.get('company')
+    if (companyId && companiesWithIds.length > 0) {
+      const company = companiesWithIds.find(c => c.id === companyId)
+      if (company && companyFilter !== company.name) {
+        setCompanyFilter(company.name)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companiesWithIds, location.search])
+
   // Clear selection when filters change
   useEffect(() => {
     setSelectedEmployees(new Set())
@@ -72,6 +86,13 @@ export default function Employees() {
   const handleUrlParams = () => {
     const params = new URLSearchParams(location.search)
     const filter = params.get('filter')
+    const companyId = params.get('company')
+    
+    // Handle company filter from URL
+    if (companyId) {
+      // سنقوم بتعيين companyFilter بعد تحميل الموظفين والمؤسسات
+      // سنستخدم useEffect للتعامل مع ذلك
+    }
     
     switch (filter) {
       case 'expired-contracts':
@@ -108,7 +129,7 @@ export default function Employees() {
     try {
       const { data, error } = await supabase
         .from('employees')
-        .select('*, company:companies(*)')
+        .select('*, company:companies(*), project:projects(*)')
         .order('name')
 
       if (error) throw error
@@ -120,12 +141,35 @@ export default function Employees() {
       const uniqueCompanies = [...new Set(employeesData.map(e => e.company?.name).filter(Boolean))] as string[]
       const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
       const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
-      const uniqueProjects = [...new Set(employeesData.map(e => e.project_name).filter(Boolean))] as string[]
+      
+      // بناء قائمة المؤسسات مع IDs
+      const companiesMap = new Map<string, string>()
+      employeesData.forEach(emp => {
+        if (emp.company?.id && emp.company?.name) {
+          companiesMap.set(emp.company.id, emp.company.name)
+        }
+      })
+      const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, name]) => ({ id, name }))
+      setCompaniesWithIds(companiesWithIdsList.sort((a, b) => a.name.localeCompare(b.name)))
+      
+      // تحميل المشاريع من جدول projects
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .order('name')
+
+      if (!projectsError && projectsData) {
+        const projectNames = projectsData.map(p => p.name).filter(Boolean)
+        setProjects(projectNames.sort())
+      } else {
+        // Fallback: استخراج من project_name القديم إذا فشل تحميل المشاريع
+        const uniqueProjects = [...new Set(employeesData.map(e => e.project?.name || e.project_name).filter(Boolean))] as string[]
+        setProjects(uniqueProjects.sort())
+      }
       
       setCompanies(uniqueCompanies.sort())
       setNationalities(uniqueNationalities.sort())
       setProfessions(uniqueProfessions.sort())
-      setProjects(uniqueProjects.sort())
     } catch (error) {
       console.error('Error loading employees:', error)
     } finally {
@@ -465,7 +509,7 @@ export default function Employees() {
     const matchesCompany = !companyFilter || emp.company?.name === companyFilter
     const matchesNationality = !nationalityFilter || emp.nationality === nationalityFilter
     const matchesProfession = !professionFilter || emp.profession === professionFilter
-    const matchesProject = !projectFilter || emp.project_name === projectFilter
+    const matchesProject = !projectFilter || emp.project?.name === projectFilter || (emp.project_name === projectFilter && !emp.project)
     const matchesContract = !contractFilter || getContractStatus(emp.contract_expiry) === contractFilter
     const matchesResidence = !residenceFilter || getResidenceStatus(emp.residence_expiry) === residenceFilter
     const matchesInsurance = !healthInsuranceFilter || getHealthInsuranceStatus(emp.health_insurance_expiry) === healthInsuranceFilter  // تحديث: insuranceFilter → healthInsuranceFilter, ending_subscription_insurance_date → health_insurance_expiry

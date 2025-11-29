@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Key, Cog, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Key, Cog, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
@@ -82,6 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: null, badge: null },
     { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' as const }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null },
     { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' as const }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null },
+    { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: null, badge: null },
     { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: null, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
     { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: null, badge: null },
     { path: '/reports', icon: BarChart3, label: 'التقارير', permission: null, badge: null },
