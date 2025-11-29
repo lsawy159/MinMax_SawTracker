@@ -1978,8 +1978,8 @@ export default function AdvancedSearch() {
         <CompanyDetailModal
           company={{
             ...selectedCompanyForDetail,
-            employee_count: companies.find(c => c.id === selectedCompanyForDetail.id)?.current_employees || 0,
-            available_slots: 0,
+            employee_count: filteredEmployees.filter(e => e.company_id === selectedCompanyForDetail.id).length,
+            available_slots: Math.max(0, (selectedCompanyForDetail.max_employees || 4) - filteredEmployees.filter(e => e.company_id === selectedCompanyForDetail.id).length),
             max_employees: selectedCompanyForDetail.max_employees || 4
           }}
           onClose={handleCloseCompanyDetailModal}
