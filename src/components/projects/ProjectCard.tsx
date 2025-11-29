@@ -8,9 +8,10 @@ interface ProjectCardProps {
   }
   onEdit: (project: Project) => void
   onDelete: (project: Project) => void
+  onView?: (project: Project & { employee_count?: number; total_salaries?: number }) => void
 }
 
-export default function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, onEdit, onDelete, onView }: ProjectCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -38,7 +39,10 @@ export default function ProjectCard({ project, onEdit, onDelete }: ProjectCardPr
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 hover:shadow-md transition">
+    <div 
+      className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
+      onClick={() => onView && onView(project)}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="bg-blue-100 p-3 rounded-lg">
           <FolderKanban className="w-6 h-6 text-blue-600" />
@@ -47,7 +51,7 @@ export default function ProjectCard({ project, onEdit, onDelete }: ProjectCardPr
           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status || 'active')}`}>
             {getStatusText(project.status || 'active')}
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => onEdit(project)}
               className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"

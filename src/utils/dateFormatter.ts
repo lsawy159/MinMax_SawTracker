@@ -3,7 +3,11 @@ import { toHijri } from 'hijri-converter'
 /**
  * تحويل التاريخ الميلادي إلى هجري
  */
-export function toHijriDate(date: Date): { year: number; month: number; day: number } {
+export function toHijriDate(date: Date | null | undefined): { year: number; month: number; day: number } {
+  if (!date || date === null || date === undefined) {
+    return { year: 0, month: 0, day: 0 }
+  }
+  
   try {
     const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate())
     return {
@@ -20,7 +24,11 @@ export function toHijriDate(date: Date): { year: number; month: number; day: num
 /**
  * تنسيق التاريخ الهجري كنص
  */
-export function formatHijriDate(date: Date): string {
+export function formatHijriDate(date: Date | null | undefined): string {
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
   const hijri = toHijriDate(date)
   if (hijri.year === 0) return ''
   
@@ -35,8 +43,19 @@ export function formatHijriDate(date: Date): string {
 /**
  * تنسيق التاريخ الميلادي كنص عربي
  */
-export function formatGregorianDate(date: Date | string, includeTime: boolean = false): string {
+export function formatGregorianDate(date: Date | string | null | undefined, includeTime: boolean = false): string {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
@@ -57,10 +76,16 @@ export function formatGregorianDate(date: Date | string, includeTime: boolean = 
 /**
  * تنسيق التاريخ الميلادي فقط (بدون الهجري)
  */
-export function formatDateWithHijri(date: Date | string, includeTime: boolean = false): string {
+export function formatDateWithHijri(date: Date | string | null | undefined, includeTime: boolean = false): string {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
   
-  if (isNaN(dateObj.getTime())) {
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
     return ''
   }
   
@@ -70,10 +95,16 @@ export function formatDateWithHijri(date: Date | string, includeTime: boolean = 
 /**
  * تنسيق التاريخ بصيغة yyyy-MM-dd (الميلادي فقط)
  */
-export function formatDateShortWithHijri(date: Date | string): string {
+export function formatDateShortWithHijri(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
   
-  if (isNaN(dateObj.getTime())) {
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
     return ''
   }
   
@@ -87,10 +118,16 @@ export function formatDateShortWithHijri(date: Date | string): string {
 /**
  * تنسيق التاريخ مع الوقت بصيغة yyyy-MM-dd HH:mm (الميلادي فقط)
  */
-export function formatDateTimeWithHijri(date: Date | string): string {
+export function formatDateTimeWithHijri(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
   
-  if (isNaN(dateObj.getTime())) {
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
     return ''
   }
   

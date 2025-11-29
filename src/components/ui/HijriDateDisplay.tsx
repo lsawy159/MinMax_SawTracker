@@ -3,7 +3,7 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import { formatHijriDate } from '@/utils/dateFormatter'
 
 interface HijriDateDisplayProps {
-  date: Date | string
+  date: Date | string | null | undefined
   children: ReactNode
   className?: string
 }
@@ -12,9 +12,15 @@ interface HijriDateDisplayProps {
  * مكون لعرض التاريخ مع tooltip بالتاريخ الهجري يظهر مباشرة فوق التاريخ
  */
 export function HijriDateDisplay({ date, children, className = '' }: HijriDateDisplayProps) {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return <span className={className}>{children}</span>
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
   
-  if (isNaN(dateObj.getTime())) {
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
     return <span className={className}>{children}</span>
   }
 

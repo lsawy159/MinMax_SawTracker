@@ -3,6 +3,7 @@ import { supabase, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import ProjectModal from '@/components/projects/ProjectModal'
 import ProjectCard from '@/components/projects/ProjectCard'
+import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
 import ProjectStatistics from '@/components/projects/ProjectStatistics'
 import { FolderKanban, Plus, Search, Edit2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -22,6 +23,7 @@ export default function Projects() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
 
   // Filter states
@@ -143,6 +145,11 @@ export default function Projects() {
     setShowDeleteModal(true)
   }
 
+  const handleViewProject = (project: Project & { employee_count?: number; total_salaries?: number }) => {
+    setSelectedProject(project)
+    setShowDetailModal(true)
+  }
+
   const handleDeleteConfirm = async () => {
     if (!selectedProject) return
 
@@ -190,6 +197,7 @@ export default function Projects() {
     setShowAddModal(false)
     setShowEditModal(false)
     setShowDeleteModal(false)
+    setShowDetailModal(false)
     setSelectedProject(null)
   }
 
@@ -336,6 +344,7 @@ export default function Projects() {
                     project={project}
                     onEdit={handleEditProject}
                     onDelete={handleDeleteProject}
+                    onView={handleViewProject}
                   />
                 ))}
               </div>
@@ -361,6 +370,16 @@ export default function Projects() {
             project={selectedProject}
             onClose={handleModalClose}
             onSuccess={handleModalSuccess}
+          />
+        )}
+
+        {/* Project Detail Modal */}
+        {showDetailModal && selectedProject && (
+          <ProjectDetailModal
+            project={selectedProject as Project & { employee_count?: number; total_salaries?: number }}
+            onClose={handleModalClose}
+            onEdit={handleEditProject}
+            onDelete={handleDeleteProject}
           />
         )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, Company } from '@/lib/supabase'
-import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown } from 'lucide-react'
+import { supabase, Company, Project } from '@/lib/supabase'
+import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface AddEmployeeModalProps {
@@ -16,10 +16,17 @@ interface CompanyWithStats extends Company {
 
 export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmployeeModalProps) {
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
   const companyDropdownRef = useRef<HTMLDivElement>(null)
+  const [projectSearchQuery, setProjectSearchQuery] = useState('')
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
+  const projectDropdownRef = useRef<HTMLDivElement>(null)
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [creatingProject, setCreatingProject] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     profession: '',
@@ -32,6 +39,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     contract_expiry: '',
     hired_worker_contract_expiry: '',
     residence_expiry: '',
+    project_id: '',
     project_name: '',
     bank_account: '',
     salary: '',
@@ -44,6 +52,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
   useEffect(() => {
     if (isOpen) {
       loadCompanies()
+      loadProjects()
     } else {
       // إعادة تعيين النموذج عند إغلاق المودال
       setFormData({
@@ -58,6 +67,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         contract_expiry: '',
         hired_worker_contract_expiry: '',
         residence_expiry: '',
+        project_id: '',
         project_name: '',
         bank_account: '',
         salary: '',
@@ -68,6 +78,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       })
       setCompanySearchQuery('')
       setIsCompanyDropdownOpen(false)
+      setProjectSearchQuery('')
+      setIsProjectDropdownOpen(false)
+      setShowCreateProjectModal(false)
+      setNewProjectName('')
     }
   }, [isOpen])
 
@@ -94,6 +108,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     function handleClickOutside(event: MouseEvent) {
       if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
         setIsCompanyDropdownOpen(false)
+      }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -143,6 +160,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     }
   }
 
+  const loadProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'active')
+        .order('name')
+
+      if (error) throw error
+      setProjects(data || [])
+    } catch (error) {
+      console.error('Error loading projects:', error)
+      toast.error('فشل تحميل قائمة المشاريع')
+    }
+  }
+
   // دالة حساب الأماكن الشاغرة
   const calculateAvailableSlots = (maxEmployees: number, currentEmployees: number): number => {
     return Math.max(0, maxEmployees - currentEmployees)
@@ -177,6 +210,98 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     
     return true
   })
+
+  // تصفية المشاريع: البحث في الاسم
+  const filteredProjects = projects.filter(project => {
+    if (projectSearchQuery.trim()) {
+      const query = projectSearchQuery.toLowerCase().trim()
+      return project.name?.toLowerCase().includes(query)
+    }
+    return true
+  })
+
+  // التحقق من وجود مشروع بالاسم المدخل
+  const hasExactMatch = projectSearchQuery.trim() && 
+    projects.some(p => p.name.toLowerCase() === projectSearchQuery.toLowerCase().trim())
+  
+  const showCreateOption = projectSearchQuery.trim() && !hasExactMatch && isProjectDropdownOpen
+
+  // تحديث نص البحث عند تغيير المشروع المختار
+  useEffect(() => {
+    if (formData.project_id && projects.length > 0) {
+      const selectedProject = projects.find(p => p.id === formData.project_id)
+      if (selectedProject) {
+        const displayText = selectedProject.name
+        if (projectSearchQuery !== displayText) {
+          setProjectSearchQuery(displayText)
+        }
+      }
+    } else if (!formData.project_id && projectSearchQuery) {
+      setProjectSearchQuery('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.project_id, projects])
+
+  // دالة إنشاء مشروع جديد
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+      toast.error('يرجى إدخال اسم المشروع')
+      return
+    }
+
+    // التحقق من عدم وجود مشروع بنفس الاسم
+    const existingProject = projects.find(
+      p => p.name.toLowerCase() === newProjectName.trim().toLowerCase()
+    )
+
+    if (existingProject) {
+      toast.error('يوجد مشروع بنفس الاسم بالفعل')
+      setFormData({ ...formData, project_id: existingProject.id, project_name: existingProject.name })
+      setProjectSearchQuery(existingProject.name)
+      setShowCreateProjectModal(false)
+      setNewProjectName('')
+      setIsProjectDropdownOpen(false)
+      return
+    }
+
+    setCreatingProject(true)
+    try {
+      const { data: newProject, error } = await supabase
+        .from('projects')
+        .insert({
+          name: newProjectName.trim(),
+          status: 'active'
+        })
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('يوجد مشروع بنفس الاسم بالفعل')
+        } else {
+          throw error
+        }
+        return
+      }
+
+      // تحديث قائمة المشاريع
+      await loadProjects()
+
+      // اختيار المشروع الجديد تلقائياً
+      setFormData({ ...formData, project_id: newProject.id, project_name: newProject.name })
+      setProjectSearchQuery(newProject.name)
+      setShowCreateProjectModal(false)
+      setNewProjectName('')
+      setIsProjectDropdownOpen(false)
+
+      toast.success('تم إنشاء المشروع بنجاح')
+    } catch (error: any) {
+      console.error('Error creating project:', error)
+      toast.error(error?.message || 'فشل إنشاء المشروع')
+    } finally {
+      setCreatingProject(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -253,25 +378,43 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
 
     try {
       // إعداد البيانات للإدراج
-      const employeeData = {
+      // دالة مساعدة لتحويل التواريخ الفارغة إلى null
+      const parseDate = (dateValue: string | undefined): string | null => {
+        if (!dateValue || dateValue.trim() === '') return null
+        return dateValue.trim()
+      }
+
+      const employeeData: any = {
         name: formData.name.trim(),
         profession: formData.profession.trim(),
         nationality: formData.nationality.trim(),
-        birth_date: formData.birth_date || null,
+        birth_date: parseDate(formData.birth_date),
         phone: formData.phone.trim() || null,
         passport_number: formData.passport_number.trim(),
         residence_number: formData.residence_number.trim(),
-        joining_date: formData.joining_date,
-        contract_expiry: formData.contract_expiry || null,
-        hired_worker_contract_expiry: formData.hired_worker_contract_expiry || null,
-        residence_expiry: formData.residence_expiry,
-        project_name: formData.project_name.trim() || null,
+        joining_date: parseDate(formData.joining_date),
+        contract_expiry: parseDate(formData.contract_expiry),
+        hired_worker_contract_expiry: parseDate(formData.hired_worker_contract_expiry),
+        residence_expiry: parseDate(formData.residence_expiry),
         bank_account: formData.bank_account.trim() || null,
         salary: Number(formData.salary) || 0,
-        health_insurance_expiry: formData.health_insurance_expiry || null,  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+        health_insurance_expiry: parseDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: formData.residence_image_url.trim() || null,
         notes: formData.notes.trim() || null,
         company_id: formData.company_id
+      }
+
+      // إضافة project_id إذا كان موجوداً
+      if (formData.project_id) {
+        employeeData.project_id = formData.project_id
+        // الاحتفاظ بـ project_name للتوافق مع البيانات القديمة
+        const selectedProject = projects.find(p => p.id === formData.project_id)
+        if (selectedProject) {
+          employeeData.project_name = selectedProject.name
+        }
+      } else {
+        // إذا لم يكن هناك project_id، نستخدم project_name القديم للتوافق
+        employeeData.project_name = formData.project_name.trim() || null
       }
 
       const { error } = await supabase
@@ -477,19 +620,171 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
 
             {/* 9. المشروع */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <FolderKanban className="w-4 h-4" />
                 المشروع
               </label>
+              <div className="relative" ref={projectDropdownRef}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={projectSearchQuery}
+                    onChange={(e) => {
+                      setProjectSearchQuery(e.target.value)
+                      setIsProjectDropdownOpen(true)
+                    }}
+                    onFocus={() => setIsProjectDropdownOpen(true)}
+                    placeholder="ابحث عن مشروع..."
+                    disabled={loading}
+                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <Search className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={loading}
+                  >
+                    <ChevronDown className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                
+                {isProjectDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, project_id: '' })
+                        setProjectSearchQuery('')
+                        setIsProjectDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2.5 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
+                    >
+                      بدون مشروع
+                    </button>
+                    {filteredProjects.length === 0 && !showCreateOption ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        {projectSearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مشاريع متاحة'}
+                      </div>
+                    ) : (
+                      <>
+                        {filteredProjects.map(project => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, project_id: project.id, project_name: project.name })
+                              setProjectSearchQuery(project.name)
+                              setIsProjectDropdownOpen(false)
+                            }}
+                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{project.name}</span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                project.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {project.status === 'active' ? 'نشط' : project.status === 'inactive' ? 'متوقف' : 'مكتمل'}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                        {showCreateOption && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewProjectName(projectSearchQuery.trim())
+                              setShowCreateProjectModal(true)
+                            }}
+                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-green-50 focus:bg-green-50 focus:outline-none transition-colors border-t border-gray-200 text-green-700 font-medium"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                إنشاء مشروع جديد: {projectSearchQuery.trim()}
+                              </span>
+                            </div>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden input for form validation */}
               <input
-                type="text"
-                name="project_name"
-                value={formData.project_name}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="أدخل اسم المشروع"
-                disabled={loading}
+                type="hidden"
+                name="project_id"
+                value={formData.project_id}
               />
             </div>
+
+            {/* مودال إضافة مشروع جديد */}
+            {showCreateProjectModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[60] p-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-green-600" />
+                    إضافة مشروع جديد
+                  </h3>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      اسم المشروع <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !creatingProject) {
+                          handleCreateProject()
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="أدخل اسم المشروع"
+                      autoFocus
+                      disabled={creatingProject}
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateProjectModal(false)
+                        setNewProjectName('')
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                      disabled={creatingProject}
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateProject}
+                      disabled={creatingProject || !newProjectName.trim()}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {creatingProject ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          جاري الإنشاء...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          إضافة
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 10. الشركة أو المؤسسة */}
             <div>
