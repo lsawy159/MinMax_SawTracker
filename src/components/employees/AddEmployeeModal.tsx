@@ -441,6 +441,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         contract_expiry: '',
         hired_worker_contract_expiry: '',
         residence_expiry: '',
+        project_id: '',
         project_name: '',
         bank_account: '',
         salary: '',
@@ -449,6 +450,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         notes: '',
         company_id: ''
       })
+      setProjectSearchQuery('')
+      setIsProjectDropdownOpen(false)
 
       // إغلاق المودال وإعادة تحميل البيانات
       onSuccess()
