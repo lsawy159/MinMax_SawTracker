@@ -80,6 +80,31 @@ export default function Reports() {
     return stats
   }, [categorizeExpiry])
 
+  // Calculate statistics for active tab
+  const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
+    // Filter items by tab
+    const tabItems = items.filter(item => {
+      if (tab === 'companies') {
+        return ['سجل تجاري', 'تأمينات اجتماعية', 'اشتراك مقيم', 'اشتراك قوى'].includes(item.type)
+      } else {
+        return ['إقامة', 'عقد', 'عقد أجير', 'تأمين صحي'].includes(item.type)
+      }
+    })
+
+    // Calculate statistics
+    const stats = {
+      expired: tabItems.filter(item => item.status === 'expired').length,
+      urgent: tabItems.filter(item => item.status === 'urgent').length,
+      medium: tabItems.filter(item => item.status === 'medium').length,
+      valid: tabItems.filter(item => item.status === 'valid').length
+    }
+
+    setTotalExpired(stats.expired)
+    setTotalUrgent(stats.urgent)
+    setTotalMedium(stats.medium)
+    setTotalValid(stats.valid)
+  }, [])
+
   // Load data
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -267,31 +292,6 @@ export default function Reports() {
       setLoading(false)
     }
   }, [activeTab, categorizeExpiry, updateTabStatistics])
-
-  // Calculate statistics for active tab
-  const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
-    // Filter items by tab
-    const tabItems = items.filter(item => {
-      if (tab === 'companies') {
-        return ['سجل تجاري', 'تأمينات اجتماعية', 'اشتراك مقيم', 'اشتراك قوى'].includes(item.type)
-      } else {
-        return ['إقامة', 'عقد', 'عقد أجير', 'تأمين صحي'].includes(item.type)
-      }
-    })
-
-    // Calculate statistics
-    const stats = {
-      expired: tabItems.filter(item => item.status === 'expired').length,
-      urgent: tabItems.filter(item => item.status === 'urgent').length,
-      medium: tabItems.filter(item => item.status === 'medium').length,
-      valid: tabItems.filter(item => item.status === 'valid').length
-    }
-
-    setTotalExpired(stats.expired)
-    setTotalUrgent(stats.urgent)
-    setTotalMedium(stats.medium)
-    setTotalValid(stats.valid)
-  }, [])
 
   useEffect(() => {
     loadData()
