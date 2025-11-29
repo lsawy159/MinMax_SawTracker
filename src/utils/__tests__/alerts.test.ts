@@ -75,7 +75,7 @@ describe('alerts utils', () => {
       },
       {
         id: '2',
-        type: 'insurance_subscription',
+        type: 'social_insurance_expiry',
         priority: 'urgent',
         title: 'تنبيه عاجل 2',
         message: 'رسالة تجريبية',
@@ -99,7 +99,7 @@ describe('alerts utils', () => {
       },
       {
         id: '4',
-        type: 'insurance_subscription',
+        type: 'social_insurance_expiry',
         priority: 'low',
         title: 'تنبيه خفيف',
         message: 'رسالة تجريبية',
@@ -143,8 +143,12 @@ describe('alerts utils', () => {
         if (alert.days_remaining !== undefined) {
           if (alert.days_remaining < 0 || alert.days_remaining <= 30) {
             expect(alert.priority).toBe('urgent')
+          } else if (alert.days_remaining <= 45) {
+            expect(alert.priority).toBe('high')
           } else if (alert.days_remaining <= 60) {
             expect(alert.priority).toBe('medium')
+          } else {
+            expect(alert.priority).toBe('low')
           }
         }
       })
@@ -222,12 +226,12 @@ describe('alerts utils', () => {
       })
     })
 
-    it('should filter alerts by insurance_subscription type', () => {
-      const insuranceAlerts = filterAlertsByType(mockAlerts, 'insurance_subscription')
+    it('should filter alerts by social_insurance_expiry type', () => {
+      const insuranceAlerts = filterAlertsByType(mockAlerts, 'social_insurance_expiry')
       
       expect(insuranceAlerts.length).toBe(2)
       insuranceAlerts.forEach(alert => {
-        expect(alert.type).toBe('insurance_subscription')
+        expect(alert.type).toBe('social_insurance_expiry')
       })
     })
 
@@ -246,7 +250,7 @@ describe('alerts utils', () => {
       expect(stats.medium).toBe(1)
       expect(stats.low).toBe(1)
       expect(stats.commercialRegAlerts).toBe(2)
-      expect(stats.insuranceAlerts).toBe(2)
+      expect(stats.socialInsuranceAlerts).toBe(2)
     })
 
     it('should return zeros for empty alerts array', () => {
@@ -257,7 +261,7 @@ describe('alerts utils', () => {
       expect(stats.medium).toBe(0)
       expect(stats.low).toBe(0)
       expect(stats.commercialRegAlerts).toBe(0)
-      expect(stats.insuranceAlerts).toBe(0)
+      expect(stats.socialInsuranceAlerts).toBe(0)
     })
 
     it('should count correctly with mixed priorities', () => {

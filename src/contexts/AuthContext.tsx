@@ -150,10 +150,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     mountedRef.current = true
     let loadingTimeout: ReturnType<typeof setTimeout> | null = null
+    
+    // نسخ fetchTimeoutRef.current إلى متغير محلي لتجنب مشاكل linting
+    const currentFetchTimeout = fetchTimeoutRef.current
 
     // إضافة debounce بسيط عند بدء التشغيل
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current)
+    if (currentFetchTimeout) {
+      clearTimeout(currentFetchTimeout)
     }
 
     // جلب الجلسة مباشرة بدون تأخير عند refresh
@@ -285,6 +288,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loadingTimeout) {
         clearTimeout(loadingTimeout)
       }
+      // fetchTimeoutRef قد يتغير أثناء تنفيذ الـ effect، لذلك ننسخه في cleanup
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const timeoutId = fetchTimeoutRef.current
       if (timeoutId) {
         clearTimeout(timeoutId)
