@@ -52,7 +52,7 @@ export default function ImportExport() {
 
         {/* Tabs Navigation - Modern Interactive Buttons */}
         <div className="flex gap-4 mb-6">
-          {tabs.filter(tab => !tab.requiresPermission || tab.requiresPermission).map((tab) => {
+          {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
             const colorClass = tab.color as 'blue' | 'green' | 'purple'
