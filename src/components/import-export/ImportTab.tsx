@@ -86,6 +86,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
   const [isImportCancelled, setIsImportCancelled] = useState(false)
   const [importedIds, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
+  const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
 
@@ -952,7 +953,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     // إعادة تعيين حالة الإلغاء والسجلات المضافة
     setIsImportCancelled(false)
     cancelImportRef.current = false
-    setImportedIds({ employees: [], companies: [] })
+    const emptyIds = { employees: [], companies: [] }
+    setImportedIds(emptyIds)
+    importedIdsRef.current = emptyIds
 
     let successCount = 0
     let failCount = 0
@@ -1283,10 +1286,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   if (newEmp) {
                     existingEmployeesByResidenceNumber.set(residenceNumberStr, newEmp.id)
                     // تتبع ID للموظف المضاف (لحذفه عند الإلغاء)
-                    setImportedIds(prev => ({
-                      ...prev,
-                      employees: [...prev.employees, newEmp.id]
-                    }))
+                    setImportedIds(prev => {
+                      const updated = {
+                        ...prev,
+                        employees: [...prev.employees, newEmp.id]
+                      }
+                      importedIdsRef.current = updated
+                      return updated
+                    })
                   }
                 }
               }
@@ -1451,10 +1458,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
                     }
                     // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
-                    setImportedIds(prev => ({
-                      ...prev,
-                      companies: [...prev.companies, newCompany.id]
-                    }))
+                    setImportedIds(prev => {
+                      const updated = {
+                        ...prev,
+                        companies: [...prev.companies, newCompany.id]
+                      }
+                      importedIdsRef.current = updated
+                      return updated
+                    })
                   }
                 } else if (companyData.social_insurance_number) {
                   const { data: newCompany } = await supabase
@@ -1471,6 +1482,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                     if (newCompany.labor_subscription_number) {
                       companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
                     }
+                    // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
+                    setImportedIds(prev => {
+                      const updated = {
+                        ...prev,
+                        companies: [...prev.companies, newCompany.id]
+                      }
+                      importedIdsRef.current = updated
+                      return updated
+                    })
                   }
                 } else if (companyData.labor_subscription_number) {
                   const { data: newCompany } = await supabase
@@ -1488,10 +1508,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       companiesBySocialInsurance.set(newCompany.social_insurance_number.toString().trim(), newCompany.id)
                     }
                     // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
-                    setImportedIds(prev => ({
-                      ...prev,
-                      companies: [...prev.companies, newCompany.id]
-                    }))
+                    setImportedIds(prev => {
+                      const updated = {
+                        ...prev,
+                        companies: [...prev.companies, newCompany.id]
+                      }
+                      importedIdsRef.current = updated
+                      return updated
+                    })
                   }
                 }
               }
@@ -1560,7 +1584,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     } catch (error) {
       console.error('Import error:', error)
       // في حالة الخطأ، حاول حذف السجلات المضافة
-      if (importedIds.employees.length > 0 || importedIds.companies.length > 0) {
+      if (importedIdsRef.current.employees.length > 0 || importedIdsRef.current.companies.length > 0) {
         await rollbackImportedData()
       }
       toast.error('فشل عملية الاستيراد')
@@ -1569,7 +1593,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       setImportProgress({ current: 0, total: 0 })
       setIsImportCancelled(false)
       cancelImportRef.current = false
-      setImportedIds({ employees: [], companies: [] })
+      const emptyIds = { employees: [], companies: [] }
+      setImportedIds(emptyIds)
+      importedIdsRef.current = emptyIds
       
     }
   }
@@ -1577,31 +1603,33 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   // دالة لحذف السجلات المضافة عند الإلغاء
   const rollbackImportedData = async () => {
     try {
+      const idsToDelete = importedIdsRef.current
+      
       // حذف الموظفين المضافة
-      if (importedIds.employees.length > 0) {
+      if (idsToDelete.employees.length > 0) {
         const { error: employeesError } = await supabase
           .from('employees')
           .delete()
-          .in('id', importedIds.employees)
+          .in('id', idsToDelete.employees)
         
         if (employeesError) {
           console.error('Error deleting imported employees:', employeesError)
         } else {
-          console.log(`تم حذف ${importedIds.employees.length} موظف تم إضافتهم`)
+          console.log(`تم حذف ${idsToDelete.employees.length} موظف تم إضافتهم`)
         }
       }
 
       // حذف الشركات المضافة
-      if (importedIds.companies.length > 0) {
+      if (idsToDelete.companies.length > 0) {
         const { error: companiesError } = await supabase
           .from('companies')
           .delete()
-          .in('id', importedIds.companies)
+          .in('id', idsToDelete.companies)
         
         if (companiesError) {
           console.error('Error deleting imported companies:', companiesError)
         } else {
-          console.log(`تم حذف ${importedIds.companies.length} شركة تم إضافتها`)
+          console.log(`تم حذف ${idsToDelete.companies.length} شركة تم إضافتها`)
         }
       }
     } catch (error) {
