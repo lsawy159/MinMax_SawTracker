@@ -26,6 +26,7 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { usePermissions } from '@/utils/permissions'
 
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
@@ -33,6 +34,7 @@ type DateFilter = 'all' | 'today' | 'week' | 'month'
 
 export default function ActivityLogs() {
   const { user } = useAuth()
+  const { canView } = usePermissions()
   const isAdmin = user?.role === 'admin'
   
   const [logs, setLogs] = useState<ActivityLog[]>([])
@@ -54,6 +56,26 @@ export default function ActivityLogs() {
   useEffect(() => {
     loadLogs()
   }, [])
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, actionFilter, entityFilter, dateFilter])
+
+  // التحقق من صلاحية العرض - بعد جميع الـ hooks
+  if (!canView('activityLogs')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Activity className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   const loadLogs = async () => {
     setLoading(true)
@@ -635,11 +657,6 @@ export default function ActivityLogs() {
 
   const allSelected = paginatedLogs.length > 0 && paginatedLogs.every(log => selectedLogIds.has(log.id))
   const someSelected = paginatedLogs.some(log => selectedLogIds.has(log.id)) && !allSelected
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, actionFilter, entityFilter, dateFilter])
 
   // Export to Excel
   const exportToExcel = () => {

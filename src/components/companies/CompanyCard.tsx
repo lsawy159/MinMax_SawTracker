@@ -6,6 +6,7 @@ import {
   calculateMoqeemSubscriptionStatus
 } from '@/utils/autoCompanyStatus'
 import { Company } from '@/lib/supabase'
+import { usePermissions } from '@/utils/permissions'
 
 interface CompanyCardProps {
   company: Company & { 
@@ -28,6 +29,9 @@ export default function CompanyCard({
   getAvailableSlotsTextColor,
   getAvailableSlotsText
 }: CompanyCardProps) {
+  // الحصول على الصلاحيات
+  const { canEdit, canDelete } = usePermissions()
+  
   // حساب حالات المؤسسة
   const commercialRegStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
   const socialInsuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
@@ -71,20 +75,24 @@ export default function CompanyCard({
             <span className="text-xs">{company.max_employees || 4}</span>
           </div>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => onEdit(company)}
-              className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
-              title="تعديل المؤسسة"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onDelete(company)}
-              className="p-1 text-red-600 hover:bg-red-100 rounded-md transition"
-              title="حذف المؤسسة"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {canEdit('companies') && (
+              <button
+                onClick={() => onEdit(company)}
+                className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                title="تعديل المؤسسة"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
+            {canDelete('companies') && (
+              <button
+                onClick={() => onDelete(company)}
+                className="p-1 text-red-600 hover:bg-red-100 rounded-md transition"
+                title="حذف المؤسسة"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

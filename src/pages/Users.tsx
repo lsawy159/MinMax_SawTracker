@@ -18,66 +18,12 @@ import { formatDateTimeWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
-
-interface PermissionMatrix {
-  employees: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  companies: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  users: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  settings: { view: boolean; edit: boolean }
-}
-
-const defaultPermissions: PermissionMatrix = {
-  employees: { view: true, create: false, edit: false, delete: false },
-  companies: { view: true, create: false, edit: false, delete: false },
-  users: { view: false, create: false, edit: false, delete: false },
-  settings: { view: false, edit: false }
-}
-
-const adminPermissions: PermissionMatrix = {
-  employees: { view: true, create: true, edit: true, delete: true },
-  companies: { view: true, create: true, edit: true, delete: true },
-  users: { view: true, create: true, edit: true, delete: true },
-  settings: { view: true, edit: true }
-}
-
-// Helper function to normalize permissions and ensure all required properties exist
-// If role is 'admin', automatically returns adminPermissions regardless of stored permissions
-const normalizePermissions = (permissions: any, role?: 'admin' | 'user'): PermissionMatrix => {
-  // إذا كان المستخدم مدير، إرجاع صلاحيات المدير الكاملة تلقائيًا
-  if (role === 'admin') {
-    return adminPermissions
-  }
-
-  // إذا كانت الصلاحيات فارغة أو غير صحيحة، إرجاع الصلاحيات الافتراضية
-  if (!permissions || typeof permissions !== 'object') {
-    return defaultPermissions
-  }
-
-  return {
-    employees: {
-      view: permissions.employees?.view ?? defaultPermissions.employees.view,
-      create: permissions.employees?.create ?? defaultPermissions.employees.create,
-      edit: permissions.employees?.edit ?? defaultPermissions.employees.edit,
-      delete: permissions.employees?.delete ?? defaultPermissions.employees.delete
-    },
-    companies: {
-      view: permissions.companies?.view ?? defaultPermissions.companies.view,
-      create: permissions.companies?.create ?? defaultPermissions.companies.create,
-      edit: permissions.companies?.edit ?? defaultPermissions.companies.edit,
-      delete: permissions.companies?.delete ?? defaultPermissions.companies.delete
-    },
-    users: {
-      view: permissions.users?.view ?? defaultPermissions.users.view,
-      create: permissions.users?.create ?? defaultPermissions.users.create,
-      edit: permissions.users?.edit ?? defaultPermissions.users.edit,
-      delete: permissions.users?.delete ?? defaultPermissions.users.delete
-    },
-    settings: {
-      view: permissions.settings?.view ?? defaultPermissions.settings.view,
-      edit: permissions.settings?.edit ?? defaultPermissions.settings.edit
-    }
-  }
-}
+import { 
+  PermissionMatrix, 
+  defaultPermissions, 
+  adminPermissions, 
+  normalizePermissions 
+} from '@/utils/permissions'
 
 export default function Users() {
   const { user: currentUser } = useAuth()
@@ -340,16 +286,19 @@ export default function Users() {
   }
 
   const updatePermission = (category: keyof PermissionMatrix, action: string, value: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: {
-        ...prev.permissions,
-        [category]: {
-          ...prev.permissions[category],
-          [action]: value
+    setFormData(prev => {
+      const currentCategory = prev.permissions[category] as any
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [category]: {
+            ...currentCategory,
+            [action]: value
+          }
         }
       }
-    }))
+    })
   }
 
   const setRolePermissions = (role: 'admin' | 'user') => {
@@ -494,218 +443,362 @@ export default function Users() {
         )}
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full border border-gray-100">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-3xl p-3 flex justify-between items-center">
+                <h2 className="text-lg font-bold text-white">
                   {editingUser ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  className="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">المعلومات الأساسية</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        الاسم الكامل *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        البريد الإلكتروني *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    {!editingUser && (
+              <form onSubmit={handleSubmit} className="p-5">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* القسم الأيسر - المعلومات الأساسية */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                      المعلومات الأساسية
+                    </h3>
+                    
+                    <div className="space-y-2.5">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          كلمة المرور *
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          الاسم الكامل *
                         </label>
                         <input
-                          type="password"
-                          required={!editingUser}
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          minLength={6}
+                          type="text"
+                          required
+                          value={formData.full_name}
+                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
                         />
                       </div>
-                    )}
 
-                    {editingUser && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          البريد الإلكتروني *
                         </label>
                         <input
-                          type="password"
-                          value={formData.new_password}
-                          onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          minLength={6}
-                          placeholder="أدخل كلمة مرور جديدة (6 أحرف على الأقل)"
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          يمكنك تغيير كلمة مرور هذا المستخدم. سيتم حفظ التغيير فوراً.
-                        </p>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        الدور *
-                      </label>
-                      <select
-                        value={formData.role}
-                        onChange={(e) => setRolePermissions(e.target.value as 'admin' | 'user')}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                        disabled={editingUser && editingUser.role === 'admin' && users.filter(u => u.role === 'admin' && u.is_active).length === 1}
-                      >
-                        <option value="user">مستخدم</option>
-                        {editingUser && editingUser.role === 'admin' && (
-                          <option value="admin">مدير</option>
-                        )}
-                      </select>
-                      {editingUser && editingUser.role === 'admin' && users.filter(u => u.role === 'admin' && u.is_active).length === 1 && (
-                        <p className="text-xs text-red-500 mt-1">
-                          لا يمكن تغيير دور المدير الوحيد في النظام
-                        </p>
-                      )}
                       {!editingUser && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          لا يمكن إنشاء مستخدمين جدد بدور مدير. المدير الوحيد هو أحمد الصاوي.
-                        </p>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            كلمة المرور *
+                          </label>
+                          <input
+                            type="password"
+                            required={!editingUser}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                            minLength={6}
+                          />
+                        </div>
                       )}
+
+                      {editingUser && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            كلمة المرور الجديدة
+                          </label>
+                          <input
+                            type="password"
+                            value={formData.new_password}
+                            onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
+                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                            minLength={6}
+                            placeholder="اتركها فارغة إذا لم ترد التغيير"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          الدور *
+                        </label>
+                        <select
+                          value={formData.role}
+                          onChange={(e) => setRolePermissions(e.target.value as 'admin' | 'user')}
+                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition"
+                          disabled={editingUser && editingUser.role === 'admin' && users.filter(u => u.role === 'admin' && u.is_active).length === 1}
+                        >
+                          <option value="user">مستخدم</option>
+                          {editingUser && editingUser.role === 'admin' && (
+                            <option value="admin">مدير</option>
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="is_active"
+                          checked={formData.is_active}
+                          onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 border-gray-200 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="is_active" className="text-xs font-medium text-gray-700 cursor-pointer">
+                          المستخدم نشط
+                        </label>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-                      المستخدم نشط
-                    </label>
+                  {/* القسم الأيمن - الصلاحيات */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-600" />
+                      الصلاحيات التفصيلية
+                    </h3>
+
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-3 space-y-2.5 border border-gray-200">
+                      {/* Grid للصلاحيات - تصميم compact */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* الموظفين */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الموظفين</h4>
+                          <div className="space-y-1">
+                            {['view', 'create', 'edit', 'delete'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.employees[action as keyof typeof formData.permissions.employees]}
+                                  onChange={(e) => updatePermission('employees', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* المؤسسات */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المؤسسات</h4>
+                          <div className="space-y-1">
+                            {['view', 'create', 'edit', 'delete'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.companies[action as keyof typeof formData.permissions.companies]}
+                                  onChange={(e) => updatePermission('companies', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* المستخدمين */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المستخدمين</h4>
+                          <div className="space-y-1">
+                            {['view', 'create', 'edit', 'delete'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.users[action as keyof typeof formData.permissions.users]}
+                                  onChange={(e) => updatePermission('users', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* الإعدادات */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الإعدادات</h4>
+                          <div className="space-y-1">
+                            {['view', 'edit'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.settings[action as keyof typeof formData.permissions.settings]}
+                                  onChange={(e) => updatePermission('settings', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : 'تعديل'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* المشاريع */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المشاريع</h4>
+                          <div className="space-y-1">
+                            {['view', 'create', 'edit', 'delete'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.projects[action as keyof typeof formData.permissions.projects]}
+                                  onChange={(e) => updatePermission('projects', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* التقارير */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">التقارير</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.reports.view}
+                                onChange={(e) => updatePermission('reports', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.reports.export}
+                                onChange={(e) => updatePermission('reports', 'export', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">تصدير</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* التنبيهات */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">التنبيهات</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.alerts.view}
+                                onChange={(e) => updatePermission('alerts', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* البحث المتقدم */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">البحث المتقدم</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.advancedSearch.view}
+                                onChange={(e) => updatePermission('advancedSearch', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* استيراد/تصدير */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">استيراد/تصدير</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.importExport.view}
+                                onChange={(e) => updatePermission('importExport', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.importExport.import}
+                                onChange={(e) => updatePermission('importExport', 'import', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">استيراد</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.importExport.export}
+                                onChange={(e) => updatePermission('importExport', 'export', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">تصدير</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* سجل النشاطات */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">سجل النشاطات</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.activityLogs.view}
+                                onChange={(e) => updatePermission('activityLogs', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* الرئيسية */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الرئيسية</h4>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.dashboard.view}
+                                onChange={(e) => updatePermission('dashboard', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    الصلاحيات التفصيلية
-                  </h3>
-
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">الموظفين</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {['view', 'create', 'edit', 'delete'].map(action => (
-                          <label key={action} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.permissions.employees[action as keyof typeof formData.permissions.employees]}
-                              onChange={(e) => updatePermission('employees', action, e.target.checked)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">المؤسسات</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {['view', 'create', 'edit', 'delete'].map(action => (
-                          <label key={action} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.permissions.companies[action as keyof typeof formData.permissions.companies]}
-                              onChange={(e) => updatePermission('companies', action, e.target.checked)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">المستخدمين</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {['view', 'create', 'edit', 'delete'].map(action => (
-                          <label key={action} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.permissions.users[action as keyof typeof formData.permissions.users]}
-                              onChange={(e) => updatePermission('users', action, e.target.checked)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-gray-900">الإعدادات</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {['view', 'edit'].map(action => (
-                          <label key={action} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.permissions.settings[action as keyof typeof formData.permissions.settings]}
-                              onChange={(e) => updatePermission('settings', action, e.target.checked)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {action === 'view' ? 'عرض' : 'تعديل'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end border-t border-gray-200 pt-6">
+                <div className="flex gap-2 justify-end border-t border-gray-200 pt-3 mt-4">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                    className="px-4 py-2 text-sm border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
                     disabled={saving}
                   >
                     إلغاء
@@ -713,7 +806,7 @@ export default function Users() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-blue-400 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-5 py-2 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition disabled:from-blue-400 disabled:to-blue-400 disabled:cursor-not-allowed shadow-lg shadow-blue-500/30 font-medium"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'جاري الحفظ...' : editingUser ? 'حفظ التعديلات' : 'إضافة المستخدم'}

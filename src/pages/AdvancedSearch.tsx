@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
+import { usePermissions } from '@/utils/permissions'
+import { SearchIcon } from 'lucide-react'
 
 interface SavedSearch {
   id: string
@@ -27,6 +29,7 @@ type ViewMode = 'grid' | 'table'
 
 export default function AdvancedSearch() {
   const { user } = useAuth()
+  const { canView } = usePermissions()
   const [activeTab, setActiveTab] = useState<TabType>('employees')
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState('')
   const [companySearchQuery, setCompanySearchQuery] = useState('')
@@ -632,6 +635,21 @@ export default function AdvancedSearch() {
   useEffect(() => {
     setCurrentPage(1) // Reset to first page when tab changes
   }, [activeTab])
+
+  // التحقق من صلاحية العرض - بعد جميع الـ hooks
+  if (!canView('advancedSearch')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <SearchIcon className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   // Calculate active filters count based on active tab
   const calculateActiveFiltersCount = () => {

@@ -5,6 +5,7 @@ import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
+import { usePermissions } from '@/utils/permissions'
 
 interface EmployeeCardProps {
   employee: Employee & { company: Company }
@@ -14,6 +15,7 @@ interface EmployeeCardProps {
 }
 
 export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: EmployeeCardProps) {
+  const { canEdit, canDelete } = usePermissions()
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -430,13 +432,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 إلغاء التعديل
               </button>
             ) : (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
-              >
-                <Edit2 className="w-4 h-4" />
-                تعديل
-              </button>
+              canEdit('employees') && (
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  تعديل
+                </button>
+              )
             )}
             <button
               onClick={onClose}
@@ -549,7 +553,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
                 <input
                   type="text"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -566,7 +570,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </label>
                 <input
                   type="text"
-                  value={formData.profession}
+                  value={formData.profession || ''}
                   onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -583,7 +587,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </label>
                 <input
                   type="text"
-                  value={formData.nationality}
+                  value={formData.nationality || ''}
                   onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -631,7 +635,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </label>
                 <input
                   type="text"
-                  value={formData.phone}
+                  value={formData.phone || ''}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -1192,14 +1196,16 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between">
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            title="حذف الموظف"
-          >
-            <X className="w-4 h-4" />
-            حذف الموظف
-          </button>
+          {canDelete('employees') && onDelete && (
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              title="حذف الموظف"
+            >
+              <X className="w-4 h-4" />
+              حذف الموظف
+            </button>
+          )}
           <div className="flex gap-3">
             <button
               onClick={onClose}

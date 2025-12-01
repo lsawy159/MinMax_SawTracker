@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoCompanyStatus'
+import { usePermissions } from '@/utils/permissions'
 
 interface ExpiryStats {
   expired: number
@@ -26,6 +27,7 @@ interface SubscriptionItem {
 type TabType = 'companies' | 'employees'
 
 export default function Reports() {
+  const { canExport } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('companies')
   const [employees, setEmployees] = useState<EmployeeType[]>([])
@@ -412,13 +414,15 @@ export default function Reports() {
               <RefreshCw className="w-4 h-4" />
               تحديث البيانات
             </button>
-            <button
-              onClick={exportToExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              تصدير Excel
-            </button>
+            {canExport('reports') && (
+              <button
+                onClick={exportToExcel}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                تصدير Excel
+              </button>
+            )}
           </div>
         </div>
 

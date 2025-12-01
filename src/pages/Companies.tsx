@@ -7,6 +7,7 @@ import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
+import { usePermissions } from '@/utils/permissions'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
@@ -29,6 +30,7 @@ type ExemptionsFilter = 'all' | 'تم الاعفاء' | 'لم يتم الاعف�
 type ViewMode = 'grid' | 'table'
 
 export default function Companies() {
+  const { canCreate, canEdit, canDelete } = usePermissions()
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -652,13 +654,15 @@ export default function Companies() {
               )}
             </p>
           </div>
-          <button
-            onClick={handleAddCompany}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
-          >
-            <Building2 className="w-4 h-4" />
-            إضافة مؤسسة
-          </button>
+          {canCreate('companies') && (
+            <button
+              onClick={handleAddCompany}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <Building2 className="w-4 h-4" />
+              إضافة مؤسسة
+            </button>
+          )}
         </div>
 
         {/* Company Status Statistics Section - إحصائيات موحدة تشمل جميع الحالات */}
@@ -1168,18 +1172,22 @@ export default function Companies() {
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={() => handleEditCompany(company)}
-                                  className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition text-sm"
-                                >
-                                  تعديل
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteCompany(company)}
-                                  className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md transition text-sm"
-                                >
-                                  حذف
-                                </button>
+                                {canEdit('companies') && (
+                                  <button
+                                    onClick={() => handleEditCompany(company)}
+                                    className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition text-sm"
+                                  >
+                                    تعديل
+                                  </button>
+                                )}
+                                {canDelete('companies') && (
+                                  <button
+                                    onClick={() => handleDeleteCompany(company)}
+                                    className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md transition text-sm"
+                                  >
+                                    حذف
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>

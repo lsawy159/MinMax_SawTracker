@@ -1,17 +1,11 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Key, Cog, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Cog, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
-
-interface PermissionMatrix {
-  employees: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  companies: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  users: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  settings: { view: boolean; edit: boolean }
-}
+import { PermissionMatrix, normalizePermissions } from '@/utils/permissions'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -49,7 +43,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [isMobileOpen])
 
   // التحقق من الصلاحيات مع معالجة محسنة للمديرين
-  const hasPermission = (section: keyof PermissionMatrix, action: keyof PermissionMatrix[keyof PermissionMatrix]) => {
+  const hasPermission = (section: keyof PermissionMatrix, action: string) => {
     if (!user) {
       return false
     }
@@ -59,39 +53,38 @@ export default function Layout({ children }: { children: ReactNode }) {
       return true
     }
     
-    // للمستخدمين العاديين، تحقق من الصلاحيات المحددة مع فحص آمن
-    const permissions = user.permissions as PermissionMatrix | undefined
+    // تطبيع الصلاحيات
+    const permissions = normalizePermissions(user.permissions, user.role)
     
-    // تحقق من وجود permissions و section بشكل آمن
-    if (!permissions || !permissions[section] || typeof permissions[section] !== 'object') {
+    // تحقق من وجود section بشكل آمن
+    if (!permissions[section] || typeof permissions[section] !== 'object') {
       return false
     }
     
     // تحقق من وجود الإجراء المحدد بشكل آمن
-    const sectionPermissions = permissions[section]
+    const sectionPermissions = permissions[section] as any
     if (!sectionPermissions || typeof sectionPermissions !== 'object') {
       return false
     }
     
     // تحقق من وجود الصلاحية المحددة
-    const hasAccess = sectionPermissions[action as keyof typeof sectionPermissions]
+    const hasAccess = sectionPermissions[action]
     return Boolean(hasAccess)
   }
 
   const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: null, badge: null },
-    { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' as const }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null },
-    { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' as const }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null },
-    { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: null, badge: null },
-    { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: null, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
-    { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: null, badge: null },
-    { path: '/reports', icon: BarChart3, label: 'التقارير', permission: null, badge: null },
-    { path: '/activity-logs', icon: History, label: 'سجل النشاطات', permission: null, badge: null },
-    { path: '/import-export', icon: ArrowDownUp, label: 'استيراد/تصدير', permission: null, badge: null },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: { section: 'dashboard' as const, action: 'view' }, badge: null },
+    { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null },
+    { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null },
+    { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: { section: 'projects' as const, action: 'view' }, badge: null },
+    { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: { section: 'alerts' as const, action: 'view' }, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
+    { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: { section: 'advancedSearch' as const, action: 'view' }, badge: null },
+    { path: '/reports', icon: BarChart3, label: 'التقارير', permission: { section: 'reports' as const, action: 'view' }, badge: null },
+    { path: '/activity-logs', icon: History, label: 'سجل النشاطات', permission: { section: 'activityLogs' as const, action: 'view' }, badge: null },
+    { path: '/import-export', icon: ArrowDownUp, label: 'استيراد/تصدير', permission: { section: 'importExport' as const, action: 'view' }, badge: null },
     { path: '/security-management', icon: Shield, label: 'إدارة الأمان', permission: null, adminOnly: true, badge: null },
-    { path: '/permissions-management', icon: Key, label: 'إدارة الأذونات', permission: null, adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: null, adminOnly: true, badge: null },
-    { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: null, adminOnly: true, badge: null },
+    { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, adminOnly: true, badge: null },
     { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: null, adminOnly: true, badge: null },
     { path: '/general-settings', icon: Cog, label: 'الإعدادات العامة', permission: null, adminOnly: true, badge: null },
   ]
@@ -182,7 +175,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   }
                   // التحقق من الصلاحيات العادية
                   return !item.permission || 
-                    hasPermission(item.permission.section, item.permission.action)
+                    hasPermission(item.permission.section, item.permission.action as string)
                 })
                 .map(item => {
                   const Icon = item.icon
