@@ -242,10 +242,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // تحديث last_login عند تسجيل الدخول (فقط عند SIGNED_IN)
             if (event === 'SIGNED_IN') {
               // تحديث last_login في جدول users
-              supabase
+              void               void Promise.resolve(supabase
                 .from('users')
                 .update({ last_login: new Date().toISOString() })
-                .eq('id', newSession.user.id)
+                .eq('id', newSession.user.id))
                 .then(({ error }) => {
                   if (error) {
                     console.warn('[Auth] Failed to update last_login:', error)
@@ -263,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               })
 
               // تسجيل تسجيل الدخول في activity_log
-              supabase
+              void Promise.resolve(supabase
                 .from('activity_log')
                 .insert({
                   user_id: newSession.user.id,
@@ -280,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   operation_status: 'success',
                   affected_rows: 1,
                   created_at: new Date().toISOString()
-                })
+                }))
                 .then(({ error }) => {
                   if (error) {
                     console.warn('[Auth] Failed to log login activity:', error)
@@ -313,11 +313,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             // تحديث last_login للجلسة الأولية (إذا لم يتم تحديثه مؤخراً)
             // نتحقق من أن last_login ليس حديثاً (أقل من دقيقة) لتجنب التحديث المتكرر
-            supabase
+            void Promise.resolve(supabase
               .from('users')
               .select('last_login')
               .eq('id', newSession.user.id)
-              .single()
+              .single())
               .then(({ data: userData }) => {
                 if (userData) {
                   const lastLogin = userData.last_login ? new Date(userData.last_login) : null
@@ -326,16 +326,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   
                   // تحديث فقط إذا كان last_login قديم (أكثر من 5 دقائق) أو غير موجود
                   if (!lastLogin || minutesSinceLastLogin > 5) {
-                    supabase
+                    void Promise.resolve(supabase
                       .from('users')
                       .update({ last_login: now.toISOString() })
-                      .eq('id', newSession.user.id)
+                      .eq('id', newSession.user.id))
                       .then(({ error }) => {
                         if (error) {
                           console.warn('[Auth] Failed to update last_login for initial session:', error)
                         } else {
                           console.log('[Auth] last_login updated for initial session')
                         }
+                      })
+                      .catch(err => {
+                        console.warn('[Auth] Error updating last_login for initial session:', err)
                       })
                   }
                 }
