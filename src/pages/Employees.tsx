@@ -60,12 +60,74 @@ export default function Employees() {
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const companyDropdownRef = useRef<HTMLDivElement>(null)
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadEmployeesRef = useRef<() => Promise<void>>()
   
   // Sort states
   const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const loadEmployees = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*, company:companies(*), project:projects(*)')
+        .order('name')
+
+      if (error) throw error
+      
+      const employeesData = data || []
+      setEmployees(employeesData)
+      
+      // استخراج القوائم الفريدة للفلاتر
+      const uniqueCompanies = [...new Set(employeesData.map(e => e.company?.name).filter(Boolean))] as string[]
+      const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
+      const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
+      
+      // بناء قائمة المؤسسات مع IDs و unified_number
+      const companiesMap = new Map<string, { name: string; unified_number?: number }>()
+      employeesData.forEach(emp => {
+        if (emp.company?.id && emp.company?.name) {
+          if (!companiesMap.has(emp.company.id)) {
+            companiesMap.set(emp.company.id, {
+              name: emp.company.name,
+              unified_number: emp.company.unified_number
+            })
+          }
+        }
+      })
+      const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, data]) => ({
+        id,
+        name: data.name,
+        unified_number: data.unified_number
+      }))
+      setCompaniesWithIds(companiesWithIdsList.sort((a, b) => a.name.localeCompare(b.name)))
+      
+      // تحميل المشاريع من جدول projects
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .order('name')
+
+      if (!projectsError && projectsData) {
+        const projectNames = projectsData.map(p => p.name).filter(Boolean)
+        setProjects(projectNames.sort())
+      } else {
+        // Fallback: استخراج من project_name القديم إذا فشل تحميل المشاريع
+        const uniqueProjects = [...new Set(employeesData.map(e => e.project?.name || e.project_name).filter(Boolean))] as string[]
+        setProjects(uniqueProjects.sort())
+      }
+      
+      setCompanies(uniqueCompanies.sort())
+      setNationalities(uniqueNationalities.sort())
+      setProfessions(uniqueProfessions.sort())
+    } catch (error) {
+      console.error('Error loading employees:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // حفظ loadEmployees في ref
   useEffect(() => {
@@ -206,68 +268,6 @@ export default function Employees() {
         break
     }
   }
-
-  const loadEmployees = useCallback(async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*, company:companies(*), project:projects(*)')
-        .order('name')
-
-      if (error) throw error
-      
-      const employeesData = data || []
-      setEmployees(employeesData)
-      
-      // استخراج القوائم الفريدة للفلاتر
-      const uniqueCompanies = [...new Set(employeesData.map(e => e.company?.name).filter(Boolean))] as string[]
-      const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
-      const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
-      
-      // بناء قائمة المؤسسات مع IDs و unified_number
-      const companiesMap = new Map<string, { name: string; unified_number?: number }>()
-      employeesData.forEach(emp => {
-        if (emp.company?.id && emp.company?.name) {
-          if (!companiesMap.has(emp.company.id)) {
-            companiesMap.set(emp.company.id, {
-              name: emp.company.name,
-              unified_number: emp.company.unified_number
-            })
-          }
-        }
-      })
-      const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, data]) => ({
-        id,
-        name: data.name,
-        unified_number: data.unified_number
-      }))
-      setCompaniesWithIds(companiesWithIdsList.sort((a, b) => a.name.localeCompare(b.name)))
-      
-      // تحميل المشاريع من جدول projects
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select('id, name')
-        .order('name')
-
-      if (!projectsError && projectsData) {
-        const projectNames = projectsData.map(p => p.name).filter(Boolean)
-        setProjects(projectNames.sort())
-      } else {
-        // Fallback: استخراج من project_name القديم إذا فشل تحميل المشاريع
-        const uniqueProjects = [...new Set(employeesData.map(e => e.project?.name || e.project_name).filter(Boolean))] as string[]
-        setProjects(uniqueProjects.sort())
-      }
-      
-      setCompanies(uniqueCompanies.sort())
-      setNationalities(uniqueNationalities.sort())
-      setProfessions(uniqueProfessions.sort())
-    } catch (error) {
-      console.error('Error loading employees:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   const getDaysRemaining = (date: string) => {
     return differenceInDays(new Date(date), new Date())
