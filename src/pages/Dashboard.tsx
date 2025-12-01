@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase, Employee, Company } from '@/lib/supabase'
-import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell, TrendingUp, FileText, Shield } from 'lucide-react'
+import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, MapPin, Bell, TrendingUp, FileText, Shield, LayoutDashboard } from 'lucide-react'
 import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
@@ -30,6 +30,7 @@ import {
   filterEmployeeAlertsByType,
   type EmployeeAlert
 } from '@/utils/employeeAlerts'
+import { usePermissions } from '@/utils/permissions'
 
 interface Stats {
   totalEmployees: number
@@ -91,6 +92,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const { canView } = usePermissions()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,7 +103,6 @@ export default function Dashboard() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
   const navigate = useNavigate()
-
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     totalCompanies: 0,
@@ -165,6 +166,24 @@ export default function Dashboard() {
     // Load critical data first (basic stats)
     fetchBasicData()
     loadReadAlerts()
+    
+    // استماع لأحداث تحديث البيانات لتحديث الإحصائيات
+    const handleCompanyUpdated = () => {
+      fetchBasicData()
+    }
+    
+    const handleEmployeeUpdated = () => {
+      fetchBasicData()
+    }
+    
+    window.addEventListener('companyUpdated', handleCompanyUpdated)
+    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('companyUpdated', handleCompanyUpdated)
+      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -272,7 +291,15 @@ export default function Dashboard() {
     if (!expiryDate) {
       return { expired: 0, urgent7: 0, urgent30: 0, medium45: 0, valid45Plus: 0 }
     }
-    const diff = differenceInDays(new Date(expiryDate), today)
+    
+    // إعادة تعيين الوقت لضمان المقارنة الصحيحة
+    const expiry = new Date(expiryDate)
+    const todayNormalized = new Date(today)
+    todayNormalized.setHours(0, 0, 0, 0)
+    expiry.setHours(0, 0, 0, 0)
+    
+    const diff = differenceInDays(expiry, todayNormalized)
+    
     if (diff < 0) {
       return { expired: 1, urgent7: 0, urgent30: 0, medium45: 0, valid45Plus: 0 }
     } else if (diff <= 7) {
@@ -612,6 +639,21 @@ export default function Dashboard() {
     employeeAlerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length,
     [employeeAlerts]
   )
+
+  // التحقق من صلاحية العرض - بعد جميع الـ hooks
+  if (!canView('dashboard')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>

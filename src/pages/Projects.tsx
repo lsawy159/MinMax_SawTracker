@@ -7,6 +7,7 @@ import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
 import ProjectStatistics from '@/components/projects/ProjectStatistics'
 import { FolderKanban, Plus, Search, Edit2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/utils/permissions'
 
 type SortField = 'name' | 'created_at' | 'status' | 'employee_count' | 'total_salaries'
 type SortDirection = 'asc' | 'desc'
@@ -14,6 +15,7 @@ type ProjectStatus = 'all' | 'active' | 'inactive' | 'completed'
 type ActiveTab = 'list' | 'statistics'
 
 export default function Projects() {
+  const { canCreate, canEdit, canDelete } = usePermissions()
   const [projects, setProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [filteredProjects, setFilteredProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -225,7 +227,7 @@ export default function Projects() {
             <FolderKanban className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
           </div>
-          {activeTab === 'list' && (
+          {activeTab === 'list' && canCreate('projects') && (
             <button
               onClick={handleAddProject}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -328,12 +330,14 @@ export default function Projects() {
                 {searchTerm || statusFilter !== 'all' ? (
                   <p className="text-sm text-gray-500 mt-2">جرب تغيير الفلاتر</p>
                 ) : (
-                  <button
-                    onClick={handleAddProject}
-                    className="mt-4 text-blue-600 hover:text-blue-700"
-                  >
-                    إضافة مشروع جديد
-                  </button>
+                  canCreate('projects') && (
+                    <button
+                      onClick={handleAddProject}
+                      className="mt-4 text-blue-600 hover:text-blue-700"
+                    >
+                      إضافة مشروع جديد
+                    </button>
+                  )
                 )}
               </div>
             ) : (

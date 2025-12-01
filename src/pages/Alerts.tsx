@@ -23,6 +23,7 @@ import Layout from '@/components/layout/Layout'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
+import { usePermissions } from '@/utils/permissions'
 
 interface AlertsProps {
   initialTab?: 'companies' | 'employees' | 'all'
@@ -30,6 +31,7 @@ interface AlertsProps {
 }
 
 export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: AlertsProps) {
+  const { canView } = usePermissions()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,6 +56,21 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     fetchData()
     loadReadAlerts()
   }, [])
+
+  // التحقق من صلاحية العرض - بعد جميع الـ hooks
+  if (!canView('alerts')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Bell className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   // جلب التنبيهات المقروءة من قاعدة البيانات
   const loadReadAlerts = async () => {

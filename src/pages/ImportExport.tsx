@@ -4,10 +4,12 @@ import { FileDown, FileUp, FileText, Download, Upload } from 'lucide-react'
 import ExportTab from '@/components/import-export/ExportTab'
 import ImportTab from '@/components/import-export/ImportTab'
 import TemplatesTab from '@/components/import-export/TemplatesTab'
+import { usePermissions } from '@/utils/permissions'
 
 type TabType = 'export' | 'import' | 'templates'
 
 export default function ImportExport() {
+  const { canImport, canExport } = usePermissions()
   const [activeTab, setActiveTab] = useState<TabType>('export')
 
   const tabs = [
@@ -50,7 +52,7 @@ export default function ImportExport() {
 
         {/* Tabs Navigation - Modern Interactive Buttons */}
         <div className="flex gap-4 mb-6">
-          {tabs.map((tab) => {
+          {tabs.filter(tab => !tab.requiresPermission || tab.requiresPermission).map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
             const colorClass = tab.color as 'blue' | 'green' | 'purple'
@@ -99,8 +101,8 @@ export default function ImportExport() {
 
         {/* Tab Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          {activeTab === 'export' && <ExportTab />}
-          {activeTab === 'import' && <ImportTab />}
+          {activeTab === 'export' && canExport('importExport') && <ExportTab />}
+          {activeTab === 'import' && canImport('importExport') && <ImportTab />}
           {activeTab === 'templates' && <TemplatesTab />}
         </div>
       </div>

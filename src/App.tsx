@@ -22,7 +22,6 @@ const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const SecurityManagement = lazy(() => import('./pages/SecurityManagement'))
-const PermissionsManagement = lazy(() => import('./pages/PermissionsManagement'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const EnhancedAlertsTestPage = lazy(() => import('./pages/EnhancedAlertsTestPage'))
 const CommercialRegTestPage = lazy(() => import('./pages/CommercialRegTestPage'))
@@ -188,13 +187,6 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <SecurityManagement />
-            </Suspense>
-          </ProtectedRoute>
-        } />
-        <Route path="/permissions-management" element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <PermissionsManagement />
             </Suspense>
           </ProtectedRoute>
         } />

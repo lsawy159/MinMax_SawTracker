@@ -239,11 +239,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // بيانات المستخدم يتم جلبها الآن عبر useEffect [session]
             // لا نوقف loading هنا، بل ننتظر fetchUserData
             
-            // إنشاء جلسة في user_sessions (فقط عند SIGNED_IN)
+            // تحديث last_login عند تسجيل الدخول (فقط عند SIGNED_IN)
             if (event === 'SIGNED_IN') {
+              // تحديث last_login في جدول users
+              supabase
+                .from('users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', newSession.user.id)
+                .then(({ error }) => {
+                  if (error) {
+                    console.warn('[Auth] Failed to update last_login:', error)
+                  } else {
+                    console.log('[Auth] last_login updated successfully')
+                  }
+                })
+                .catch(err => {
+                  console.warn('[Auth] Error updating last_login:', err)
+                })
+              
+              // إنشاء جلسة في user_sessions
               createUserSession(newSession.user.id, newSession).catch(err => {
                 console.warn('[Auth] Failed to create session (non-critical):', err)
               })
+
+              // تسجيل تسجيل الدخول في activity_log
+              supabase
+                .from('activity_log')
+                .insert({
+                  user_id: newSession.user.id,
+                  action: 'login',
+                  entity_type: 'user',
+                  entity_id: newSession.user.id,
+                  operation: 'login',
+                  details: {
+                    email: newSession.user.email,
+                    timestamp: new Date().toISOString()
+                  },
+                  ip_address: null, // سيتم ملؤه من Edge Function إذا كان متاحاً
+                  user_agent: navigator.userAgent,
+                  operation_status: 'success',
+                  affected_rows: 1,
+                  created_at: new Date().toISOString()
+                })
+                .then(({ error }) => {
+                  if (error) {
+                    console.warn('[Auth] Failed to log login activity:', error)
+                  } else {
+                    console.log('[Auth] Login activity logged successfully')
+                  }
+                })
+                .catch(err => {
+                  console.warn('[Auth] Error logging login activity:', err)
+                })
             }
           } else {
             setLoading(false)
@@ -258,10 +305,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           // إذا كان هناك session، نترك loading كما هو حتى يكتمل fetchUserData
           
+          // تحديث last_login للجلسة الأولية (فقط إذا لم يتم التحقق من قبل)
           // إنشاء جلسة في user_sessions للجلسة الأولية (فقط إذا لم تكن موجودة)
           // لا حاجة للتحقق هنا لأن createUserSession تتحقق من ذلك داخلياً
           if (newSession && !initialSessionCheckedRef.current) {
             initialSessionCheckedRef.current = true
+            
+            // تحديث last_login للجلسة الأولية (إذا لم يتم تحديثه مؤخراً)
+            // نتحقق من أن last_login ليس حديثاً (أقل من دقيقة) لتجنب التحديث المتكرر
+            supabase
+              .from('users')
+              .select('last_login')
+              .eq('id', newSession.user.id)
+              .single()
+              .then(({ data: userData }) => {
+                if (userData) {
+                  const lastLogin = userData.last_login ? new Date(userData.last_login) : null
+                  const now = new Date()
+                  const minutesSinceLastLogin = lastLogin ? (now.getTime() - lastLogin.getTime()) / (1000 * 60) : Infinity
+                  
+                  // تحديث فقط إذا كان last_login قديم (أكثر من 5 دقائق) أو غير موجود
+                  if (!lastLogin || minutesSinceLastLogin > 5) {
+                    supabase
+                      .from('users')
+                      .update({ last_login: now.toISOString() })
+                      .eq('id', newSession.user.id)
+                      .then(({ error }) => {
+                        if (error) {
+                          console.warn('[Auth] Failed to update last_login for initial session:', error)
+                        } else {
+                          console.log('[Auth] last_login updated for initial session')
+                        }
+                      })
+                  }
+                }
+              })
+              .catch(err => {
+                console.warn('[Auth] Error checking/updating last_login for initial session:', err)
+              })
+            
             createUserSession(newSession.user.id, newSession).catch(err => {
               console.warn('[Auth] Failed to create session (non-critical):', err)
             })

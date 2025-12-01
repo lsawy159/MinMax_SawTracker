@@ -1,5 +1,6 @@
 import { FolderKanban, Edit2, Trash2, Users, DollarSign } from 'lucide-react'
 import { Project } from '@/lib/supabase'
+import { usePermissions } from '@/utils/permissions'
 
 interface ProjectCardProps {
   project: Project & {
@@ -12,6 +13,7 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onEdit, onDelete, onView }: ProjectCardProps) {
+  const { canEdit, canDelete } = usePermissions()
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -52,20 +54,24 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
             {getStatusText(project.status || 'active')}
           </span>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => onEdit(project)}
-              className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
-              title="تعديل المشروع"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onDelete(project)}
-              className="p-1 text-red-600 hover:bg-red-100 rounded-md transition"
-              title="حذف المشروع"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {canEdit('projects') && (
+              <button
+                onClick={() => onEdit(project)}
+                className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                title="تعديل المشروع"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
+            {canDelete('projects') && (
+              <button
+                onClick={() => onDelete(project)}
+                className="p-1 text-red-600 hover:bg-red-100 rounded-md transition"
+                title="حذف المشروع"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

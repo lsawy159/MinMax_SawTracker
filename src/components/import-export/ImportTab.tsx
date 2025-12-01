@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { FileUp, AlertCircle, CheckCircle, XCircle, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import { parseDate, normalizeDate } from '@/utils/dateParser'
+import { formatDateShortWithHijri, formatDateDDMMMYYYY } from '@/utils/dateFormatter'
 
 interface ValidationError {
   row: number
@@ -56,7 +58,13 @@ const COMPANY_COLUMNS_ORDER = [
   'الملاحظات'
 ]
 
-export default function ImportTab() {
+interface ImportTabProps {
+  initialImportType?: 'employees' | 'companies'
+  onImportSuccess?: () => void
+  isInModal?: boolean // تحديد ما إذا كان المكون داخل modal
+}
+
+export default function ImportTab({ initialImportType = 'employees', onImportSuccess, isInModal = false }: ImportTabProps = {}) {
   const [file, setFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [validating, setValidating] = useState(false)
@@ -75,6 +83,11 @@ export default function ImportTab() {
   const [deleteMode, setDeleteMode] = useState<'all' | 'matching'>('all')
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingImport, setPendingImport] = useState<(() => void) | null>(null)
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
+  const [isImportCancelled, setIsImportCancelled] = useState(false)
+  const [importedIds, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
+  const cancelImportRef = useRef(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -91,6 +104,22 @@ export default function ImportTab() {
       setColumnValidationError(null)
       setSelectedRows(new Set())
       setShouldDeleteBeforeImport(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setFile(null)
+    setValidationResults([])
+    setPreviewData([])
+    setImportResult(null)
+    setCurrentPage(1)
+    setColumnValidationError(null)
+    setSelectedRows(new Set())
+    setShouldDeleteBeforeImport(false)
+    // إعادة تعيين input file
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ''
     }
   }
 
@@ -270,13 +299,46 @@ export default function ImportTab() {
     if (importType === 'employees') {
       // ترتيب الأعمدة حسب EMPLOYEE_COLUMNS_ORDER - عرض الأعمدة المطلوبة فقط
       const ordered: string[] = []
+      // الأعمدة التي نريد إخفاءها من العرض (لأنها طويلة أو غير ضرورية للعرض)
+      const hiddenColumnNames = ['الشركة أو المؤسسة', 'رابط صورة الإقامة']
+      
+      // دالة للتحقق من أن العمود مخفي
+      const isColumnHidden = (columnName: string): boolean => {
+        const normalized = normalizeColumnName(columnName)
+        // إخفاء أي عمود يحتوي على "صورة" و "إقامة"
+        if (normalized.includes('صورة') && normalized.includes('إقامة')) {
+          return true
+        }
+        // إخفاء الأعمدة المحددة
+        return hiddenColumnNames.some(hidden => {
+          const normalizedHidden = normalizeColumnName(hidden)
+          return columnName === hidden || normalized === normalizedHidden
+        })
+      }
 
-      // إضافة الأعمدة المطلوبة بالترتيب المحدد فقط
+      // إضافة الأعمدة المطلوبة بالترتيب المحدد فقط (باستثناء المخفية)
       EMPLOYEE_COLUMNS_ORDER.forEach(col => {
-        if (dataColumns.includes(col)) {
-          ordered.push(col)
+        // التحقق من أن العمود موجود في البيانات
+        const existsInData = dataColumns.includes(col) || 
+                            dataColumns.some(dc => normalizeColumnName(dc) === normalizeColumnName(col))
+        
+        // التحقق من أن العمود غير مخفي
+        const isHidden = isColumnHidden(col)
+        
+        if (existsInData && !isHidden) {
+          // إضافة الاسم من البيانات الفعلية
+          const actualName = dataColumns.find(dc => 
+            dc === col || normalizeColumnName(dc) === normalizeColumnName(col)
+          ) || col
+          
+          if (!isColumnHidden(actualName)) {
+            ordered.push(actualName)
+          }
         }
       })
+      
+      // التأكد من إزالة أي أعمدة مخفية قد تكون تبقيت
+      return ordered.filter(col => !isColumnHidden(col))
 
       // إرجاع الأعمدة المطلوبة فقط، بدون أي أعمدة إضافية
       return ordered
@@ -372,11 +434,126 @@ export default function ImportTab() {
         }
       }
       
-      // قراءة البيانات مع ضمان قراءة جميع الأعمدة حتى الفارغة
+      // تحديد أعمدة التواريخ
+      const dateColumns = [
+        'تاريخ الميلاد',
+        'تاريخ الالتحاق',
+        'تاريخ انتهاء الإقامة',
+        'تاريخ انتهاء العقد',
+        'تاريخ انتهاء عقد أجير',
+        'تاريخ انتهاء التأمين الصحي'
+      ]
+      
+      // الحصول على indices الأعمدة للتواريخ بناءً على excelColumns
+      const dateColumnIndices: { [key: string]: number } = {}
+      excelColumns.forEach((col, index) => {
+        if (dateColumns.includes(col)) {
+          dateColumnIndices[col] = index
+        }
+      })
+      
+      // دالة لقراءة التاريخ من خلية Excel بشكل صحيح
+      const readDateFromCell = (cell: XLSX.CellObject | undefined): string => {
+        if (!cell) return ''
+        
+        // إذا كان هناك نص منسق (cell.w)، استخدمه مباشرة - هذا هو النص المعروض في Excel
+        if (cell.w) {
+          const formattedText = String(cell.w).trim()
+          // التحقق من أن النص ليس فارغاً أو مساوياً لقيمة افتراضية
+          if (formattedText && formattedText !== '#N/A' && formattedText !== '#VALUE!') {
+            return formattedText
+          }
+        }
+        
+        // إذا كانت القيمة رقم تسلسلي (Excel date serial number)
+        if (cell.t === 'n' && typeof cell.v === 'number') {
+          // التحقق من أن الرقم ضمن نطاق تاريخ Excel المعقول
+          if (cell.v > 0 && cell.v < 1000000) {
+            try {
+              // تحويل الرقم التسلسلي إلى تاريخ
+              const excelEpoch = new Date(1900, 0, 1)
+              const days = Math.floor(cell.v) - 2 // Excel incorrectly treats 1900 as leap year
+              const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000)
+              
+              // التحقق من أن التاريخ صحيح
+              if (!isNaN(date.getTime())) {
+                const year = date.getFullYear()
+                // التحقق من أن السنة منطقية (بين 1900 و 2100)
+                if (year >= 1900 && year <= 2100) {
+                  // تنسيق التاريخ بصيغة DD-Mon-YYYY
+                  const day = String(date.getDate()).padStart(2, '0')
+                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                  const month = monthNames[date.getMonth()]
+                  return `${day}-${month}-${year}`
+                }
+              }
+            } catch (e) {
+              console.warn('Error converting Excel serial date:', e, 'value:', cell.v)
+            }
+          }
+        }
+        
+        // إذا كانت القيمة نص، استخدمها مباشرة
+        if (cell.v !== undefined && cell.v !== null) {
+          const strValue = String(cell.v).trim()
+          if (strValue && strValue !== 'null' && strValue !== 'undefined') {
+            return strValue
+          }
+        }
+        
+        return ''
+      }
+      
+      // قراءة البيانات
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
         defval: '', // قيمة افتراضية للأعمدة الفارغة
         raw: false // تحويل القيم إلى strings
       })
+      
+      // معالجة التواريخ من الخلايا مباشرة للحصول على القيم الصحيحة
+      jsonData.forEach((row: any, rowIndex: number) => {
+        // rowIndex + 1 لأن الصف الأول (0) في Excel هو header row
+        const excelRowIndex = rowIndex + 1
+        
+        // معالجة كل عمود تاريخ
+        dateColumns.forEach(colName => {
+          const colIndex = dateColumnIndices[colName]
+          if (colIndex !== undefined && colIndex !== -1) {
+            // الحصول على عنوان الخلية (مثل A2, B3, إلخ)
+            const cellAddress = XLSX.utils.encode_cell({ r: excelRowIndex, c: colIndex })
+            const cell = worksheet[cellAddress]
+            
+            if (cell) {
+              // قراءة التاريخ من الخلية مباشرة
+              const dateValue = readDateFromCell(cell)
+              if (dateValue) {
+                // استبدال القيمة في jsonData بالقيمة الصحيحة من الخلية
+                row[colName] = dateValue
+              } else if (row[colName]) {
+                // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
+                row[colName] = String(row[colName] || '').trim()
+              } else {
+                row[colName] = ''
+              }
+            } else if (row[colName]) {
+              // إذا لم تكن هناك خلية، احتفظ بالقيمة من jsonData
+              row[colName] = String(row[colName] || '').trim()
+            } else {
+              row[colName] = ''
+            }
+          }
+        })
+      })
+      
+      // Debug: طباعة عينة من التواريخ للتحقق
+      if (jsonData.length > 0) {
+        console.log('🔍 Sample dates from first row:')
+        dateColumns.forEach(col => {
+          if (jsonData[0][col]) {
+            console.log(`  ${col}: "${jsonData[0][col]}"`)
+          }
+        })
+      }
 
       // Debug: طباعة الأعمدة للتحقق
       console.log('🔍 Excel Columns (from header):', excelColumns)
@@ -430,6 +607,28 @@ export default function ImportTab() {
           }
         })
 
+        // Load existing residence numbers from database for duplicate check
+        const { data: existingEmployees } = await supabase.from('employees').select('residence_number')
+        const existingResidenceNumbers = new Set<string>()
+        existingEmployees?.forEach(emp => {
+          if (emp.residence_number) {
+            existingResidenceNumbers.add(emp.residence_number.toString().trim())
+          }
+        })
+
+        // Track residence numbers in the sheet to detect duplicates within the sheet
+        const residenceNumberMap = new Map<string, number[]>() // residence_number -> array of row indices
+
+        jsonData.forEach((row: any, index: number) => {
+          const residenceNumber = row['رقم الإقامة']?.toString().trim()
+          if (residenceNumber) {
+            if (!residenceNumberMap.has(residenceNumber)) {
+              residenceNumberMap.set(residenceNumber, [])
+            }
+            residenceNumberMap.get(residenceNumber)!.push(index)
+          }
+        })
+
         jsonData.forEach((row: any, index: number) => {
           const rowNum = index + 2 // Excel row number (1 is header)
           
@@ -469,13 +668,35 @@ export default function ImportTab() {
           }
 
           // Residence validation (required)
-          if (!row['رقم الإقامة'] || !row['رقم الإقامة'].toString().trim()) {
+          const residenceNumber = row['رقم الإقامة']?.toString().trim()
+          if (!residenceNumber) {
             errors.push({
               row: rowNum,
               field: 'رقم الإقامة',
               message: 'رقم الإقامة مطلوب',
               severity: 'error'
             })
+          } else {
+            // Check for duplicates within the sheet
+            const duplicateIndices = residenceNumberMap.get(residenceNumber) || []
+            if (duplicateIndices.length > 1 && duplicateIndices.indexOf(index) !== duplicateIndices[0]) {
+              // This is a duplicate in the sheet (not the first occurrence)
+              errors.push({
+                row: rowNum,
+                field: 'رقم الإقامة',
+                message: `رقم الإقامة مكرر في الصف ${duplicateIndices[0] + 2}. سيتم استيراد الصف الأول فقط.`,
+                severity: 'error'
+              })
+            } else if (existingResidenceNumbers.has(residenceNumber)) {
+              // Check if already exists in database - this is a warning, not an error
+              // The import will proceed and update the existing employee
+              errors.push({
+                row: rowNum,
+                field: 'رقم الإقامة',
+                message: 'رقم الإقامة موجود بالفعل في النظام. سيتم تحديث بيانات الموظف الحالي.',
+                severity: 'warning'
+              })
+            }
           }
 
           // Mobile validation
@@ -491,42 +712,27 @@ export default function ImportTab() {
             }
           }
 
-          // Date validation
-          if (row['تاريخ الميلاد']) {
-            const birthDate = new Date(row['تاريخ الميلاد'])
-            if (isNaN(birthDate.getTime())) {
-              errors.push({
-                row: rowNum,
-                field: 'تاريخ الميلاد',
-                message: 'تاريخ الميلاد غير صحيح',
-                severity: 'error'
-              })
-            }
-          }
+          // Date validation using parseDate
+          const dateFields = [
+            'تاريخ الميلاد',
+            'تاريخ الالتحاق',
+            'تاريخ انتهاء الإقامة',
+            'تاريخ انتهاء العقد',
+            'تاريخ انتهاء عقد أجير',
+            'تاريخ انتهاء التأمين الصحي'
+          ]
 
-          // Date validation for joining date
-          if (row['تاريخ الالتحاق']) {
-            const joiningDate = new Date(row['تاريخ الالتحاق'])
-            if (isNaN(joiningDate.getTime())) {
-              errors.push({
-                row: rowNum,
-                field: 'تاريخ الالتحاق',
-                message: 'تاريخ الالتحاق غير صحيح',
-                severity: 'error'
-              })
-            }
-          }
-
-          // Date validation for residence expiry
-          if (row['تاريخ انتهاء الإقامة']) {
-            const residenceExpiry = new Date(row['تاريخ انتهاء الإقامة'])
-            if (isNaN(residenceExpiry.getTime())) {
-              errors.push({
-                row: rowNum,
-                field: 'تاريخ انتهاء الإقامة',
-                message: 'تاريخ انتهاء الإقامة غير صحيح',
-                severity: 'error'
-              })
+          for (const field of dateFields) {
+            if (row[field]) {
+              const result = parseDate(row[field])
+              if (!result.date) {
+                errors.push({
+                  row: rowNum,
+                  field: field,
+                  message: result.error || `${field} غير صحيح`,
+                  severity: 'error'
+                })
+              }
             }
           }
         })
@@ -568,6 +774,11 @@ export default function ImportTab() {
         toast.success(`✓ تم التحقق من ${jsonData.length} سجل بنجاح`)
       } else {
         toast.warning(`تم العثور على ${errors.filter(e => e.severity === 'error').length} خطأ`)
+      }
+
+      // فتح modal المعاينة إذا كانت هناك بيانات للعرض وليس هناك أخطاء في الأعمدة
+      if (jsonData.length > 0 && !columnValidationError) {
+        setShowPreviewModal(true)
       }
     } catch (error) {
       console.error('Validation error:', error)
@@ -679,8 +890,30 @@ export default function ImportTab() {
   }
 
   const importData = async () => {
-    if (!file || validationResults.filter(e => e.severity === 'error').length > 0) {
-      toast.error('يرجى إصلاح الأخطاء أولاً')
+    if (!file) {
+      toast.error('يرجى اختيار ملف أولاً')
+      return
+    }
+    
+    // التحقق من الأخطاء في الصفوف المحددة فقط
+    let errorsInSelectedRows = 0
+    if (selectedRows.size > 0) {
+      selectedRows.forEach(rowIndex => {
+        const excelRowNumber = rowIndex + 2
+        const rowErrors = validationResults.filter(
+          e => e.row === excelRowNumber && e.severity === 'error'
+        )
+        errorsInSelectedRows += rowErrors.length
+      })
+    } else {
+      // إذا لم تكن هناك صفوف محددة، تحقق من جميع الأخطاء
+      errorsInSelectedRows = validationResults.filter(e => e.severity === 'error').length
+    }
+    
+    if (errorsInSelectedRows > 0 && selectedRows.size > 0) {
+      toast.warning(`يوجد ${errorsInSelectedRows} خطأ في الصفوف المحددة. سيتم استيراد الصفوف التي لا تحتوي على أخطاء فقط.`)
+    } else if (errorsInSelectedRows > 0) {
+      toast.error('يرجى إصلاح الأخطاء أولاً أو إلغاء تحديد الصفوف التي تحتوي على أخطاء')
       return
     }
 
@@ -713,6 +946,14 @@ export default function ImportTab() {
   const executeImport = async () => {
     if (!file) return
 
+    // بدء عملية الاستيراد
+    setImporting(true)
+
+    // إعادة تعيين حالة الإلغاء والسجلات المضافة
+    setIsImportCancelled(false)
+    cancelImportRef.current = false
+    setImportedIds({ employees: [], companies: [] })
+
     let successCount = 0
     let failCount = 0
 
@@ -728,17 +969,69 @@ export default function ImportTab() {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]]
       let jsonData = XLSX.utils.sheet_to_json(worksheet)
 
-      // تصفية البيانات حسب الصفوف المحددة
+      // تصفية البيانات حسب الصفوف المحددة واستبعاد الصفوف التي تحتوي على أخطاء
       if (selectedRows.size > 0) {
-        jsonData = jsonData.filter((_, index) => selectedRows.has(index))
+        jsonData = jsonData.filter((_, index) => {
+          // التحقق من أن الصف محدد
+          if (!selectedRows.has(index)) return false
+          
+          // التحقق من أن الصف لا يحتوي على أخطاء
+          const excelRowNumber = index + 2 // Excel row number (1 is header, +1 for index)
+          const rowErrors = validationResults.filter(
+            e => e.row === excelRowNumber && e.severity === 'error'
+          )
+          
+          // استبعاد الصفوف التي تحتوي على أخطاء
+          return rowErrors.length === 0
+        })
+      } else {
+        // إذا لم تكن هناك صفوف محددة، استبعد الصفوف التي تحتوي على أخطاء
+        jsonData = jsonData.filter((_, index) => {
+          const excelRowNumber = index + 2
+          const rowErrors = validationResults.filter(
+            e => e.row === excelRowNumber && e.severity === 'error'
+          )
+          return rowErrors.length === 0
+        })
       }
 
+      let duplicatesRemoved = 0
+      let uniqueJsonData = jsonData
+      
       if (importType === 'employees') {
+        // Filter duplicates within the sheet based on residence_number (keep first occurrence only)
+        const seenResidenceNumbers = new Set<string>()
+        uniqueJsonData = (jsonData as any[]).filter((row, index) => {
+          const residenceNumber = row['رقم الإقامة']?.toString().trim()
+          if (!residenceNumber) {
+            return true // Keep rows without residence number (they will fail validation anyway)
+          }
+          if (seenResidenceNumbers.has(residenceNumber)) {
+            return false // Skip duplicate
+          }
+          seenResidenceNumbers.add(residenceNumber)
+          return true
+        })
+
+        duplicatesRemoved = jsonData.length - uniqueJsonData.length
+        if (duplicatesRemoved > 0) {
+          console.log(`تم إزالة ${duplicatesRemoved} صف مكرر بناءً على رقم الإقامة`)
+        }
+
         // Get companies for lookup with unified_number
         const { data: companies } = await supabase.from('companies').select('id, name, unified_number')
         
         // Get projects for lookup
         const { data: projects } = await supabase.from('projects').select('id, name')
+        
+        // Load existing employees from database with their IDs for update operations
+        const { data: existingEmployees } = await supabase.from('employees').select('id, residence_number')
+        const existingEmployeesByResidenceNumber = new Map<string, string>() // residence_number -> employee_id
+        existingEmployees?.forEach(emp => {
+          if (emp.residence_number) {
+            existingEmployeesByResidenceNumber.set(emp.residence_number.toString().trim(), emp.id)
+          }
+        })
         
         // Create maps for lookup
         const companyMapByName = new Map<string, string[]>() // name -> array of ids (for duplicates)
@@ -769,8 +1062,24 @@ export default function ImportTab() {
             }
           }
         })
+        
+        // تحديد العدد الإجمالي للعناصر المستوردة بعد التصفية
+        const totalItems = uniqueJsonData.length
+        
+        // تهيئة شريط التقدم
+        setImportProgress({ current: 0, total: totalItems })
 
-        for (const row of jsonData as any[]) {
+        let currentIndex = 0
+        for (const row of uniqueJsonData as any[]) {
+          // التحقق من حالة الإلغاء
+          if (cancelImportRef.current) {
+            console.log('تم إلغاء الاستيراد من قبل المستخدم')
+            break
+          }
+          
+          currentIndex++
+          setImportProgress({ current: currentIndex, total: totalItems })
+          
           try {
             let companyId: string | null = null
             
@@ -854,6 +1163,26 @@ export default function ImportTab() {
               }
             }
 
+            // التحقق من أن كل حقل تاريخ يُستورد في مكانه الصحيح
+            const birthDateRaw = row['تاريخ الميلاد']
+            const joiningDateRaw = row['تاريخ الالتحاق']
+            const residenceExpiryRaw = row['تاريخ انتهاء الإقامة']
+            const contractExpiryRaw = row['تاريخ انتهاء العقد']
+            const hiredWorkerContractExpiryRaw = row['تاريخ انتهاء عقد أجير']
+            const healthInsuranceExpiryRaw = row['تاريخ انتهاء التأمين الصحي']
+            
+            // Debug: طباعة القيم الأولية للتأكد من عدم الخلط
+            if (currentIndex <= 3) { // طباعة أول 3 موظفين فقط للتحقق
+              console.log(`📋 Employee ${currentIndex} dates (raw from Excel):`, {
+                'تاريخ الميلاد': birthDateRaw,
+                'تاريخ الالتحاق': joiningDateRaw,
+                'تاريخ انتهاء الإقامة': residenceExpiryRaw,
+                'تاريخ انتهاء العقد': contractExpiryRaw,
+                'تاريخ انتهاء عقد أجير': hiredWorkerContractExpiryRaw,
+                'تاريخ انتهاء التأمين الصحي': healthInsuranceExpiryRaw
+              })
+            }
+            
             const employeeData: any = {
               name: row['الاسم'],
               profession: row['المهنة'] || null,
@@ -865,24 +1194,105 @@ export default function ImportTab() {
               salary: row['الراتب'] ? Number(row['الراتب']) : null,
               project_id: projectId,
               company_id: companyId,
-              birth_date: row['تاريخ الميلاد'] ? new Date(row['تاريخ الميلاد']).toISOString().split('T')[0] : null,
-              joining_date: row['تاريخ الالتحاق'] ? new Date(row['تاريخ الالتحاق']).toISOString().split('T')[0] : null,
-              residence_expiry: row['تاريخ انتهاء الإقامة'] ? new Date(row['تاريخ انتهاء الإقامة']).toISOString().split('T')[0] : null,
-              contract_expiry: row['تاريخ انتهاء العقد'] ? new Date(row['تاريخ انتهاء العقد']).toISOString().split('T')[0] : null,
-              hired_worker_contract_expiry: row['تاريخ انتهاء عقد أجير'] ? new Date(row['تاريخ انتهاء عقد أجير']).toISOString().split('T')[0] : null,
-              health_insurance_expiry: row['تاريخ انتهاء التأمين الصحي'] ? new Date(row['تاريخ انتهاء التأمين الصحي']).toISOString().split('T')[0] : null,
+              // التأكد من أن كل حقل تاريخ يُستورد في مكانه الصحيح
+              birth_date: normalizeDate(birthDateRaw), // تاريخ الميلاد → birth_date
+              joining_date: normalizeDate(joiningDateRaw), // تاريخ الالتحاق → joining_date
+              residence_expiry: normalizeDate(residenceExpiryRaw), // تاريخ انتهاء الإقامة → residence_expiry
+              contract_expiry: normalizeDate(contractExpiryRaw), // تاريخ انتهاء العقد → contract_expiry
+              hired_worker_contract_expiry: normalizeDate(hiredWorkerContractExpiryRaw), // تاريخ انتهاء عقد أجير → hired_worker_contract_expiry
+              health_insurance_expiry: normalizeDate(healthInsuranceExpiryRaw), // تاريخ انتهاء التأمين الصحي → health_insurance_expiry
               residence_image_url: row['رابط صورة الإقامة'] || null,
               notes: row['الملاحظات'] || null
+            }
+            
+            // Debug: طباعة القيم بعد normalizeDate للتأكد
+            if (currentIndex <= 3) {
+              console.log(`✅ Employee ${currentIndex} dates (normalized for DB):`, {
+                'birth_date': employeeData.birth_date,
+                'joining_date': employeeData.joining_date,
+                'residence_expiry': employeeData.residence_expiry,
+                'contract_expiry': employeeData.contract_expiry,
+                'hired_worker_contract_expiry': employeeData.hired_worker_contract_expiry,
+                'health_insurance_expiry': employeeData.health_insurance_expiry
+              })
             }
 
             // دعم التوافق مع الأسماء القديمة والجديدة للتأمين الصحي
             if (!employeeData.health_insurance_expiry && (row['انتهاء التأمين الصحي'] || row['انتهاء اشتراك التأمين'])) {
               const healthInsuranceExpiry = row['انتهاء التأمين الصحي'] || row['انتهاء اشتراك التأمين']
-              employeeData.health_insurance_expiry = healthInsuranceExpiry ? new Date(healthInsuranceExpiry).toISOString().split('T')[0] : null
+              employeeData.health_insurance_expiry = normalizeDate(healthInsuranceExpiry)
             }
 
-            const { error } = await supabase.from('employees').insert(employeeData)
-            if (error) throw error
+            // Check if residence number already exists - update instead of insert
+            const residenceNumberStr = employeeData.residence_number?.toString().trim()
+            let operationResult
+            
+            if (residenceNumberStr && existingEmployeesByResidenceNumber.has(residenceNumberStr)) {
+              // Update existing employee
+              const existingEmployeeId = existingEmployeesByResidenceNumber.get(residenceNumberStr)!
+              const { error: updateError } = await supabase
+                .from('employees')
+                .update(employeeData)
+                .eq('id', existingEmployeeId)
+              
+              if (updateError) {
+                throw updateError
+              }
+              operationResult = 'updated'
+            } else {
+              // Insert new employee
+              const { error: insertError } = await supabase.from('employees').insert(employeeData)
+              if (insertError) {
+                // Check if error is due to duplicate residence number (race condition)
+                if (insertError.code === '23505' || insertError.message?.includes('unique') || insertError.message?.includes('duplicate')) {
+                  // Try to update instead
+                  if (residenceNumberStr) {
+                    const { data: existingEmp } = await supabase
+                      .from('employees')
+                      .select('id')
+                      .eq('residence_number', residenceNumberStr)
+                      .single()
+                    
+                    if (existingEmp) {
+                      const { error: updateError } = await supabase
+                        .from('employees')
+                        .update(employeeData)
+                        .eq('id', existingEmp.id)
+                      
+                      if (updateError) throw updateError
+                      operationResult = 'updated'
+                    } else {
+                      throw insertError
+                    }
+                  } else {
+                    throw insertError
+                  }
+                } else {
+                  throw insertError
+                }
+              } else {
+                operationResult = 'inserted'
+                // Add to map for future checks in same batch and track for rollback
+                if (residenceNumberStr) {
+                  const { data: newEmp } = await supabase
+                    .from('employees')
+                    .select('id, residence_number')
+                    .eq('residence_number', residenceNumberStr)
+                    .single()
+                  
+                  if (newEmp) {
+                    existingEmployeesByResidenceNumber.set(residenceNumberStr, newEmp.id)
+                    // تتبع ID للموظف المضاف (لحذفه عند الإلغاء)
+                    setImportedIds(prev => ({
+                      ...prev,
+                      employees: [...prev.employees, newEmp.id]
+                    }))
+                  }
+                }
+              }
+            }
+            
+            // إذا كان التحديث، لا نضيف ID لأننا لا نريد حذف السجلات المحدثة
             successCount++
           } catch (error) {
             console.error('Error inserting employee:', error)
@@ -890,200 +1300,558 @@ export default function ImportTab() {
           }
         }
       } else if (importType === 'companies') {
+        // تحديد العدد الإجمالي للعناصر المستوردة
+        const totalItems = jsonData.length
+        
+        // تهيئة شريط التقدم
+        setImportProgress({ current: 0, total: totalItems })
+        
+        // Load existing companies for update operations
+        const { data: existingCompanies } = await supabase
+          .from('companies')
+          .select('id, unified_number, social_insurance_number, labor_subscription_number')
+        
+        // Create maps for lookup by unique identifiers
+        const companiesByUnifiedNumber = new Map<number, string>() // unified_number -> company_id
+        const companiesBySocialInsurance = new Map<string, string>() // social_insurance_number -> company_id
+        const companiesByLaborSubscription = new Map<string, string>() // labor_subscription_number -> company_id
+        
+        existingCompanies?.forEach(company => {
+          if (company.unified_number) {
+            companiesByUnifiedNumber.set(Number(company.unified_number), company.id)
+          }
+          if (company.social_insurance_number) {
+            companiesBySocialInsurance.set(company.social_insurance_number.toString().trim(), company.id)
+          }
+          if (company.labor_subscription_number) {
+            companiesByLaborSubscription.set(company.labor_subscription_number.toString().trim(), company.id)
+          }
+        })
+        
+        let currentIndex = 0
         for (const row of jsonData as any[]) {
+          // التحقق من حالة الإلغاء
+          if (cancelImportRef.current) {
+            console.log('تم إلغاء الاستيراد من قبل المستخدم')
+            break
+          }
+          
+          currentIndex++
+          setImportProgress({ current: currentIndex, total: totalItems })
+          
           try {
-            // معالجة التواريخ
-            const formatDate = (dateStr: string | undefined): string | null => {
-              if (!dateStr || !dateStr.trim()) return null
-              const trimmed = dateStr.trim()
-              if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-                return trimmed
-              }
-              try {
-                const date = new Date(trimmed)
-                if (!isNaN(date.getTime())) {
-                  return date.toISOString().split('T')[0]
-                }
-              } catch {
-                // ignore
-              }
-              return null
-            }
-
             const companyData: any = {
               name: row['اسم المؤسسة'],
               unified_number: row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null,
               social_insurance_number: row['رقم اشتراك التأمينات الاجتماعية'] || null,
               labor_subscription_number: row['رقم اشتراك قوى'] || null,
-              commercial_registration_expiry: formatDate(row['تاريخ انتهاء السجل التجاري']),
-              social_insurance_expiry: formatDate(row['تاريخ انتهاء التأمينات الاجتماعية'] || row['تاريخ انتهاء اشتراك التأمين']),
-              ending_subscription_power_date: formatDate(row['تاريخ انتهاء اشتراك قوى']),
-              ending_subscription_moqeem_date: formatDate(row['تاريخ انتهاء اشتراك مقيم']),
+              commercial_registration_expiry: normalizeDate(row['تاريخ انتهاء السجل التجاري']),
+              social_insurance_expiry: normalizeDate(row['تاريخ انتهاء التأمينات الاجتماعية'] || row['تاريخ انتهاء اشتراك التأمين']),
+              ending_subscription_power_date: normalizeDate(row['تاريخ انتهاء اشتراك قوى']),
+              ending_subscription_moqeem_date: normalizeDate(row['تاريخ انتهاء اشتراك مقيم']),
               exemptions: row['الاعفاءات'] || null,
               company_type: row['نوع المؤسسة'] || null,
               notes: row['الملاحظات'] || null,
               max_employees: 4 // القيمة الافتراضية
             }
 
-            const { error } = await supabase.from('companies').insert(companyData)
-            if (error) throw error
+            // Check for existing company by unique identifiers
+            let existingCompanyId: string | null = null
+            
+            // Priority 1: Check by unified_number
+            if (companyData.unified_number) {
+              existingCompanyId = companiesByUnifiedNumber.get(companyData.unified_number) || null
+            }
+            
+            // Priority 2: Check by social_insurance_number if not found
+            if (!existingCompanyId && companyData.social_insurance_number) {
+              const socialInsuranceStr = companyData.social_insurance_number.toString().trim()
+              existingCompanyId = companiesBySocialInsurance.get(socialInsuranceStr) || null
+            }
+            
+            // Priority 3: Check by labor_subscription_number if not found
+            if (!existingCompanyId && companyData.labor_subscription_number) {
+              const laborSubscriptionStr = companyData.labor_subscription_number.toString().trim()
+              existingCompanyId = companiesByLaborSubscription.get(laborSubscriptionStr) || null
+            }
+            
+            if (existingCompanyId) {
+              // Update existing company
+              const { error: updateError } = await supabase
+                .from('companies')
+                .update(companyData)
+                .eq('id', existingCompanyId)
+              
+              if (updateError) throw updateError
+            } else {
+              // Insert new company
+              const { error: insertError } = await supabase.from('companies').insert(companyData)
+              if (insertError) {
+                // Check if error is due to duplicate unique identifier (race condition)
+                if (insertError.code === '23505' || insertError.message?.includes('unique') || insertError.message?.includes('duplicate')) {
+                  // Try to find and update
+                  let foundCompanyId: string | null = null
+                  
+                  if (companyData.unified_number) {
+                    const { data: foundCompany } = await supabase
+                      .from('companies')
+                      .select('id')
+                      .eq('unified_number', companyData.unified_number)
+                      .single()
+                    if (foundCompany) foundCompanyId = foundCompany.id
+                  }
+                  
+                  if (!foundCompanyId && companyData.social_insurance_number) {
+                    const { data: foundCompany } = await supabase
+                      .from('companies')
+                      .select('id')
+                      .eq('social_insurance_number', companyData.social_insurance_number)
+                      .single()
+                    if (foundCompany) foundCompanyId = foundCompany.id
+                  }
+                  
+                  if (!foundCompanyId && companyData.labor_subscription_number) {
+                    const { data: foundCompany } = await supabase
+                      .from('companies')
+                      .select('id')
+                      .eq('labor_subscription_number', companyData.labor_subscription_number)
+                      .single()
+                    if (foundCompany) foundCompanyId = foundCompany.id
+                  }
+                  
+                  if (foundCompanyId) {
+                    const { error: updateError } = await supabase
+                      .from('companies')
+                      .update(companyData)
+                      .eq('id', foundCompanyId)
+                    
+                    if (updateError) throw updateError
+                  } else {
+                    throw insertError
+                  }
+                } else {
+                  throw insertError
+                }
+              } else {
+                // Add to maps for future checks in same batch
+                // Try to find the newly inserted company by its unique identifiers
+                if (companyData.unified_number) {
+                  const { data: newCompany } = await supabase
+                    .from('companies')
+                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
+                    .eq('unified_number', companyData.unified_number)
+                    .single()
+                  
+                  if (newCompany) {
+                    companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
+                    if (newCompany.social_insurance_number) {
+                      companiesBySocialInsurance.set(newCompany.social_insurance_number.toString().trim(), newCompany.id)
+                    }
+                    if (newCompany.labor_subscription_number) {
+                      companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
+                    }
+                    // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
+                    setImportedIds(prev => ({
+                      ...prev,
+                      companies: [...prev.companies, newCompany.id]
+                    }))
+                  }
+                } else if (companyData.social_insurance_number) {
+                  const { data: newCompany } = await supabase
+                    .from('companies')
+                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
+                    .eq('social_insurance_number', companyData.social_insurance_number)
+                    .single()
+                  
+                  if (newCompany) {
+                    companiesBySocialInsurance.set(companyData.social_insurance_number.toString().trim(), newCompany.id)
+                    if (newCompany.unified_number) {
+                      companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
+                    }
+                    if (newCompany.labor_subscription_number) {
+                      companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
+                    }
+                  }
+                } else if (companyData.labor_subscription_number) {
+                  const { data: newCompany } = await supabase
+                    .from('companies')
+                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
+                    .eq('labor_subscription_number', companyData.labor_subscription_number)
+                    .single()
+                  
+                  if (newCompany) {
+                    companiesByLaborSubscription.set(companyData.labor_subscription_number.toString().trim(), newCompany.id)
+                    if (newCompany.unified_number) {
+                      companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
+                    }
+                    if (newCompany.social_insurance_number) {
+                      companiesBySocialInsurance.set(newCompany.social_insurance_number.toString().trim(), newCompany.id)
+                    }
+                    // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
+                    setImportedIds(prev => ({
+                      ...prev,
+                      companies: [...prev.companies, newCompany.id]
+                    }))
+                  }
+                }
+              }
+            }
+            // إذا كان التحديث، لا نضيف ID لأننا لا نريد حذف السجلات المحدثة
             successCount++
           } catch (error) {
-            console.error('Error inserting company:', error)
+            console.error('Error inserting/updating company:', error)
             failCount++
           }
         }
       }
 
-      setImportResult({
-        total: jsonData.length,
-        success: successCount,
-        failed: failCount,
-        errors: []
-      })
+      // التحقق من حالة الإلغاء
+      if (cancelImportRef.current) {
+        // حذف السجلات المضافة في هذه الجلسة
+        await rollbackImportedData()
+        toast.warning('تم إلغاء الاستيراد وحذف السجلات المضافة')
+        const totalProcessed = importType === 'employees' ? uniqueJsonData.length : jsonData.length
+        setImportResult({
+          total: totalProcessed,
+          success: 0,
+          failed: failCount,
+          errors: []
+        })
+        // لا نستدعي onImportSuccess في حالة الإلغاء
+      } else {
+        const totalProcessed = importType === 'employees' ? uniqueJsonData.length : jsonData.length
+        
+        setImportResult({
+          total: totalProcessed,
+          success: successCount,
+          failed: failCount,
+          errors: []
+        })
 
-      if (successCount > 0) {
-        toast.success(`✓ تم استيراد ${successCount} سجل بنجاح`)
-      }
-      if (failCount > 0) {
-        toast.error(`✗ فشل استيراد ${failCount} سجل`)
+        if (successCount > 0) {
+          const duplicateMessage = duplicatesRemoved > 0 ? ` (تم استبعاد ${duplicatesRemoved} صف مكرر)` : ''
+          toast.success(`✓ تم الاستيراد بنجاح: ${successCount} ${importType === 'employees' ? 'موظف' : 'مؤسسة'}${duplicateMessage}`)
+          
+          // استدعاء callback النجاح إذا كان موجوداً (حتى لو كان هناك بعض الأخطاء)
+          if (onImportSuccess) {
+            onImportSuccess()
+          }
+          
+          // Close preview and reset after successful import
+          setTimeout(() => {
+            setShowPreviewModal(false)
+            setFile(null)
+            setPreviewData([])
+            setValidationResults([])
+            setSelectedRows(new Set())
+            setImportResult(null)
+            setCurrentPage(1)
+            setColumnValidationError(null)
+          }, 1500)
+        } else {
+          // إذا لم يكن هناك أي نجاح، لا نستدعي onImportSuccess
+          toast.error('لم يتم استيراد أي سجلات. يرجى التحقق من البيانات والمحاولة مرة أخرى.')
+        }
+        
+        if (failCount > 0) {
+          toast.error(`✗ فشل استيراد ${failCount} سجل`)
+        }
       }
     } catch (error) {
       console.error('Import error:', error)
+      // في حالة الخطأ، حاول حذف السجلات المضافة
+      if (importedIds.employees.length > 0 || importedIds.companies.length > 0) {
+        await rollbackImportedData()
+      }
       toast.error('فشل عملية الاستيراد')
     } finally {
       setImporting(false)
+      setImportProgress({ current: 0, total: 0 })
+      setIsImportCancelled(false)
+      cancelImportRef.current = false
+      setImportedIds({ employees: [], companies: [] })
+      
     }
   }
 
-  const errorCount = validationResults.filter(e => e.severity === 'error').length
+  // دالة لحذف السجلات المضافة عند الإلغاء
+  const rollbackImportedData = async () => {
+    try {
+      // حذف الموظفين المضافة
+      if (importedIds.employees.length > 0) {
+        const { error: employeesError } = await supabase
+          .from('employees')
+          .delete()
+          .in('id', importedIds.employees)
+        
+        if (employeesError) {
+          console.error('Error deleting imported employees:', employeesError)
+        } else {
+          console.log(`تم حذف ${importedIds.employees.length} موظف تم إضافتهم`)
+        }
+      }
+
+      // حذف الشركات المضافة
+      if (importedIds.companies.length > 0) {
+        const { error: companiesError } = await supabase
+          .from('companies')
+          .delete()
+          .in('id', importedIds.companies)
+        
+        if (companiesError) {
+          console.error('Error deleting imported companies:', companiesError)
+        } else {
+          console.log(`تم حذف ${importedIds.companies.length} شركة تم إضافتها`)
+        }
+      }
+    } catch (error) {
+      console.error('Error in rollback:', error)
+    }
+  }
+
+  // دالة لإلغاء الاستيراد
+  const cancelImport = async () => {
+    if (!importing) return
+    
+    cancelImportRef.current = true
+    setIsImportCancelled(true)
+    toast.info('جاري إلغاء الاستيراد وحذف السجلات المضافة...')
+  }
+
+  // حساب الأخطاء في جميع الصفوف
+  const totalErrorCount = validationResults.filter(e => e.severity === 'error').length
   const warningCount = validationResults.filter(e => e.severity === 'warning').length
+  
+  // حساب الأخطاء في الصفوف المحددة فقط
+  const getSelectedRowsErrors = (): number => {
+    if (selectedRows.size === 0) {
+      // إذا لم تكن هناك صفوف محددة، نتحقق من جميع الصفوف
+      return totalErrorCount
+    }
+    
+    // حساب الأخطاء في الصفوف المحددة فقط
+    let errorCount = 0
+    selectedRows.forEach(rowIndex => {
+      const excelRowNumber = rowIndex + 2 // Excel row number (1 is header, +1 for index)
+      const rowErrors = validationResults.filter(
+        e => e.row === excelRowNumber && e.severity === 'error'
+      )
+      if (rowErrors.length > 0) {
+        errorCount += rowErrors.length
+      }
+    })
+    return errorCount
+  }
+  
+  const selectedRowsErrorCount = getSelectedRowsErrors()
+  // إذا كانت هناك صفوف محددة، استخدم أخطاء الصفوف المحددة، وإلا استخدم جميع الأخطاء
+  const errorCount = selectedRows.size > 0 ? selectedRowsErrorCount : totalErrorCount
 
   return (
     <div className="space-y-6">
-      {/* Import Type Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">نوع البيانات المراد استيرادها</label>
-        <div className="flex gap-4">
-          <button
-            onClick={() => {
-              setImportType('employees')
-              setCurrentPage(1)
-              setSelectedRows(new Set())
-              setShouldDeleteBeforeImport(false)
-            }}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
-              importType === 'employees'
-                ? 'border-blue-600 bg-blue-50 text-blue-600'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-          >
-            موظفين
-          </button>
-          <button
-            onClick={() => {
-              setImportType('companies')
-              setCurrentPage(1)
-              setSelectedRows(new Set())
-              setShouldDeleteBeforeImport(false)
-            }}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
-              importType === 'companies'
-                ? 'border-green-600 bg-green-50 text-green-600'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-          >
-            مؤسسات
-          </button>
+      {/* Import Type Selection and Color Legend - يظهر فقط خارج الـ modal */}
+      {!isInModal && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left Column: Import Type Selection + File Upload */}
+          <div className="space-y-4">
+            {/* Import Type Selection */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">نوع البيانات المراد استيرادها</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setImportType('employees')
+                    setCurrentPage(1)
+                    setSelectedRows(new Set())
+                    setShouldDeleteBeforeImport(false)
+                  }}
+                  className={`flex-1 px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition ${
+                    importType === 'employees'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  موظفين
+                </button>
+                <button
+                  onClick={() => {
+                    setImportType('companies')
+                    setCurrentPage(1)
+                    setSelectedRows(new Set())
+                    setShouldDeleteBeforeImport(false)
+                  }}
+                  className={`flex-1 px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition ${
+                    importType === 'companies'
+                      ? 'border-green-600 bg-green-50 text-green-600'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  مؤسسات
+                </button>
+              </div>
+            </div>
+            
+            {/* File Upload Area */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition"
+            >
+              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-700 mb-1">اسحب وأفلت ملف Excel هنا</p>
+              <p className="text-xs text-gray-500 mb-3">أو انقر لتحديد ملف</p>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition text-sm"
+              >
+                <FileUp className="w-4 h-4" />
+                اختيار ملف Excel
+              </label>
+            </div>
+          </div>
+          
+          {/* Right Column: Color Legend - Always Visible */}
+          <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-2 border-b border-gray-200">
+            <h5 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+              <span>🎨</span>
+              دلالة الألوان في الجدول:
+            </h5>
+          </div>
+          <div className="px-3 py-3 bg-white">
+            <div className="grid grid-cols-1 gap-2">
+              {/* Error Color Explanation */}
+              <div className="flex items-start gap-2 p-2 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-bold text-red-800 mb-0.5 text-xs">خلفية حمراء - خطأ</div>
+                  <p className="text-[10px] text-red-700 leading-tight">
+                    حقول مطلوبة أو غير صحيحة. يجب إصلاحها قبل الاستيراد.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Warning Color Explanation */}
+              <div className="flex items-start gap-2 p-2 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-bold text-yellow-800 mb-0.5 text-xs">خلفية صفراء - تحذير</div>
+                  <p className="text-[10px] text-yellow-700 leading-tight">
+                    بيانات قد تحتاج مراجعة. لا تمنع الاستيراد.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Empty Cell Explanation */}
+              <div className="flex items-start gap-2 p-2 bg-white border-l-4 border-gray-300 rounded-lg">
+                <div className="w-4 h-4 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                  <span className="text-red-600 font-bold text-xs">!</span>
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-gray-800 mb-0.5 text-xs">حقل فارغ</div>
+                  <p className="text-[10px] text-gray-700 leading-tight">
+                    يظهر النص "<span className="font-bold text-red-600">غير موجود</span>" بخط أحمر Bold بدون خلفية.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      )}
 
-      {/* File Upload Area */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition"
-      >
-        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-lg font-medium text-gray-700 mb-2">اسحب وأفلت ملف Excel هنا</p>
-        <p className="text-sm text-gray-500 mb-4">أو انقر لتحديد ملف</p>
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileChange}
-          className="hidden"
-          id="file-upload"
-        />
-        <label
-          htmlFor="file-upload"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition"
-        >
-          <FileUp className="w-5 h-5" />
-          اختيار ملف Excel
-        </label>
-      </div>
-
-      {/* Selected File */}
-      {file && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      {/* Selected File - يظهر فقط خارج الـ modal */}
+      {!isInModal && file && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-3 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <FileUp className="w-6 h-6 text-blue-600" />
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                <FileUp className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <div className="font-medium text-blue-900">{file.name}</div>
-                <div className="text-sm text-blue-700">{(file.size / 1024).toFixed(2)} KB</div>
+                <div className="font-bold text-blue-900 text-sm mb-0.5">{file.name}</div>
+                <div className="text-xs text-blue-700 font-medium flex items-center gap-1">
+                  <span>📁</span>
+                  <span>{(file.size / 1024).toFixed(2)} KB</span>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={validateData}
                 disabled={validating}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition"
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-1.5"
               >
-                {validating ? 'جارٍ التحقق...' : 'التحقق من البيانات'}
+                {validating ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span>
+                    <span>جارٍ التحقق...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>التحقق من البيانات</span>
+                  </>
+                )}
               </button>
               <button
-                onClick={() => setFile(null)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                onClick={handleCancel}
+                className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-1.5"
               >
-                إلغاء
+                <XCircle className="w-4 h-4" />
+                <span>إلغاء</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Validation Results Summary */}
-      {validationResults.length > 0 && (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h4 className="font-bold text-gray-900">ملخص نتائج التحقق</h4>
+      {/* Validation Results Summary - يظهر فقط خارج الـ modal */}
+      {!isInModal && validationResults.length > 0 && (
+        <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-md">
+          <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-4 border-b-2 border-gray-300 flex items-center justify-between">
+            <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-blue-600" />
+              ملخص نتائج التحقق
+            </h4>
             <div className="flex items-center gap-4">
               {errorCount > 0 && (
-                <div className="flex items-center gap-2 text-red-600">
-                  <XCircle className="w-5 h-5" />
-                  <span className="font-medium">{errorCount} خطأ</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <span className="font-bold text-red-700">{errorCount} خطأ</span>
                 </div>
               )}
               {warningCount > 0 && (
-                <div className="flex items-center gap-2 text-yellow-600">
-                  <AlertCircle className="w-5 h-5" />
-                  <span className="font-medium">{warningCount} تحذير</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <span className="font-bold text-yellow-700">{warningCount} تحذير</span>
                 </div>
               )}
               {errorCount === 0 && warningCount === 0 && (
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="font-medium">جاهز للاستيراد</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-bold text-green-700">جاهز للاستيراد</span>
                 </div>
               )}
             </div>
           </div>
-          <div className="px-4 py-3 bg-white">
-            <p className="text-sm text-gray-600">
-              يتم عرض جميع الأخطاء والتحذيرات مباشرة في الجدول أدناه. الخلايا التي بها أخطاء تظهر بخلفية حمراء، 
-              والخلايا التي بها تحذيرات تظهر بخلفية صفراء. يمكنك التمرير على الخلايا لعرض تفاصيل الخطأ.
-            </p>
+          <div className="px-5 py-4 bg-white">
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-gray-700 leading-relaxed flex items-start gap-2">
+                <span className="text-base">💡</span>
+                <span>
+                  <strong className="font-semibold">نصيحة:</strong> يمكنك التمرير على أي خلية ملونة لعرض تفاصيل الخطأ أو التحذير. 
+                  جميع الأخطاء يجب إصلاحها قبل إمكانية الاستيراد.
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -1152,8 +1920,9 @@ export default function ImportTab() {
         </div>
       )}
 
-      {/* Preview Data */}
-      {previewData.length > 0 && !columnValidationError && (() => {
+      {/* Preview Data - Hidden, shown in modal instead */}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && previewData.length > 0 && !columnValidationError && (() => {
         const totalPages = Math.ceil(previewData.length / rowsPerPage)
         const startIndex = (currentPage - 1) * rowsPerPage
         const endIndex = startIndex + rowsPerPage
@@ -1162,27 +1931,36 @@ export default function ImportTab() {
         const columns = getOrderedColumns(dataColumns, previewData)
 
         return (
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h4 className="font-bold text-gray-900 text-sm">
+          <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-lg w-full" style={{ maxWidth: '100%' }}>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b-2 border-blue-200 flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-wrap">
+                <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                  <FileUp className="w-5 h-5 text-blue-600" />
                   معاينة البيانات ({previewData.length} صف)
                 </h4>
                 {selectedRows.size > 0 && (
-                  <span className="text-xs text-blue-600 font-medium">
-                    ({selectedRows.size} صف محدد)
+                  <span className="px-3 py-1 text-xs text-blue-700 bg-blue-100 rounded-full font-semibold">
+                    {selectedRows.size} صف محدد
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-600">
+              <div className="text-sm text-gray-700 font-medium bg-white px-3 py-1 rounded-lg border border-gray-200">
                 الصفحة {currentPage} من {totalPages}
               </div>
             </div>
-            <div className="overflow-x-auto max-h-[calc(100vh-300px)] overflow-y-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-100 border-b border-gray-200 sticky top-0 z-10">
+            <div className="relative w-full bg-gray-50" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+              <div 
+                className="overflow-y-auto" 
+                style={{ 
+                  maxHeight: 'calc(100vh - 350px)',
+                  width: '100%',
+                  maxWidth: '100%'
+                }}
+              >
+                <table className="text-[11px] w-full" style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%', maxWidth: '100%' }}>
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
                   <tr>
-                    <th className="px-1.5 py-1 text-center font-medium text-gray-700 whitespace-nowrap bg-gray-200 text-[10px] w-10">
+                    <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '2%' }}>
                       <input
                         type="checkbox"
                         checked={isAllSelected}
@@ -1193,23 +1971,57 @@ export default function ImportTab() {
                         className="w-3 h-3 cursor-pointer"
                       />
                     </th>
-                    <th className="px-1.5 py-1 text-right font-medium text-gray-700 whitespace-nowrap bg-gray-200 text-[10px]">
+                    <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '3%' }}>
                       رقم الصف
                     </th>
-                    {columns.map((key, index) => (
-                      <th key={index} className="px-1.5 py-1 text-right font-medium text-gray-700 whitespace-nowrap text-[10px]">
-                        {key}
-                      </th>
-                    ))}
+                    {columns.map((key, index) => {
+                      // تحديد عرض أصغر لكل عمود بناءً على نوعه لتتناسب مع الشاشة
+                      let columnWidth = '4%' // العرض الافتراضي كنسبة مئوية
+                      
+                      if (key === 'الاسم') columnWidth = '6%'
+                      else if (key === 'المهنة') columnWidth = '5%'
+                      else if (key === 'الجنسية') columnWidth = '3%' // تصغير عرض عمود الجنسية
+                      else if (key === 'رقم الإقامة') columnWidth = '4%' // 10 أرقام
+                      else if (key === 'رقم الجواز') columnWidth = '4%' // 9-10 أرقام + حرف
+                      else if (key === 'رقم الهاتف') columnWidth = '4%' // 10 أرقام
+                      else if (key === 'الحساب البنكي') columnWidth = '5%'
+                      else if (key === 'الراتب') columnWidth = '4%'
+                      else if (key === 'المشروع') columnWidth = '6%'
+                      else if (key === 'الرقم الموحد') columnWidth = '4%' // 10 أرقام
+                      else if (key.includes('تاريخ')) columnWidth = '6%' // زيادة العرض للتواريخ لعرضها بالكامل
+                      else if (key === 'الملاحظات') columnWidth = '6%'
+                      
+                      // تحديد ما إذا كان العمود حقل تاريخ
+                      const isDateColumn = key.includes('تاريخ')
+                      
+                      return (
+                        <th 
+                          key={index} 
+                          className={`px-0.5 py-1 font-semibold text-gray-800 whitespace-nowrap text-[11px] ${
+                            isDateColumn ? 'text-left' : 'text-right'
+                          }`}
+                          style={{ 
+                            width: columnWidth,
+                            ...(isDateColumn ? { direction: 'ltr' } : {})
+                          }}
+                        >
+                          {key}
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedData.map((row, localRowIndex) => {
                     const actualRowIndex = startIndex + localRowIndex
                     const excelRowNumber = actualRowIndex + 2
+                    const isEven = localRowIndex % 2 === 0
                     return (
-                      <tr key={actualRowIndex} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-1.5 py-1 text-center bg-gray-50 text-[10px]">
+                      <tr key={actualRowIndex} className={`border-b border-gray-200 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100`}>
+                        <td 
+                          className="px-0.5 py-0.5 text-center text-[11px]" 
+                          style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}
+                        >
                           <input
                             type="checkbox"
                             checked={selectedRows.has(actualRowIndex)}
@@ -1217,7 +2029,10 @@ export default function ImportTab() {
                             className="w-3 h-3 cursor-pointer"
                           />
                         </td>
-                        <td className="px-1.5 py-1 text-center font-medium text-gray-600 bg-gray-50 text-[10px]">
+                        <td 
+                          className="px-0.5 py-0.5 text-center font-semibold text-gray-700 text-[11px]" 
+                          style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}
+                        >
                           {excelRowNumber}
                         </td>
                         {columns.map((key, colIndex) => {
@@ -1227,28 +2042,201 @@ export default function ImportTab() {
                           const hasError = cellErrors.some(e => e.severity === 'error')
                           const hasWarning = cellErrors.some(e => e.severity === 'warning')
                           
-                          let cellClassName = 'px-1.5 py-1 whitespace-nowrap text-[10px] '
+                          // تحديد ما إذا كان العمود يحتاج إلى truncate (جميع الأعمدة الآن)
+                          const needsTruncate = true // جميع الأعمدة تحتاج truncate
+                          const isUrlColumn = key === 'رابط صورة الإقامة'
+                          
+                          // الخلفية الحمراء فقط للحقول المطلوبة التي لديها خطأ (severity: error)
+                          let cellClassName = `px-0.5 py-0.5 text-[11px] overflow-hidden `
                           if (hasError) {
-                            cellClassName += 'bg-red-100 text-red-800 border-2 border-red-400 font-medium'
+                            // خلفية حمراء فقط للحقول المطلوبة (التي تمنع الاستيراد)
+                            cellClassName += 'bg-red-100 text-red-900 border-l-2 border-red-500 font-medium'
                           } else if (hasWarning) {
-                            cellClassName += 'bg-yellow-100 text-yellow-800 border-2 border-yellow-400'
-                          } else if (isEmpty) {
-                            cellClassName += 'bg-red-50 text-red-700 border border-red-200 font-medium'
+                            cellClassName += 'bg-yellow-50 text-yellow-900 border-l-2 border-yellow-500'
                           } else {
-                            cellClassName += 'text-gray-700'
+                            // الحقول الفارغة العادية: لا خلفية حمراء - فقط نص أحمر Bold
+                            // الخلايا العادية تأخذ لون الصف
+                            cellClassName += 'text-gray-800'
                           }
 
+                          // تحديد ما إذا كان الحقل حقل تاريخ
+                          const isDateField = key.includes('تاريخ')
+                          
+                          // الحصول على القيمة الأصلية مباشرة
+                          const fullValue = value?.toString() || ''
+                          
+                          // معالجة خاصة للتواريخ
+                          let displayValue = isEmpty 
+                            ? (importType === 'companies' ? 'فارغ' : 'غير موجود') 
+                            : fullValue
+                          
+                          let parsedDate: Date | null = null
+                          let dateParseError: string | undefined = undefined
+                          
+                          // إذا كان الحقل تاريخ، محاولة تحليل التاريخ
+                          if (isDateField && !isEmpty && fullValue) {
+                            // تنظيف القيمة من "..." في البداية أو النهاية وأي مسافات
+                            const cleanedValue = fullValue.trim()
+                                .replace(/^\.\.\.+/, '') // إزالة "..." من البداية
+                                .replace(/\.\.\.+$/, '') // إزالة "..." من النهاية
+                                .trim()
+                            
+                            // Debug: طباعة القيمة للتحقق (أول 3 صفوف فقط)
+                            if (actualRowIndex < 3 && colIndex === columns.length - 6) { // آخر عمود تاريخ
+                              console.log(`🔍 Parsing date in preview for row ${actualRowIndex + 1}, field "${key}":`, {
+                                'fullValue': fullValue,
+                                'cleanedValue': cleanedValue
+                              })
+                            }
+                            
+                            // محاولة تحليل التاريخ
+                            let dateResult = parseDate(cleanedValue)
+                            
+                            // إذا فشل التحليل، حاول بالقيمة الأصلية الكاملة
+                            if (!dateResult.date && cleanedValue !== fullValue.trim()) {
+                              dateResult = parseDate(fullValue.trim())
+                            }
+                            
+                            // إذا فشل التحليل، حاول بعد إزالة جميع "..." من أي مكان
+                            if (!dateResult.date) {
+                              const fullyCleaned = fullValue.trim().replace(/\.\.\./g, '').trim()
+                              if (fullyCleaned && fullyCleaned !== cleanedValue) {
+                                dateResult = parseDate(fullyCleaned)
+                              }
+                            }
+                            
+                            // Debug: طباعة نتيجة التحليل
+                            if (actualRowIndex < 3 && colIndex === columns.length - 6) {
+                              console.log(`✅ Parse result for "${key}":`, {
+                                'success': !!dateResult.date,
+                                'error': dateResult.error,
+                                'format': dateResult.format,
+                                'date': dateResult.date
+                              })
+                            }
+                            
+                            if (dateResult.date) {
+                              parsedDate = dateResult.date
+                              // عرض التاريخ بصيغة dd-mmm-yyyy (مثل: 03-May-2026)
+                              displayValue = formatDateDDMMMYYYY(dateResult.date)
+                              
+                              // Debug: طباعة القيمة المعروضة
+                              if (actualRowIndex < 3 && colIndex === columns.length - 6) {
+                                console.log(`📅 Display value for "${key}":`, displayValue)
+                              }
+                            } else {
+                              // فشل التحليل - عرض القيمة الأصلية الكاملة بدون truncate
+                              dateParseError = dateResult.error
+                              // عرض القيمة الأصلية بدون "..." في البداية/النهاية
+                              displayValue = fullValue.trim().replace(/^\.\.\.+/, '').replace(/\.\.\.+$/, '') || fullValue
+                              
+                              // Debug: طباعة خطأ التحليل
+                              if (actualRowIndex < 3 && colIndex === columns.length - 6) {
+                                console.error(`❌ Failed to parse date "${key}":`, {
+                                  'original': fullValue,
+                                  'cleaned': cleanedValue,
+                                  'error': dateResult.error,
+                                  'displayValue': displayValue
+                                })
+                              }
+                            }
+                          }
+                          
+                          // تطبيق truncate على النصوص الطويلة
+                          // ملاحظة: أعمدة التواريخ لا يتم قطعها أبداً - تُعرض بالكامل
+                          if (displayValue && !isEmpty && !isDateField) {
+                            let maxLength = 10 // الطول الافتراضي
+                            if (key === 'الحساب البنكي') maxLength = 10
+                            else if (key === 'المشروع') maxLength = 12
+                            else if (key === 'الملاحظات') maxLength = 10
+                            else if (key === 'الاسم') maxLength = 15
+                            else if (key === 'المهنة') maxLength = 12
+                            else if (key === 'الجنسية') maxLength = 8 // تصغير عرض عمود الجنسية
+                            else if (key === 'رقم الإقامة') maxLength = 10 // 10 أرقام
+                            else if (key === 'رقم الجواز') maxLength = 11 // 9-10 أرقام + حرف
+                            else if (key === 'رقم الهاتف') maxLength = 10 // 10 أرقام
+                            else if (key === 'الرقم الموحد') maxLength = 10 // 10 أرقام
+                            
+                            if (displayValue.length > maxLength) {
+                              displayValue = displayValue.substring(0, maxLength) + '...'
+                            }
+                          }
+                          // التواريخ (المحللة أو غير المحللة) تُعرض بالكامل بدون truncate
+                          
+                          const isUrl = isUrlColumn && displayValue && !isEmpty && (
+                            displayValue.startsWith('http://') || 
+                            displayValue.startsWith('https://') ||
+                            displayValue.startsWith('www.')
+                          )
+
+                          // جمع رسائل الأخطاء والتحذيرات
+                          const errorMessages = cellErrors.map(e => e.message).join(' • ')
+                          
+                          // إعداد tooltip للتواريخ
+                          let tooltipText = fullValue
+                          if (isDateField && !isEmpty) {
+                            if (parsedDate) {
+                              // إذا تم تحليل التاريخ بنجاح، عرض القيمة الأصلية والتاريخ المحلل
+                              tooltipText = `الأصل: ${fullValue}\nالمحلل: ${formatDateDDMMMYYYY(parsedDate)}`
+                            } else if (dateParseError) {
+                              // إذا فشل التحليل، عرض القيمة الأصلية ورسالة الخطأ
+                              tooltipText = `القيمة: ${fullValue}\nخطأ: ${dateParseError}`
+                            }
+                          }
+                          if (errorMessages) {
+                            tooltipText = errorMessages + (tooltipText !== fullValue ? `\n${tooltipText}` : '')
+                          }
+
+                          // تحديد تنسيق الحقل الفارغ (بدون خلفية حمراء، فقط نص أحمر Bold)
+                          const isEmptyWithNoError = isEmpty && !hasError
+                          
                           return (
                             <td
                               key={colIndex}
                               className={cellClassName}
-                              title={cellErrors.length > 0 ? cellErrors.map(e => e.message).join('; ') : ''}
+                              title={tooltipText}
+                              style={{ 
+                                // أعمدة التواريخ: عرض كامل بدون truncate مع محاذاة يسار واتجاه LTR
+                                ...(isDateField ? {
+                                  minWidth: 'fit-content',
+                                  width: 'auto',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'visible',
+                                  textOverflow: 'clip',
+                                  textAlign: 'left', // محاذاة يسار
+                                  direction: 'ltr' // اتجاه من اليسار إلى اليمين
+                                } : {
+                                  maxWidth: '100%',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                })
+                              }}
                             >
-                              <div className="flex items-center gap-0.5">
-                                {hasError && <XCircle className="w-3 h-3 text-red-600 flex-shrink-0" />}
-                                {hasWarning && !hasError && <AlertCircle className="w-3 h-3 text-yellow-600 flex-shrink-0" />}
-                                <span className="truncate max-w-[150px]">{isEmpty ? (importType === 'companies' ? 'فارغ' : 'غير موجود') : value?.toString() || ''}</span>
+                              <div className={`flex items-center gap-0.5 ${isDateField ? 'overflow-visible justify-start' : 'overflow-hidden'}`}>
+                                {hasError && <XCircle className="w-2.5 h-2.5 text-red-600 flex-shrink-0" />}
+                                {hasWarning && !hasError && <AlertCircle className="w-2.5 h-2.5 text-yellow-600 flex-shrink-0" />}
+                                <span 
+                                  className={`${isDateField ? 'whitespace-nowrap overflow-visible' : 'truncate'} ${
+                                    hasError ? 'font-semibold' : 
+                                    isEmptyWithNoError ? 'font-bold text-red-600' : 
+                                    ''
+                                  }`}
+                                  style={isDateField ? { 
+                                    overflow: 'visible', 
+                                    textOverflow: 'clip',
+                                    direction: 'ltr', // اتجاه من اليسار إلى اليمين
+                                    textAlign: 'left' // محاذاة يسار
+                                  } : {}}
+                                  title={tooltipText}
+                                >
+                                  {displayValue}
+                                </span>
                               </div>
+                              {cellErrors.length > 0 && (
+                                <div className="mt-0.5 text-[9px] opacity-75 leading-tight truncate" title={errorMessages}>
+                                  {errorMessages.length > 15 ? errorMessages.substring(0, 15) + '...' : errorMessages}
+                                </div>
+                              )}
                             </td>
                           )
                         })}
@@ -1257,29 +2245,30 @@ export default function ImportTab() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
             {totalPages > 1 && (
-              <div className="bg-gray-50 px-3 py-2 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-xs text-gray-600">
-                  عرض {startIndex + 1} - {Math.min(endIndex, previewData.length)} من {previewData.length}
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t-2 border-gray-300 flex items-center justify-between">
+                <div className="text-sm text-gray-700 font-medium">
+                  عرض <span className="font-bold text-blue-600">{startIndex + 1}</span> - <span className="font-bold text-blue-600">{Math.min(endIndex, previewData.length)}</span> من <span className="font-bold text-gray-900">{previewData.length}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
                   >
-                    السابق
+                    ← السابق
                   </button>
-                  <span className="px-2 py-1 text-xs text-gray-700">
+                  <span className="px-4 py-2 text-sm text-gray-800 font-semibold bg-white border-2 border-gray-300 rounded-lg">
                     {currentPage} / {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
                   >
-                    التالي
+                    التالي →
                   </button>
                 </div>
               </div>
@@ -1288,8 +2277,9 @@ export default function ImportTab() {
         )
       })()}
 
-      {/* Delete Options */}
-      {file && previewData.length > 0 && !columnValidationError && errorCount === 0 && (
+      {/* Delete Options - Hidden, shown in modal instead */}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && file && previewData.length > 0 && !columnValidationError && errorCount === 0 && (
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
           <div className="flex items-start gap-3 mb-4">
             <input
@@ -1342,22 +2332,130 @@ export default function ImportTab() {
         </div>
       )}
 
-      {/* Import Button */}
-      {file && previewData.length > 0 && !columnValidationError && errorCount === 0 && (
-        <div className="flex flex-col items-center gap-3">
-          <div className="text-sm text-gray-600">
+      {/* Import Button - Hidden, shown in modal instead */}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && file && previewData.length > 0 && !columnValidationError && (
+        <div className={`flex flex-col items-center gap-4 border-2 rounded-xl p-6 shadow-lg ${
+          errorCount === 0 
+            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+            : 'bg-red-50 border-red-300'
+        }`}>
+          {errorCount > 0 && selectedRows.size > 0 && (
+            <div className="flex flex-col items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 text-orange-700">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-bold text-base">تنبيه</span>
+              </div>
+              <p className="text-sm text-orange-600 text-center">
+                الصفوف المحددة تحتوي على {errorCount} خطأ. سيتم استيراد الصفوف المحددة التي لا تحتوي على أخطاء فقط.
+              </p>
+            </div>
+          )}
+          {errorCount > 0 && selectedRows.size === 0 && (
+            <div className="flex flex-col items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 text-red-700">
+                <XCircle className="w-5 h-5" />
+                <span className="font-bold text-base">لا يمكن الاستيراد</span>
+              </div>
+              <p className="text-sm text-red-600 text-center">
+                يرجى إصلاح جميع الأخطاء ({errorCount} خطأ) أو إلغاء تحديد الصفوف التي تحتوي على أخطاء قبل إمكانية الاستيراد
+              </p>
+            </div>
+          )}
+          <div className="text-base text-gray-700 font-medium text-center">
             {selectedRows.size > 0 
-              ? `سيتم استيراد ${selectedRows.size} من ${previewData.length} صف`
-              : `سيتم استيراد جميع الصفوف (${previewData.length} صف)`
+              ? (
+                <>
+                  سيتم استيراد <span className="font-bold text-green-700">{selectedRows.size}</span> صف محدد {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
+                </>
+              ) : (
+                <>
+                  سيتم استيراد جميع الصفوف (<span className="font-bold text-green-700">{previewData.length}</span> صف) {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
+                </>
+              )
             }
           </div>
+          {/* شريط التقدم أثناء الاستيراد */}
+          {importing && (
+            <div className="w-full mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <span className="text-sm font-semibold text-blue-900">
+                    {isImportCancelled ? 'جاري إلغاء الاستيراد...' : 'جاري الاستيراد...'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {importProgress.total > 0 && (
+                    <span className="text-sm font-bold text-blue-700">
+                      {importProgress.current} / {importProgress.total}
+                    </span>
+                  )}
+                  {!isImportCancelled && (
+                    <button
+                      onClick={cancelImport}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      إلغاء الاستيراد
+                    </button>
+                  )}
+                </div>
+              </div>
+              {importProgress.total > 0 ? (
+                <>
+                  <div className="bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner mb-2">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ease-out flex items-center justify-center relative ${
+                        isImportCancelled 
+                          ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                          : 'bg-gradient-to-r from-blue-500 via-blue-600 to-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min((importProgress.current / importProgress.total) * 100, 100)}%` }}
+                    >
+                      {importProgress.current > 0 && (
+                        <span className="text-xs font-bold text-white px-2 z-10">
+                          {Math.round((importProgress.current / importProgress.total) * 100)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center text-sm text-gray-700">
+                    {isImportCancelled ? (
+                      <span className="text-red-700 font-semibold">جاري إلغاء الاستيراد وحذف السجلات المضافة...</span>
+                    ) : (
+                      <>
+                        جارٍ استيراد <span className="font-bold text-blue-700">{importProgress.current}</span> من <span className="font-bold text-blue-700">{importProgress.total}</span> {importType === 'employees' ? 'موظف' : 'مؤسسة'}...
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-sm text-gray-600">
+                  {isImportCancelled ? 'جاري إلغاء الاستيراد...' : 'جاري تحضير البيانات للاستيراد...'}
+                </div>
+              )}
+            </div>
+          )}
+          
           <button
             onClick={importData}
-            disabled={importing}
-            className="flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 text-lg font-medium transition"
+            disabled={importing || errorCount > 0}
+            className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
+              errorCount === 0
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                : 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+            }`}
           >
-            <FileUp className="w-6 h-6" />
-            {importing ? 'جارٍ الاستيراد...' : 'استيراد البيانات'}
+            <FileUp className="w-7 h-7" />
+            {importing ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                <span>جارٍ الاستيراد...</span>
+              </>
+            ) : (
+              <span>استيراد البيانات</span>
+            )}
           </button>
         </div>
       )}
@@ -1490,6 +2588,579 @@ export default function ImportTab() {
           </div>
         </div>
       )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && previewData.length > 0 && !columnValidationError && (() => {
+        const totalPages = Math.ceil(previewData.length / rowsPerPage)
+        const startIndex = (currentPage - 1) * rowsPerPage
+        const endIndex = startIndex + rowsPerPage
+        const paginatedData = previewData.slice(startIndex, endIndex)
+        const dataColumns = Object.keys(previewData[0])
+        const columns = getOrderedColumns(dataColumns, previewData)
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col my-4">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                    <FileUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      معاينة البيانات ({previewData.length} صف)
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-0.5">
+                      تحقق من البيانات قبل الاستيراد
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="إغلاق"
+                >
+                  <XCircle className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Validation Results Summary */}
+                {validationResults.length > 0 && (
+                  <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-md">
+                    <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-4 border-b-2 border-gray-300 flex items-center justify-between">
+                      <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                        <CheckCircle className="w-6 h-6 text-blue-600" />
+                        ملخص نتائج التحقق
+                      </h4>
+                      <div className="flex items-center gap-4">
+                        {errorCount > 0 && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
+                            <XCircle className="w-5 h-5 text-red-600" />
+                            <span className="font-bold text-red-700">{errorCount} خطأ</span>
+                          </div>
+                        )}
+                        {warningCount > 0 && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
+                            <AlertCircle className="w-5 h-5 text-yellow-600" />
+                            <span className="font-bold text-yellow-700">{warningCount} تحذير</span>
+                          </div>
+                        )}
+                        {errorCount === 0 && warningCount === 0 && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <span className="font-bold text-green-700">جاهز للاستيراد</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 bg-white">
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <p className="text-xs text-gray-700 leading-relaxed flex items-start gap-2">
+                          <span className="text-base">💡</span>
+                          <span>
+                            <strong className="font-semibold">نصيحة:</strong> يمكنك التمرير على أي خلية ملونة لعرض تفاصيل الخطأ أو التحذير. 
+                            جميع الأخطاء يجب إصلاحها قبل إمكانية الاستيراد.
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Preview Data Table */}
+                <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-lg w-full" style={{ maxWidth: '100%' }}>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b-2 border-blue-200 flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                        <FileUp className="w-5 h-5 text-blue-600" />
+                        جدول البيانات
+                      </h4>
+                      {selectedRows.size > 0 && (
+                        <span className="px-3 py-1 text-xs text-blue-700 bg-blue-100 rounded-full font-semibold">
+                          {selectedRows.size} صف محدد
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-700 font-medium bg-white px-3 py-1 rounded-lg border border-gray-200">
+                      الصفحة {currentPage} من {totalPages}
+                    </div>
+                  </div>
+                  <div className="relative w-full bg-gray-50" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <div 
+                      className="overflow-y-auto" 
+                      style={{ 
+                        maxHeight: 'calc(95vh - 500px)',
+                        width: '100%',
+                        maxWidth: '100%'
+                      }}
+                    >
+                      <table className="text-[11px] w-full" style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%', maxWidth: '100%' }}>
+                      <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '2%' }}>
+                            <input
+                              type="checkbox"
+                              checked={isAllSelected}
+                              ref={(input) => {
+                                if (input) input.indeterminate = isSomeSelected
+                              }}
+                              onChange={toggleSelectAll}
+                              className="w-3 h-3 cursor-pointer"
+                            />
+                          </th>
+                          <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '3%' }}>
+                            رقم الصف
+                          </th>
+                          {columns.map((key, index) => {
+                            // تحديد عرض أصغر لكل عمود بناءً على نوعه لتتناسب مع الشاشة
+                            let columnWidth = '4%' // العرض الافتراضي كنسبة مئوية
+                            
+                            if (key === 'الاسم') columnWidth = '6%'
+                            else if (key === 'المهنة') columnWidth = '5%'
+                            else if (key === 'الجنسية') columnWidth = '3%' // تصغير عرض عمود الجنسية
+                            else if (key === 'رقم الإقامة') columnWidth = '4%' // 10 أرقام
+                            else if (key === 'رقم الجواز') columnWidth = '4%' // 9-10 أرقام + حرف
+                            else if (key === 'رقم الهاتف') columnWidth = '4%' // 10 أرقام
+                            else if (key === 'الحساب البنكي') columnWidth = '5%'
+                            else if (key === 'الراتب') columnWidth = '4%'
+                            else if (key === 'المشروع') columnWidth = '6%'
+                            else if (key === 'الرقم الموحد') columnWidth = '4%' // 10 أرقام
+                            else if (key.includes('تاريخ')) columnWidth = '6%' // زيادة العرض للتواريخ لعرضها بالكامل
+                            else if (key === 'الملاحظات') columnWidth = '6%'
+                            
+                            // تحديد ما إذا كان العمود حقل تاريخ
+                            const isDateColumn = key.includes('تاريخ')
+                            
+                            return (
+                              <th 
+                                key={index} 
+                                className={`px-0.5 py-1 font-semibold text-gray-800 whitespace-nowrap text-[11px] ${
+                                  isDateColumn ? 'text-left' : 'text-right'
+                                }`}
+                                style={{ 
+                                  width: columnWidth,
+                                  ...(isDateColumn ? { direction: 'ltr' } : {})
+                                }}
+                              >
+                                {key}
+                              </th>
+                            )
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedData.map((row, localRowIndex) => {
+                          const actualRowIndex = startIndex + localRowIndex
+                          const excelRowNumber = actualRowIndex + 2
+                          const isEven = localRowIndex % 2 === 0
+                          return (
+                            <tr key={actualRowIndex} className={`border-b border-gray-200 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100`}>
+                              <td 
+                                className="px-0.5 py-0.5 text-center text-[11px]" 
+                                style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedRows.has(actualRowIndex)}
+                                  onChange={() => toggleRowSelection(actualRowIndex)}
+                                  className="w-3 h-3 cursor-pointer"
+                                />
+                              </td>
+                              <td 
+                                className="px-0.5 py-0.5 text-center font-semibold text-gray-700 text-[11px]" 
+                                style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}
+                              >
+                                {excelRowNumber}
+                              </td>
+                              {columns.map((key, colIndex) => {
+                                const value = row[key]
+                                const isEmpty = isCellEmpty(value)
+                                const cellErrors = getCellErrors(actualRowIndex, key)
+                                const hasError = cellErrors.some(e => e.severity === 'error')
+                                const hasWarning = cellErrors.some(e => e.severity === 'warning')
+                                
+                                // تحديد ما إذا كان الحقل حقل تاريخ
+                                const isDateField = key.includes('تاريخ')
+                                const isUrlColumn = key === 'رابط صورة الإقامة'
+                                
+                                // الخلفية الحمراء فقط للحقول المطلوبة التي لديها خطأ (severity: error)
+                                let cellClassName = `px-0.5 py-0.5 text-[11px] overflow-hidden `
+                                if (hasError) {
+                                  // خلفية حمراء فقط للحقول المطلوبة (التي تمنع الاستيراد)
+                                  cellClassName += 'bg-red-100 text-red-900 border-l-2 border-red-500 font-medium'
+                                } else if (hasWarning) {
+                                  cellClassName += 'bg-yellow-50 text-yellow-900 border-l-2 border-yellow-500'
+                                } else {
+                                  // الحقول الفارغة العادية: لا خلفية حمراء - فقط نص أحمر Bold
+                                  // الخلايا العادية تأخذ لون الصف
+                                  cellClassName += 'text-gray-800'
+                                }
+
+                                // الحصول على القيمة الأصلية مباشرة
+                                const fullValue = value?.toString() || ''
+                                
+                                // معالجة خاصة للتواريخ
+                                let displayValue = isEmpty 
+                                  ? (importType === 'companies' ? 'فارغ' : 'غير موجود') 
+                                  : fullValue
+                                
+                                let parsedDate: Date | null = null
+                                let dateParseError: string | undefined = undefined
+                                
+                                // إذا كان الحقل تاريخ، محاولة تحليل التاريخ
+                                if (isDateField && !isEmpty && fullValue) {
+                                  // تنظيف القيمة من "..." في البداية أو النهاية وأي مسافات
+                                  const cleanedValue = fullValue.trim()
+                                      .replace(/^\.\.\.+/, '') // إزالة "..." من البداية
+                                      .replace(/\.\.\.+$/, '') // إزالة "..." من النهاية
+                                      .trim()
+                                  
+                                  // محاولات متعددة لتحليل التاريخ
+                                  let dateResult = parseDate(cleanedValue)
+                                  
+                                  // إذا فشل التحليل، حاول بالقيمة الأصلية الكاملة
+                                  if (!dateResult.date && cleanedValue !== fullValue.trim()) {
+                                    dateResult = parseDate(fullValue.trim())
+                                  }
+                                  
+                                  // إذا فشل التحليل، حاول بعد إزالة جميع "..." من أي مكان
+                                  if (!dateResult.date) {
+                                    const fullyCleaned = fullValue.trim().replace(/\.\.\./g, '').trim()
+                                    if (fullyCleaned && fullyCleaned !== cleanedValue) {
+                                      dateResult = parseDate(fullyCleaned)
+                                    }
+                                  }
+                                  
+                                  if (dateResult.date) {
+                                    parsedDate = dateResult.date
+                                    // عرض التاريخ بصيغة dd-mmm-yyyy (مثل: 03-May-2026)
+                                    displayValue = formatDateDDMMMYYYY(dateResult.date)
+                                  } else {
+                                    // فشل التحليل - عرض القيمة الأصلية الكاملة بدون truncate
+                                    dateParseError = dateResult.error
+                                    displayValue = fullValue.trim().replace(/^\.\.\.+/, '').replace(/\.\.\.+$/, '') || fullValue
+                                  }
+                                }
+                                
+                                // تطبيق truncate على النصوص الطويلة
+                                // ملاحظة: أعمدة التواريخ لا يتم قطعها أبداً - تُعرض بالكامل
+                                if (displayValue && !isEmpty && !isDateField) {
+                                  let maxLength = 10 // الطول الافتراضي
+                                  if (key === 'الحساب البنكي') maxLength = 10
+                                  else if (key === 'المشروع') maxLength = 12
+                                  else if (key === 'الملاحظات') maxLength = 10
+                                  else if (key === 'الاسم') maxLength = 15
+                                  else if (key === 'المهنة') maxLength = 12
+                                  else if (key === 'الجنسية') maxLength = 8 // تصغير عرض عمود الجنسية
+                                  else if (key === 'رقم الإقامة') maxLength = 10 // 10 أرقام
+                                  else if (key === 'رقم الجواز') maxLength = 11 // 9-10 أرقام + حرف
+                                  else if (key === 'رقم الهاتف') maxLength = 10 // 10 أرقام
+                                  else if (key === 'الرقم الموحد') maxLength = 10 // 10 أرقام
+                                  
+                                  if (displayValue.length > maxLength) {
+                                    displayValue = displayValue.substring(0, maxLength) + '...'
+                                  }
+                                }
+                                // التواريخ (المحللة أو غير المحللة) تُعرض بالكامل بدون truncate
+                                
+                                const isUrl = isUrlColumn && displayValue && !isEmpty && (
+                                  displayValue.startsWith('http://') || 
+                                  displayValue.startsWith('https://') ||
+                                  displayValue.startsWith('www.')
+                                )
+
+                                // جمع رسائل الأخطاء والتحذيرات
+                                const errorMessages = cellErrors.map(e => e.message).join(' • ')
+                                
+                                // إعداد tooltip للتواريخ
+                                let tooltipText = fullValue
+                                if (isDateField && !isEmpty) {
+                                  if (parsedDate) {
+                                    // إذا تم تحليل التاريخ بنجاح، عرض القيمة الأصلية والتاريخ المحلل
+                                    tooltipText = `الأصل: ${fullValue}\nالمحلل: ${formatDateDDMMMYYYY(parsedDate)}`
+                                  } else if (dateParseError) {
+                                    // إذا فشل التحليل، عرض القيمة الأصلية ورسالة الخطأ
+                                    tooltipText = `القيمة: ${fullValue}\nخطأ: ${dateParseError}`
+                                  }
+                                }
+                                if (errorMessages) {
+                                  tooltipText = errorMessages + (tooltipText !== fullValue ? `\n${tooltipText}` : '')
+                                }
+
+                                // تحديد تنسيق الحقل الفارغ (بدون خلفية حمراء، فقط نص أحمر Bold)
+                                const isEmptyWithNoError = isEmpty && !hasError
+                                
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    className={cellClassName}
+                                    title={tooltipText}
+                                    style={{ 
+                                      // أعمدة التواريخ: عرض كامل بدون truncate مع محاذاة يسار واتجاه LTR
+                                      ...(isDateField ? {
+                                        minWidth: 'fit-content',
+                                        width: 'auto',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'visible',
+                                        textOverflow: 'clip',
+                                        textAlign: 'left', // محاذاة يسار
+                                        direction: 'ltr' // اتجاه من اليسار إلى اليمين
+                                      } : {
+                                        maxWidth: '100%',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      })
+                                    }}
+                                  >
+                                    <div className={`flex items-center gap-0.5 ${isDateField ? 'overflow-visible justify-start' : 'overflow-hidden'}`}>
+                                      {hasError && <XCircle className="w-2.5 h-2.5 text-red-600 flex-shrink-0" />}
+                                      {hasWarning && !hasError && <AlertCircle className="w-2.5 h-2.5 text-yellow-600 flex-shrink-0" />}
+                                      <span 
+                                        className={`${isDateField ? 'whitespace-nowrap overflow-visible' : 'truncate'} ${
+                                          hasError ? 'font-semibold' : 
+                                          isEmptyWithNoError ? 'font-bold text-red-600' : 
+                                          ''
+                                        }`}
+                                        style={isDateField ? { 
+                                          overflow: 'visible', 
+                                          textOverflow: 'clip',
+                                          direction: 'ltr', // اتجاه من اليسار إلى اليمين
+                                          textAlign: 'left' // محاذاة يسار
+                                        } : {}}
+                                        title={tooltipText}
+                                      >
+                                        {displayValue}
+                                      </span>
+                                    </div>
+                                    {cellErrors.length > 0 && (
+                                      <div className="mt-0.5 text-[9px] opacity-75 leading-tight truncate" title={errorMessages}>
+                                        {errorMessages.length > 15 ? errorMessages.substring(0, 15) + '...' : errorMessages}
+                                      </div>
+                                    )}
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t-2 border-gray-300 flex items-center justify-between">
+                      <div className="text-sm text-gray-700 font-medium">
+                        عرض <span className="font-bold text-blue-600">{startIndex + 1}</span> - <span className="font-bold text-blue-600">{Math.min(endIndex, previewData.length)}</span> من <span className="font-bold text-gray-900">{previewData.length}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
+                        >
+                          ← السابق
+                        </button>
+                        <span className="px-4 py-2 text-sm text-gray-800 font-semibold bg-white border-2 border-gray-300 rounded-lg">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
+                        >
+                          التالي →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Delete Options */}
+                {errorCount === 0 && (
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-start gap-3 mb-4">
+                      <input
+                        type="checkbox"
+                        id="delete-before-import-modal"
+                        checked={shouldDeleteBeforeImport}
+                        onChange={(e) => setShouldDeleteBeforeImport(e.target.checked)}
+                        className="mt-1 w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="delete-before-import-modal" className="flex-1 cursor-pointer">
+                        <span className="font-medium text-gray-900">حذف البيانات الموجودة قبل الاستيراد</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          سيتم حذف البيانات الموجودة في النظام قبل إضافة البيانات المستوردة
+                        </p>
+                      </label>
+                    </div>
+                    
+                    {shouldDeleteBeforeImport && (
+                      <div className="ml-7 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            id="delete-all-modal"
+                            name="delete-mode-modal"
+                            value="all"
+                            checked={deleteMode === 'all'}
+                            onChange={(e) => setDeleteMode(e.target.value as 'all' | 'matching')}
+                            className="w-4 h-4 cursor-pointer"
+                          />
+                          <label htmlFor="delete-all-modal" className="cursor-pointer text-sm text-gray-700">
+                            حذف جميع البيانات ({importType === 'companies' ? 'جميع المؤسسات' : 'جميع الموظفين'})
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            id="delete-matching-modal"
+                            name="delete-mode-modal"
+                            value="matching"
+                            checked={deleteMode === 'matching'}
+                            onChange={(e) => setDeleteMode(e.target.value as 'all' | 'matching')}
+                            className="w-4 h-4 cursor-pointer"
+                          />
+                          <label htmlFor="delete-matching-modal" className="cursor-pointer text-sm text-gray-700">
+                            حذف البيانات المطابقة فقط ({importType === 'companies' ? 'المؤسسات بنفس الرقم الموحد' : 'الموظفين بنفس رقم الإقامة'})
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Import Button */}
+                <div className={`flex flex-col items-center gap-4 border-2 rounded-xl p-6 shadow-lg ${
+                  errorCount === 0 
+                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+                    : 'bg-red-50 border-red-300'
+                }`}>
+                  {errorCount > 0 && selectedRows.size > 0 && (
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 text-orange-700">
+                        <AlertCircle className="w-5 h-5" />
+                        <span className="font-bold text-base">تنبيه</span>
+                      </div>
+                      <p className="text-sm text-orange-600 text-center">
+                        الصفوف المحددة تحتوي على {errorCount} خطأ. سيتم استيراد الصفوف المحددة التي لا تحتوي على أخطاء فقط.
+                      </p>
+                    </div>
+                  )}
+                  {errorCount > 0 && selectedRows.size === 0 && (
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 text-red-700">
+                        <XCircle className="w-5 h-5" />
+                        <span className="font-bold text-base">لا يمكن الاستيراد</span>
+                      </div>
+                      <p className="text-sm text-red-600 text-center">
+                        يرجى إصلاح جميع الأخطاء ({errorCount} خطأ) أو إلغاء تحديد الصفوف التي تحتوي على أخطاء قبل إمكانية الاستيراد
+                      </p>
+                    </div>
+                  )}
+                  <div className="text-base text-gray-700 font-medium text-center">
+                    {selectedRows.size > 0 
+                      ? (
+                        <>
+                          سيتم استيراد <span className="font-bold text-green-700">{selectedRows.size}</span> صف محدد {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
+                        </>
+                      ) : (
+                        <>
+                          سيتم استيراد جميع الصفوف (<span className="font-bold text-green-700">{previewData.length}</span> صف) {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
+                        </>
+                      )
+                    }
+                  </div>
+                  {/* شريط التقدم أثناء الاستيراد */}
+                  {importing && (
+                    <div className="w-full mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                          <span className="text-sm font-semibold text-blue-900">
+                            {isImportCancelled ? 'جاري إلغاء الاستيراد...' : 'جاري الاستيراد...'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {importProgress.total > 0 && (
+                            <span className="text-sm font-bold text-blue-700">
+                              {importProgress.current} / {importProgress.total}
+                            </span>
+                          )}
+                          {!isImportCancelled && (
+                            <button
+                              onClick={cancelImport}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              إلغاء الاستيراد
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {importProgress.total > 0 ? (
+                        <>
+                          <div className="bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner mb-2">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ease-out flex items-center justify-center relative ${
+                                isImportCancelled 
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                                  : 'bg-gradient-to-r from-blue-500 via-blue-600 to-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min((importProgress.current / importProgress.total) * 100, 100)}%` }}
+                            >
+                              {importProgress.current > 0 && (
+                                <span className="text-xs font-bold text-white px-2 z-10">
+                                  {Math.round((importProgress.current / importProgress.total) * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center text-sm text-gray-700">
+                            {isImportCancelled ? (
+                              <span className="text-red-700 font-semibold">جاري إلغاء الاستيراد وحذف السجلات المضافة...</span>
+                            ) : (
+                              <>
+                                جارٍ استيراد <span className="font-bold text-blue-700">{importProgress.current}</span> من <span className="font-bold text-blue-700">{importProgress.total}</span> {importType === 'employees' ? 'موظف' : 'مؤسسة'}...
+                              </>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center text-sm text-gray-600">
+                          {isImportCancelled ? 'جاري إلغاء الاستيراد...' : 'جاري تحضير البيانات للاستيراد...'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={importData}
+                    disabled={importing || errorCount > 0}
+                    className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
+                      errorCount === 0
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                        : 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+                    }`}
+                  >
+                    <FileUp className="w-7 h-7" />
+                    {importing ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>جارٍ الاستيراد...</span>
+                      </>
+                    ) : (
+                      <span>استيراد البيانات</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

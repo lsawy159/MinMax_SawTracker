@@ -9,8 +9,10 @@ import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { usePermissions } from '@/utils/permissions'
 
 export default function Employees() {
+  const { canCreate, canEdit, canDelete } = usePermissions()
   const location = useLocation()
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
@@ -49,6 +51,7 @@ export default function Employees() {
   
   // Bulk action modals
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [deletingEmployees, setDeletingEmployees] = useState(false)
   const [showBulkResidenceModal, setShowBulkResidenceModal] = useState(false)
   const [showBulkInsuranceModal, setShowBulkInsuranceModal] = useState(false)
   const [showBulkContractModal, setShowBulkContractModal] = useState(false)
@@ -397,31 +400,71 @@ export default function Employees() {
     setSelectedEmployees(new Set())
   }
 
-  // Bulk delete function
+  // Bulk delete function with batch processing
   const handleBulkDelete = async () => {
-    if (selectedEmployees.size === 0) return
+    if (selectedEmployees.size === 0) {
+      toast.error('لم يتم تحديد أي موظف للحذف')
+      return
+    }
+
+    setDeletingEmployees(true)
 
     try {
       const employeeIds = Array.from(selectedEmployees)
       const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+      
+      // Batch size - keep URL length manageable (50-100 IDs per batch)
+      const batchSize = 50
+      let totalDeleted = 0
+      const failedBatches: string[] = []
+      const totalBatches = Math.ceil(employeeIds.length / batchSize)
 
-      // Delete all selected employees
-      const { error } = await supabase
-        .from('employees')
-        .delete()
-        .in('id', employeeIds)
+      // Process deletions in batches
+      for (let i = 0; i < employeeIds.length; i += batchSize) {
+        const batch = employeeIds.slice(i, i + batchSize)
+        const currentBatch = Math.floor(i / batchSize) + 1
+        
+        try {
+          const { error } = await supabase
+            .from('employees')
+            .delete()
+            .in('id', batch)
 
-      if (error) throw error
+          if (error) {
+            console.error(`Error deleting batch ${currentBatch}/${totalBatches}:`, error)
+            failedBatches.push(...batch)
+            continue
+          }
 
-      // Log activity for each employee
-      for (const employee of selectedEmployeesData) {
-        await logActivity(employee.id, 'حذف موظف (جماعي)', {
-          employee_name: employee.name,
-          company: employee.company?.name
-        })
+          totalDeleted += batch.length
+          
+          // Log activity for each employee in this batch (skip if too many to avoid performance issues)
+          // For large deletions, we'll log a summary instead
+          if (selectedEmployeesData.length <= 100) {
+            const batchEmployees = selectedEmployeesData.filter(emp => batch.includes(emp.id))
+            for (const employee of batchEmployees) {
+              try {
+                await logActivity(employee.id, 'حذف موظف (جماعي)', {
+                  employee_name: employee.name,
+                  company: employee.company?.name
+                })
+              } catch (logError) {
+                // Continue even if logging fails
+                console.warn('Failed to log activity for employee:', employee.id)
+              }
+            }
+          }
+        } catch (batchError: any) {
+          console.error(`Error in batch ${currentBatch}/${totalBatches}:`, batchError)
+          failedBatches.push(...batch)
+        }
       }
 
-      toast.success(`تم حذف ${selectedEmployees.size} موظف بنجاح`)
+      if (failedBatches.length > 0) {
+        toast.error(`تم حذف ${totalDeleted} موظف، ولكن فشل حذف ${failedBatches.length} موظف`)
+      } else {
+        toast.success(`تم حذف ${totalDeleted} موظف بنجاح`)
+      }
       
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
@@ -433,6 +476,8 @@ export default function Employees() {
     } catch (error: any) {
       console.error('Error bulk deleting employees:', error)
       toast.error(error.message || 'فشل في حذف الموظفين')
+    } finally {
+      setDeletingEmployees(false)
     }
   }
 
@@ -661,13 +706,19 @@ export default function Employees() {
               )}
             </p>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            إضافة موظف
-          </button>
+          <div className="flex gap-2">
+            {canCreate('employees') && (
+              <>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  إضافة موظف
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Compact Search and Filter Bar */}
@@ -1379,17 +1430,19 @@ export default function Employees() {
                               <Eye className="w-3 h-3" />
                               عرض
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteEmployee(employee)  // تحديث: تمرير employee كامل بدلاً من employee.id
-                              }}
-                              className="flex items-center gap-0.5 px-2 py-0.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
-                              title="حذف الموظف"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              حذف
-                            </button>
+                            {canDelete('employees') && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteEmployee(employee)  // تحديث: تمرير employee كامل بدلاً من employee.id
+                                }}
+                                className="flex items-center gap-0.5 px-2 py-0.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
+                                title="حذف الموظف"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                حذف
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1424,6 +1477,7 @@ export default function Employees() {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleUpdateEmployee}
       />
+
 
       {/* مودال تأكيد حذف الموظف */}
       {showDeleteModal && (
@@ -1475,6 +1529,7 @@ export default function Employees() {
           selectedEmployees={employees.filter(emp => selectedEmployees.has(emp.id))}
           onConfirm={handleBulkDelete}
           onCancel={() => setShowBulkDeleteModal(false)}
+          isDeleting={deletingEmployees}
         />
       )}
 
@@ -1516,16 +1571,30 @@ function BulkDeleteModal({
   selectedCount, 
   selectedEmployees, 
   onConfirm, 
-  onCancel 
+  onCancel,
+  isDeleting = false
 }: { 
   selectedCount: number
   selectedEmployees: (Employee & { company: Company })[]
   onConfirm: () => void
   onCancel: () => void
+  isDeleting?: boolean
 }) {
+  const handleConfirm = () => {
+    if (!isDeleting) {
+      onConfirm()
+    }
+  }
+
+  const handleCancel = () => {
+    if (!isDeleting) {
+      onCancel()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" onClick={handleCancel}>
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-red-100 p-3 rounded-lg">
@@ -1543,26 +1612,56 @@ function BulkDeleteModal({
               سيتم حذف جميع بيانات هؤلاء الموظفين نهائياً
             </span>
           </p>
+          {isDeleting && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm font-medium">جاري حذف الموظفين، يرجى الانتظار...</span>
+              </div>
+            </div>
+          )}
           <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4">
             <p className="text-sm font-medium text-gray-700 mb-2">الموظفون المحددون:</p>
             <ul className="space-y-1">
-              {selectedEmployees.map(emp => (
+              {selectedEmployees.slice(0, 50).map(emp => (
                 <li key={emp.id} className="text-sm text-gray-600">
                   • {emp.name} {emp.company?.name && `(${emp.company.name})`}
                 </li>
               ))}
+              {selectedEmployees.length > 50 && (
+                <li className="text-sm text-gray-500 italic">
+                  ... و {selectedEmployees.length - 50} موظف آخر
+                </li>
+              )}
             </ul>
           </div>
           <div className="flex gap-3">
             <button
-              onClick={onConfirm}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+              onClick={handleConfirm}
+              disabled={isDeleting}
+              className={`flex-1 px-4 py-2 rounded-md transition flex items-center justify-center gap-2 ${
+                isDeleting
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
             >
-              نعم، احذف ({selectedCount})
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  جاري الحذف...
+                </>
+              ) : (
+                `نعم، احذف (${selectedCount})`
+              )}
             </button>
             <button
-              onClick={onCancel}
-              className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+              onClick={handleCancel}
+              disabled={isDeleting}
+              className={`flex-1 px-4 py-2 rounded-md transition ${
+                isDeleting
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               إلغاء
             </button>
