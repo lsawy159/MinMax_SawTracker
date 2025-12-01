@@ -1,4 +1,5 @@
 import { toHijri } from 'hijri-converter'
+import { normalizeDate as parseNormalizeDate, isValidDate as parseIsValidDate } from './dateParser'
 
 /**
  * تحويل التاريخ الميلادي إلى هجري
@@ -140,3 +141,46 @@ export function formatDateTimeWithHijri(date: Date | string | null | undefined):
   return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
+/**
+ * تنسيق التاريخ بصيغة dd-mmm-yyyy (مثل: 03-May-2026)
+ */
+export function formatDateDDMMMYYYY(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (!date || date === null || date === undefined) {
+    return ''
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ]
+  
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const month = monthNames[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+  
+  return `${day}-${month}-${year}`
+}
+
+/**
+ * تحويل أي صيغة تاريخ إلى YYYY-MM-DD
+ * يدعم جميع الصيغ المدعومة في dateParser
+ */
+export function normalizeDate(dateStr: string | null | undefined): string | null {
+  return parseNormalizeDate(dateStr)
+}
+
+/**
+ * التحقق من صحة التاريخ
+ * يدعم جميع الصيغ المدعومة في dateParser
+ */
+export function isValidDate(dateStr: string | null | undefined): boolean {
+  return parseIsValidDate(dateStr)
+}
