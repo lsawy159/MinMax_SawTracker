@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
@@ -60,15 +60,51 @@ export default function Employees() {
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const companyDropdownRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const loadEmployeesRef = useRef<() => Promise<void>>()
   
   // Sort states
   const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
+  // حفظ loadEmployees في ref
+  useEffect(() => {
+    loadEmployeesRef.current = loadEmployees
+  }, [loadEmployees])
+
   useEffect(() => {
     loadEmployees()
     handleUrlParams()
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadEmployees])
+
+  // الاستماع لتحديثات الموظفين من أجهزة أخرى
+  useEffect(() => {
+    const handleEmployeeUpdated = () => {
+      // إلغاء أي timeout سابق
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+      
+      // إضافة debounce لتجنب تحديثات متعددة متزامنة
+      debounceTimeoutRef.current = setTimeout(() => {
+        console.log('[Employees] Employee updated event received, reloading...')
+        if (loadEmployeesRef.current) {
+          loadEmployeesRef.current()
+        }
+      }, 500) // 500ms debounce
+    }
+    
+    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+    }
   }, [])
 
   // Handle company filter from URL after companies are loaded
@@ -171,8 +207,9 @@ export default function Employees() {
     }
   }
 
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     try {
+      setLoading(true)
       const { data, error } = await supabase
         .from('employees')
         .select('*, company:companies(*), project:projects(*)')
@@ -230,7 +267,7 @@ export default function Employees() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const getDaysRemaining = (date: string) => {
     return differenceInDays(new Date(date), new Date())
