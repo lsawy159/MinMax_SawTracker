@@ -8,6 +8,7 @@ import {
   calculatePowerSubscriptionStatus,
   calculateMoqeemSubscriptionStatus
 } from '@/utils/autoCompanyStatus'
+import { normalizeDate } from '@/utils/dateParser'
 
 interface CompanyModalProps {
   isOpen: boolean
@@ -79,6 +80,24 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       }
     }
   }, [isOpen, company])
+
+  // معالجة ESC لإغلاق المودال
+  useEffect(() => {
+    if (!isOpen) return
+    
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -230,25 +249,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         return isNaN(parsed) ? null : parsed
       })() : null
 
-      // معالجة التواريخ - التأكد من أنها بصيغة صحيحة أو null
-      const formatDate = (dateStr: string | undefined): string | null => {
-        if (!dateStr || !dateStr.trim()) return null
-        const trimmed = dateStr.trim()
-        // التحقق من أن التاريخ بصيغة YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-          return trimmed
-        }
-        // محاولة تحويل التاريخ إذا كان بصيغة أخرى
-        try {
-          const date = new Date(trimmed)
-          if (!isNaN(date.getTime())) {
-            return date.toISOString().split('T')[0]
-          }
-        } catch {
-          // ignore
-        }
-        return null
-      }
+      // معالجة التواريخ باستخدام normalizeDate الذي يدعم جميع الصيغ
 
       // labor_subscription_number مطلوب أيضاً
       const laborSubscriptionNumber = formData.labor_subscription_number.trim() || (() => {
@@ -263,10 +264,10 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         unified_number: unifiedNumber,
         social_insurance_number: formData.social_insurance_number.trim() || null,
         labor_subscription_number: laborSubscriptionNumber,
-        commercial_registration_expiry: formatDate(formData.commercial_registration_expiry),
-        social_insurance_expiry: formatDate(formData.social_insurance_expiry),
-        ending_subscription_power_date: formatDate(formData.ending_subscription_power_date),
-        ending_subscription_moqeem_date: formatDate(formData.ending_subscription_moqeem_date),
+        commercial_registration_expiry: normalizeDate(formData.commercial_registration_expiry),
+        social_insurance_expiry: normalizeDate(formData.social_insurance_expiry),
+        ending_subscription_power_date: normalizeDate(formData.ending_subscription_power_date),
+        ending_subscription_moqeem_date: normalizeDate(formData.ending_subscription_moqeem_date),
         max_employees: maxEmployees,
         exemptions: formData.exemptions.trim() || null,
         company_type: formData.company_type.trim() || null,

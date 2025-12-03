@@ -5,6 +5,7 @@ import { supabase, Company, Employee, Project } from '@/lib/supabase'
 import CompanyCard from './CompanyCard'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import { toast } from 'sonner'
+import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 
 interface CompanyDetailModalProps {
   company: Company & { 
@@ -58,6 +59,32 @@ export default function CompanyDetailModal({
     loadEmployees()
   }, [loadEmployees])
 
+  const handleCloseEmployeeCard = useCallback(() => {
+    setShowEmployeeCard(false)
+    setSelectedEmployee(null)
+  }, [])
+
+  // معالجة ESC لإغلاق المودال
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        // إذا كان هناك employee card مفتوح، أغلقه أولاً
+        if (showEmployeeCard) {
+          handleCloseEmployeeCard()
+          return
+        }
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, showEmployeeCard, handleCloseEmployeeCard])
+
   const handleEmployeeClick = async (employee: Employee & { company: Company; project?: Project }) => {
     // تأكد من أن employee يحتوي على company
     if (!employee.company) {
@@ -75,11 +102,6 @@ export default function CompanyDetailModal({
 
     setSelectedEmployee(employee)
     setShowEmployeeCard(true)
-  }
-
-  const handleCloseEmployeeCard = () => {
-    setShowEmployeeCard(false)
-    setSelectedEmployee(null)
   }
 
   const handleEmployeeUpdate = () => {
@@ -205,13 +227,13 @@ export default function CompanyDetailModal({
                       {employee.contract_expiry && (
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-500">انتهاء العقد:</span>
-                          <span className="text-gray-700">{new Date(employee.contract_expiry).toLocaleDateString('ar-SA')}</span>
+                          <span className="text-gray-700">{formatDateShortWithHijri(employee.contract_expiry)}</span>
                         </div>
                       )}
                       {employee.residence_expiry && (
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-500">انتهاء الإقامة:</span>
-                          <span className="text-gray-700">{new Date(employee.residence_expiry).toLocaleDateString('ar-SA')}</span>
+                          <span className="text-gray-700">{formatDateShortWithHijri(employee.residence_expiry)}</span>
                         </div>
                       )}
                       {employee.project?.name || employee.project_name ? (

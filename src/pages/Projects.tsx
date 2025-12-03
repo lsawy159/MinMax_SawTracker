@@ -222,20 +222,9 @@ export default function Projects() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FolderKanban className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
-          </div>
-          {activeTab === 'list' && canCreate('projects') && (
-            <button
-              onClick={handleAddProject}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              <Plus className="w-5 h-5" />
-              إضافة مشروع جديد
-            </button>
-          )}
+        <div className="flex items-center gap-3">
+          <FolderKanban className="w-8 h-8 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
         </div>
 
         {/* Tabs */}
@@ -270,6 +259,17 @@ export default function Projects() {
             {/* Filters */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex flex-wrap items-center gap-4">
+                {/* Add Project Button */}
+                {canCreate('projects') && (
+                  <button
+                    onClick={handleAddProject}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    إضافة مشروع جديد
+                  </button>
+                )}
+                
                 {/* Search */}
                 <div className="flex-1 min-w-[200px]">
                   <div className="relative">
@@ -341,7 +341,7 @@ export default function Projects() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {filteredProjects.map((project) => (
                   <ProjectCard
                     key={project.id}

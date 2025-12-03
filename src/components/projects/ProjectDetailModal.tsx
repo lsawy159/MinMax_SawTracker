@@ -50,6 +50,32 @@ export default function ProjectDetailModal({
     loadEmployees()
   }, [loadEmployees])
 
+  const handleCloseEmployeeCard = useCallback(() => {
+    setShowEmployeeCard(false)
+    setSelectedEmployee(null)
+  }, [])
+
+  // معالجة ESC لإغلاق المودال
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        // إذا كان هناك employee card مفتوح، أغلقه أولاً
+        if (showEmployeeCard) {
+          handleCloseEmployeeCard()
+          return
+        }
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, showEmployeeCard, handleCloseEmployeeCard])
+
   const handleEmployeeClick = async (employee: Employee & { company: Company; project?: Project }) => {
     // تأكد من أن employee يحتوي على company
     if (!employee.company) {
@@ -67,11 +93,6 @@ export default function ProjectDetailModal({
 
     setSelectedEmployee(employee)
     setShowEmployeeCard(true)
-  }
-
-  const handleCloseEmployeeCard = () => {
-    setShowEmployeeCard(false)
-    setSelectedEmployee(null)
   }
 
   const handleEmployeeUpdate = () => {

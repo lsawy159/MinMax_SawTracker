@@ -134,7 +134,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <img 
                       src="/logo.png" 
                       alt="SawTracker Logo" 
-                      className="h-10 w-auto"
+                      className="h-16 w-auto"
                     />
                     <span className="text-xs text-gray-500 mt-0.5 font-medium">
                       See What Others Don't
@@ -145,7 +145,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <img 
                       src="/logo.png" 
                       alt="SawTracker Logo" 
-                      className="h-8 w-auto"
+                      className="h-12 w-auto"
                     />
                   </Link>
                 )}
