@@ -22,11 +22,13 @@ import {
   PermissionMatrix, 
   defaultPermissions, 
   adminPermissions, 
-  normalizePermissions 
+  normalizePermissions,
+  usePermissions
 } from '@/utils/permissions'
 
 export default function Users() {
   const { user: currentUser } = useAuth()
+  const { canView } = usePermissions()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -46,22 +48,26 @@ export default function Users() {
     is_active: true
   })
 
+  // التحقق من صلاحية العرض
+  const hasViewPermission = canView('users')
+  const isAdmin = currentUser?.role === 'admin'
+
   // ← [تم النقل] useEffect يجب أن يكون قبل return الشرطي
   useEffect(() => {
-    if (currentUser && currentUser.role === 'admin') {
+    if (currentUser && hasViewPermission) {
       loadUsers()
     }
-  }, [currentUser])
+  }, [currentUser, hasViewPermission])
 
-  // Check if user is admin
-  if (!currentUser || currentUser.role !== 'admin') {
+  // Check if user has view permission
+  if (!currentUser || !hasViewPermission) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
       </Layout>
@@ -319,13 +325,15 @@ export default function Users() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">إدارة المستخدمين</h1>
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <UserPlus className="w-5 h-5" />
-            إضافة مستخدم جديد
-          </button>
+          {isAdmin && (
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <UserPlus className="w-5 h-5" />
+              إضافة مستخدم جديد
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -397,36 +405,40 @@ export default function Users() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(user)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="تعديل"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleUserStatus(user)}
-                            className={`p-2 rounded-lg transition ${
-                              user.is_active
-                                ? 'text-orange-600 hover:bg-orange-50'
-                                : 'text-green-600 hover:bg-green-50'
-                            }`}
-                            title={user.is_active ? 'إيقاف' : 'تفعيل'}
-                          >
-                            {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDeleteingUser(user)
-                              setShowDeleteModal(true)
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="حذف"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {isAdmin ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditModal(user)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                              title="تعديل"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => toggleUserStatus(user)}
+                              className={`p-2 rounded-lg transition ${
+                                user.is_active
+                                  ? 'text-orange-600 hover:bg-orange-50'
+                                  : 'text-green-600 hover:bg-green-50'
+                              }`}
+                              title={user.is_active ? 'إيقاف' : 'تفعيل'}
+                            >
+                              {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeleteingUser(user)
+                                setShowDeleteModal(true)
+                              }}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">عرض فقط</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -611,19 +623,15 @@ export default function Users() {
                         <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
                           <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المستخدمين</h4>
                           <div className="space-y-1">
-                            {['view', 'create', 'edit', 'delete'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.users[action as keyof typeof formData.permissions.users]}
-                                  onChange={(e) => updatePermission('users', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                                </span>
-                              </label>
-                            ))}
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.users.view}
+                                onChange={(e) => updatePermission('users', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
                           </div>
                         </div>
 
@@ -631,19 +639,15 @@ export default function Users() {
                         <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
                           <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الإعدادات</h4>
                           <div className="space-y-1">
-                            {['view', 'edit'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.settings[action as keyof typeof formData.permissions.settings]}
-                                  onChange={(e) => updatePermission('settings', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : 'تعديل'}
-                                </span>
-                              </label>
-                            ))}
+                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                              <input
+                                type="checkbox"
+                                checked={formData.permissions.settings.view}
+                                onChange={(e) => updatePermission('settings', 'view', e.target.checked)}
+                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-700">عرض</span>
+                            </label>
                           </div>
                         </div>
 

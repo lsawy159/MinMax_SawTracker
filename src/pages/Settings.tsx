@@ -4,6 +4,7 @@ import Layout from '@/components/layout/Layout' // [PATH FIX] Reverted to alias 
 import { Settings as SettingsIcon, Save, Building2, Users, AlertCircle, Globe, Plus, Trash2, Edit2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
+import { usePermissions } from '@/utils/permissions'
 
 interface CompanyLimit {
   company_id: string
@@ -21,6 +22,7 @@ interface Nationality {
 
 export default function Settings() {
   const { user } = useAuth()
+  const { canView } = usePermissions()
   
   // --- [BEGIN FIX] ---
   // تم نقل جميع الـ Hooks (useState, useEffect) إلى هنا
@@ -36,24 +38,28 @@ export default function Settings() {
   const [editingNationality, setEditingNationality] = useState<Nationality | null>(null)
   const [nationalityName, setNationalityName] = useState('')
 
+  // التحقق من صلاحية العرض
+  const hasViewPermission = canView('settings')
+  const isAdmin = user?.role === 'admin'
+
   useEffect(() => {
     // التأكد من أن المستخدم موجود قبل تحميل البيانات
-    if (user && user.role === 'admin') {
+    if (user && hasViewPermission) {
       loadCompanyLimits()
       loadNationalities()
     }
-  }, [user]) // [FIX] أضفنا user كاعتمادية
+  }, [user, hasViewPermission]) // [FIX] أضفنا user و hasViewPermission كاعتمادية
   // --- [END FIX] ---
 
-  // Check if user is admin
-  if (!user || user.role !== 'admin') {
+  // Check if user has view permission
+  if (!user || !hasViewPermission) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، هذه الصفحة متاحة للمديرين فقط.</p>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
       </Layout>
@@ -416,16 +422,18 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      <Save className="w-5 h-5" />
-                      {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        <Save className="w-5 h-5" />
+                        {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -446,13 +454,15 @@ export default function Settings() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => openNationalityModal()}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  تعديل
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => openNationalityModal()}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    تعديل
+                  </button>
+                )}
               </div>
             </div>
 
@@ -485,22 +495,26 @@ export default function Settings() {
                               <p className="text-sm text-gray-500">جنسية</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => openNationalityModal(nationality)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                              title="تعديل"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteNationality(nationality)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                              title="حذف"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {isAdmin ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => openNationalityModal(nationality)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                title="تعديل"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteNationality(nationality)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                title="حذف"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">عرض فقط</span>
+                          )}
                         </div>
                       </div>
                     ))}
