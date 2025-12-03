@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react' // [FIX] تم إضافة useCallback
+import { useEffect, useState, useCallback, useRef } from 'react' // [FIX] تم إضافة useCallback
 import { supabase, Company } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
@@ -66,6 +66,11 @@ export default function Companies() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [currentPage, setCurrentPage] = useState(1)
+  
+  // حالة التنقل بالسهام
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
 
 
   // [FIX] تم تغليف الدالة بـ useCallback
@@ -515,6 +520,8 @@ export default function Companies() {
   const handleCloseCompanyDetailModal = () => {
     setShowCompanyDetailModal(false)
     setSelectedCompanyForDetail(null)
+    // إعادة تعيين الصف المحدد عند إغلاق المودال
+    setSelectedRowIndex(null)
   }
 
   const handleDeleteConfirm = async () => {
@@ -588,6 +595,81 @@ export default function Companies() {
   const endIndex = startIndex + itemsPerPage
   const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex)
 
+  // معالجة التنقل بالسهام في الجدول
+  useEffect(() => {
+    // لا تعمل إذا كان هناك modal مفتوح أو في وضع grid
+    if (showAddModal || showEditModal || showDeleteModal || showCompanyDetailModal || showFiltersModal || viewMode === 'grid') {
+      return
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // التحقق من أن المستخدم لا يكتب في حقل إدخال
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return
+      }
+
+      const companiesList = paginatedCompanies
+      if (companiesList.length === 0) return
+
+      let newIndex: number | null = selectedRowIndex
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          if (selectedRowIndex === null) {
+            newIndex = 0
+          } else {
+            newIndex = Math.min(selectedRowIndex + 1, companiesList.length - 1)
+          }
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          if (selectedRowIndex === null) {
+            newIndex = companiesList.length - 1
+          } else {
+            newIndex = Math.max(selectedRowIndex - 1, 0)
+          }
+          break
+        case 'Home':
+          e.preventDefault()
+          newIndex = 0
+          break
+        case 'End':
+          e.preventDefault()
+          newIndex = companiesList.length - 1
+          break
+        case 'Enter':
+          e.preventDefault()
+          if (selectedRowIndex !== null && companiesList[selectedRowIndex]) {
+            handleCompanyCardClick(companiesList[selectedRowIndex])
+          }
+          return
+        default:
+          return
+      }
+
+      if (newIndex !== null && newIndex !== selectedRowIndex) {
+        setSelectedRowIndex(newIndex)
+        // Scroll to view
+        setTimeout(() => {
+          const rowElement = rowRefs.current[newIndex]
+          if (rowElement) {
+            rowElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }, 0)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedRowIndex, paginatedCompanies, showAddModal, showEditModal, showDeleteModal, showCompanyDetailModal, showFiltersModal, viewMode])
+
+  // إعادة تعيين الصف المحدد عند تغيير الفلاتر أو الصفحة
+  useEffect(() => {
+    setSelectedRowIndex(null)
+  }, [searchTerm, commercialRegStatus, socialInsuranceStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, employeeCountFilter, availableSlotsFilter, dateRangeFilter, exemptionsFilter, sortField, sortDirection, currentPage])
+
   // Pagination handlers
   const goToPage = (page: number) => {
     setCurrentPage(page)
@@ -654,15 +736,19 @@ export default function Companies() {
               )}
             </p>
           </div>
-          {canCreate('companies') && (
-            <button
-              onClick={handleAddCompany}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
-            >
-              <Building2 className="w-4 h-4" />
-              إضافة مؤسسة
-            </button>
-          )}
+          <div className="flex gap-2">
+            {canCreate('companies') && (
+              <>
+                <button
+                  onClick={handleAddCompany}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
+                >
+                  <Building2 className="w-4 h-4" />
+                  إضافة مؤسسة
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Company Status Statistics Section - إحصائيات موحدة تشمل جميع الحالات */}
@@ -1045,7 +1131,7 @@ export default function Companies() {
         ) : filteredCompanies.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {paginatedCompanies.map((company) => (
                   <div
                     key={company.id}
@@ -1070,7 +1156,7 @@ export default function Companies() {
             ) : (
               <div className="bg-white border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm" ref={tableRef}>
                     <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                       <tr>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">اسم المؤسسة</th>
@@ -1087,15 +1173,17 @@ export default function Companies() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedCompanies.map((company) => {
+                      {paginatedCompanies.map((company, index) => {
                         const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
                         const socialInsuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
                         const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
                         const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
+                        const isSelected = selectedRowIndex === index
                         return (
                           <tr 
                             key={company.id} 
-                            className="border-t hover:bg-gray-50 transition cursor-pointer"
+                            ref={(el) => { rowRefs.current[index] = el }}
+                            className={`border-t hover:bg-gray-50 transition cursor-pointer ${isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''}`}
                             onClick={() => handleCompanyCardClick(company)}
                           >
                             <td className="px-4 py-3 font-medium text-gray-900">{company.name}</td>
@@ -1264,6 +1352,7 @@ export default function Companies() {
             onSuccess={handleModalSuccess}
           />
         )}
+
 
         {/* Company Detail Modal */}
         {showCompanyDetailModal && selectedCompanyForDetail && (

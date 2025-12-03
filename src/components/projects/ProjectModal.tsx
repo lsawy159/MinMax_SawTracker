@@ -38,6 +38,24 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
     }
   }, [isOpen, project])
 
+  // معالجة ESC لإغلاق المودال
+  useEffect(() => {
+    if (!isOpen) return
+    
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
 import { formatDateShortWithHijri, formatDateDDMMMYYYY } from '@/utils/dateFormatter'
+import DeleteConfirmationModal from './DeleteConfirmationModal'
 
 interface ValidationError {
   row: number
@@ -84,11 +85,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingImport, setPendingImport] = useState<(() => void) | null>(null)
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
+  const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isImportCancelled, setIsImportCancelled] = useState(false)
   const [importedIds, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -530,15 +534,26 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               if (dateValue) {
                 // استبدال القيمة في jsonData بالقيمة الصحيحة من الخلية
                 row[colName] = dateValue
-              } else if (row[colName]) {
-                // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
-                row[colName] = String(row[colName] || '').trim()
+                // Debug: طباعة التواريخ التي تم قراءتها بنجاح
+                if (rowIndex < 3) {
+                  console.log(`  ✅ Row ${rowIndex + 2}, Column "${colName}": Successfully read "${dateValue}" from cell ${cellAddress}`)
+                }
               } else {
-                row[colName] = ''
+                // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
+                const fallbackValue = row[colName] ? String(row[colName] || '').trim() : ''
+                row[colName] = fallbackValue
+                // Debug: طباعة التواريخ التي فشلت قراءتها
+                if (rowIndex < 3 && fallbackValue) {
+                  console.log(`  ⚠️ Row ${rowIndex + 2}, Column "${colName}": Using fallback value "${fallbackValue}" (readDateFromCell returned empty)`)
+                }
               }
             } else if (row[colName]) {
               // إذا لم تكن هناك خلية، احتفظ بالقيمة من jsonData
               row[colName] = String(row[colName] || '').trim()
+              // Debug: طباعة التواريخ التي لم تكن هناك خلية لها
+              if (rowIndex < 3) {
+                console.log(`  📝 Row ${rowIndex + 2}, Column "${colName}": No cell found, using jsonData value "${row[colName]}"`)
+              }
             } else {
               row[colName] = ''
             }
@@ -548,12 +563,18 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       
       // Debug: طباعة عينة من التواريخ للتحقق
       if (jsonData.length > 0) {
-        console.log('🔍 Sample dates from first row:')
-        dateColumns.forEach(col => {
-          if (jsonData[0][col]) {
-            console.log(`  ${col}: "${jsonData[0][col]}"`)
-          }
-        })
+        console.log('🔍 Sample dates from first 3 rows after readDateFromCell:')
+        for (let i = 0; i < Math.min(3, jsonData.length); i++) {
+          console.log(`  Row ${i + 1}:`)
+          dateColumns.forEach(col => {
+            const value = jsonData[i][col]
+            if (value) {
+              console.log(`    ${col}: "${value}" (type: ${typeof value})`)
+            } else {
+              console.log(`    ${col}: (empty)`)
+            }
+          })
+        }
       }
 
       // Debug: طباعة الأعمدة للتحقق
@@ -791,9 +812,24 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
   const deleteDataBeforeImport = async (): Promise<boolean> => {
     try {
+      console.log('🗑️ Starting deleteDataBeforeImport:', { deleteMode, importType })
+      
       if (deleteMode === 'all') {
         // حذف جميع البيانات
         if (importType === 'companies') {
+          console.log('🗑️ Deleting all companies...')
+          setIsDeleting(true)
+          setDeleteProgress({ current: 0, total: 0 })
+          
+          // جلب عدد المؤسسات المراد حذفها
+          const { count: totalCount } = await supabase
+            .from('companies')
+            .select('*', { count: 'exact', head: true })
+            .neq('id', '00000000-0000-0000-0000-000000000000')
+          
+          const totalCompanies = totalCount || 0
+          setDeleteProgress({ current: 0, total: totalCompanies })
+          
           // قبل حذف المؤسسات، تحديث الموظفين المرتبطين بها ليكونوا بدون شركة
           const { error: updateError } = await supabase
             .from('employees')
@@ -801,18 +837,119 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             .not('company_id', 'is', null)
           
           if (updateError) {
-            console.error('Error updating employees:', updateError)
-            toast.warning('حدث خطأ أثناء تحديث الموظفين')
+            console.error('❌ Error updating employees:', updateError)
+            toast.error(`فشل تحديث الموظفين: ${updateError.message}`)
+            setIsDeleting(false)
+            setDeleteProgress({ current: 0, total: 0 })
+            return false
           } else {
-            toast.success('تم تحديث الموظفين المرتبطين بالمؤسسات')
+            console.log('✅ Successfully updated employees')
           }
           
-          // حذف جميع المؤسسات
-          const { error } = await supabase.from('companies').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-          if (error) throw error
+          // حذف المؤسسات على دفعات
+          const batchSize = 500
+          let deletedCount = 0
+          
+          while (deletedCount < totalCompanies) {
+            // جلب دفعة من المؤسسات للحذف
+            const { data: batch, error: fetchError } = await supabase
+              .from('companies')
+              .select('id')
+              .neq('id', '00000000-0000-0000-0000-000000000000')
+              .limit(batchSize)
+            
+            if (fetchError) {
+              console.error('❌ Error fetching companies batch:', fetchError)
+              throw fetchError
+            }
+            
+            if (!batch || batch.length === 0) {
+              break
+            }
+            
+            const batchIds = batch.map(c => c.id)
+            
+            // حذف الدفعة
+            const { error } = await supabase
+              .from('companies')
+              .delete()
+              .in('id', batchIds)
+            
+            if (error) {
+              console.error('❌ Error deleting companies batch:', error)
+              throw error
+            }
+            
+            deletedCount += batch.length
+            setDeleteProgress({ current: deletedCount, total: totalCompanies })
+            
+            // إعطاء وقت للواجهة للتحديث
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+          
+          console.log('✅ Successfully deleted all companies')
+          setIsDeleting(false)
+          setDeleteProgress({ current: 0, total: 0 })
+          toast.success(`تم حذف جميع المؤسسات بنجاح`)
         } else {
-          const { error } = await supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-          if (error) throw error
+          console.log('🗑️ Deleting all employees...')
+          setIsDeleting(true)
+          setDeleteProgress({ current: 0, total: 0 })
+          
+          // جلب عدد الموظفين المراد حذفهم
+          const { count: totalCount } = await supabase
+            .from('employees')
+            .select('*', { count: 'exact', head: true })
+            .neq('id', '00000000-0000-0000-0000-000000000000')
+          
+          const totalEmployees = totalCount || 0
+          setDeleteProgress({ current: 0, total: totalEmployees })
+          
+          // حذف الموظفين على دفعات
+          const batchSize = 500
+          let deletedCount = 0
+          
+          while (deletedCount < totalEmployees) {
+            // جلب دفعة من الموظفين للحذف
+            const { data: batch, error: fetchError } = await supabase
+              .from('employees')
+              .select('id')
+              .neq('id', '00000000-0000-0000-0000-000000000000')
+              .limit(batchSize)
+            
+            if (fetchError) {
+              console.error('❌ Error fetching employees batch:', fetchError)
+              throw fetchError
+            }
+            
+            if (!batch || batch.length === 0) {
+              break
+            }
+            
+            const batchIds = batch.map(e => e.id)
+            
+            // حذف الدفعة
+            const { error } = await supabase
+              .from('employees')
+              .delete()
+              .in('id', batchIds)
+            
+            if (error) {
+              console.error('❌ Error deleting employees batch:', error)
+              throw error
+            }
+            
+            deletedCount += batch.length
+            setDeleteProgress({ current: deletedCount, total: totalEmployees })
+            
+            // إعطاء وقت للواجهة للتحديث
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+          
+          console.log('✅ Successfully deleted all employees')
+          setIsDeleting(false)
+          setDeleteProgress({ current: 0, total: 0 })
+          toast.success(`تم حذف جميع الموظفين بنجاح`)
         }
       } else {
         // حذف البيانات المطابقة فقط
@@ -873,19 +1010,38 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             }
           }
         } else {
+          console.log('🗑️ Deleting matching employees by residence number...')
           // حذف الموظفين بنفس رقم الإقامة
+          let deletedCount = 0
           for (const row of jsonData as any[]) {
             const residenceNumber = row['رقم الإقامة']
             if (residenceNumber) {
-              await supabase.from('employees').delete().eq('residence_number', residenceNumber)
+              const { error } = await supabase
+                .from('employees')
+                .delete()
+                .eq('residence_number', residenceNumber)
+              
+              if (error) {
+                console.error(`❌ Error deleting employee with residence number ${residenceNumber}:`, error)
+                toast.warning(`فشل حذف موظف برقم إقامة ${residenceNumber}`)
+              } else {
+                deletedCount += 1
+              }
             }
           }
+          console.log(`✅ Successfully deleted ${deletedCount} matching employees`)
+          toast.success(`تم حذف ${deletedCount} موظف مطابق`)
         }
       }
+      console.log('✅ deleteDataBeforeImport completed successfully')
+      setIsDeleting(false)
+      setDeleteProgress({ current: 0, total: 0 })
       return true
-    } catch (error) {
-      console.error('Error deleting data:', error)
-      toast.error('فشل حذف البيانات')
+    } catch (error: any) {
+      console.error('❌ Error in deleteDataBeforeImport:', error)
+      setIsDeleting(false)
+      setDeleteProgress({ current: 0, total: 0 })
+      toast.error(`فشل حذف البيانات: ${error?.message || 'خطأ غير معروف'}`)
       return false
     }
   }
@@ -920,34 +1076,71 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
     // التحقق من الحذف قبل الاستيراد
     if (shouldDeleteBeforeImport) {
+      console.log('🔄 shouldDeleteBeforeImport is true, showing confirmation dialog')
+      // التأكد من أن modal المعاينة مفتوح
+      if (!showPreviewModal) {
+        setShowPreviewModal(true)
+      }
       // عرض مودال التأكيد بدلاً من window.confirm
       setPendingImport(() => async () => {
-        const deleted = await deleteDataBeforeImport()
-        if (!deleted) {
+        console.log('🔄 pendingImport callback called')
+        try {
+          // التأكد من إعادة تعيين حالة الحذف
+          setIsDeleting(false)
+          setDeleteProgress({ current: 0, total: 0 })
+          
+          const deleted = await deleteDataBeforeImport()
+          console.log('🔄 deleteDataBeforeImport returned:', deleted)
+          
+          if (!deleted) {
+            console.log('❌ Delete failed, aborting import')
+            setIsDeleting(false)
+            setDeleteProgress({ current: 0, total: 0 })
+            setShowConfirmDialog(false)
+            setPendingImport(null)
+            return
+          }
+          
+          console.log('✅ Delete successful, proceeding with import')
+          // التأكد من إعادة تعيين حالة الحذف قبل بدء الاستيراد
+          setIsDeleting(false)
+          setDeleteProgress({ current: 0, total: 0 })
           setShowConfirmDialog(false)
           setPendingImport(null)
-          return
+          
+          // متابعة الاستيراد
+          console.log('🔄 Starting executeImport after delete')
+          await executeImport()
+          console.log('✅ executeImport completed')
+        } catch (error: any) {
+          console.error('❌ Error in pendingImport callback:', error)
+          setIsDeleting(false)
+          setDeleteProgress({ current: 0, total: 0 })
+          toast.error(`فشل العملية: ${error?.message || 'خطأ غير معروف'}`)
+          setShowConfirmDialog(false)
+          setPendingImport(null)
         }
-        
-        toast.success(`تم حذف البيانات بنجاح`)
-        setShowConfirmDialog(false)
-        setPendingImport(null)
-        
-        // متابعة الاستيراد
-        await executeImport()
       })
+      console.log('🔄 Setting showConfirmDialog to true')
       setShowConfirmDialog(true)
       return
     }
 
     // إذا لم يكن هناك حذف، مباشرة إلى الاستيراد
+    console.log('🔄 No delete needed, proceeding directly to import')
     await executeImport()
   }
 
   const executeImport = async () => {
-    if (!file) return
+    console.log('🚀 executeImport started')
+    if (!file) {
+      console.error('❌ No file selected')
+      toast.error('يرجى اختيار ملف أولاً')
+      return
+    }
 
     // بدء عملية الاستيراد
+    console.log('🚀 Setting importing to true')
     setImporting(true)
 
     // إعادة تعيين حالة الإلغاء والسجلات المضافة
@@ -961,9 +1154,13 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     let failCount = 0
 
     // Helper function to clean project name (remove extra spaces, trim)
+    // ترجع null إذا كان الاسم فارغاً أو "-" فقط (يعني الموظف ليس في مشروع)
     const cleanProjectName = (name: string | null | undefined): string | null => {
       if (!name) return null
-      return name.trim().replace(/\s+/g, ' ')
+      const cleaned = name.trim().replace(/\s+/g, ' ')
+      // إذا كان الاسم فارغاً بعد التنظيف أو يساوي "-" فقط، لا نعتبره مشروعاً
+      if (!cleaned || cleaned === '-' || cleaned.length === 0) return null
+      return cleaned
     }
 
     try {
@@ -971,6 +1168,135 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       const workbook = XLSX.read(data)
       const worksheet = workbook.Sheets[workbook.SheetNames[0]]
       let jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+      // ===== معالجة التواريخ من Excel =====
+      // دالة لقراءة التاريخ من خلية Excel بشكل صحيح (نفس المنطق المستخدم في validateData)
+      const readDateFromCell = (cell: XLSX.CellObject | undefined): string => {
+        if (!cell) return ''
+        
+        // إذا كان هناك نص منسق (cell.w)، استخدمه مباشرة - هذا هو النص المعروض في Excel
+        if (cell.w) {
+          const formattedText = String(cell.w).trim()
+          // التحقق من أن النص ليس فارغاً أو مساوياً لقيمة افتراضية
+          if (formattedText && formattedText !== '#N/A' && formattedText !== '#VALUE!') {
+            return formattedText
+          }
+        }
+        
+        // إذا كانت القيمة رقم تسلسلي (Excel date serial number)
+        if (cell.t === 'n' && typeof cell.v === 'number') {
+          // التحقق من أن الرقم ضمن نطاق تاريخ Excel المعقول
+          if (cell.v > 0 && cell.v < 1000000) {
+            try {
+              // تحويل الرقم التسلسلي إلى تاريخ
+              const excelEpoch = new Date(1900, 0, 1)
+              const days = Math.floor(cell.v) - 2 // Excel incorrectly treats 1900 as leap year
+              const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000)
+              
+              // التحقق من أن التاريخ صحيح
+              if (!isNaN(date.getTime())) {
+                const year = date.getFullYear()
+                // التحقق من أن السنة منطقية (بين 1900 و 2100)
+                if (year >= 1900 && year <= 2100) {
+                  // تنسيق التاريخ بصيغة DD-Mon-YYYY
+                  const day = String(date.getDate()).padStart(2, '0')
+                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                  const month = monthNames[date.getMonth()]
+                  return `${day}-${month}-${year}`
+                }
+              }
+            } catch (e) {
+              console.warn('Error converting Excel serial date:', e, 'value:', cell.v)
+            }
+          }
+        }
+        
+        // إذا كانت القيمة نص، استخدمها مباشرة
+        if (cell.v !== undefined && cell.v !== null) {
+          const strValue = String(cell.v).trim()
+          if (strValue && strValue !== 'null' && strValue !== 'undefined') {
+            return strValue
+          }
+        }
+        
+        return ''
+      }
+
+      // تحديد أعمدة التواريخ
+      const dateColumns = importType === 'employees' 
+        ? [
+            'تاريخ الميلاد',
+            'تاريخ الالتحاق',
+            'تاريخ انتهاء الإقامة',
+            'تاريخ انتهاء العقد',
+            'تاريخ انتهاء عقد أجير',
+            'تاريخ انتهاء التأمين الصحي'
+          ]
+        : [
+            'تاريخ انتهاء السجل التجاري',
+            'تاريخ انتهاء التأمينات الاجتماعية',
+            'تاريخ انتهاء اشتراك قوى',
+            'تاريخ انتهاء اشتراك مقيم'
+          ]
+
+      // قراءة الأعمدة من header row مباشرة (للتأكد من قراءة جميع الأعمدة حتى الفارغة)
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1')
+      const excelColumns: string[] = []
+      
+      // قراءة الأعمدة من الصف الأول (header row)
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
+        const cell = worksheet[cellAddress]
+        if (cell) {
+          const cellValue = cell.v !== undefined && cell.v !== null ? String(cell.v).trim() : ''
+          if (cellValue) {
+            excelColumns.push(cellValue)
+          }
+        }
+      }
+
+      // الحصول على indices الأعمدة للتواريخ بناءً على excelColumns
+      const dateColumnIndices: { [key: string]: number } = {}
+      excelColumns.forEach((col, index) => {
+        if (dateColumns.includes(col)) {
+          dateColumnIndices[col] = index
+        }
+      })
+
+      // معالجة التواريخ من الخلايا مباشرة للحصول على القيم الصحيحة
+      jsonData.forEach((row: any, rowIndex: number) => {
+        // rowIndex + 1 لأن الصف الأول (0) في Excel هو header row
+        const excelRowIndex = rowIndex + 1
+        
+        // معالجة كل عمود تاريخ
+        dateColumns.forEach(colName => {
+          const colIndex = dateColumnIndices[colName]
+          if (colIndex !== undefined && colIndex !== -1) {
+            // الحصول على عنوان الخلية (مثل A2, B3, إلخ)
+            const cellAddress = XLSX.utils.encode_cell({ r: excelRowIndex, c: colIndex })
+            const cell = worksheet[cellAddress]
+            
+            if (cell) {
+              // قراءة التاريخ من الخلية مباشرة
+              const dateValue = readDateFromCell(cell)
+              if (dateValue) {
+                // استبدال القيمة في jsonData بالقيمة الصحيحة من الخلية
+                row[colName] = dateValue
+              } else {
+                // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
+                const fallbackValue = row[colName] ? String(row[colName] || '').trim() : ''
+                row[colName] = fallbackValue
+              }
+            } else if (row[colName]) {
+              // إذا لم تكن هناك خلية، احتفظ بالقيمة من jsonData
+              row[colName] = String(row[colName] || '').trim()
+            } else {
+              row[colName] = ''
+            }
+          }
+        })
+      })
+      // ===== نهاية معالجة التواريخ =====
 
       // تصفية البيانات حسب الصفوف المحددة واستبعاد الصفوف التي تحتوي على أخطاء
       if (selectedRows.size > 0) {
@@ -1175,14 +1501,34 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             const healthInsuranceExpiryRaw = row['تاريخ انتهاء التأمين الصحي']
             
             // Debug: طباعة القيم الأولية للتأكد من عدم الخلط
-            if (currentIndex <= 3) { // طباعة أول 3 موظفين فقط للتحقق
-              console.log(`📋 Employee ${currentIndex} dates (raw from Excel):`, {
-                'تاريخ الميلاد': birthDateRaw,
-                'تاريخ الالتحاق': joiningDateRaw,
-                'تاريخ انتهاء الإقامة': residenceExpiryRaw,
-                'تاريخ انتهاء العقد': contractExpiryRaw,
-                'تاريخ انتهاء عقد أجير': hiredWorkerContractExpiryRaw,
-                'تاريخ انتهاء التأمين الصحي': healthInsuranceExpiryRaw
+            if (currentIndex <= 5) { // طباعة أول 5 موظفين للتحقق
+              console.log(`📋 Employee ${currentIndex + 1} (${row['الاسم']}) - Raw dates from Excel:`, {
+                'تاريخ الميلاد': birthDateRaw ? `${birthDateRaw} (type: ${typeof birthDateRaw})` : '(فارغ)',
+                'تاريخ الالتحاق': joiningDateRaw ? `${joiningDateRaw} (type: ${typeof joiningDateRaw})` : '(فارغ)',
+                'تاريخ انتهاء الإقامة': residenceExpiryRaw ? `${residenceExpiryRaw} (type: ${typeof residenceExpiryRaw})` : '(فارغ)',
+                'تاريخ انتهاء العقد': contractExpiryRaw ? `${contractExpiryRaw} (type: ${typeof contractExpiryRaw})` : '(فارغ)',
+                'تاريخ انتهاء عقد أجير': hiredWorkerContractExpiryRaw ? `${hiredWorkerContractExpiryRaw} (type: ${typeof hiredWorkerContractExpiryRaw})` : '(فارغ)',
+                'تاريخ انتهاء التأمين الصحي': healthInsuranceExpiryRaw ? `${healthInsuranceExpiryRaw} (type: ${typeof healthInsuranceExpiryRaw})` : '(فارغ)'
+              })
+            }
+            
+            // تحويل التواريخ باستخدام normalizeDate - مع معالجة أفضل للقيم الفارغة
+            const normalizedBirthDate = birthDateRaw ? normalizeDate(birthDateRaw) : null
+            const normalizedJoiningDate = joiningDateRaw ? normalizeDate(joiningDateRaw) : null
+            const normalizedResidenceExpiry = residenceExpiryRaw ? normalizeDate(residenceExpiryRaw) : null
+            const normalizedContractExpiry = contractExpiryRaw ? normalizeDate(contractExpiryRaw) : null
+            const normalizedHiredWorkerContractExpiry = hiredWorkerContractExpiryRaw ? normalizeDate(hiredWorkerContractExpiryRaw) : null
+            const normalizedHealthInsuranceExpiry = healthInsuranceExpiryRaw ? normalizeDate(healthInsuranceExpiryRaw) : null
+            
+            // Debug: طباعة نتائج normalizeDate
+            if (currentIndex <= 5) {
+              console.log(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - After normalizeDate:`, {
+                'birth_date': normalizedBirthDate || '(null - will not be saved)',
+                'joining_date': normalizedJoiningDate || '(null - will not be saved)',
+                'residence_expiry': normalizedResidenceExpiry || '(null - will not be saved)',
+                'contract_expiry': normalizedContractExpiry || '(null - will not be saved)',
+                'hired_worker_contract_expiry': normalizedHiredWorkerContractExpiry || '(null - will not be saved)',
+                'health_insurance_expiry': normalizedHealthInsuranceExpiry || '(null - will not be saved)'
               })
             }
             
@@ -1198,25 +1544,27 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               project_id: projectId,
               company_id: companyId,
               // التأكد من أن كل حقل تاريخ يُستورد في مكانه الصحيح
-              birth_date: normalizeDate(birthDateRaw), // تاريخ الميلاد → birth_date
-              joining_date: normalizeDate(joiningDateRaw), // تاريخ الالتحاق → joining_date
-              residence_expiry: normalizeDate(residenceExpiryRaw), // تاريخ انتهاء الإقامة → residence_expiry
-              contract_expiry: normalizeDate(contractExpiryRaw), // تاريخ انتهاء العقد → contract_expiry
-              hired_worker_contract_expiry: normalizeDate(hiredWorkerContractExpiryRaw), // تاريخ انتهاء عقد أجير → hired_worker_contract_expiry
-              health_insurance_expiry: normalizeDate(healthInsuranceExpiryRaw), // تاريخ انتهاء التأمين الصحي → health_insurance_expiry
+              // عند INSERT: نحفظ جميع التواريخ (حتى null) لأنها حقول جديدة
+              // عند UPDATE: سنزيل null في cleanEmployeeDataForUpdate
+              birth_date: normalizedBirthDate, // تاريخ الميلاد → birth_date
+              joining_date: normalizedJoiningDate, // تاريخ الالتحاق → joining_date
+              residence_expiry: normalizedResidenceExpiry, // تاريخ انتهاء الإقامة → residence_expiry
+              contract_expiry: normalizedContractExpiry, // تاريخ انتهاء العقد → contract_expiry
+              hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry, // تاريخ انتهاء عقد أجير → hired_worker_contract_expiry
+              health_insurance_expiry: normalizedHealthInsuranceExpiry, // تاريخ انتهاء التأمين الصحي → health_insurance_expiry
               residence_image_url: row['رابط صورة الإقامة'] || null,
               notes: row['الملاحظات'] || null
             }
             
-            // Debug: طباعة القيم بعد normalizeDate للتأكد
-            if (currentIndex <= 3) {
-              console.log(`✅ Employee ${currentIndex} dates (normalized for DB):`, {
-                'birth_date': employeeData.birth_date,
-                'joining_date': employeeData.joining_date,
-                'residence_expiry': employeeData.residence_expiry,
-                'contract_expiry': employeeData.contract_expiry,
-                'hired_worker_contract_expiry': employeeData.hired_worker_contract_expiry,
-                'health_insurance_expiry': employeeData.health_insurance_expiry
+            // Debug: طباعة القيم النهائية قبل الحفظ
+            if (currentIndex <= 5) {
+              console.log(`✅ Employee ${currentIndex + 1} (${row['الاسم']}) - Final employeeData before save:`, {
+                'birth_date': employeeData.birth_date || '(null)',
+                'joining_date': employeeData.joining_date || '(null)',
+                'residence_expiry': employeeData.residence_expiry || '(null)',
+                'contract_expiry': employeeData.contract_expiry || '(null)',
+                'hired_worker_contract_expiry': employeeData.hired_worker_contract_expiry || '(null)',
+                'health_insurance_expiry': employeeData.health_insurance_expiry || '(null)'
               })
             }
 
@@ -1226,16 +1574,62 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               employeeData.health_insurance_expiry = normalizeDate(healthInsuranceExpiry)
             }
 
+            // دالة لتنظيف البيانات قبل التحديث - إزالة الحقول null/undefined للحفاظ على القيم الموجودة
+            const cleanEmployeeDataForUpdate = (data: any): any => {
+              const cleaned: any = {}
+              // قائمة الحقول المطلوبة التي يجب الحفاظ عليها حتى لو كانت null
+              const requiredFields = ['name', 'residence_number', 'company_id']
+              // قائمة حقول التواريخ - يجب إزالتها إذا كانت null للحفاظ على القيم الموجودة
+              const dateFields = ['birth_date', 'joining_date', 'residence_expiry', 'contract_expiry', 
+                                  'hired_worker_contract_expiry', 'health_insurance_expiry']
+              
+              Object.keys(data).forEach(key => {
+                // الحفاظ على الحقول المطلوبة دائماً
+                if (requiredFields.includes(key)) {
+                  cleaned[key] = data[key]
+                }
+                // للحقول الأخرى: الحفاظ عليها فقط إذا لم تكن null/undefined
+                else if (data[key] !== null && data[key] !== undefined) {
+                  cleaned[key] = data[key]
+                }
+                // للحقول التواريخ: إذا كانت null، لا نضيفها (للحفاظ على القيم الموجودة في DB)
+                // (لا نحتاج إلى فعل شيء هنا لأننا نتحقق من null/undefined أعلاه)
+              })
+              return cleaned
+            }
+
             // Check if residence number already exists - update instead of insert
             const residenceNumberStr = employeeData.residence_number?.toString().trim()
             let operationResult
             
             if (residenceNumberStr && existingEmployeesByResidenceNumber.has(residenceNumberStr)) {
-              // Update existing employee
+              // Update existing employee - تنظيف البيانات لإزالة الحقول null
               const existingEmployeeId = existingEmployeesByResidenceNumber.get(residenceNumberStr)!
+              const cleanedEmployeeData = cleanEmployeeDataForUpdate(employeeData)
+              
+              // Debug: طباعة البيانات قبل وبعد التنظيف
+              if (currentIndex <= 5) {
+                console.log(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - UPDATE operation:`, {
+                  'operation': 'UPDATE',
+                  'residence_number': residenceNumberStr,
+                  'before_cleaning': {
+                    'birth_date': employeeData.birth_date || '(null)',
+                    'residence_expiry': employeeData.residence_expiry || '(null)',
+                    'joining_date': employeeData.joining_date || '(null)',
+                    'contract_expiry': employeeData.contract_expiry || '(null)'
+                  },
+                  'after_cleaning': {
+                    'birth_date': cleanedEmployeeData.birth_date || '(removed - will keep existing)',
+                    'residence_expiry': cleanedEmployeeData.residence_expiry || '(removed - will keep existing)',
+                    'joining_date': cleanedEmployeeData.joining_date || '(removed - will keep existing)',
+                    'contract_expiry': cleanedEmployeeData.contract_expiry || '(removed - will keep existing)'
+                  }
+                })
+              }
+              
               const { error: updateError } = await supabase
                 .from('employees')
-                .update(employeeData)
+                .update(cleanedEmployeeData)
                 .eq('id', existingEmployeeId)
               
               if (updateError) {
@@ -1244,6 +1638,18 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               operationResult = 'updated'
             } else {
               // Insert new employee
+              if (currentIndex <= 5) {
+                console.log(`➕ Employee ${currentIndex + 1} (${row['الاسم']}) - INSERT operation:`, {
+                  'operation': 'INSERT',
+                  'residence_number': residenceNumberStr,
+                  'dates_to_insert': {
+                    'birth_date': employeeData.birth_date || '(null)',
+                    'residence_expiry': employeeData.residence_expiry || '(null)',
+                    'joining_date': employeeData.joining_date || '(null)',
+                    'contract_expiry': employeeData.contract_expiry || '(null)'
+                  }
+                })
+              }
               const { error: insertError } = await supabase.from('employees').insert(employeeData)
               if (insertError) {
                 // Check if error is due to duplicate residence number (race condition)
@@ -1257,9 +1663,11 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       .single()
                     
                     if (existingEmp) {
+                      // تنظيف البيانات قبل التحديث
+                      const cleanedEmployeeData = cleanEmployeeDataForUpdate(employeeData)
                       const { error: updateError } = await supabase
                         .from('employees')
-                        .update(employeeData)
+                        .update(cleanedEmployeeData)
                         .eq('id', existingEmp.id)
                       
                       if (updateError) throw updateError
@@ -2403,6 +2811,50 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               )
             }
           </div>
+          {/* شريط التقدم أثناء الحذف */}
+          {isDeleting && (
+            <div className="w-full mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                  <span className="text-sm font-semibold text-red-900">
+                    جاري الحذف...
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {deleteProgress.total > 0 && (
+                    <span className="text-sm font-bold text-red-700">
+                      {deleteProgress.current} / {deleteProgress.total}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {deleteProgress.total > 0 ? (
+                <>
+                  <div className="bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner mb-2">
+                    <div
+                      className="h-full rounded-full transition-all duration-300 ease-out flex items-center justify-center relative bg-gradient-to-r from-red-500 via-red-600 to-orange-500"
+                      style={{ width: `${Math.min((deleteProgress.current / deleteProgress.total) * 100, 100)}%` }}
+                    >
+                      {deleteProgress.current > 0 && (
+                        <span className="text-xs font-bold text-white px-2 z-10">
+                          {Math.round((deleteProgress.current / deleteProgress.total) * 100)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center text-sm text-gray-700">
+                    جارٍ حذف <span className="font-bold text-red-700">{deleteProgress.current}</span> من <span className="font-bold text-red-700">{deleteProgress.total}</span> {importType === 'employees' ? 'موظف' : 'مؤسسة'}...
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-sm text-gray-600">
+                  جاري تحضير عملية الحذف...
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* شريط التقدم أثناء الاستيراد */}
           {importing && (
             <div className="w-full mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
@@ -2468,7 +2920,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           
           <button
             onClick={importData}
-            disabled={importing || errorCount > 0}
+            disabled={importing || isDeleting || errorCount > 0}
             className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
               errorCount === 0
                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
@@ -2476,7 +2928,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             }`}
           >
             <FileUp className="w-7 h-7" />
-            {importing ? (
+            {isDeleting ? (
+              <>
+                <span className="animate-spin">🗑️</span>
+                <span>جاري الحذف...</span>
+              </>
+            ) : importing ? (
               <>
                 <span className="animate-spin">⏳</span>
                 <span>جارٍ الاستيراد...</span>
@@ -2488,110 +2945,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         </div>
       )}
 
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    تأكيد الحذف
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    هذا الإجراء لا يمكن التراجع عنه
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <p className="text-gray-700 mb-3">
-                  {deleteMode === 'all' 
-                    ? `هل أنت متأكد من حذف جميع ${importType === 'companies' ? 'المؤسسات' : 'الموظفين'} من النظام؟`
-                    : `هل أنت متأكد من حذف ${importType === 'companies' ? 'المؤسسات المطابقة' : 'الموظفين المطابقين'} قبل الاستيراد؟`
-                  }
-                </p>
-                
-                {deleteMode === 'all' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-red-800">
-                        <p className="font-medium mb-1">سيتم حذف:</p>
-                        <ul className="list-disc list-inside space-y-1 text-red-700">
-                          <li>جميع {importType === 'companies' ? 'المؤسسات' : 'الموظفين'} من النظام</li>
-                        </ul>
-                        {importType === 'companies' && (
-                          <div className="mt-2 pt-2 border-t border-red-200">
-                            <p className="text-red-700 text-xs">
-                              <strong>ملاحظة:</strong> سيتم تحديث الموظفين المرتبطين بهذه المؤسسات ليكونوا بدون شركة (لن يتم حذفهم)
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {deleteMode === 'matching' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-yellow-800">
-                        <p className="font-medium mb-1">سيتم حذف:</p>
-                        <ul className="list-disc list-inside space-y-1 text-yellow-700">
-                          <li>{importType === 'companies' ? 'المؤسسات' : 'الموظفين'} المطابقة فقط</li>
-                          <li>سيتم تحديد المطابقة حسب {importType === 'companies' ? 'الرقم الموحد' : 'رقم الإقامة'}</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium">بعد الحذف سيتم استيراد:</p>
-                      <p className="text-blue-700">
-                        {selectedRows.size > 0 
-                          ? `${selectedRows.size} من ${previewData.length} صف`
-                          : `جميع الصفوف (${previewData.length} صف)`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowConfirmDialog(false)
-                    setPendingImport(null)
-                  }}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
-                >
-                  إلغاء
-                </button>
-                <button
-                  onClick={async () => {
-                    if (pendingImport) {
-                      await pendingImport()
-                    }
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
-                >
-                  تأكيد الحذف
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Import Result */}
       {importResult && (
@@ -2645,8 +2998,19 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowPreviewModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => {
+                    if (!isDeleting && !importing && !showConfirmDialog) {
+                      setShowPreviewModal(false)
+                    } else {
+                      toast.warning('لا يمكن إغلاق النافذة أثناء عملية الحذف أو الاستيراد')
+                    }
+                  }}
+                  disabled={isDeleting || importing || showConfirmDialog}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDeleting || importing || showConfirmDialog
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-gray-100'
+                  }`}
                   aria-label="إغلاق"
                 >
                   <XCircle className="w-6 h-6 text-gray-600" />
@@ -3060,13 +3424,42 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   </div>
                 )}
 
+                {/* Delete Confirmation Modal */}
+                <DeleteConfirmationModal
+                  isOpen={showConfirmDialog}
+                  onClose={() => {
+                    setShowConfirmDialog(false)
+                    setPendingImport(null)
+                  }}
+                  onConfirm={async () => {
+                    console.log('🔄 Confirm delete button clicked')
+                    if (pendingImport) {
+                      console.log('🔄 Calling pendingImport callback')
+                      try {
+                        await pendingImport()
+                        console.log('✅ pendingImport callback completed')
+                      } catch (error: any) {
+                        console.error('❌ Error executing pendingImport:', error)
+                        toast.error(`فشل العملية: ${error?.message || 'خطأ غير معروف'}`)
+                      }
+                    } else {
+                      console.error('❌ pendingImport is null!')
+                      toast.error('خطأ: لم يتم تهيئة عملية الحذف بشكل صحيح')
+                    }
+                  }}
+                  deleteMode={deleteMode}
+                  importType={importType}
+                  selectedRowsCount={selectedRows.size}
+                  totalRowsCount={previewData.length}
+                />
+
                 {/* Import Button */}
                 <div className={`flex flex-col items-center gap-4 border-2 rounded-xl p-6 shadow-lg ${
-                  errorCount === 0 
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
-                    : 'bg-red-50 border-red-300'
-                }`}>
-                  {errorCount > 0 && selectedRows.size > 0 && (
+                    errorCount === 0 
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+                      : 'bg-red-50 border-red-300'
+                  }`}>
+                    {errorCount > 0 && selectedRows.size > 0 && (
                     <div className="flex flex-col items-center gap-2 mb-2">
                       <div className="flex items-center gap-2 text-orange-700">
                         <AlertCircle className="w-5 h-5" />
@@ -3101,6 +3494,50 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       )
                     }
                   </div>
+                  {/* شريط التقدم أثناء الحذف */}
+                  {isDeleting && (
+                    <div className="w-full mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                          <span className="text-sm font-semibold text-red-900">
+                            جاري الحذف...
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {deleteProgress.total > 0 && (
+                            <span className="text-sm font-bold text-red-700">
+                              {deleteProgress.current} / {deleteProgress.total}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {deleteProgress.total > 0 ? (
+                        <>
+                          <div className="bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner mb-2">
+                            <div
+                              className="h-full rounded-full transition-all duration-300 ease-out flex items-center justify-center relative bg-gradient-to-r from-red-500 via-red-600 to-orange-500"
+                              style={{ width: `${Math.min((deleteProgress.current / deleteProgress.total) * 100, 100)}%` }}
+                            >
+                              {deleteProgress.current > 0 && (
+                                <span className="text-xs font-bold text-white px-2 z-10">
+                                  {Math.round((deleteProgress.current / deleteProgress.total) * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center text-sm text-gray-700">
+                            جارٍ حذف <span className="font-bold text-red-700">{deleteProgress.current}</span> من <span className="font-bold text-red-700">{deleteProgress.total}</span> {importType === 'employees' ? 'موظف' : 'مؤسسة'}...
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center text-sm text-gray-600">
+                          جاري تحضير عملية الحذف...
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* شريط التقدم أثناء الاستيراد */}
                   {importing && (
                     <div className="w-full mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
@@ -3166,7 +3603,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   
                   <button
                     onClick={importData}
-                    disabled={importing || errorCount > 0}
+                    disabled={importing || isDeleting || errorCount > 0}
                     className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
                       errorCount === 0
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
@@ -3174,7 +3611,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                     }`}
                   >
                     <FileUp className="w-7 h-7" />
-                    {importing ? (
+                    {isDeleting ? (
+                      <>
+                        <span className="animate-spin">🗑️</span>
+                        <span>جاري الحذف...</span>
+                      </>
+                    ) : importing ? (
                       <>
                         <span className="animate-spin">⏳</span>
                         <span>جارٍ الاستيراد...</span>

@@ -29,7 +29,12 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     hired_worker_contract_expiry: employee.hired_worker_contract_expiry || '',
     salary: employee.salary || 0,
     notes: employee.notes || '',
-    residence_image_url: employee.residence_image_url || ''
+    residence_image_url: employee.residence_image_url || '',
+    // التأكد من أن جميع التواريخ موجودة في formData
+    birth_date: employee.birth_date || '',
+    joining_date: employee.joining_date || '',
+    residence_expiry: employee.residence_expiry || '',
+    contract_expiry: employee.contract_expiry || ''
   })
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'basic' | 'custom'>('basic')
@@ -63,6 +68,29 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // معالجة ESC لإغلاق الكارت
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        // إغلاق مودال إنشاء المشروع أولاً إذا كان مفتوحاً
+        if (showCreateProjectModal) {
+          setShowCreateProjectModal(false)
+          setNewProjectName('')
+          return
+        }
+        // إغلاق الكارت
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, showCreateProjectModal])
 
   // تحديث نص البحث عند تغيير الشركة المختارة
   useEffect(() => {
@@ -230,8 +258,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     }
   }
 
-  const getDaysRemaining = (date: string) => {
-    return differenceInDays(new Date(date), new Date())
+  const getDaysRemaining = (date: string | null | undefined): number | null => {
+    if (!date) return null
+    try {
+      const dateObj = new Date(date)
+      if (isNaN(dateObj.getTime())) return null
+      return differenceInDays(dateObj, new Date())
+    } catch {
+      return null
+    }
   }
 
   const getStatusColor = (days: number | null) => {
@@ -397,7 +432,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     }
   }
 
-  const residenceDays = getDaysRemaining(employee.residence_expiry)
+  const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
   const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
   const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
   const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null  // تحديث: ending_subscription_insurance_date → health_insurance_expiry, insuranceDays → healthInsuranceDays
@@ -458,10 +493,16 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
             <div className="flex-1">
               <div className="font-medium">انتهاء الإقامة</div>
               <div className="text-sm">
-                <HijriDateDisplay date={employee.residence_expiry}>
-                  {formatDateShortWithHijri(employee.residence_expiry)}
-                </HijriDateDisplay>
-                {residenceDays < 0 ? ' (منتهية)' : ` (بعد ${residenceDays} يوم)`}
+                {employee.residence_expiry ? (
+                  <>
+                    <HijriDateDisplay date={employee.residence_expiry}>
+                      {formatDateShortWithHijri(employee.residence_expiry)}
+                    </HijriDateDisplay>
+                    {residenceDays !== null && (residenceDays < 0 ? ' (منتهية)' : ` (بعد ${residenceDays} يوم)`)}
+                  </>
+                ) : (
+                  'غير محدد'
+                )}
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { differenceInDays } from 'date-fns'
+import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 
 interface CompanyWithStats extends Company {
   employee_count?: number
@@ -332,12 +333,12 @@ export default function ExportTab() {
         'المشروع': emp.project_name || '',
         'الشركة أو المؤسسة': emp.company?.name || '',
         'الرقم الموحد': emp.company?.unified_number || '',
-        'تاريخ الميلاد': emp.birth_date || '',
-        'تاريخ الالتحاق': emp.joining_date || '',
-        'تاريخ انتهاء الإقامة': emp.residence_expiry || '',
-        'تاريخ انتهاء العقد': emp.contract_expiry || '',
-        'تاريخ انتهاء عقد أجير': emp.hired_worker_contract_expiry || '',
-        'تاريخ انتهاء التأمين الصحي': emp.health_insurance_expiry || '',
+        'تاريخ الميلاد': emp.birth_date ? formatDateShortWithHijri(emp.birth_date) : '',
+        'تاريخ الالتحاق': emp.joining_date ? formatDateShortWithHijri(emp.joining_date) : '',
+        'تاريخ انتهاء الإقامة': emp.residence_expiry ? formatDateShortWithHijri(emp.residence_expiry) : '',
+        'تاريخ انتهاء العقد': emp.contract_expiry ? formatDateShortWithHijri(emp.contract_expiry) : '',
+        'تاريخ انتهاء عقد أجير': emp.hired_worker_contract_expiry ? formatDateShortWithHijri(emp.hired_worker_contract_expiry) : '',
+        'تاريخ انتهاء التأمين الصحي': emp.health_insurance_expiry ? formatDateShortWithHijri(emp.health_insurance_expiry) : '',
         'رابط صورة الإقامة': emp.residence_image_url || '',
         'الملاحظات': emp.notes || ''
       }))
@@ -401,10 +402,10 @@ export default function ExportTab() {
         'الرقم الموحد': company.unified_number || '',
         'رقم اشتراك التأمينات الاجتماعية': company.social_insurance_number || '',
         'رقم اشتراك قوى': company.labor_subscription_number || '',
-        'تاريخ انتهاء السجل التجاري': company.commercial_registration_expiry || '',
-        'تاريخ انتهاء التأمينات الاجتماعية': company.social_insurance_expiry || '',
-        'تاريخ انتهاء اشتراك قوى': company.ending_subscription_power_date || '',
-        'تاريخ انتهاء اشتراك مقيم': company.ending_subscription_moqeem_date || '',
+        'تاريخ انتهاء السجل التجاري': company.commercial_registration_expiry ? formatDateShortWithHijri(company.commercial_registration_expiry) : '',
+        'تاريخ انتهاء التأمينات الاجتماعية': company.social_insurance_expiry ? formatDateShortWithHijri(company.social_insurance_expiry) : '',
+        'تاريخ انتهاء اشتراك قوى': company.ending_subscription_power_date ? formatDateShortWithHijri(company.ending_subscription_power_date) : '',
+        'تاريخ انتهاء اشتراك مقيم': company.ending_subscription_moqeem_date ? formatDateShortWithHijri(company.ending_subscription_moqeem_date) : '',
         'عدد الموظفين': company.employee_count || 0,
         'الحد الأقصى للموظفين': company.max_employees || 0,
         'الاعفاءات': company.exemptions || '',

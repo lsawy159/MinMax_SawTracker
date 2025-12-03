@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase, Company, Project } from '@/lib/supabase'
 import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { parseDate, normalizeDate } from '@/utils/dateParser'
 
 interface AddEmployeeModalProps {
   isOpen: boolean
@@ -84,6 +85,30 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       setNewProjectName('')
     }
   }, [isOpen])
+
+  // معالجة ESC لإغلاق المودال
+  useEffect(() => {
+    if (!isOpen) return
+    
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // التحقق من أن المستخدم لا يكتب في حقل إدخال
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return
+        }
+        // إغلاق مودال إنشاء المشروع أولاً إذا كان مفتوحاً
+        if (showCreateProjectModal) {
+          setShowCreateProjectModal(false)
+          setNewProjectName('')
+          return
+        }
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose, showCreateProjectModal])
 
   // تحديث نص البحث عند تغيير المؤسسة المختارة (فقط عند اختيار مؤسسة، وليس عند الكتابة)
   useEffect(() => {
@@ -333,33 +358,35 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       }
     }
 
-    // التحقق من صيغة التواريخ
+    // التحقق من صيغة التواريخ باستخدام parseDate
     if (formData.birth_date) {
-      const birthDate = new Date(formData.birth_date)
-      if (isNaN(birthDate.getTime())) {
-        toast.error('تاريخ الميلاد غير صحيح')
+      const result = parseDate(formData.birth_date)
+      if (!result.date) {
+        toast.error(result.error || 'تاريخ الميلاد غير صحيح')
         return false
       }
     }
 
     if (formData.joining_date) {
-      const joiningDate = new Date(formData.joining_date)
-      if (isNaN(joiningDate.getTime())) {
-        toast.error('تاريخ الالتحاق غير صحيح')
+      const result = parseDate(formData.joining_date)
+      if (!result.date) {
+        toast.error(result.error || 'تاريخ الالتحاق غير صحيح')
         return false
       }
     }
 
-    const residenceDate = new Date(formData.residence_expiry)
-    if (isNaN(residenceDate.getTime())) {
-      toast.error('تاريخ انتهاء الإقامة غير صحيح')
-      return false
+    if (formData.residence_expiry) {
+      const result = parseDate(formData.residence_expiry)
+      if (!result.date) {
+        toast.error(result.error || 'تاريخ انتهاء الإقامة غير صحيح')
+        return false
+      }
     }
 
     if (formData.contract_expiry) {
-      const contractDate = new Date(formData.contract_expiry)
-      if (isNaN(contractDate.getTime())) {
-        toast.error('تاريخ انتهاء العقد غير صحيح')
+      const result = parseDate(formData.contract_expiry)
+      if (!result.date) {
+        toast.error(result.error || 'تاريخ انتهاء العقد غير صحيح')
         return false
       }
     }
@@ -378,27 +405,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
 
     try {
       // إعداد البيانات للإدراج
-      // دالة مساعدة لتحويل التواريخ الفارغة إلى null
-      const parseDate = (dateValue: string | undefined): string | null => {
-        if (!dateValue || dateValue.trim() === '') return null
-        return dateValue.trim()
-      }
-
+      // استخدام normalizeDate لتحويل أي صيغة تاريخ إلى YYYY-MM-DD
       const employeeData: any = {
         name: formData.name.trim(),
         profession: formData.profession.trim(),
         nationality: formData.nationality.trim(),
-        birth_date: parseDate(formData.birth_date),
+        birth_date: normalizeDate(formData.birth_date),
         phone: formData.phone.trim() || null,
         passport_number: formData.passport_number.trim(),
         residence_number: formData.residence_number.trim(),
-        joining_date: parseDate(formData.joining_date),
-        contract_expiry: parseDate(formData.contract_expiry),
-        hired_worker_contract_expiry: parseDate(formData.hired_worker_contract_expiry),
-        residence_expiry: parseDate(formData.residence_expiry),
+        joining_date: normalizeDate(formData.joining_date),
+        contract_expiry: normalizeDate(formData.contract_expiry),
+        hired_worker_contract_expiry: normalizeDate(formData.hired_worker_contract_expiry),
+        residence_expiry: normalizeDate(formData.residence_expiry),
         bank_account: formData.bank_account.trim() || null,
         salary: Number(formData.salary) || 0,
-        health_insurance_expiry: parseDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+        health_insurance_expiry: normalizeDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: formData.residence_image_url.trim() || null,
         notes: formData.notes.trim() || null,
         company_id: formData.company_id
@@ -417,11 +439,35 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         employeeData.project_name = formData.project_name.trim() || null
       }
 
+      // Check for duplicate residence number before inserting
+      const residenceNumberStr = employeeData.residence_number?.toString().trim()
+      if (residenceNumberStr) {
+        const { data: existingEmployee } = await supabase
+          .from('employees')
+          .select('id, name, residence_number')
+          .eq('residence_number', residenceNumberStr)
+          .single()
+
+        if (existingEmployee) {
+          toast.error(`رقم الإقامة ${residenceNumberStr} موجود بالفعل للموظف: ${existingEmployee.name}`)
+          setLoading(false)
+          return
+        }
+      }
+
       const { error } = await supabase
         .from('employees')
         .insert([employeeData])
 
-      if (error) throw error
+      if (error) {
+        // Check if error is due to duplicate residence number
+        if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+          toast.error(`رقم الإقامة ${residenceNumberStr} موجود بالفعل في النظام`)
+          setLoading(false)
+          return
+        }
+        throw error
+      }
 
       toast.success('تم إضافة الموظف بنجاح')
       
