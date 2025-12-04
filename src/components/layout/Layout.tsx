@@ -5,7 +5,7 @@ import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Dat
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
-import { PermissionMatrix, normalizePermissions } from '@/utils/permissions'
+import { usePermissions } from '@/utils/permissions'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -42,35 +42,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isMobileOpen])
 
-  // التحقق من الصلاحيات مع معالجة محسنة للمديرين
-  const hasPermission = (section: keyof PermissionMatrix, action: string) => {
-    if (!user) {
-      return false
-    }
-    
-    // المديرون لهم جميع الصلاحيات
-    if (user.role === 'admin') {
-      return true
-    }
-    
-    // تطبيع الصلاحيات
-    const permissions = normalizePermissions(user.permissions, user.role)
-    
-    // تحقق من وجود section بشكل آمن
-    if (!permissions[section] || typeof permissions[section] !== 'object') {
-      return false
-    }
-    
-    // تحقق من وجود الإجراء المحدد بشكل آمن
-    const sectionPermissions = permissions[section] as any
-    if (!sectionPermissions || typeof sectionPermissions !== 'object') {
-      return false
-    }
-    
-    // تحقق من وجود الصلاحية المحددة
-    const hasAccess = sectionPermissions[action]
-    return Boolean(hasAccess)
-  }
+  // استخدام usePermissions hook للتحقق من الصلاحيات
+  const { hasPermission } = usePermissions()
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: { section: 'dashboard' as const, action: 'view' }, badge: null },
@@ -85,8 +58,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/security-management', icon: Shield, label: 'إدارة الأمان', permission: null, adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
     { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
-    { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: null, adminOnly: true, badge: null },
-    { path: '/general-settings', icon: Cog, label: 'الإعدادات العامة', permission: null, adminOnly: true, badge: null },
+    { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
   ]
 
   return (

@@ -6,6 +6,7 @@ export interface PermissionMatrix {
   companies: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   users: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   settings: { view: boolean; edit: boolean }
+  adminSettings: { view: boolean; edit: boolean }
   projects: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   reports: { view: boolean; export: boolean }
   alerts: { view: boolean }
@@ -21,6 +22,7 @@ export const defaultPermissions: PermissionMatrix = {
   companies: { view: true, create: false, edit: false, delete: false },
   users: { view: false, create: false, edit: false, delete: false },
   settings: { view: false, edit: false },
+  adminSettings: { view: false, edit: false },
   projects: { view: true, create: false, edit: false, delete: false },
   reports: { view: true, export: false },
   alerts: { view: true },
@@ -36,6 +38,7 @@ export const adminPermissions: PermissionMatrix = {
   companies: { view: true, create: true, edit: true, delete: true },
   users: { view: true, create: true, edit: true, delete: true },
   settings: { view: true, edit: true },
+  adminSettings: { view: true, edit: true },
   projects: { view: true, create: true, edit: true, delete: true },
   reports: { view: true, export: true },
   alerts: { view: true },
@@ -85,6 +88,10 @@ export const normalizePermissions = (
     settings: {
       view: permissions.settings?.view ?? defaultPermissions.settings.view,
       edit: permissions.settings?.edit ?? defaultPermissions.settings.edit
+    },
+    adminSettings: {
+      view: permissions.adminSettings?.view ?? defaultPermissions.adminSettings.view,
+      edit: permissions.adminSettings?.edit ?? defaultPermissions.adminSettings.edit
     },
     projects: {
       view: permissions.projects?.view ?? defaultPermissions.projects.view,

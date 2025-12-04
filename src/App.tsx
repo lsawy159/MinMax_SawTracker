@@ -144,7 +144,7 @@ function AppRoutes() {
         <Route path="/admin-settings" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <AdminSettings />
+              <GeneralSettings />
             </Suspense>
           </ProtectedRoute>
         } />
@@ -193,7 +193,7 @@ function AppRoutes() {
         <Route path="/general-settings" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <GeneralSettings />
+              <Navigate to="/admin-settings" replace />
             </Suspense>
           </ProtectedRoute>
         } />
