@@ -39,18 +39,33 @@ serve(async (req) => {
       )
     }
 
-    // التحقق من أن المستخدم الحالي هو admin
+    // التحقق من صلاحية إنشاء المستخدمين
     const { data: currentUserData, error: userError } = await supabase
       .from('users')
-      .select('role, is_active')
+      .select('role, permissions, is_active')
       .eq('id', currentUser.id)
       .single()
 
-    if (userError || !currentUserData || currentUserData.role !== 'admin' || !currentUserData.is_active) {
+    if (userError || !currentUserData || !currentUserData.is_active) {
       return new Response(
-        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Admin privileges required' } }),
+        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'User is not active' } }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // إذا كان مدير → السماح
+    const isAdmin = currentUserData.role === 'admin' && currentUserData.is_active
+    
+    // إذا لم يكن مدير → التحقق من الصلاحية
+    if (!isAdmin) {
+      const permissions = currentUserData.permissions || {}
+      const canCreate = permissions?.users?.create === true
+      if (!canCreate) {
+        return new Response(
+          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to create users' } }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // قراءة بيانات الطلب

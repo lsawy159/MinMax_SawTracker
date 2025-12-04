@@ -5,7 +5,7 @@ import ProjectModal from '@/components/projects/ProjectModal'
 import ProjectCard from '@/components/projects/ProjectCard'
 import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
 import ProjectStatistics from '@/components/projects/ProjectStatistics'
-import { FolderKanban, Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { FolderKanban, Plus, Search, Edit2, Trash2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 
@@ -15,7 +15,7 @@ type ProjectStatus = 'all' | 'active' | 'inactive' | 'completed'
 type ActiveTab = 'list' | 'statistics'
 
 export default function Projects() {
-  const { canCreate, canEdit, canDelete } = usePermissions()
+  const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const [projects, setProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [filteredProjects, setFilteredProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -213,6 +213,23 @@ export default function Projects() {
       <Layout>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // التحقق من صلاحية العرض
+  const hasViewPermission = canView('projects')
+  
+  if (!hasViewPermission) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
         </div>
       </Layout>
     )

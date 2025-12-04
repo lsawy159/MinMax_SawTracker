@@ -39,22 +39,40 @@ serve(async (req) => {
       )
     }
 
-    // التحقق من أن المستخدم الحالي هو admin
+    // قراءة بيانات الطلب
+    const { user_id, new_password } = await req.json()
+
+    // التحقق من صلاحية تحديث كلمة المرور
     const { data: currentUserData, error: userError } = await supabase
       .from('users')
-      .select('role, is_active')
+      .select('role, permissions, is_active')
       .eq('id', currentUser.id)
       .single()
 
-    if (userError || !currentUserData || currentUserData.role !== 'admin' || !currentUserData.is_active) {
+    if (userError || !currentUserData || !currentUserData.is_active) {
       return new Response(
-        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Admin privileges required' } }),
+        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'User is not active' } }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // قراءة بيانات الطلب
-    const { user_id, new_password } = await req.json()
+    // إذا كان المستخدم يحاول تحديث كلمة مروره الخاصة → السماح
+    const isUpdatingOwnPassword = currentUser.id === user_id
+    
+    // إذا كان مدير → السماح
+    const isAdmin = currentUserData.role === 'admin' && currentUserData.is_active
+    
+    // إذا لم يكن مدير ولا يحدث كلمة مروره الخاصة → التحقق من الصلاحية
+    if (!isUpdatingOwnPassword && !isAdmin) {
+      const permissions = currentUserData.permissions || {}
+      const canEdit = permissions?.users?.edit === true
+      if (!canEdit) {
+        return new Response(
+          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to update user passwords' } }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
 
     // التحقق من البيانات المطلوبة
     if (!user_id || !new_password) {

@@ -3,7 +3,7 @@ import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
-import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText } from 'lucide-react'
+import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 
 export default function Employees() {
-  const { canCreate, canEdit, canDelete } = usePermissions()
+  const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const location = useLocation()
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
@@ -70,6 +70,9 @@ export default function Employees() {
   const companyDropdownRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadEmployeesRef = useRef<() => Promise<void>>()
+  
+  // التحقق من صلاحية العرض
+  const hasViewPermission = canView('employees')
   
   // Sort states
   const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
@@ -143,10 +146,12 @@ export default function Employees() {
   }, [loadEmployees])
 
   useEffect(() => {
-    loadEmployees()
-    handleUrlParams()
+    if (hasViewPermission) {
+      loadEmployees()
+      handleUrlParams()
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadEmployees])
+  }, [loadEmployees, hasViewPermission])
 
   // الاستماع لتحديثات الموظفين من أجهزة أخرى
   useEffect(() => {
@@ -864,6 +869,21 @@ export default function Employees() {
   useEffect(() => {
     setSelectedRowIndex(null)
   }, [searchTerm, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, residenceFilter, healthInsuranceFilter, sortField, sortDirection])
+
+  // التحقق من صلاحية العرض قبل عرض الصفحة
+  if (!hasViewPermission) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>

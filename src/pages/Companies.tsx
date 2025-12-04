@@ -4,7 +4,7 @@ import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
-import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
@@ -30,7 +30,7 @@ type ExemptionsFilter = 'all' | 'تم الاعفاء' | 'لم يتم الاعف�
 type ViewMode = 'grid' | 'table'
 
 export default function Companies() {
-  const { canCreate, canEdit, canDelete } = usePermissions()
+  const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -719,6 +719,23 @@ export default function Companies() {
   useEffect(() => {
     setCurrentPage(1)
   }, [filteredCompanies.length, itemsPerPage])
+
+  // التحقق من صلاحية العرض
+  const hasViewPermission = canView('companies')
+  
+  if (!hasViewPermission) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>

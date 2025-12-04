@@ -395,9 +395,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     
+    // استخدام userRef.current بدلاً من user لكسر حلقة الاعتماديات
+    const loadedUser = userRef.current
+
     // التحقق من أن المستخدم لم يتغير (إذا كان هناك user محمل بالفعل)
     // هذا يمنع جلب بيانات المستخدم إذا كان المستخدم مختلف
-    if (user && user.id === currentUserId) {
+    if (loadedUser && loadedUser.id === currentUserId) {
       console.log('[Auth] User data already loaded, skipping fetchUserData')
       setLoading(false)
       loadingRef.current = false
@@ -456,7 +459,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentFetchingUserIdRef.current = null
       }
     }
-  }, [user]) // إضافة user للتحقق من التغييرات
+  }, []) // استخدام userRef.current بدلاً من user لكسر حلقة الاعتماديات
 
   // [FIX] تم إصلاح مصفوفة الاعتماديات هنا
   useEffect(() => {
@@ -467,8 +470,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     if (session) {
+      const loadedUser = userRef.current
+
       // لدينا جلسة - تحقق من الحاجة إلى جلب بيانات المستخدم
-      if (!user || session.user.id !== user.id) {
+      if (!loadedUser || session.user.id !== loadedUser.id) {
         // بيانات المستخدم غير متطابقة أو غير موجودة - جلب البيانات
         console.log('[Auth] useEffect: Session exists but user data missing or different, fetching...')
         fetchUserData(session)
@@ -489,7 +494,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadingRef.current = false
       }
     }
-  }, [session, user, fetchUserData]) // fetchUserData يعتمد على user، لذلك يجب إضافته
+  }, [session, fetchUserData]) // استخدام userRef لتجنب إعادة التشغيل غير الضرورية
 
   // --- دوال المصادقة ---
 
