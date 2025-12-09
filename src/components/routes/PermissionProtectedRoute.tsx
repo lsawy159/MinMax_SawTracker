@@ -23,7 +23,7 @@ export default function PermissionProtectedRoute({
   redirectTo = '/dashboard',
   showMessage = true
 }: PermissionProtectedRouteProps) {
-  const { hasPermission, isAdmin } = usePermissions()
+  const { hasPermission } = usePermissions()
 
   // التحقق من الصلاحية
   const hasAccess = hasPermission(section, action)

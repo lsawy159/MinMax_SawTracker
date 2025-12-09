@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'
 import App from './App.tsx'
+import { logger } from './utils/logger'
 
 // Validate that React is loaded correctly
 // This ensures React is initialized before any other code runs
@@ -58,15 +59,15 @@ window.addEventListener('unhandledrejection', (event) => {
 // Log when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded - Starting React app')
+    logger.debug('DOM Content Loaded - Starting React app')
   })
 } else {
-  console.log('DOM already ready - Starting React app')
+  logger.debug('DOM already ready - Starting React app')
 }
 
 // Log when window is fully loaded
 window.addEventListener('load', () => {
-  console.log('Window fully loaded')
+  logger.debug('Window fully loaded')
 })
 
 // Try to render the app
@@ -77,11 +78,11 @@ try {
     throw new Error('Root element not found! Make sure there is a <div id="root"></div> in index.html')
   }
 
-  console.log('Root element found, creating React root...')
+  logger.debug('Root element found, creating React root...')
   
   const root = createRoot(rootElement)
   
-  console.log('React root created, rendering app...')
+  logger.debug('React root created, rendering app...')
   
   root.render(
     <StrictMode>
@@ -91,7 +92,7 @@ try {
     </StrictMode>,
   )
   
-  console.log('App rendered successfully')
+  logger.debug('App rendered successfully')
 } catch (error) {
   console.error('Failed to render app:', error)
   

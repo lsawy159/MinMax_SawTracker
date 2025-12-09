@@ -22,7 +22,7 @@ serve(async (req) => {
     console.log('بدء إضافة الأعمدة المفقودة...')
     
     // إضافة الأعمدة المفقودة باستخدام RPC
-    const { data: addColumnsResult, error: addColumnsError } = await supabase.rpc('exec_raw_sql', {
+    const { error: addColumnsError } = await supabase.rpc('exec_raw_sql', {
       sql: `
         -- إضافة الأعمدة المفقودة إذا لم تكن موجودة
         DO $$ 
@@ -53,7 +53,7 @@ serve(async (req) => {
     if (addColumnsError) {
       console.log('خطأ في إضافة الأعمدة:', addColumnsError)
       // جرب طريقة أخرى
-      const { data: altResult, error: altError } = await supabase.rpc('exec_raw_sql', {
+      const { error: altError } = await supabase.rpc('exec_raw_sql', {
         sql: `
           ALTER TABLE companies 
           ADD COLUMN IF NOT EXISTS commercial_registration_status TEXT DEFAULT 'غير محدد',

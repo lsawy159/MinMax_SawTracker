@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, CustomField } from '@/lib/supabase'
-import { Plus, Edit2, Trash2, Save, X, AlertCircle, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea'
@@ -70,7 +70,11 @@ export default function CustomFieldManager() {
         display_order: field.display_order
       })
       if (field.field_type === 'select' && field.field_options?.options) {
-        setSelectOptions(field.field_options.options.join('\n'))
+        if (Array.isArray(field.field_options.options)) {
+          setSelectOptions(field.field_options.options.join('\n'))
+        } else if (typeof field.field_options.options === 'string') {
+          setSelectOptions(field.field_options.options)
+        }
       }
     } else {
       setEditingField(null)
@@ -135,9 +139,9 @@ export default function CustomFieldManager() {
 
       handleCloseForm()
       loadFields()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving field:', error)
-      toast.error('فشل حفظ الحقل: ' + error.message)
+      toast.error('فشل حفظ الحقل: ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 
@@ -155,7 +159,7 @@ export default function CustomFieldManager() {
       if (error) throw error
       toast.success('تم حذف الحقل بنجاح')
       loadFields()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting field:', error)
       toast.error('فشل حذف الحقل')
     }
@@ -171,7 +175,7 @@ export default function CustomFieldManager() {
       if (error) throw error
       toast.success(field.is_active ? 'تم إيقاف الحقل' : 'تم تفعيل الحقل')
       loadFields()
-    } catch (error) {
+    } catch {
       toast.error('فشل تحديث حالة الحقل')
     }
   }

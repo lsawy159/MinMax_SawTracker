@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import Layout from '@/components/layout/Layout'
-import { Shield, Database, Key, Users, Activity, Settings, Download, Upload, Trash2, RefreshCw, AlertTriangle, AlertCircle, CheckCircle, Save, Mail } from 'lucide-react'
+import { Shield, Database, Key, Users, Activity, Settings, Download, Trash2, RefreshCw, AlertTriangle, AlertCircle, CheckCircle, Save, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
+import { logger } from '@/utils/logger'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { formatDistanceToNow } from 'date-fns'
 import { ar } from 'date-fns/locale'
+import { getErrorMessage, getErrorStatus, getInputValue } from '@/utils/errorHandling'
 
 interface SecuritySetting {
   id: string
   setting_key: string
-  setting_value: any
+  setting_value: string | number | boolean | Record<string, unknown> | null
   description: string
   setting_type?: 'text' | 'number' | 'boolean' | 'select' | 'time'
-  options?: any[]
+  options?: Array<string | number | { label: string; value: string | number }>
   updated_at: string
 }
 
@@ -35,7 +37,7 @@ interface BackupRecord {
 interface UserSession {
   id: string
   user_id: string
-  device_info: any
+  device_info: Record<string, unknown>
   ip_address: string
   location: string
   last_activity: string
@@ -55,7 +57,7 @@ interface EmailQueueItem {
   subject: string
   html_content: string
   text_content: string | null
-  attachments: any[]
+  attachments: Array<{ filename: string; content: string; contentType?: string }>
   status: 'pending' | 'processing' | 'completed' | 'failed'
   priority: number
   retry_count: number
@@ -77,7 +79,7 @@ export default function SecurityManagement() {
   
   // Security Settings
   const [securitySettings, setSecuritySettings] = useState<SecuritySetting[]>([])
-  const [settingsValues, setSettingsValues] = useState<Record<string, any>>({})
+  const [settingsValues, setSettingsValues] = useState<Record<string, string | number | boolean | Record<string, unknown> | null>>({})
   const [savingSetting, setSavingSetting] = useState<string | null>(null)
   const [showAddSettingModal, setShowAddSettingModal] = useState(false)
   const [newSetting, setNewSetting] = useState({
@@ -93,7 +95,6 @@ export default function SecurityManagement() {
   const [backups, setBackups] = useState<BackupRecord[]>([])
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
   const [isPollingBackup, setIsPollingBackup] = useState(false)
-  const [pollingBackupId, setPollingBackupId] = useState<string | null>(null)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [selectedBackupForEmail, setSelectedBackupForEmail] = useState<BackupRecord | null>(null)
   const [emailRecipients, setEmailRecipients] = useState<string>('')
@@ -129,7 +130,7 @@ export default function SecurityManagement() {
     type: 'backup' | 'login_attempt' | 'session_ended'
     title: string
     timestamp: string
-    icon: any
+    icon: React.ComponentType<{ className?: string }>
     bgColor: string
     iconColor: string
   }
@@ -156,7 +157,7 @@ export default function SecurityManagement() {
       }
 
       setEmailQueue(data || [])
-      console.log('[Email Queue] Queue loaded successfully, count:', data?.length || 0)
+      logger.debug('[Email Queue] Queue loaded successfully, count:', data?.length || 0)
     } catch (error) {
       console.error('[Email Queue] Error loading queue:', error)
       setEmailQueue([])
@@ -183,9 +184,10 @@ export default function SecurityManagement() {
 
       toast.success('تمت إعادة إضافة البريد إلى قائمة الانتظار')
       await loadEmailQueue()
-    } catch (error: any) {
+    } catch (error) {
       console.error('[Email Queue] Error retrying email:', error)
-      toast.error('فشل في إعادة المحاولة: ' + (error?.message || 'خطأ غير معروف'))
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
+      toast.error('فشل في إعادة المحاولة: ' + errorMessage)
     }
   }
 
@@ -261,7 +263,7 @@ export default function SecurityManagement() {
     if (data) {
       setSecuritySettings(data)
       // تهيئة القيم من البيانات المحملة
-      const initialValues: Record<string, any> = {}
+      const initialValues: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
       data.forEach(setting => {
         // إذا كانت القيمة JSON معقدة (object أو array)، نحولها إلى string للعرض
         if (typeof setting.setting_value === 'object' && setting.setting_value !== null) {
@@ -276,7 +278,7 @@ export default function SecurityManagement() {
       const emailSetting = data.find(s => s.setting_key === 'backup_email_recipients')
       if (emailSetting) {
         try {
-          let recipients: any = emailSetting.setting_value
+          let recipients: string | string[] | Record<string, unknown> = emailSetting.setting_value as string | string[] | Record<string, unknown>
           
           // إذا كانت string، نحاول parse JSON فقط إذا كانت تبدو كـ JSON
           if (typeof recipients === 'string') {
@@ -300,7 +302,7 @@ export default function SecurityManagement() {
           if (Array.isArray(recipients) && recipients.length > 0) {
             setSavedEmailRecipients(recipients)
             setEmailRecipients(recipients.join(', '))
-          } else if (typeof recipients === 'string' && recipients.includes('@')) {
+          } else if (typeof recipients === 'string' && recipients.trim().includes('@')) {
             // إذا كانت إيميل واحد فقط
             setSavedEmailRecipients([recipients])
             setEmailRecipients(recipients)
@@ -314,7 +316,7 @@ export default function SecurityManagement() {
 
   const loadBackups = async () => {
     try {
-      console.log('[Backup] Loading backups...')
+      logger.debug('[Backup] Loading backups...')
       const { data, error } = await supabase
         .from('backup_history')
         .select('*')
@@ -329,7 +331,7 @@ export default function SecurityManagement() {
       
       if (data) {
         setBackups(data)
-        console.log('[Backup] Backups loaded successfully, count:', data.length)
+        logger.debug('[Backup] Backups loaded successfully, count:', data.length)
       }
     } catch (error) {
       console.error('[Backup] Error in loadBackups:', error)
@@ -428,9 +430,10 @@ export default function SecurityManagement() {
           .gte('created_at', today.toISOString())
         
         failedLogins = count || 0
-      } catch (loginError: any) {
+      } catch (loginError) {
         // إذا كان الجدول غير موجود، نتخطاه بهدوء
-        if (!loginError?.message?.includes('not found') && !loginError?.message?.includes('schema cache')) {
+        const errorMessage = loginError instanceof Error ? loginError.message : ''
+        if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
           console.warn('Error loading failed login attempts:', loginError)
         }
       }
@@ -446,9 +449,10 @@ export default function SecurityManagement() {
           .gt('expires_at', now)
         
         activeSessionsCount = sessionsCount || 0
-      } catch (sessionsError: any) {
+      } catch (sessionsError) {
         // إذا كان الجدول غير موجود، نستخدم القيمة من state
-        if (!sessionsError?.message?.includes('not found') && !sessionsError?.message?.includes('schema cache')) {
+        const errorMessage = sessionsError instanceof Error ? sessionsError.message : ''
+        if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
           console.warn('Error loading active sessions count:', sessionsError)
         }
       }
@@ -461,9 +465,10 @@ export default function SecurityManagement() {
           .select('*', { count: 'exact', head: true })
         
         totalSessionsCount = totalSessions || 0
-      } catch (totalSessionsError: any) {
+      } catch (totalSessionsError) {
         // إذا كان الجدول غير موجود، نتخطاه بهدوء
-        if (!totalSessionsError?.message?.includes('not found') && !totalSessionsError?.message?.includes('schema cache')) {
+        const errorMessage = totalSessionsError instanceof Error ? totalSessionsError.message : ''
+        if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
           console.warn('Error loading total sessions count:', totalSessionsError)
         }
       }
@@ -509,8 +514,9 @@ export default function SecurityManagement() {
             })
           })
         }
-      } catch (backupError: any) {
-        if (!backupError?.message?.includes('not found') && !backupError?.message?.includes('schema cache')) {
+      } catch (backupError) {
+        const errorMessage = backupError instanceof Error ? backupError.message : ''
+        if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
           console.warn('Error loading backup events:', backupError)
         }
       }
@@ -538,8 +544,9 @@ export default function SecurityManagement() {
             })
           })
         }
-      } catch (loginError: any) {
-        if (!loginError?.message?.includes('not found') && !loginError?.message?.includes('schema cache')) {
+      } catch (loginError: unknown) {
+        const errorMessage = loginError instanceof Error ? loginError.message : String(loginError)
+        if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
           console.warn('Error loading login attempt events:', loginError)
         }
       }
@@ -569,7 +576,7 @@ export default function SecurityManagement() {
             }
           })
         }
-      } catch (sessionError: any) {
+      } catch (sessionError) {
         // تجاهل الأخطاء إذا كان الجدول غير موجود
         console.warn('Error loading session events:', sessionError)
       }
@@ -598,7 +605,7 @@ export default function SecurityManagement() {
     setIsAddingSetting(true)
     try {
       // تحويل القيمة حسب النوع
-      let finalValue: any = newSetting.setting_value
+      let finalValue: string | number | boolean | Record<string, unknown> | null = newSetting.setting_value
       
       if (newSetting.setting_type === 'boolean') {
         finalValue = newSetting.setting_value === 'true' || newSetting.setting_value === '1'
@@ -613,7 +620,7 @@ export default function SecurityManagement() {
       }
 
       // تحويل options إذا كانت موجودة
-      let optionsArray: any[] = []
+      let optionsArray: string[] = []
       if (newSetting.setting_type === 'select' && newSetting.options) {
         optionsArray = newSetting.options.split(',').map(o => o.trim()).filter(o => o)
       }
@@ -641,15 +648,16 @@ export default function SecurityManagement() {
         options: ''
       })
       await loadSecuritySettings()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding setting:', error)
-      toast.error(error.message || 'فشل في إضافة الإعداد')
+      const errorMessage = error instanceof Error ? error.message : 'فشل في إضافة الإعداد'
+      toast.error(errorMessage)
     } finally {
       setIsAddingSetting(false)
     }
   }
 
-  const updateSecuritySetting = async (settingKey: string, newValue: any) => {
+  const updateSecuritySetting = async (settingKey: string, newValue: string | number | boolean | Record<string, unknown> | null) => {
     setSavingSetting(settingKey)
     try {
       // إذا كانت القيمة string وتبدو كـ JSON، نحاول تحويلها
@@ -683,7 +691,7 @@ export default function SecurityManagement() {
     }
   }
 
-  const updateSettingValue = (settingKey: string, value: any) => {
+  const updateSettingValue = (settingKey: string, value: string | number | boolean | Record<string, unknown> | null) => {
     setSettingsValues(prev => ({
       ...prev,
       [settingKey]: value
@@ -691,7 +699,7 @@ export default function SecurityManagement() {
   }
 
   // دالة لتحديد نوع الإعداد تلقائياً من القيمة
-  const detectSettingType = (value: any): 'text' | 'number' | 'boolean' | 'select' | 'time' => {
+  const detectSettingType = (value: unknown): 'text' | 'number' | 'boolean' | 'select' | 'time' => {
     if (typeof value === 'boolean') return 'boolean'
     if (typeof value === 'number') return 'number'
     if (typeof value === 'string') {
@@ -725,7 +733,7 @@ export default function SecurityManagement() {
         return (
           <input
             type="text"
-            value={value || ''}
+            value={getInputValue(value)}
             onChange={(e) => updateSettingValue(setting.setting_key, e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -735,7 +743,7 @@ export default function SecurityManagement() {
         return (
           <input
             type="number"
-            value={value ?? ''}
+            value={getInputValue(value)}
             onChange={(e) => updateSettingValue(setting.setting_key, Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -759,14 +767,18 @@ export default function SecurityManagement() {
       case 'select':
         return (
           <select
-            value={value || ''}
+            value={getInputValue(value)}
             onChange={(e) => updateSettingValue(setting.setting_key, e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
           >
             {setting.options && setting.options.length > 0 ? (
-              setting.options.map((option: any) => (
-                <option key={option} value={option}>{option}</option>
-              ))
+              setting.options.map((option: string | number | { label: string; value: string | number }) => {
+                const optionValue = typeof option === 'object' ? option.value : option
+                const optionLabel = typeof option === 'object' ? option.label : option
+                return (
+                  <option key={String(optionValue)} value={String(optionValue)}>{String(optionLabel)}</option>
+                )
+              })
             ) : (
               <option value="">اختر خياراً</option>
             )}
@@ -777,7 +789,7 @@ export default function SecurityManagement() {
         return (
           <input
             type="time"
-            value={value || ''}
+            value={getInputValue(value)}
             onChange={(e) => updateSettingValue(setting.setting_key, e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -818,7 +830,7 @@ export default function SecurityManagement() {
         
         if (backup) {
           if (backup.status === 'completed') {
-            console.log('[Backup] Backup completed successfully:', backup.id)
+            logger.debug('[Backup] Backup completed successfully:', backup.id)
             return backup
           } else if (backup.status === 'failed') {
             console.error('[Backup] Backup failed:', backup.error_message)
@@ -829,7 +841,7 @@ export default function SecurityManagement() {
         
         attempts++
         await new Promise(resolve => setTimeout(resolve, pollInterval))
-      } catch (error: any) {
+      } catch (error) {
         if (error.message && error.message.includes('فشل')) {
           throw error
         }
@@ -846,11 +858,10 @@ export default function SecurityManagement() {
 
   const createBackup = async () => {
     setIsCreatingBackup(true)
-    let backupCreated = false
     let timeoutOccurred = false
     
     try {
-      console.log('[Backup] Starting backup creation...')
+      logger.debug('[Backup] Starting backup creation...')
       
       // إنشاء timeout promise (120 ثانية)
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -866,12 +877,13 @@ export default function SecurityManagement() {
       })
       
       // استخدام Promise.race للانتظار بين الطلب والtimeout
-      let response: any
+      let response: { data?: unknown; error?: unknown } | undefined
       try {
-        response = await Promise.race([backupPromise, timeoutPromise])
-        console.log('[Backup] Response received:', { data: response.data, error: response.error, dataType: typeof response.data })
-      } catch (raceError: any) {
-        if (raceError?.message === 'TIMEOUT' || timeoutOccurred) {
+        response = await Promise.race([backupPromise, timeoutPromise]) as { data?: unknown; error?: unknown }
+        logger.debug('[Backup] Response received:', { data: response?.data, error: response?.error, dataType: typeof response?.data })
+      } catch (raceError: unknown) {
+        const raceErrorMessage = getErrorMessage(raceError)
+        if (raceErrorMessage === 'TIMEOUT' || timeoutOccurred) {
           console.warn('[Backup] Request timeout after 120 seconds, starting polling...')
           timeoutOccurred = true
           
@@ -895,18 +907,16 @@ export default function SecurityManagement() {
             
             // إذا كانت النسخة بدأت خلال آخر 3 دقائق، نبدأ polling
             if (backupAge < 180000) {
-              console.log('[Backup] Found recent backup, starting polling:', latestBackup.id)
+              logger.debug('[Backup] Found recent backup, starting polling:', latestBackup.id)
               
               // بدء polling
               setIsPollingBackup(true)
-              setPollingBackupId(latestBackup.id)
               toast.info('جاري التحقق من حالة النسخة الاحتياطية...', { duration: 5000 })
               
               try {
                 const completedBackup = await pollBackupStatus(latestBackup.id, 60) // 60 محاولة × 3 ثواني = 3 دقائق
                 
                 if (completedBackup) {
-                  backupCreated = true
                   toast.success('تم إنشاء النسخة الاحتياطية بنجاح')
                   
                   // تحميل النسخ
@@ -915,13 +925,13 @@ export default function SecurityManagement() {
                   toast.warning('استغرق إنشاء النسخة الاحتياطية وقتاً طويلاً. يرجى التحقق من قائمة النسخ الاحتياطية.')
                   await loadBackups()
                 }
-              } catch (pollError: any) {
+              } catch (pollError: unknown) {
+                const errorMessage = pollError instanceof Error ? pollError.message : 'حدث خطأ أثناء التحقق من حالة النسخة الاحتياطية'
                 console.error('[Backup] Error during polling:', pollError)
-                toast.error(pollError.message || 'حدث خطأ أثناء التحقق من حالة النسخة الاحتياطية')
+                toast.error(errorMessage)
                 await loadBackups()
               } finally {
                 setIsPollingBackup(false)
-                setPollingBackupId(null)
               }
               
               return // الخروج من الدالة
@@ -957,16 +967,15 @@ export default function SecurityManagement() {
       if (typeof data === 'string') {
         try {
           responseData = JSON.parse(data)
-          console.log('[Backup] Parsed string response:', responseData)
+          logger.debug('[Backup] Parsed string response:', responseData)
         } catch (parseError) {
           console.error('[Backup] Failed to parse response:', parseError)
           throw new Error('استجابة غير صحيحة من الخادم')
         }
       }
 
-      if (responseData && responseData.success) {
-        console.log('[Backup] Backup created successfully:', responseData)
-        backupCreated = true
+      if (responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success: unknown }).success) {
+        logger.debug('[Backup] Backup created successfully:', responseData)
         
         // إضافة delay صغير لضمان ظهور الرسالة
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -981,7 +990,7 @@ export default function SecurityManagement() {
         
         while (retries > 0 && !loaded) {
           try {
-            console.log(`[Backup] Loading backups (attempt ${4 - retries}/3)...`)
+            logger.debug(`[Backup] Loading backups (attempt ${4 - retries}/3)...`)
             await loadBackups()
             
             // التحقق من وجود النسخة الجديدة في القائمة
@@ -993,12 +1002,12 @@ export default function SecurityManagement() {
               .limit(1)
             
             if (latestBackups && latestBackups.length > 0) {
-              console.log('[Backup] Latest backup found:', latestBackups[0].id)
+              logger.debug('[Backup] Latest backup found:', latestBackups[0].id)
               // إعادة تحميل القائمة مرة أخرى للتأكد
               await loadBackups()
               loaded = true
             } else {
-              console.log('[Backup] Backup not found yet, retrying...')
+              logger.debug('[Backup] Backup not found yet, retrying...')
               retries--
               if (retries > 0) {
                 await new Promise(resolve => setTimeout(resolve, 1000))
@@ -1023,21 +1032,29 @@ export default function SecurityManagement() {
           }
         }
       } else {
-        const errorMessage = responseData?.error || 'فشل في إنشاء النسخة الاحتياطية'
-        console.error('[Backup] Backup creation failed:', errorMessage)
-        throw new Error(errorMessage)
+        let firstErrorMessage = ''
+        if (responseData && typeof responseData === 'object' && 'error' in responseData) {
+          firstErrorMessage = (responseData as { error: unknown }).error as string || 'فشل في إنشاء النسخة الاحتياطية'
+        } else {
+          firstErrorMessage = 'فشل في إنشاء النسخة الاحتياطية'
+        }
+        console.error('[Backup] Backup creation failed:', firstErrorMessage)
+        throw new Error(firstErrorMessage)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = getErrorMessage(error)
       console.error('[Backup] Error creating backup:', error)
       
       // إذا كان الخطأ timeout، لا نعرض رسالة خطأ إضافية (تم عرضها بالفعل)
-      if (error?.message === 'TIMEOUT' || timeoutOccurred) {
+      const errorMessageForCheck = error instanceof Error ? error.message : String(error)
+      if (errorMessageForCheck === 'TIMEOUT' || timeoutOccurred) {
         // تم التعامل مع timeout بالفعل
         return
       }
       
       // معالجة خطأ 546 من Edge Function - قد تكون النسخة تم إنشاؤها رغم الخطأ
-      if (error?.status === 546 || error?.statusCode === 546 || error?.message?.includes('546')) {
+      const errorStatus = getErrorStatus(error)
+      if (errorStatus === 546 || errorMessageForCheck.includes('546')) {
         console.warn('[Backup] Edge Function returned 546, checking database for backup...')
         
         // التحقق من قاعدة البيانات مباشرة
@@ -1055,8 +1072,7 @@ export default function SecurityManagement() {
             
             // إذا كانت النسخة تم إنشاؤها خلال آخر 3 دقائق، نعتبرها النسخة الجديدة
             if (backupAge < 180000) {
-              console.log('[Backup] Found recent backup despite 546 error:', latestBackup.id)
-              backupCreated = true
+              logger.debug('[Backup] Found recent backup despite 546 error:', latestBackup.id)
               
               // إضافة delay صغير لضمان ظهور الرسالة
               await new Promise(resolve => setTimeout(resolve, 100))
@@ -1083,16 +1099,15 @@ export default function SecurityManagement() {
         return
       }
       
-      const errorMessage = error?.message || 'فشل في إنشاء النسخة الاحتياطية'
+      errorMessage = getErrorMessage(error)
       toast.error(errorMessage)
     } finally {
-      console.log('[Backup] Setting isCreatingBackup to false')
+      logger.debug('[Backup] Setting isCreatingBackup to false')
       // ضمان تنفيذ finally دائماً
       setIsCreatingBackup(false)
       // إعادة تعيين حالة polling في حالة عدم اكتمالها
       if (isPollingBackup) {
         setIsPollingBackup(false)
-        setPollingBackupId(null)
       }
     }
   }
@@ -1153,7 +1168,7 @@ export default function SecurityManagement() {
       if (isBulkDelete) {
         // حذف متعدد
         const backupIds = backupId.split(',')
-        console.log('[Backup] Starting bulk deletion:', { count: backupIds.length, backupIds })
+        logger.debug('[Backup] Starting bulk deletion:', { count: backupIds.length, backupIds })
         
         // الحصول على معلومات النسخ المحددة
         const backupsToDelete = backups.filter(b => backupIds.includes(b.id))
@@ -1201,10 +1216,9 @@ export default function SecurityManagement() {
         }
       } else {
         // حذف واحد (الكود الأصلي)
-        console.log('[Backup] Starting deletion:', { backupId, filePath })
+        logger.debug('[Backup] Starting deletion:', { backupId, filePath })
         
         // حذف الملف من Storage (إذا كان موجوداً)
-        let storageDeleted = false
         try {
           const { error: storageError } = await supabase.storage
             .from('backups')
@@ -1214,19 +1228,18 @@ export default function SecurityManagement() {
             // إذا كان الملف غير موجود، لا نعتبره خطأ حرج
             if (storageError.message?.includes('not found') || storageError.message?.includes('Object not found')) {
               console.warn('[Backup] File not found in storage (may have been deleted already):', storageError.message)
-              storageDeleted = true // نعتبره نجح لأن الملف غير موجود أصلاً
+              // نعتبره نجح لأن الملف غير موجود أصلاً
             } else {
               throw storageError
             }
           } else {
-            storageDeleted = true
-            console.log('[Backup] File deleted from storage successfully')
+            logger.debug('[Backup] File deleted from storage successfully')
           }
-        } catch (storageErr: any) {
+        } catch (storageErr: unknown) {
           // إذا كان الملف غير موجود، نتابع الحذف من قاعدة البيانات
-          if (storageErr?.message?.includes('not found') || storageErr?.message?.includes('Object not found')) {
+          const storageErrorMessage = storageErr instanceof Error ? storageErr.message : String(storageErr)
+          if (storageErrorMessage.includes('not found') || storageErrorMessage.includes('Object not found')) {
             console.warn('[Backup] File not found in storage, continuing with database deletion')
-            storageDeleted = true
           } else {
             throw storageErr
           }
@@ -1248,7 +1261,7 @@ export default function SecurityManagement() {
           console.warn('[Backup] No record found to delete (may have been deleted already)')
           toast.warning('النسخة الاحتياطية غير موجودة أو تم حذفها مسبقاً')
         } else {
-          console.log('[Backup] Backup deleted successfully from database, count:', count)
+          logger.debug('[Backup] Backup deleted successfully from database, count:', count)
           toast.success('تم حذف النسخة الاحتياطية بنجاح')
         }
       }
@@ -1258,9 +1271,12 @@ export default function SecurityManagement() {
 
       // إعادة تحميل القائمة
       await loadBackups()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       console.error('[Backup] Error deleting backup:', error)
-      const errorMessage = error?.message || 'فشل في حذف النسخة الاحتياطية'
+      if (!errorMessage || errorMessage === 'حدث خطأ غير معروف') {
+        errorMessage = 'فشل في حذف النسخة الاحتياطية'
+      }
       toast.error(`فشل في حذف النسخة الاحتياطية: ${errorMessage}`)
     } finally {
       setIsDeletingBackups(false)
@@ -1269,7 +1285,7 @@ export default function SecurityManagement() {
 
   const downloadBackup = async (filePath: string) => {
     try {
-      console.log('[Backup] Starting download:', filePath)
+      logger.debug('[Backup] Starting download:', filePath)
       const { data, error } = await supabase.storage
         .from('backups')
         .download(filePath)
@@ -1291,11 +1307,14 @@ export default function SecurityManagement() {
       link.click()
       URL.revokeObjectURL(url)
 
-      console.log('[Backup] Download completed successfully')
+      logger.debug('[Backup] Download completed successfully')
       toast.success('تم تحميل النسخة الاحتياطية')
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       console.error('[Backup] Error downloading backup:', error)
-      const errorMessage = error?.message || 'فشل في تحميل النسخة الاحتياطية'
+      if (!errorMessage || errorMessage === 'حدث خطأ غير معروف') {
+        errorMessage = 'فشل في تحميل النسخة الاحتياطية'
+      }
       toast.error(errorMessage)
     }
   }
@@ -1326,7 +1345,7 @@ export default function SecurityManagement() {
     setIsSendingEmail(true)
     
     try {
-      console.log('[Email Queue] Adding email to queue for backup:', selectedBackupForEmail.file_path)
+      logger.debug('[Email Queue] Adding email to queue for backup:', selectedBackupForEmail.file_path)
       
       // إنشاء رابط تحميل موقّع (صالح لمدة سنة واحدة)
       let downloadUrl = ''
@@ -1338,13 +1357,14 @@ export default function SecurityManagement() {
 
         if (!urlError && signedUrlData) {
           downloadUrl = signedUrlData.signedUrl
-          console.log('[Email Queue] Download URL created successfully')
+          logger.debug('[Email Queue] Download URL created successfully')
         } else {
           console.warn('[Email Queue] Could not create download URL:', urlError?.message || urlError)
           // لا نرمي خطأ هنا، سنرسل البريد بدون رابط
         }
-      } catch (urlCreateError: any) {
-        console.warn('[Email Queue] Error creating download URL (non-critical):', urlCreateError?.message || urlCreateError)
+      } catch (urlCreateError: unknown) {
+        const urlErrorMessage = urlCreateError instanceof Error ? urlCreateError.message : String(urlCreateError)
+        console.warn('[Email Queue] Error creating download URL (non-critical):', urlErrorMessage)
         // لا نرمي خطأ هنا، سنرسل البريد بدون رابط
       }
       
@@ -1401,7 +1421,7 @@ export default function SecurityManagement() {
         throw new Error('فشل في إضافة البريد إلى قائمة الانتظار: ' + queueError.message)
       }
 
-      console.log('[Email Queue] Email added to queue successfully:', queueItem?.id)
+      logger.debug('[Email Queue] Email added to queue successfully:', queueItem?.id)
       toast.success(`تمت إضافة البريد إلى قائمة الانتظار. سيتم إرساله قريباً إلى ${emails.length} عنوان بريد إلكتروني`)
       
       // تحديث قائمة البريد
@@ -1412,9 +1432,12 @@ export default function SecurityManagement() {
       setEmailRecipients('')
       setSelectedBackupForEmail(null)
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       console.error('[Email Queue] Error adding email to queue:', error)
-      const errorMessage = error?.message || 'فشل في إضافة البريد إلى قائمة الانتظار'
+      if (!errorMessage || errorMessage === 'حدث خطأ غير معروف') {
+        errorMessage = 'فشل في إضافة البريد إلى قائمة الانتظار'
+      }
       toast.error(errorMessage)
     } finally {
       setIsSendingEmail(false)
@@ -2085,8 +2108,8 @@ export default function SecurityManagement() {
                           <p><span className="text-gray-600">البريد الإلكتروني:</span> {session.users?.email || 'غير محدد'}</p>
                         </div>
                         <div>
-                          <p><span className="text-gray-600">المتصفح:</span> {session.device_info?.browser || 'غير محدد'}</p>
-                          <p><span className="text-gray-600">النظام:</span> {session.device_info?.platform || 'غير محدد'}</p>
+                          <p><span className="text-gray-600">المتصفح:</span> {(session.device_info as Record<string, unknown>)?.browser ? String((session.device_info as Record<string, unknown>).browser) : 'غير محدد'}</p>
+                          <p><span className="text-gray-600">النظام:</span> {(session.device_info as Record<string, unknown>)?.platform ? String((session.device_info as Record<string, unknown>).platform) : 'غير محدد'}</p>
                         </div>
                         <div>
                           <p>
@@ -2424,7 +2447,7 @@ export default function SecurityManagement() {
                 <label className="block text-sm font-medium mb-2">نوع الإعداد *</label>
                 <select
                   value={newSetting.setting_type}
-                  onChange={(e) => setNewSetting(prev => ({ ...prev, setting_type: e.target.value as any }))}
+                  onChange={(e) => setNewSetting(prev => ({ ...prev, setting_type: e.target.value as 'text' | 'number' | 'boolean' | 'select' | 'time' }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="text">نص (text)</option>

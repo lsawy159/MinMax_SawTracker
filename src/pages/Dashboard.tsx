@@ -6,21 +6,10 @@ import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { AlertCard, Alert } from '@/components/alerts/AlertCard'
 import { 
-  calculateCommercialRegistrationStatus, 
-  calculateSocialInsuranceStatus,
-  calculatePowerSubscriptionStatus,
-  calculateMoqeemSubscriptionStatus,
-  calculateCompanyStatusStats,
-  calculatePowerStats,
-  calculateMoqeemStats
-} from '@/utils/autoCompanyStatus'
-import { 
   generateCompanyAlertsSync,
-  getAlertsStats, 
-  getUrgentAlerts, 
-  filterAlertsByType,
-  getNotificationThresholds,
-  type Company as CompanyAlertType
+  getAlertsStats,
+  getUrgentAlerts,
+  filterAlertsByType
 } from '@/utils/alerts'
 import { 
   generateEmployeeAlerts, 
@@ -96,7 +85,6 @@ export default function Dashboard() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingSecondary, setLoadingSecondary] = useState(true)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
@@ -263,8 +251,6 @@ export default function Dashboard() {
   // Phase 2: Load alerts (non-critical, can be deferred)
   const fetchSecondaryData = () => {
     try {
-      setLoadingSecondary(true)
-
       // Generate alerts asynchronously (non-blocking)
       // Using setTimeout to defer execution and avoid blocking the main thread
       setTimeout(async () => {
@@ -278,11 +264,9 @@ export default function Dashboard() {
           const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
           setEmployeeAlerts(enrichedEmployeeAlerts)
         }
-        setLoadingSecondary(false)
       }, 0)
     } catch (error) {
       console.error('خطأ في جلب البيانات الثانوية:', error)
-      setLoadingSecondary(false)
     }
   }
 
@@ -390,26 +374,6 @@ export default function Dashboard() {
       medium45HiredWorkerContracts += cats.medium45
       valid45PlusHiredWorkerContracts += cats.valid45Plus
     })
-
-    // حساب إحصائيات المؤسسات مع النظام الجديد (يشمل جميع الحالات)
-    const companyStatusStats = calculateCompanyStatusStats(companies.map(c => ({
-      id: c.id,
-      name: c.name,
-      commercial_registration_expiry: c.commercial_registration_expiry,
-      social_insurance_expiry: c.social_insurance_expiry,
-      ending_subscription_power_date: c.ending_subscription_power_date,
-      ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
-    })))
-
-    // حساب إحصائيات اشتراك قوى
-    const powerStats = calculatePowerStats(companies.map(c => ({
-      ending_subscription_power_date: c.ending_subscription_power_date
-    })))
-
-    // حساب إحصائيات اشتراك مقيم
-    const moqeemStats = calculateMoqeemStats(companies.map(c => ({
-      ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
-    })))
 
     // حساب إحصائيات السجل التجاري (5 فئات)
     let expiredCommercialReg = 0, urgent7CommercialReg = 0, urgent30CommercialReg = 0, medium45CommercialReg = 0, valid45PlusCommercialReg = 0
@@ -520,14 +484,6 @@ export default function Dashboard() {
     navigate(`/companies?id=${companyId}`)
   }
 
-  const handleRenewAction = (alertId: string) => {
-    // العثور على التنبيه للحصول على معرف المؤسسة
-    const alert = companyAlerts.find(a => a.id === alertId)
-    if (alert) {
-      navigate(`/companies?id=${alert.company.id}&action=renew`)
-    }
-  }
-
   const handleMarkAsRead = async (alertId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -580,24 +536,6 @@ export default function Dashboard() {
   const insuranceAlerts = useMemo(() => 
     filterAlertsByType(unreadCompanyAlerts, 'social_insurance_expiry'),
     [unreadCompanyAlerts]
-  )
-  
-  // Memoize detailed company statistics
-  const commercialRegExpired = useMemo(() => 
-    commercialRegAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length,
-    [commercialRegAlerts]
-  )
-  const commercialRegUrgent = useMemo(() => 
-    commercialRegAlerts.filter(a => a.priority === 'urgent').length,
-    [commercialRegAlerts]
-  )
-  const insuranceExpired = useMemo(() => 
-    insuranceAlerts.filter(a => a.days_remaining !== undefined && a.days_remaining < 0).length,
-    [insuranceAlerts]
-  )
-  const insuranceUrgent = useMemo(() => 
-    insuranceAlerts.filter(a => a.priority === 'urgent').length,
-    [insuranceAlerts]
   )
 
   // Memoize employee alert statistics
@@ -1387,7 +1325,6 @@ export default function Dashboard() {
                               <AlertCard
                                 key={alert.id}
                                 alert={alert}
-                                onViewCompany={handleViewCompany}
                                 onShowCompanyCard={handleViewCompany}
                                 onMarkAsRead={handleMarkAsRead}
                                 isRead={readAlerts.has(alert.id)}

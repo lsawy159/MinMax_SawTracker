@@ -1,20 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import Layout from '@/components/layout/Layout'
 import { BarChart3, RefreshCw, Download, AlertTriangle, Calendar, TrendingUp, Building2, Users } from 'lucide-react'
-import { supabase, Employee as EmployeeType, Company as CompanyType } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
-
-interface ExpiryStats {
-  expired: number
-  urgent: number
-  medium: number
-  valid: number
-}
 
 interface SubscriptionItem {
   type: string
@@ -30,9 +23,6 @@ export default function Reports() {
   const { canExport } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('companies')
-  const [employees, setEmployees] = useState<EmployeeType[]>([])
-  const [companies, setCompanies] = useState<CompanyType[]>([])
-  
   // Statistics for active tab
   const [totalExpired, setTotalExpired] = useState(0)
   const [totalUrgent, setTotalUrgent] = useState(0)
@@ -72,15 +62,6 @@ export default function Reports() {
     return 'valid'
   }, [statusThresholds])
 
-  // Calculate statistics for a set of dates
-  const calculateStats = useCallback((dates: (string | null | undefined)[]): ExpiryStats => {
-    const stats: ExpiryStats = { expired: 0, urgent: 0, medium: 0, valid: 0 }
-    dates.forEach(date => {
-      const category = categorizeExpiry(date)
-      if (category) stats[category]++
-    })
-    return stats
-  }, [categorizeExpiry])
 
   // Calculate statistics for active tab
   const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
@@ -127,8 +108,7 @@ export default function Reports() {
 
       if (companiesError) throw companiesError
 
-      if (employeesData) setEmployees(employeesData)
-      if (companiesData) setCompanies(companiesData)
+      // Employees and companies data are used directly, not stored in state
 
       // Calculate statistics and build subscription items
       if (employeesData && companiesData) {

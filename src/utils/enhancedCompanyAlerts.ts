@@ -35,7 +35,12 @@ export interface SimpleEnhancedAlert {
     currency: string
   }
   responsible_department?: string
-  renewal_history: any[]
+  renewal_history: Array<{
+    date: string
+    duration: number
+    cost?: number
+    notes?: string
+  }>
 }
 
 // Enhanced thresholds with customizable settings
@@ -106,8 +111,8 @@ export interface EnhancedAlert {
 /**
  * Simple Enhanced Company Alert Generator
  */
-export function generateEnhancedCompanyAlerts(companies: Company[]): SimpleEnhancedAlert[] {
-  const alerts: SimpleEnhancedAlert[] = []
+export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAlert[] {
+  const alerts: EnhancedAlert[] = []
   
   companies.forEach(company => {
     // Commercial Registration Alerts
@@ -239,7 +244,11 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): SimpleEnhan
 // Simplified statistics functions
 
 // Helper functions
+// NOTE: The following functions are reserved for future enhanced alert features
+// They are part of the enhanced alerts API and may be used in future implementations
 
+// Reserved for future use: Generate action items for commercial registration alerts
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateCommercialRegActions(days: number, company: Company): string[] {
   const actions = []
   
@@ -263,6 +272,8 @@ function generateCommercialRegActions(days: number, company: Company): string[] 
   return actions
 }
 
+// Reserved for future use: Generate action items for insurance alerts
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateInsuranceActions(days: number, company: Company): string[] {
   const actions = []
   
@@ -286,6 +297,8 @@ function generateInsuranceActions(days: number, company: Company): string[] {
   return actions
 }
 
+// Reserved for future use: Generate action items for government documents alerts
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateGovDocsActions(days: number, company: Company): string[] {
   const actions = []
   
@@ -309,6 +322,8 @@ function generateGovDocsActions(days: number, company: Company): string[] {
   return actions
 }
 
+// Reserved for future use: Determine complexity level of renewal process
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineRenewalComplexity(company: Company): EnhancedAlert['renewal_complexity'] {
   // Simple logic - could be enhanced with more company attributes
   if (company.commercial_registration_number && company.commercial_registration_number.length > 10) {
@@ -317,11 +332,15 @@ function determineRenewalComplexity(company: Company): EnhancedAlert['renewal_co
   return 'simple'
 }
 
+// Reserved for future use: Determine complexity level of insurance renewal
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineInsuranceComplexity(company: Company): EnhancedAlert['renewal_complexity'] {
   // Insurance renewal is typically moderate complexity
   return 'moderate'
 }
 
+// Reserved for future use: Estimate time required for renewal process
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function estimateRenewalTime(days: number, complexity: EnhancedAlert['renewal_complexity']): string {
   if (complexity === 'simple') {
     return days < 0 ? '3-5 أيام عمل' : '1-3 أيام عمل'
@@ -332,6 +351,8 @@ function estimateRenewalTime(days: number, complexity: EnhancedAlert['renewal_co
   }
 }
 
+// Reserved for future use: Get enhanced title for alert based on type and days
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEnhancedTitle(type: string, days: number): string {
   if (type === 'commercial_registration') {
     if (days < 0) return 'السجل التجاري منتهي'
@@ -348,6 +369,8 @@ function getEnhancedTitle(type: string, days: number): string {
   return 'تنبيه تجديد الوثائق'
 }
 
+// Reserved for future use: Get enhanced message for alert based on type, days, and company
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEnhancedMessage(type: string, days: number, company: Company): string {
   const companyName = company.name
   
@@ -376,6 +399,8 @@ function getEnhancedMessage(type: string, days: number, company: Company): strin
   return `تنبيه تجديد الوثائق للمؤسسة "${companyName}"`
 }
 
+// Reserved for future use: Get enhanced action required message
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEnhancedActionRequired(type: string, days: number, company: Company): string {
   const companyName = company.name
   
@@ -404,6 +429,8 @@ function getEnhancedActionRequired(type: string, days: number, company: Company)
   return `قم بترتيب تجديد الوثائق للمؤسسة "${companyName}"`
 }
 
+// Reserved for future use: Get list of related documents needed for renewal
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getRelatedDocuments(type: string): string[] {
   if (type === 'commercial_registration') {
     return [
@@ -433,6 +460,8 @@ function getRelatedDocuments(type: string): string[] {
   }
 }
 
+// Reserved for future use: Get cost estimate for renewal process
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getRenewalCostEstimate(type: string): { min: number; max: number; currency: string } {
   if (type === 'commercial_registration') {
     return { min: 500, max: 2000, currency: 'SAR' }

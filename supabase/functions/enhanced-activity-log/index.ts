@@ -7,7 +7,9 @@ interface ActivityLogRequest {
   entity_type: string
   entity_id: string
   operation: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   old_data?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new_data?: any
   user_id?: string
   session_id?: string

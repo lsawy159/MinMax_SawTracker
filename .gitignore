@@ -47,3 +47,7 @@ replacements.txt
 # Documentation files (keep locally, exclude from git)
 *.md
 !.github/**/*.md
+
+# Development files and old fixes
+.dev-files/
+# Note: .dev-files/old-migrations/ contains dangerous or outdated migration files that should not be applied

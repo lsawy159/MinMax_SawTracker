@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Cog, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Bell, Menu, X, ChevronRight, User, LogOut } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'

@@ -3,12 +3,14 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface EmailQueueItem {
   id: string
   to_emails: string[]
   subject: string
   html_content: string
   text_content: string | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attachments: any[]
   status: 'pending' | 'processing' | 'completed' | 'failed'
   priority: number
@@ -278,7 +280,7 @@ async function sendEmailViaSMTP(
     if (conn) {
       try {
         conn.close()
-      } catch (e) {
+      } catch {
         // تجاهل أخطاء الإغلاق
       }
     }
@@ -424,6 +426,7 @@ Deno.serve(async (req) => {
         successCount++
         console.log(`[Email Queue] Successfully processed email ${item.id}`)
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error(`[Email Queue] Error processing email ${item.id}:`, error)
         
@@ -464,6 +467,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[Email Queue] Critical error:', error)
     return new Response(

@@ -18,7 +18,7 @@ interface CompanyDetailModalProps {
   onDelete?: (company: Company) => void
   getAvailableSlotsColor?: (slots: number) => string
   getAvailableSlotsTextColor?: (slots: number) => string
-  getAvailableSlotsText?: (slots: number, maxEmployees: number) => string
+  getAvailableSlotsText?: (slots: number) => string
 }
 
 export default function CompanyDetailModal({

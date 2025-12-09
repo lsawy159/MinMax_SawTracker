@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Layout from '@/components/layout/Layout'
-import { FileDown, FileUp, FileText, Download, Upload } from 'lucide-react'
+import { FileDown, FileUp, FileText, Download } from 'lucide-react'
 import ExportTab from '@/components/import-export/ExportTab'
 import ImportTab from '@/components/import-export/ImportTab'
 import TemplatesTab from '@/components/import-export/TemplatesTab'

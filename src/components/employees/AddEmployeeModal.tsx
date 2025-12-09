@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, Company, Project } from '@/lib/supabase'
+import { supabase, Company, Project, Employee } from '@/lib/supabase'
 import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
@@ -201,11 +201,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     }
   }
 
-  // دالة حساب الأماكن الشاغرة
-  const calculateAvailableSlots = (maxEmployees: number, currentEmployees: number): number => {
-    return Math.max(0, maxEmployees - currentEmployees)
-  }
-
   // دالة الحصول على لون حالة الأماكن الشاغرة
   const getAvailableSlotsColor = (availableSlots: number) => {
     if (availableSlots === 0) return 'text-red-600 bg-red-50'
@@ -214,7 +209,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
   }
 
   // دالة الحصول على وصف حالة الأماكن الشاغرة
-  const getAvailableSlotsText = (availableSlots: number, maxEmployees: number) => {
+  const getAvailableSlotsText = (availableSlots: number) => {
     if (availableSlots === 0) return 'مكتملة'
     if (availableSlots === 1) return 'مكان واحد متبقي'
     return `${availableSlots} أماكن متاحة`
@@ -320,9 +315,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       setIsProjectDropdownOpen(false)
 
       toast.success('تم إنشاء المشروع بنجاح')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating project:', error)
-      toast.error(error?.message || 'فشل إنشاء المشروع')
+      const errorMessage = error instanceof Error ? error.message : 'فشل إنشاء المشروع'
+      toast.error(errorMessage)
     } finally {
       setCreatingProject(false)
     }
@@ -406,14 +402,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     try {
       // إعداد البيانات للإدراج
       // استخدام normalizeDate لتحويل أي صيغة تاريخ إلى YYYY-MM-DD
-      const employeeData: any = {
+      const employeeData: Partial<Employee> & { project_name?: string | null } = {
         name: formData.name.trim(),
         profession: formData.profession.trim(),
         nationality: formData.nationality.trim(),
         birth_date: normalizeDate(formData.birth_date),
         phone: formData.phone.trim() || null,
         passport_number: formData.passport_number.trim(),
-        residence_number: formData.residence_number.trim(),
+        residence_number: Number(formData.residence_number.trim()) || 0,
         joining_date: normalizeDate(formData.joining_date),
         contract_expiry: normalizeDate(formData.contract_expiry),
         hired_worker_contract_expiry: normalizeDate(formData.hired_worker_contract_expiry),
@@ -502,9 +498,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       // إغلاق المودال وإعادة تحميل البيانات
       onSuccess()
       onClose()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding employee:', error)
-      toast.error(error.message || 'فشل إضافة الموظف')
+      const errorMessage = error instanceof Error ? error.message : 'فشل إضافة الموظف'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -909,7 +906,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                   
                   const availableSlots = selectedCompany.available_slots
                   const slotsColor = getAvailableSlotsColor(availableSlots)
-                  const slotsText = getAvailableSlotsText(availableSlots, selectedCompany.max_employees)
+                  const slotsText = getAvailableSlotsText(availableSlots)
                   
                   return (
                     <div className={`mt-3 p-3 rounded-lg border ${availableSlots === 0 ? 'border-red-200 bg-red-50' : availableSlots === 1 ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>

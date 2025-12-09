@@ -35,7 +35,7 @@ export default function Login() {
       await signIn(email, password)
       // لا ننتقل هنا مباشرة، بل ننتظر useEffect أعلاه
       // useEffect سينتقل تلقائياً عندما يكون user موجود و authLoading = false
-    } catch (err: any) {
+    } catch {
       setError('فشل تسجيل الدخول')
       setLoading(false)
     }

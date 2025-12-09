@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { useDebouncedCallback } from 'use-debounce'
 import { Search, X, Clock, Star, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
 
 interface SearchResult {
   id: string
@@ -28,7 +30,6 @@ export function GlobalSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const debounceTimer = useRef<ReturnType<typeof setTimeout>>()
   const navigate = useNavigate()
 
   // Load saved searches and recent searches
@@ -120,7 +121,7 @@ export function GlobalSearch() {
         type: 'employee' as const,
         title: emp.name,
         subtitle: emp.profession,
-        metadata: `${emp.nationality} - ${(emp as any).companies?.name || 'بدون مؤسسة'}`
+        metadata: `${emp.nationality} - ${(emp as { companies?: { name?: string } }).companies?.name || 'بدون مؤسسة'}`
       }))
 
       const companyResults: SearchResult[] = (companies || []).map(comp => ({
@@ -134,24 +135,24 @@ export function GlobalSearch() {
       setResults([...employeeResults, ...companyResults])
       saveToRecentSearches(searchQuery)
     } catch (error) {
-      console.error('Search error:', error)
+      logger.error('Search error:', error)
       toast.error('حدث خطأ أثناء البحث')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Debounced search function
+  const debouncedSearch = useDebouncedCallback(
+    async (searchQuery: string) => {
+      await performSearch(searchQuery)
+    },
+    500 // تأخير 500ms
+  )
+
   const handleSearchChange = (value: string) => {
     setQuery(value)
-    
-    // Debounce search
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current)
-    }
-    
-    debounceTimer.current = setTimeout(() => {
-      performSearch(value)
-    }, 300)
+    debouncedSearch(value)
   }
 
   const handleResultClick = (result: SearchResult) => {

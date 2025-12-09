@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react'
 import Layout from '@/components/layout/Layout'
 import { EnhancedAlertsSection } from '@/components/dashboard/EnhancedAlertsSection'
 import { EnhancedAlertCard } from '@/components/alerts/EnhancedAlertCard'
+import { logger } from '@/utils/logger'
 import { 
   generateEnhancedCompanyAlerts,
   getEnhancedAlertsStats,
   getCriticalAlerts,
   generateAlertSummaryReport,
-  type EnhancedAlert,
-  type SimpleEnhancedAlert
+  type EnhancedAlert
 } from '@/utils/enhancedCompanyAlerts'
 import { Building2, Shield, FileText, Plus, Settings } from 'lucide-react'
 
@@ -67,7 +67,7 @@ const testCompanies = [
 ]
 
 export default function EnhancedAlertsTestPage() {
-  const [alerts, setAlerts] = useState<SimpleEnhancedAlert[]>([])
+  const [alerts, setAlerts] = useState<EnhancedAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAlert, setSelectedAlert] = useState<EnhancedAlert | null>(null)
   const [testMode, setTestMode] = useState<'enhanced' | 'basic'>('enhanced')
@@ -81,12 +81,12 @@ export default function EnhancedAlertsTestPage() {
 
   // Handler functions
   const handleViewCompany = (companyId: string) => {
-    console.log('View company:', companyId)
+    logger.debug('View company:', companyId)
     // Navigate to company details
   }
 
   const handleRenewAction = (alertId: string) => {
-    console.log('Renew action for alert:', alertId)
+    logger.debug('Renew action for alert:', alertId)
     // Start renewal process
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase' // [PATH FIX] Reverted to alias path
 import Layout from '@/components/layout/Layout' // [PATH FIX] Reverted to alias path
-import { Settings as SettingsIcon, Save, Building2, Users, AlertCircle, Globe, Plus, Trash2, Edit2, Shield } from 'lucide-react'
+import { Settings as SettingsIcon, Save, Building2, Users, Globe, Plus, Trash2, Edit2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
 import { usePermissions } from '@/utils/permissions'

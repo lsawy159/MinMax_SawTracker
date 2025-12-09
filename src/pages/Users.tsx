@@ -18,6 +18,7 @@ import { formatDateTimeWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
+import { logger } from '@/utils/logger'
 import { 
   PermissionMatrix, 
   defaultPermissions, 
@@ -91,7 +92,7 @@ export default function Users() {
       
       setUsers(normalizedUsers)
     } catch (error) {
-      console.error('Error loading users:', error)
+      logger.error('Error loading users:', error)
       toast.error('فشل تحميل المستخدمين')
     } finally {
       setLoading(false)
@@ -133,6 +134,7 @@ export default function Users() {
     try {
       if (editingUser) {
         // تحديث مستخدم موجود باستخدام RPC function
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { data, error } = await supabase
           .rpc('update_user_as_admin', {
             user_id: editingUser.id,
@@ -186,9 +188,10 @@ export default function Users() {
 
       setShowModal(false)
       loadUsers()
-    } catch (error: any) {
-      console.error('Error saving user:', error)
-      toast.error(error.message || 'حدث خطأ أثناء حفظ المستخدم')
+    } catch (error) {
+      logger.error('Error saving user:', error)
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ المستخدم'
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -214,7 +217,7 @@ export default function Users() {
         throw new Error('لا يمكنك حذف حسابك الخاص')
       }
 
-      console.log('[Users] Attempting to delete user:', {
+      logger.debug('[Users] Attempting to delete user:', {
         id: deletingUser.id,
         email: deletingUser.email,
         role: deletingUser.role
@@ -227,7 +230,7 @@ export default function Users() {
         })
 
       if (error) {
-        console.error('[Users] RPC Error Details:', {
+        logger.error('[Users] RPC Error Details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -236,14 +239,14 @@ export default function Users() {
         throw error
       }
 
-      console.log('[Users] User deleted successfully:', data)
+      logger.debug('[Users] User deleted successfully:', data)
 
       toast.success('تم حذف المستخدم بنجاح')
       setShowDeleteModal(false)
       setDeleteingUser(null)
       loadUsers()
-    } catch (error: any) {
-      console.error('[Users] Error deleting user:', {
+    } catch (error) {
+      logger.error('[Users] Error deleting user:', {
         error,
         message: error?.message,
         details: error?.details,
@@ -285,15 +288,15 @@ export default function Users() {
       
       toast.success(user.is_active ? 'تم إيقاف المستخدم' : 'تم تفعيل المستخدم')
       loadUsers()
-    } catch (error: any) {
-      console.error('Error toggling user status:', error)
+    } catch (error) {
+      logger.error('Error toggling user status:', error)
       toast.error('فشل تغيير حالة المستخدم')
     }
   }
 
   const updatePermission = (category: keyof PermissionMatrix, action: string, value: boolean) => {
     setFormData(prev => {
-      const currentCategory = prev.permissions[category] as any
+      const currentCategory = prev.permissions[category] as Record<string, boolean>
       return {
         ...prev,
         permissions: {

@@ -1,5 +1,6 @@
 import { differenceInDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
+import { logger } from './logger'
 
 /**
  * القيم الافتراضية لإعدادات الحالات
@@ -46,7 +47,7 @@ export async function getStatusThresholds() {
       .maybeSingle()
 
     if (error || !data || !data.setting_value) {
-      console.log('Using default status thresholds')
+      logger.debug('Using default status thresholds')
       // Cache the defaults
       statusThresholdsCache = DEFAULT_STATUS_THRESHOLDS
       statusCacheTimestamp = now
@@ -113,7 +114,6 @@ export const calculateCommercialRegistrationStatus = (
   // Get thresholds if not provided (use cache or defaults)
   const statusThresholds = thresholds || getStatusThresholdsSync()
   const criticalDays = statusThresholds.commercial_reg_critical_days
-  const urgentDays = statusThresholds.commercial_reg_urgent_days
   const mediumDays = statusThresholds.commercial_reg_medium_days
   if (!expiryDate) {
     return {
@@ -229,7 +229,6 @@ export const calculateSocialInsuranceStatus = (
   // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
   const criticalDays = statusThresholds.social_insurance_critical_days
-  const urgentDays = statusThresholds.social_insurance_urgent_days
   const mediumDays = statusThresholds.social_insurance_medium_days
 
   const daysRemaining = calculateDaysRemaining(expiryDate)
@@ -474,7 +473,6 @@ export const calculatePowerSubscriptionStatus = (
   // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
   const criticalDays = statusThresholds.power_subscription_critical_days
-  const urgentDays = statusThresholds.power_subscription_urgent_days
   const mediumDays = statusThresholds.power_subscription_medium_days
 
   const daysRemaining = calculateDaysRemaining(expiryDate)
@@ -572,7 +570,6 @@ export const calculateMoqeemSubscriptionStatus = (
   // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
   const criticalDays = statusThresholds.moqeem_subscription_critical_days
-  const urgentDays = statusThresholds.moqeem_subscription_urgent_days
   const mediumDays = statusThresholds.moqeem_subscription_medium_days
 
   const daysRemaining = calculateDaysRemaining(expiryDate)

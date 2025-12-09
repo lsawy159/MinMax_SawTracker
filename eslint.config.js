@@ -6,8 +6,9 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   // ✨ هذا هو التعديل: أضفنا 'coverage/' هنا ✨
-  { ignores: ['dist', 'coverage/'] },
+  { ignores: ['dist', 'coverage/', '.dev-files/**', 'create_sample_companies.ts'] },
   
+  // القواعد الافتراضية لجميع الملفات
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -25,8 +26,19 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-console': ['warn', { 
+        allow: ['warn', 'error'] // السماح فقط بـ console.warn و console.error
+      }],
+    },
+  },
+  
+  // قواعد خاصة لـ Edge Functions و Scripts - تعطيل no-console
+  {
+    files: ['supabase/functions/**/*.ts', 'scripts/**/*.ts', 'src/scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off', // Edge Functions و Scripts تحتاج console للتنقيح والمراقبة
     },
   },
 )

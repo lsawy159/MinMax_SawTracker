@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, Company, Employee } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { generateCompanyAlertsSync } from '../utils/alerts'
 import { generateEmployeeAlerts, enrichEmployeeAlertsWithCompanyData } from '../utils/employeeAlerts'
 
@@ -30,7 +30,7 @@ export function useAlertsStats() {
     residenceAlerts: 0
   })
   const [loading, setLoading] = useState(true)
-  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
+  const [, setReadAlerts] = useState<Set<string>>(new Set())
 
   // [MODIFIED] أعدنا دالة جلب المقروء
   const loadReadAlerts = useCallback(async () => {

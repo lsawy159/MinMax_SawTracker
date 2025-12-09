@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, RefreshCw, Zap, Home, Eye, Mail } from 'lucide-react'
+import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, Zap, Home, Eye, Mail } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
@@ -22,7 +22,6 @@ export interface Alert {
 
 interface AlertCardProps {
   alert: Alert
-  onViewCompany: (companyId: string) => void
   onShowCompanyCard: (companyId: string) => void
   onMarkAsRead: (alertId: string) => void
   onMarkAsUnread?: (alertId: string) => void
@@ -31,7 +30,6 @@ interface AlertCardProps {
 
 export function AlertCard({ 
   alert, 
-  onViewCompany, 
   onShowCompanyCard,
   onMarkAsRead,
   onMarkAsUnread,

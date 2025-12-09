@@ -396,7 +396,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Continue to next parser
     }
   }
@@ -443,7 +443,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Continue to next parser
     }
   }

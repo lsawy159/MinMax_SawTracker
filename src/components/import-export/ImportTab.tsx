@@ -2,9 +2,10 @@ import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { FileUp, AlertCircle, CheckCircle, XCircle, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
 import * as XLSX from 'xlsx'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
-import { formatDateShortWithHijri, formatDateDDMMMYYYY } from '@/utils/dateFormatter'
+import { formatDateDDMMMYYYY } from '@/utils/dateFormatter'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 
 interface ValidationError {
@@ -70,9 +71,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [importing, setImporting] = useState(false)
   const [validating, setValidating] = useState(false)
   const [validationResults, setValidationResults] = useState<ValidationError[]>([])
-  const [previewData, setPreviewData] = useState<any[]>([])
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([])
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
-  const [importType, setImportType] = useState<'employees' | 'companies'>('employees')
+  const [importType, setImportType] = useState<'employees' | 'companies'>(initialImportType)
   const [currentPage, setCurrentPage] = useState(1)
   const rowsPerPage = 200
   const [columnValidationError, setColumnValidationError] = useState<{
@@ -88,6 +89,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
   const [isDeleting, setIsDeleting] = useState(false)
   const [isImportCancelled, setIsImportCancelled] = useState(false)
+  // Reserved for future use: importedIds state (currently using importedIdsRef instead)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [importedIds, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
@@ -150,7 +153,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   }
 
   // Helper function to check if a cell value is empty
-  const isCellEmpty = (value: any): boolean => {
+  const isCellEmpty = (value: unknown): boolean => {
     if (value === null || value === undefined) return true
     if (typeof value === 'string' && value.trim() === '') return true
     if (typeof value === 'number' && isNaN(value)) return true
@@ -273,9 +276,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           )
           if (!directMatch) {
             missing.push(requiredCol)
-            console.log(`❌ Missing column: "${requiredCol}" (normalized: "${normalizedRequired}")`)
-            console.log(`   Available columns:`, excelColumns)
-            console.log(`   Normalized available:`, normalizedExcelColumns)
+            logger.debug(`❌ Missing column: "${requiredCol}" (normalized: "${normalizedRequired}")`)
+            logger.debug(`   Available columns:`, excelColumns)
+            logger.debug(`   Normalized available:`, normalizedExcelColumns)
           }
         }
       })
@@ -300,7 +303,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   }
 
   // Helper function to get ordered columns based on predefined order
-  const getOrderedColumns = (dataColumns: string[], allData?: any[]): string[] => {
+  const getOrderedColumns = (dataColumns: string[], allData?: Record<string, unknown>[]): string[] => {
     if (importType === 'employees') {
       // ترتيب الأعمدة حسب EMPLOYEE_COLUMNS_ORDER - عرض الأعمدة المطلوبة فقط
       const ordered: string[] = []
@@ -516,7 +519,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
       
       // معالجة التواريخ من الخلايا مباشرة للحصول على القيم الصحيحة
-      jsonData.forEach((row: any, rowIndex: number) => {
+      jsonData.forEach((row: Record<string, unknown>, rowIndex: number) => {
         // rowIndex + 1 لأن الصف الأول (0) في Excel هو header row
         const excelRowIndex = rowIndex + 1
         
@@ -536,7 +539,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 row[colName] = dateValue
                 // Debug: طباعة التواريخ التي تم قراءتها بنجاح
                 if (rowIndex < 3) {
-                  console.log(`  ✅ Row ${rowIndex + 2}, Column "${colName}": Successfully read "${dateValue}" from cell ${cellAddress}`)
+                  logger.debug(`  ✅ Row ${rowIndex + 2}, Column "${colName}": Successfully read "${dateValue}" from cell ${cellAddress}`)
                 }
               } else {
                 // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
@@ -544,7 +547,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 row[colName] = fallbackValue
                 // Debug: طباعة التواريخ التي فشلت قراءتها
                 if (rowIndex < 3 && fallbackValue) {
-                  console.log(`  ⚠️ Row ${rowIndex + 2}, Column "${colName}": Using fallback value "${fallbackValue}" (readDateFromCell returned empty)`)
+                  logger.debug(`  ⚠️ Row ${rowIndex + 2}, Column "${colName}": Using fallback value "${fallbackValue}" (readDateFromCell returned empty)`)
                 }
               }
             } else if (row[colName]) {
@@ -552,7 +555,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               row[colName] = String(row[colName] || '').trim()
               // Debug: طباعة التواريخ التي لم تكن هناك خلية لها
               if (rowIndex < 3) {
-                console.log(`  📝 Row ${rowIndex + 2}, Column "${colName}": No cell found, using jsonData value "${row[colName]}"`)
+                logger.debug(`  📝 Row ${rowIndex + 2}, Column "${colName}": No cell found, using jsonData value "${row[colName]}"`)
               }
             } else {
               row[colName] = ''
@@ -563,31 +566,31 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       
       // Debug: طباعة عينة من التواريخ للتحقق
       if (jsonData.length > 0) {
-        console.log('🔍 Sample dates from first 3 rows after readDateFromCell:')
+        logger.debug('🔍 Sample dates from first 3 rows after readDateFromCell:')
         for (let i = 0; i < Math.min(3, jsonData.length); i++) {
-          console.log(`  Row ${i + 1}:`)
+          logger.debug(`  Row ${i + 1}:`)
           dateColumns.forEach(col => {
             const value = jsonData[i][col]
             if (value) {
-              console.log(`    ${col}: "${value}" (type: ${typeof value})`)
+              logger.debug(`    ${col}: "${value}" (type: ${typeof value})`)
             } else {
-              console.log(`    ${col}: (empty)`)
+              logger.debug(`    ${col}: (empty)`)
             }
           })
         }
       }
 
       // Debug: طباعة الأعمدة للتحقق
-      console.log('🔍 Excel Columns (from header):', excelColumns)
-      console.log('🔍 Excel Columns (from jsonData):', jsonData.length > 0 ? Object.keys(jsonData[0]) : [])
-      console.log('🔍 Required Columns:', importType === 'companies' ? COMPANY_COLUMNS_ORDER : EMPLOYEE_COLUMNS_ORDER)
+      logger.debug('🔍 Excel Columns (from header):', excelColumns)
+      logger.debug('🔍 Excel Columns (from jsonData):', jsonData.length > 0 ? Object.keys(jsonData[0]) : [])
+      logger.debug('🔍 Required Columns:', importType === 'companies' ? COMPANY_COLUMNS_ORDER : EMPLOYEE_COLUMNS_ORDER)
       
       // التحقق من تطابق الأعمدة
       if (excelColumns.length > 0) {
         const columnValidation = validateExcelColumns(excelColumns)
         
         // Debug: طباعة نتائج التحقق
-        console.log('🔍 Validation Result:', columnValidation)
+        logger.debug('🔍 Validation Result:', columnValidation)
 
         if (!columnValidation.isValid) {
           // إضافة خطأ عام يمنع الاستيراد
@@ -615,7 +618,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         }
       }
 
-      setPreviewData(jsonData) // Store all data for preview
+      setPreviewData(jsonData as Record<string, unknown>[]) // Store all data for preview
 
       if (importType === 'employees') {
         // Load companies for validation
@@ -641,7 +644,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         // Track residence numbers in the sheet to detect duplicates within the sheet
         const residenceNumberMap = new Map<string, number[]>() // residence_number -> array of row indices
 
-        jsonData.forEach((row: any, index: number) => {
+        jsonData.forEach((row: Record<string, unknown>, index: number) => {
           const residenceNumber = row['رقم الإقامة']?.toString().trim()
           if (residenceNumber) {
             if (!residenceNumberMap.has(residenceNumber)) {
@@ -651,15 +654,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           }
         })
 
-        jsonData.forEach((row: any, index: number) => {
+        jsonData.forEach((row: Record<string, unknown>, index: number) => {
           const rowNum = index + 2 // Excel row number (1 is header)
           
           // Check for company matching issues
           const companyName = row['الشركة أو المؤسسة'] || row['المؤسسة'] || ''
-          const unifiedNumber = row['الرقم الموحد']
           
           if (companyName) {
-            const matchingCompanies = companyMapByName.get(companyName) || []
+            const matchingCompanies = companyMapByName.get(String(companyName)) || []
             if (matchingCompanies.length > 1) {
               // Multiple companies with same name
               errors.push({
@@ -746,7 +748,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
           for (const field of dateFields) {
             if (row[field]) {
-              const result = parseDate(row[field])
+              const result = parseDate(String(row[field]))
               if (!result.date) {
                 errors.push({
                   row: rowNum,
@@ -759,7 +761,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           }
         })
       } else if (importType === 'companies') {
-        jsonData.forEach((row: any, index: number) => {
+        jsonData.forEach((row: Record<string, unknown>, index: number) => {
           const rowNum = index + 2
 
           if (!row['اسم المؤسسة'] || !row['اسم المؤسسة'].toString().trim()) {
@@ -812,12 +814,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
   const deleteDataBeforeImport = async (): Promise<boolean> => {
     try {
-      console.log('🗑️ Starting deleteDataBeforeImport:', { deleteMode, importType })
+      logger.debug('🗑️ Starting deleteDataBeforeImport:', { deleteMode, importType })
       
       if (deleteMode === 'all') {
         // حذف جميع البيانات
         if (importType === 'companies') {
-          console.log('🗑️ Deleting all companies...')
+          logger.debug('🗑️ Deleting all companies...')
           setIsDeleting(true)
           setDeleteProgress({ current: 0, total: 0 })
           
@@ -843,7 +845,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             setDeleteProgress({ current: 0, total: 0 })
             return false
           } else {
-            console.log('✅ Successfully updated employees')
+            logger.debug('✅ Successfully updated employees')
           }
           
           // حذف المؤسسات على دفعات
@@ -887,12 +889,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             await new Promise(resolve => setTimeout(resolve, 50))
           }
           
-          console.log('✅ Successfully deleted all companies')
+          logger.debug('✅ Successfully deleted all companies')
           setIsDeleting(false)
           setDeleteProgress({ current: 0, total: 0 })
           toast.success(`تم حذف جميع المؤسسات بنجاح`)
         } else {
-          console.log('🗑️ Deleting all employees...')
+          logger.debug('🗑️ Deleting all employees...')
           setIsDeleting(true)
           setDeleteProgress({ current: 0, total: 0 })
           
@@ -946,7 +948,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             await new Promise(resolve => setTimeout(resolve, 50))
           }
           
-          console.log('✅ Successfully deleted all employees')
+          logger.debug('✅ Successfully deleted all employees')
           setIsDeleting(false)
           setDeleteProgress({ current: 0, total: 0 })
           toast.success(`تم حذف جميع الموظفين بنجاح`)
@@ -974,7 +976,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         
         if (importType === 'companies') {
           // حذف المؤسسات بنفس الرقم الموحد
-          for (const row of jsonData as any[]) {
+          for (const row of jsonData as Record<string, unknown>[]) {
             const unifiedNumber = row['الرقم الموحد']
             if (unifiedNumber) {
               const unifiedNum = Number(unifiedNumber)
@@ -1010,10 +1012,10 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             }
           }
         } else {
-          console.log('🗑️ Deleting matching employees by residence number...')
+          logger.debug('🗑️ Deleting matching employees by residence number...')
           // حذف الموظفين بنفس رقم الإقامة
           let deletedCount = 0
-          for (const row of jsonData as any[]) {
+          for (const row of jsonData as Record<string, unknown>[]) {
             const residenceNumber = row['رقم الإقامة']
             if (residenceNumber) {
               const { error } = await supabase
@@ -1029,19 +1031,20 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               }
             }
           }
-          console.log(`✅ Successfully deleted ${deletedCount} matching employees`)
+          logger.debug(`✅ Successfully deleted ${deletedCount} matching employees`)
           toast.success(`تم حذف ${deletedCount} موظف مطابق`)
         }
       }
-      console.log('✅ deleteDataBeforeImport completed successfully')
+      logger.debug('✅ deleteDataBeforeImport completed successfully')
       setIsDeleting(false)
       setDeleteProgress({ current: 0, total: 0 })
       return true
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error in deleteDataBeforeImport:', error)
       setIsDeleting(false)
       setDeleteProgress({ current: 0, total: 0 })
-      toast.error(`فشل حذف البيانات: ${error?.message || 'خطأ غير معروف'}`)
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
+      toast.error(`فشل حذف البيانات: ${errorMessage}`)
       return false
     }
   }
@@ -1076,24 +1079,24 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
     // التحقق من الحذف قبل الاستيراد
     if (shouldDeleteBeforeImport) {
-      console.log('🔄 shouldDeleteBeforeImport is true, showing confirmation dialog')
+      logger.debug('🔄 shouldDeleteBeforeImport is true, showing confirmation dialog')
       // التأكد من أن modal المعاينة مفتوح
       if (!showPreviewModal) {
         setShowPreviewModal(true)
       }
       // عرض مودال التأكيد بدلاً من window.confirm
       setPendingImport(() => async () => {
-        console.log('🔄 pendingImport callback called')
+        logger.debug('🔄 pendingImport callback called')
         try {
           // التأكد من إعادة تعيين حالة الحذف
           setIsDeleting(false)
           setDeleteProgress({ current: 0, total: 0 })
           
           const deleted = await deleteDataBeforeImport()
-          console.log('🔄 deleteDataBeforeImport returned:', deleted)
+          logger.debug('🔄 deleteDataBeforeImport returned:', deleted)
           
           if (!deleted) {
-            console.log('❌ Delete failed, aborting import')
+            logger.debug('❌ Delete failed, aborting import')
             setIsDeleting(false)
             setDeleteProgress({ current: 0, total: 0 })
             setShowConfirmDialog(false)
@@ -1101,7 +1104,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             return
           }
           
-          console.log('✅ Delete successful, proceeding with import')
+          logger.debug('✅ Delete successful, proceeding with import')
           // التأكد من إعادة تعيين حالة الحذف قبل بدء الاستيراد
           setIsDeleting(false)
           setDeleteProgress({ current: 0, total: 0 })
@@ -1109,30 +1112,31 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           setPendingImport(null)
           
           // متابعة الاستيراد
-          console.log('🔄 Starting executeImport after delete')
+          logger.debug('🔄 Starting executeImport after delete')
           await executeImport()
-          console.log('✅ executeImport completed')
-        } catch (error: any) {
+          logger.debug('✅ executeImport completed')
+        } catch (error) {
           console.error('❌ Error in pendingImport callback:', error)
           setIsDeleting(false)
           setDeleteProgress({ current: 0, total: 0 })
-          toast.error(`فشل العملية: ${error?.message || 'خطأ غير معروف'}`)
+          const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
+          toast.error(`فشل العملية: ${errorMessage}`)
           setShowConfirmDialog(false)
           setPendingImport(null)
         }
       })
-      console.log('🔄 Setting showConfirmDialog to true')
+      logger.debug('🔄 Setting showConfirmDialog to true')
       setShowConfirmDialog(true)
       return
     }
 
     // إذا لم يكن هناك حذف، مباشرة إلى الاستيراد
-    console.log('🔄 No delete needed, proceeding directly to import')
+    logger.debug('🔄 No delete needed, proceeding directly to import')
     await executeImport()
   }
 
   const executeImport = async () => {
-    console.log('🚀 executeImport started')
+    logger.debug('🚀 executeImport started')
     if (!file) {
       console.error('❌ No file selected')
       toast.error('يرجى اختيار ملف أولاً')
@@ -1140,7 +1144,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     }
 
     // بدء عملية الاستيراد
-    console.log('🚀 Setting importing to true')
+    logger.debug('🚀 Setting importing to true')
     setImporting(true)
 
     // إعادة تعيين حالة الإلغاء والسجلات المضافة
@@ -1264,7 +1268,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
 
       // معالجة التواريخ من الخلايا مباشرة للحصول على القيم الصحيحة
-      jsonData.forEach((row: any, rowIndex: number) => {
+      jsonData.forEach((row: Record<string, unknown>, rowIndex: number) => {
         // rowIndex + 1 لأن الصف الأول (0) في Excel هو header row
         const excelRowIndex = rowIndex + 1
         
@@ -1330,7 +1334,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       if (importType === 'employees') {
         // Filter duplicates within the sheet based on residence_number (keep first occurrence only)
         const seenResidenceNumbers = new Set<string>()
-        uniqueJsonData = (jsonData as any[]).filter((row, index) => {
+        uniqueJsonData = (jsonData as Record<string, unknown>[]).filter((row) => {
           const residenceNumber = row['رقم الإقامة']?.toString().trim()
           if (!residenceNumber) {
             return true // Keep rows without residence number (they will fail validation anyway)
@@ -1344,7 +1348,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
         duplicatesRemoved = jsonData.length - uniqueJsonData.length
         if (duplicatesRemoved > 0) {
-          console.log(`تم إزالة ${duplicatesRemoved} صف مكرر بناءً على رقم الإقامة`)
+          logger.debug(`تم إزالة ${duplicatesRemoved} صف مكرر بناءً على رقم الإقامة`)
         }
 
         // Get companies for lookup with unified_number
@@ -1399,10 +1403,10 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         setImportProgress({ current: 0, total: totalItems })
 
         let currentIndex = 0
-        for (const row of uniqueJsonData as any[]) {
+        for (const row of uniqueJsonData as Record<string, unknown>[]) {
           // التحقق من حالة الإلغاء
           if (cancelImportRef.current) {
-            console.log('تم إلغاء الاستيراد من قبل المستخدم')
+            logger.debug('تم إلغاء الاستيراد من قبل المستخدم')
             break
           }
           
@@ -1423,9 +1427,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             
             // 2. If not found by unified_number, try by name
             if (!companyId) {
-              const companyName = row['الشركة أو المؤسسة'] || row['المؤسسة'] || ''
-              if (companyName) {
-                const matchingIds = companyMapByName.get(companyName)
+            const companyName = String(row['الشركة أو المؤسسة'] || row['المؤسسة'] || '')
+            if (companyName) {
+              const matchingIds = companyMapByName.get(companyName)
                 if (matchingIds && matchingIds.length === 1) {
                   // Single match - use it
                   companyId = matchingIds[0]
@@ -1439,7 +1443,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
             // Handle project matching and creation
             let projectId: string | null = null
-            const projectNameRaw = row['المشروع'] || row['اسم المشروع'] || null
+            const projectNameRaw = (row['المشروع'] || row['اسم المشروع'] || null) as string | null
             const projectNameClean = cleanProjectName(projectNameRaw)
             
             if (projectNameClean) {
@@ -1502,7 +1506,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             
             // Debug: طباعة القيم الأولية للتأكد من عدم الخلط
             if (currentIndex <= 5) { // طباعة أول 5 موظفين للتحقق
-              console.log(`📋 Employee ${currentIndex + 1} (${row['الاسم']}) - Raw dates from Excel:`, {
+              logger.debug(`📋 Employee ${currentIndex + 1} (${row['الاسم']}) - Raw dates from Excel:`, {
                 'تاريخ الميلاد': birthDateRaw ? `${birthDateRaw} (type: ${typeof birthDateRaw})` : '(فارغ)',
                 'تاريخ الالتحاق': joiningDateRaw ? `${joiningDateRaw} (type: ${typeof joiningDateRaw})` : '(فارغ)',
                 'تاريخ انتهاء الإقامة': residenceExpiryRaw ? `${residenceExpiryRaw} (type: ${typeof residenceExpiryRaw})` : '(فارغ)',
@@ -1513,16 +1517,16 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             }
             
             // تحويل التواريخ باستخدام normalizeDate - مع معالجة أفضل للقيم الفارغة
-            const normalizedBirthDate = birthDateRaw ? normalizeDate(birthDateRaw) : null
-            const normalizedJoiningDate = joiningDateRaw ? normalizeDate(joiningDateRaw) : null
-            const normalizedResidenceExpiry = residenceExpiryRaw ? normalizeDate(residenceExpiryRaw) : null
-            const normalizedContractExpiry = contractExpiryRaw ? normalizeDate(contractExpiryRaw) : null
-            const normalizedHiredWorkerContractExpiry = hiredWorkerContractExpiryRaw ? normalizeDate(hiredWorkerContractExpiryRaw) : null
-            const normalizedHealthInsuranceExpiry = healthInsuranceExpiryRaw ? normalizeDate(healthInsuranceExpiryRaw) : null
+            const normalizedBirthDate = birthDateRaw ? normalizeDate(String(birthDateRaw)) : null
+            const normalizedJoiningDate = joiningDateRaw ? normalizeDate(String(joiningDateRaw)) : null
+            const normalizedResidenceExpiry = residenceExpiryRaw ? normalizeDate(String(residenceExpiryRaw)) : null
+            const normalizedContractExpiry = contractExpiryRaw ? normalizeDate(String(contractExpiryRaw)) : null
+            const normalizedHiredWorkerContractExpiry = hiredWorkerContractExpiryRaw ? normalizeDate(String(hiredWorkerContractExpiryRaw)) : null
+            const normalizedHealthInsuranceExpiry = healthInsuranceExpiryRaw ? normalizeDate(String(healthInsuranceExpiryRaw)) : null
             
             // Debug: طباعة نتائج normalizeDate
             if (currentIndex <= 5) {
-              console.log(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - After normalizeDate:`, {
+              logger.debug(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - After normalizeDate:`, {
                 'birth_date': normalizedBirthDate || '(null - will not be saved)',
                 'joining_date': normalizedJoiningDate || '(null - will not be saved)',
                 'residence_expiry': normalizedResidenceExpiry || '(null - will not be saved)',
@@ -1532,7 +1536,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               })
             }
             
-            const employeeData: any = {
+            const employeeData: Record<string, unknown> = {
               name: row['الاسم'],
               profession: row['المهنة'] || null,
               nationality: row['الجنسية'] || null,
@@ -1558,7 +1562,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             
             // Debug: طباعة القيم النهائية قبل الحفظ
             if (currentIndex <= 5) {
-              console.log(`✅ Employee ${currentIndex + 1} (${row['الاسم']}) - Final employeeData before save:`, {
+              logger.debug(`✅ Employee ${currentIndex + 1} (${row['الاسم']}) - Final employeeData before save:`, {
                 'birth_date': employeeData.birth_date || '(null)',
                 'joining_date': employeeData.joining_date || '(null)',
                 'residence_expiry': employeeData.residence_expiry || '(null)',
@@ -1571,17 +1575,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             // دعم التوافق مع الأسماء القديمة والجديدة للتأمين الصحي
             if (!employeeData.health_insurance_expiry && (row['انتهاء التأمين الصحي'] || row['انتهاء اشتراك التأمين'])) {
               const healthInsuranceExpiry = row['انتهاء التأمين الصحي'] || row['انتهاء اشتراك التأمين']
-              employeeData.health_insurance_expiry = normalizeDate(healthInsuranceExpiry)
+              employeeData.health_insurance_expiry = normalizeDate(String(healthInsuranceExpiry))
             }
 
             // دالة لتنظيف البيانات قبل التحديث - إزالة الحقول null/undefined للحفاظ على القيم الموجودة
-            const cleanEmployeeDataForUpdate = (data: any): any => {
-              const cleaned: any = {}
+            const cleanEmployeeDataForUpdate = (data: Record<string, unknown>): Record<string, unknown> => {
+              const cleaned: Record<string, unknown> = {}
               // قائمة الحقول المطلوبة التي يجب الحفاظ عليها حتى لو كانت null
               const requiredFields = ['name', 'residence_number', 'company_id']
-              // قائمة حقول التواريخ - يجب إزالتها إذا كانت null للحفاظ على القيم الموجودة
-              const dateFields = ['birth_date', 'joining_date', 'residence_expiry', 'contract_expiry', 
-                                  'hired_worker_contract_expiry', 'health_insurance_expiry']
               
               Object.keys(data).forEach(key => {
                 // الحفاظ على الحقول المطلوبة دائماً
@@ -1600,7 +1601,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
             // Check if residence number already exists - update instead of insert
             const residenceNumberStr = employeeData.residence_number?.toString().trim()
-            let operationResult
             
             if (residenceNumberStr && existingEmployeesByResidenceNumber.has(residenceNumberStr)) {
               // Update existing employee - تنظيف البيانات لإزالة الحقول null
@@ -1609,7 +1609,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               
               // Debug: طباعة البيانات قبل وبعد التنظيف
               if (currentIndex <= 5) {
-                console.log(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - UPDATE operation:`, {
+                logger.debug(`🔄 Employee ${currentIndex + 1} (${row['الاسم']}) - UPDATE operation:`, {
                   'operation': 'UPDATE',
                   'residence_number': residenceNumberStr,
                   'before_cleaning': {
@@ -1635,11 +1635,10 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               if (updateError) {
                 throw updateError
               }
-              operationResult = 'updated'
             } else {
               // Insert new employee
               if (currentIndex <= 5) {
-                console.log(`➕ Employee ${currentIndex + 1} (${row['الاسم']}) - INSERT operation:`, {
+                logger.debug(`➕ Employee ${currentIndex + 1} (${row['الاسم']}) - INSERT operation:`, {
                   'operation': 'INSERT',
                   'residence_number': residenceNumberStr,
                   'dates_to_insert': {
@@ -1671,7 +1670,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                         .eq('id', existingEmp.id)
                       
                       if (updateError) throw updateError
-                      operationResult = 'updated'
                     } else {
                       throw insertError
                     }
@@ -1682,7 +1680,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   throw insertError
                 }
               } else {
-                operationResult = 'inserted'
                 // Add to map for future checks in same batch and track for rollback
                 if (residenceNumberStr) {
                   const { data: newEmp } = await supabase
@@ -1744,10 +1741,10 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         })
         
         let currentIndex = 0
-        for (const row of jsonData as any[]) {
+        for (const row of jsonData as Record<string, unknown>[]) {
           // التحقق من حالة الإلغاء
           if (cancelImportRef.current) {
-            console.log('تم إلغاء الاستيراد من قبل المستخدم')
+            logger.debug('تم إلغاء الاستيراد من قبل المستخدم')
             break
           }
           
@@ -1755,15 +1752,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           setImportProgress({ current: currentIndex, total: totalItems })
           
           try {
-            const companyData: any = {
+            const companyData: Record<string, unknown> = {
               name: row['اسم المؤسسة'],
               unified_number: row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null,
               social_insurance_number: row['رقم اشتراك التأمينات الاجتماعية'] || null,
               labor_subscription_number: row['رقم اشتراك قوى'] || null,
-              commercial_registration_expiry: normalizeDate(row['تاريخ انتهاء السجل التجاري']),
-              social_insurance_expiry: normalizeDate(row['تاريخ انتهاء التأمينات الاجتماعية'] || row['تاريخ انتهاء اشتراك التأمين']),
-              ending_subscription_power_date: normalizeDate(row['تاريخ انتهاء اشتراك قوى']),
-              ending_subscription_moqeem_date: normalizeDate(row['تاريخ انتهاء اشتراك مقيم']),
+              commercial_registration_expiry: normalizeDate(String(row['تاريخ انتهاء السجل التجاري'] ?? '')),
+              social_insurance_expiry: normalizeDate(String(row['تاريخ انتهاء التأمينات الاجتماعية'] ?? row['تاريخ انتهاء اشتراك التأمين'] ?? '')),
+              ending_subscription_power_date: normalizeDate(String(row['تاريخ انتهاء اشتراك قوى'] ?? '')),
+              ending_subscription_moqeem_date: normalizeDate(String(row['تاريخ انتهاء اشتراك مقيم'] ?? '')),
               exemptions: row['الاعفاءات'] || null,
               company_type: row['نوع المؤسسة'] || null,
               notes: row['الملاحظات'] || null,
@@ -1775,7 +1772,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             
             // Priority 1: Check by unified_number
             if (companyData.unified_number) {
-              existingCompanyId = companiesByUnifiedNumber.get(companyData.unified_number) || null
+              existingCompanyId = companiesByUnifiedNumber.get(Number(companyData.unified_number)) || null
             }
             
             // Priority 2: Check by social_insurance_number if not found
@@ -2023,7 +2020,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         if (employeesError) {
           console.error('Error deleting imported employees:', employeesError)
         } else {
-          console.log(`تم حذف ${idsToDelete.employees.length} موظف تم إضافتهم`)
+          logger.debug(`تم حذف ${idsToDelete.employees.length} موظف تم إضافتهم`)
         }
       }
 
@@ -2037,7 +2034,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         if (companiesError) {
           console.error('Error deleting imported companies:', companiesError)
         } else {
-          console.log(`تم حذف ${idsToDelete.companies.length} شركة تم إضافتها`)
+          logger.debug(`تم حذف ${idsToDelete.companies.length} شركة تم إضافتها`)
         }
       }
     } catch (error) {
@@ -2478,10 +2475,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           const hasError = cellErrors.some(e => e.severity === 'error')
                           const hasWarning = cellErrors.some(e => e.severity === 'warning')
                           
-                          // تحديد ما إذا كان العمود يحتاج إلى truncate (جميع الأعمدة الآن)
-                          const needsTruncate = true // جميع الأعمدة تحتاج truncate
-                          const isUrlColumn = key === 'رابط صورة الإقامة'
-                          
                           // الخلفية الحمراء فقط للحقول المطلوبة التي لديها خطأ (severity: error)
                           let cellClassName = `px-0.5 py-0.5 text-[11px] overflow-hidden `
                           if (hasError) {
@@ -2519,7 +2512,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                             
                             // Debug: طباعة القيمة للتحقق (أول 3 صفوف فقط)
                             if (actualRowIndex < 3 && colIndex === columns.length - 6) { // آخر عمود تاريخ
-                              console.log(`🔍 Parsing date in preview for row ${actualRowIndex + 1}, field "${key}":`, {
+                              logger.debug(`🔍 Parsing date in preview for row ${actualRowIndex + 1}, field "${key}":`, {
                                 'fullValue': fullValue,
                                 'cleanedValue': cleanedValue
                               })
@@ -2543,7 +2536,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                             
                             // Debug: طباعة نتيجة التحليل
                             if (actualRowIndex < 3 && colIndex === columns.length - 6) {
-                              console.log(`✅ Parse result for "${key}":`, {
+                              logger.debug(`✅ Parse result for "${key}":`, {
                                 'success': !!dateResult.date,
                                 'error': dateResult.error,
                                 'format': dateResult.format,
@@ -2558,7 +2551,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                               
                               // Debug: طباعة القيمة المعروضة
                               if (actualRowIndex < 3 && colIndex === columns.length - 6) {
-                                console.log(`📅 Display value for "${key}":`, displayValue)
+                                logger.debug(`📅 Display value for "${key}":`, displayValue)
                               }
                             } else {
                               // فشل التحليل - عرض القيمة الأصلية الكاملة بدون truncate
@@ -2599,12 +2592,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           }
                           // التواريخ (المحللة أو غير المحللة) تُعرض بالكامل بدون truncate
                           
-                          const isUrl = isUrlColumn && displayValue && !isEmpty && (
-                            displayValue.startsWith('http://') || 
-                            displayValue.startsWith('https://') ||
-                            displayValue.startsWith('www.')
-                          )
-
                           // جمع رسائل الأخطاء والتحذيرات
                           const errorMessages = cellErrors.map(e => e.message).join(' • ')
                           
@@ -3176,7 +3163,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                                 
                                 // تحديد ما إذا كان الحقل حقل تاريخ
                                 const isDateField = key.includes('تاريخ')
-                                const isUrlColumn = key === 'رابط صورة الإقامة'
                                 
                                 // الخلفية الحمراء فقط للحقول المطلوبة التي لديها خطأ (severity: error)
                                 let cellClassName = `px-0.5 py-0.5 text-[11px] overflow-hidden `
@@ -3258,12 +3244,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                                 }
                                 // التواريخ (المحللة أو غير المحللة) تُعرض بالكامل بدون truncate
                                 
-                                const isUrl = isUrlColumn && displayValue && !isEmpty && (
-                                  displayValue.startsWith('http://') || 
-                                  displayValue.startsWith('https://') ||
-                                  displayValue.startsWith('www.')
-                                )
-
                                 // جمع رسائل الأخطاء والتحذيرات
                                 const errorMessages = cellErrors.map(e => e.message).join(' • ')
                                 
@@ -3432,15 +3412,16 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                     setPendingImport(null)
                   }}
                   onConfirm={async () => {
-                    console.log('🔄 Confirm delete button clicked')
+                    logger.debug('🔄 Confirm delete button clicked')
                     if (pendingImport) {
-                      console.log('🔄 Calling pendingImport callback')
+                      logger.debug('🔄 Calling pendingImport callback')
                       try {
                         await pendingImport()
-                        console.log('✅ pendingImport callback completed')
-                      } catch (error: any) {
+                        logger.debug('✅ pendingImport callback completed')
+                      } catch (error) {
                         console.error('❌ Error executing pendingImport:', error)
-                        toast.error(`فشل العملية: ${error?.message || 'خطأ غير معروف'}`)
+                        const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
+                        toast.error(`فشل العملية: ${errorMessage}`)
                       }
                     } else {
                       console.error('❌ pendingImport is null!')

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
-import { Search, Filter, X, Save, Download, Star, ChevronDown, ChevronUp, Grid3X3, List, ChevronLeft, ChevronRight, ArrowUpDown, Users, Building2, User, Calendar, Hash } from 'lucide-react'
+import { Search, Filter, X, Save, Download, Star, Grid3X3, List, ChevronLeft, ChevronRight, Users, Building2, User, Calendar, Hash } from 'lucide-react'
 import { supabase, Company as CompanyType, Employee as EmployeeType } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
@@ -12,20 +12,72 @@ import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 import { usePermissions } from '@/utils/permissions'
 import { SearchIcon } from 'lucide-react'
+import { 
+  calculateCommercialRegistrationStatus,
+  calculateSocialInsuranceStatus
+} from '@/utils/autoCompanyStatus'
+
+interface SavedSearchFilters {
+  // Employee filters
+  nationality?: string
+  company?: string
+  profession?: string
+  project?: string
+  residenceStatus?: string
+  contractStatus?: string
+  hasHealthInsuranceExpiry?: string | boolean
+  healthInsuranceExpiryStatus?: string
+  hasPassport?: string | boolean
+  hasBankAccount?: string | boolean
+  birthDateRange?: string
+  joiningDateRange?: string
+  passportNumberSearch?: string
+  residenceNumberSearch?: string
+  // Company filters
+  commercialRegStatus?: string
+  socialInsuranceStatus?: string
+  companyDateFilter?: string
+  powerSubscriptionStatus?: string
+  moqeemSubscriptionStatus?: string
+  employeeCountFilter?: string
+  availableSlotsFilter?: string
+  exemptionsFilter?: string
+  socialInsuranceExpiryStatus?: string
+  unifiedNumberSearch?: string
+  taxNumberSearch?: string
+  laborSubscriptionNumberSearch?: string
+  maxEmployeesRange?: string
+  companyCreatedDateRange?: string
+  companyCreatedStartDate?: string
+  companyCreatedEndDate?: string
+}
 
 interface SavedSearch {
   id: string
   name: string
   search_query: string
   search_type: string
-  filters: any
+  filters: SavedSearchFilters
 }
 
 type TabType = 'employees' | 'companies'
 type ResidenceStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type ContractStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
+// Reserved for future use: CompanyStatus type
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type CompanyStatus = 'all' | 'active' | 'inactive'
+type CommercialRegStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
+type SocialInsuranceStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type ViewMode = 'grid' | 'table'
+
+// Helper function to get company name from employee
+const getCompanyName = (emp: EmployeeType & { companies?: CompanyType | CompanyType[] }): string => {
+  if (!emp.companies) return ''
+  if (Array.isArray(emp.companies)) {
+    return emp.companies[0]?.name || ''
+  }
+  return emp.companies.name || ''
+}
 
 export default function AdvancedSearch() {
   const { user } = useAuth()
@@ -38,15 +90,7 @@ export default function AdvancedSearch() {
   const [filteredEmployees, setFilteredEmployees] = useState<EmployeeType[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<CompanyType[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [showFilters, setShowFilters] = useState(true)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    basic: true,
-    status: false,
-    textSearch: false,
-    dates: false,
-    additional: false
-  })
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
   
   // View and Pagination State
@@ -76,8 +120,8 @@ export default function AdvancedSearch() {
   const [residenceNumberSearch, setResidenceNumberSearch] = useState<string>('')
 
   // Filter states for companies
-  const [commercialRegStatus, setCommercialRegStatus] = useState<CompanyStatus>('all')
-  const [socialInsuranceStatus, setSocialInsuranceStatus] = useState<CompanyStatus>('all')  // تحديث: insuranceStatus → socialInsuranceStatus
+  const [commercialRegStatus, setCommercialRegStatus] = useState<CommercialRegStatus>('all')
+  const [socialInsuranceStatus, setSocialInsuranceStatus] = useState<SocialInsuranceStatus>('all')  // تحديث: insuranceStatus → socialInsuranceStatus
   const [companyDateFilter, setCompanyDateFilter] = useState<'all' | 'commercial_expiring' | 'social_insurance_expiring'>('all')  // تحديث: insurance_expiring → social_insurance_expiring
   
   // فلاتر جديدة للشركات
@@ -397,24 +441,22 @@ export default function AdvancedSearch() {
 
       // Commercial registration status filter
       if (commercialRegStatus !== 'all') {
-        const today = new Date()
         filteredComps = filteredComps.filter(c => {
-          if (!c.commercial_registration_expiry) return commercialRegStatus === 'inactive'
-          const expiryDate = new Date(c.commercial_registration_expiry)
-          if (commercialRegStatus === 'active') return expiryDate > today
-          if (commercialRegStatus === 'inactive') return expiryDate <= today
+          const status = calculateCommercialRegistrationStatus(c.commercial_registration_expiry)
+          if (commercialRegStatus === 'expired') return status.status === 'منتهي'
+          if (commercialRegStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'حرج'
+          if (commercialRegStatus === 'valid') return status.status === 'ساري' || status.status === 'متوسط'
           return true
         })
       }
 
       // Social insurance status filter (التأمينات الاجتماعية للمؤسسات)
       if (socialInsuranceStatus !== 'all') {  // تحديث: insuranceStatus → socialInsuranceStatus
-        const today = new Date()
         filteredComps = filteredComps.filter(c => {
-          if (!c.social_insurance_expiry) return socialInsuranceStatus === 'inactive'  // تحديث: insurance_subscription_expiry → social_insurance_expiry
-          const expiryDate = new Date(c.social_insurance_expiry)
-          if (socialInsuranceStatus === 'active') return expiryDate > today
-          if (socialInsuranceStatus === 'inactive') return expiryDate <= today
+          const status = calculateSocialInsuranceStatus(c.social_insurance_expiry)  // تحديث: insurance_subscription_expiry → social_insurance_expiry
+          if (socialInsuranceStatus === 'expired') return status.status === 'منتهي'
+          if (socialInsuranceStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'حرج'
+          if (socialInsuranceStatus === 'valid') return status.status === 'ساري' || status.status === 'متوسط'
           return true
         })
       }
@@ -751,7 +793,7 @@ export default function AdvancedSearch() {
 
     try {
       const currentSearchQuery = activeTab === 'employees' ? employeeSearchQuery : companySearchQuery
-      const filters: any = {}
+      const filters: SavedSearchFilters = {}
       
       if (activeTab === 'employees') {
         filters.nationality = selectedNationality
@@ -802,9 +844,10 @@ export default function AdvancedSearch() {
       
       toast.success('تم حفظ البحث بنجاح')
       loadSavedSearches() // [FIX] نستخدم الدالة المغلفة
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving search:', error)
-      toast.error(error?.message || 'فشل حفظ البحث')
+      const errorMessage = error instanceof Error ? error.message : 'فشل حفظ البحث'
+      toast.error(errorMessage)
     }
   }
 
@@ -824,26 +867,26 @@ export default function AdvancedSearch() {
         setSelectedCompanyFilter(saved.filters.company || 'all')
         setSelectedProfession(saved.filters.profession || 'all')
         setSelectedProject(saved.filters.project || 'all')
-        setResidenceStatus(saved.filters.residenceStatus || 'all')
-        setContractStatus(saved.filters.contractStatus || 'all')
-        setHasHealthInsuranceExpiry(saved.filters.hasHealthInsuranceExpiry || saved.filters.hasInsuranceExpiry || 'all')
-        setHealthInsuranceExpiryStatus(saved.filters.healthInsuranceExpiryStatus || saved.filters.insuranceExpiryStatus || 'all')
-        setHasPassport(saved.filters.hasPassport || 'all')
-        setHasBankAccount(saved.filters.hasBankAccount || 'all')
+        setResidenceStatus((saved.filters.residenceStatus as ResidenceStatus) || 'all')
+        setContractStatus((saved.filters.contractStatus as ContractStatus) || 'all')
+        setHasHealthInsuranceExpiry(String(saved.filters.hasHealthInsuranceExpiry ?? 'all'))
+        setHealthInsuranceExpiryStatus(saved.filters.healthInsuranceExpiryStatus || 'all')
+        setHasPassport(String(saved.filters.hasPassport ?? 'all'))
+        setHasBankAccount(String(saved.filters.hasBankAccount ?? 'all'))
         setBirthDateRange(saved.filters.birthDateRange || 'all')
         setJoiningDateRange(saved.filters.joiningDateRange || 'all')
         setPassportNumberSearch(saved.filters.passportNumberSearch || '')
         setResidenceNumberSearch(saved.filters.residenceNumberSearch || '')
       } else {
-        setCommercialRegStatus(saved.filters.commercialRegStatus || 'all')
-        setSocialInsuranceStatus(saved.filters.socialInsuranceStatus || saved.filters.insuranceStatus || 'all')
-        setCompanyDateFilter(saved.filters.companyDateFilter || 'all')
+        setCommercialRegStatus((saved.filters.commercialRegStatus as CommercialRegStatus) || 'all')
+        setSocialInsuranceStatus((saved.filters.socialInsuranceStatus as SocialInsuranceStatus) || 'all')
+        setCompanyDateFilter((saved.filters.companyDateFilter as 'all' | 'commercial_expiring' | 'social_insurance_expiring') || 'all')
         setPowerSubscriptionStatus(saved.filters.powerSubscriptionStatus || 'all')
         setMoqeemSubscriptionStatus(saved.filters.moqeemSubscriptionStatus || 'all')
         setEmployeeCountFilter(saved.filters.employeeCountFilter || 'all')
         setAvailableSlotsFilter(saved.filters.availableSlotsFilter || 'all')
         setExemptionsFilter(saved.filters.exemptionsFilter || 'all')
-        setSocialInsuranceExpiryStatus(saved.filters.socialInsuranceExpiryStatus || saved.filters.companyInsuranceExpiryStatus || 'all')
+        setSocialInsuranceExpiryStatus(saved.filters.socialInsuranceExpiryStatus || 'all')
         setUnifiedNumberSearch(saved.filters.unifiedNumberSearch || '')
         setTaxNumberSearch(saved.filters.taxNumberSearch || '')
         setLaborSubscriptionNumberSearch(saved.filters.laborSubscriptionNumberSearch || '')
@@ -878,7 +921,7 @@ export default function AdvancedSearch() {
           'الجوال': emp.phone,
           'انتهاء الإقامة': emp.residence_expiry,
           'انتهاء العقد': emp.contract_expiry,
-          'المؤسسة': (emp as any).companies?.name || ''
+          'المؤسسة': getCompanyName(emp)
         }
         
         return basicData
@@ -969,7 +1012,9 @@ export default function AdvancedSearch() {
         }
         
         // Remove companies array as we now have company object
-        delete (employeeWithCompany as any).companies
+        if ('companies' in employeeWithCompany) {
+          delete (employeeWithCompany as EmployeeType & { companies?: CompanyType | CompanyType[] }).companies
+        }
         
         if (employeeWithCompany.company) {
           setSelectedEmployee(employeeWithCompany as EmployeeType & { company: CompanyType })
@@ -1018,6 +1063,8 @@ export default function AdvancedSearch() {
   }
 
   // Handle delete company from detail modal
+  // Reserved for future use: company parameter for delete functionality
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteCompanyFromDetail = (company: CompanyType) => {
     // يمكن إضافة confirmation dialog هنا لاحقاً
     setShowCompanyDetailModal(false)
@@ -1035,13 +1082,6 @@ export default function AdvancedSearch() {
     handleCloseCompanyModal()
   }
 
-  // Toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
 
   return (
     <Layout>
@@ -1297,7 +1337,7 @@ export default function AdvancedSearch() {
                     )}
                     {commercialRegStatus !== 'all' && (
                       <span className="px-3 py-1.5 bg-pink-50 text-pink-700 text-sm rounded-full flex items-center gap-2">
-                        حالة السجل التجاري: {commercialRegStatus === 'active' ? 'نشط' : 'منتهي'}
+                        حالة السجل التجاري: {commercialRegStatus === 'expired' ? 'منتهي' : commercialRegStatus === 'expiring_soon' ? 'عاجل' : commercialRegStatus === 'valid' ? 'ساري' : commercialRegStatus}
                         <button
                           onClick={() => setCommercialRegStatus('all')}
                           className="hover:bg-pink-100 rounded-full p-0.5 transition"
@@ -1308,7 +1348,7 @@ export default function AdvancedSearch() {
                     )}
                     {socialInsuranceStatus !== 'all' && (
                       <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm rounded-full flex items-center gap-2">
-                        حالة التأمينات الاجتماعية: {socialInsuranceStatus === 'active' ? 'نشط' : 'منتهي'}
+                        حالة التأمينات الاجتماعية: {socialInsuranceStatus === 'expired' ? 'منتهي' : socialInsuranceStatus === 'expiring_soon' ? 'عاجل' : socialInsuranceStatus === 'valid' ? 'ساري' : socialInsuranceStatus}
                         <button
                           onClick={() => setSocialInsuranceStatus('all')}
                           className="hover:bg-purple-100 rounded-full p-0.5 transition"
@@ -1568,12 +1608,13 @@ export default function AdvancedSearch() {
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة السجل التجاري</label>
                             <select
                               value={commercialRegStatus}
-                              onChange={(e) => setCommercialRegStatus(e.target.value as CompanyStatus)}
+                              onChange={(e) => setCommercialRegStatus(e.target.value as CommercialRegStatus)}
                               className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm hover:shadow-md"
                             >
                               <option value="all">الكل</option>
-                              <option value="active">نشط</option>
-                              <option value="inactive">منتهي</option>
+                              <option value="expired">منتهي</option>
+                              <option value="expiring_soon">عاجل</option>
+                              <option value="valid">ساري</option>
                             </select>
                           </div>
 
@@ -1581,12 +1622,13 @@ export default function AdvancedSearch() {
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة التأمينات الاجتماعية</label>
                             <select
                               value={socialInsuranceStatus}
-                              onChange={(e) => setSocialInsuranceStatus(e.target.value as CompanyStatus)}
+                              onChange={(e) => setSocialInsuranceStatus(e.target.value as SocialInsuranceStatus)}
                               className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm hover:shadow-md"
                             >
                               <option value="all">الكل</option>
-                              <option value="active">نشط</option>
-                              <option value="inactive">منتهي</option>
+                              <option value="expired">منتهي</option>
+                              <option value="expiring_soon">عاجل</option>
+                              <option value="valid">ساري</option>
                             </select>
                           </div>
 
@@ -1791,7 +1833,7 @@ export default function AdvancedSearch() {
                               <p><span className="text-gray-600">المهنة:</span> {emp.profession}</p>
                               <p><span className="text-gray-600">الجنسية:</span> {emp.nationality}</p>
                               <p><span className="text-gray-600">الجوال:</span> {emp.phone}</p>
-                              <p><span className="text-gray-600">المؤسسة:</span> {(emp as any).companies?.name || 'غير محدد'}</p>
+                              <p><span className="text-gray-600">المؤسسة:</span> {getCompanyName(emp) || 'غير محدد'}</p>
                               {emp.project_name && (
                                 <p><span className="text-gray-600">المشروع:</span> 
                                   <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full mr-1">
@@ -1836,7 +1878,7 @@ export default function AdvancedSearch() {
                                   <td className="px-3 py-1.5">{emp.profession}</td>
                                   <td className="px-3 py-1.5">{emp.nationality}</td>
                                   <td className="px-3 py-1.5">{emp.phone}</td>
-                                  <td className="px-3 py-1.5">{(emp as any).companies?.name || 'غير محدد'}</td>
+                                  <td className="px-3 py-1.5">{getCompanyName(emp) || 'غير محدد'}</td>
                                   <td className="px-3 py-1.5">
                                     {emp.project_name ? (
                                       <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
