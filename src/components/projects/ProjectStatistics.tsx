@@ -74,7 +74,7 @@ export default function ProjectStatistics() {
       })
 
       setStatistics(stats)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading statistics:', error)
       toast.error('حدث خطأ أثناء تحميل الإحصائيات')
     } finally {

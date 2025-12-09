@@ -21,12 +21,12 @@
     // Fix for Node.js global object
     if (typeof global !== 'undefined') {
       try {
-        if (!global.Symbol) (global as any).Symbol = Symbol
-        if (!global.Map) (global as any).Map = Map
-        if (!global.Set) (global as any).Set = Set
-        if (!global.WeakMap) (global as any).WeakMap = WeakMap
-        if (!global.WeakSet) (global as any).WeakSet = WeakSet
-      } catch (e) {
+        if (!global.Symbol) (global as unknown as Record<string, unknown>).Symbol = Symbol
+        if (!global.Map) (global as unknown as Record<string, unknown>).Map = Map
+        if (!global.Set) (global as unknown as Record<string, unknown>).Set = Set
+        if (!global.WeakMap) (global as unknown as Record<string, unknown>).WeakMap = WeakMap
+        if (!global.WeakSet) (global as unknown as Record<string, unknown>).WeakSet = WeakSet
+      } catch {
         // Ignore
       }
     }
@@ -34,21 +34,21 @@
     // Fix for globalThis
     if (typeof globalThis !== 'undefined') {
       try {
-        if (!globalThis.Symbol) (globalThis as any).Symbol = Symbol
-        if (!globalThis.Map) (globalThis as any).Map = Map
-        if (!globalThis.Set) (globalThis as any).Set = Set
-        if (!globalThis.WeakMap) (globalThis as any).WeakMap = WeakMap
-        if (!globalThis.WeakSet) (globalThis as any).WeakSet = WeakSet
-      } catch (e) {
+        if (!globalThis.Symbol) (globalThis as unknown as Record<string, unknown>).Symbol = Symbol
+        if (!globalThis.Map) (globalThis as unknown as Record<string, unknown>).Map = Map
+        if (!globalThis.Set) (globalThis as unknown as Record<string, unknown>).Set = Set
+        if (!globalThis.WeakMap) (globalThis as unknown as Record<string, unknown>).WeakMap = WeakMap
+        if (!globalThis.WeakSet) (globalThis as unknown as Record<string, unknown>).WeakSet = WeakSet
+      } catch {
         // Ignore
       }
     }
     
     // Ensure global.globalThis exists (for older Node.js)
-    if (typeof global !== 'undefined' && typeof (global as any).globalThis === 'undefined') {
+    if (typeof global !== 'undefined' && typeof (global as unknown as Record<string, unknown>).globalThis === 'undefined') {
       try {
-        (global as any).globalThis = global
-      } catch (e) {
+        (global as unknown as Record<string, unknown>).globalThis = global
+      } catch {
         // Ignore
       }
     }

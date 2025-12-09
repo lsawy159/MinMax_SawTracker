@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { AlertCircle, Save, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { invalidateStatusThresholdsCache } from '@/utils/autoCompanyStatus'
+import { logger } from '@/utils/logger'
 
 interface StatusSettingsData {
   // السجل التجاري
@@ -49,7 +50,7 @@ export default function StatusSettings() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('system_settings')
         .select('*')
         .eq('setting_key', 'status_thresholds')
@@ -58,8 +59,8 @@ export default function StatusSettings() {
       if (data && data.setting_value) {
         setSettings({ ...settings, ...data.setting_value })
       }
-    } catch (error) {
-      console.log('Using default status settings')
+    } catch {
+      logger.debug('Using default status settings')
     } finally {
       setLoading(false)
     }
@@ -85,7 +86,7 @@ export default function StatusSettings() {
       window.dispatchEvent(new CustomEvent('settingsUpdated'))
 
       toast.success('تم حفظ إعدادات الحالات بنجاح')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving settings:', error)
       toast.error('فشل حفظ الإعدادات')
     } finally {

@@ -9,10 +9,10 @@
 //  - After all tests (afterAll) re-throws the first captured error so Vitest
 //    surfaces it as a failing test with a proper stack trace.
 
-const __capturedUnhandledErrors: Array<{ type: 'unhandledRejection' | 'uncaughtException'; reason: any }> =
-  (globalThis as any).__capturedUnhandledErrors || []
+const __capturedUnhandledErrors: Array<{ type: 'unhandledRejection' | 'uncaughtException'; reason: unknown }> =
+  ((globalThis as unknown as Record<string, unknown>).__capturedUnhandledErrors as Array<{ type: 'unhandledRejection' | 'uncaughtException'; reason: unknown }>) || []
 
-;(globalThis as any).__capturedUnhandledErrors = __capturedUnhandledErrors
+;(globalThis as unknown as Record<string, unknown>).__capturedUnhandledErrors = __capturedUnhandledErrors
 
 process.on('unhandledRejection', (reason: unknown) => {
   __capturedUnhandledErrors.push({ type: 'unhandledRejection', reason })

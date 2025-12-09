@@ -20,7 +20,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // إضافة الأعمدة المفقودة
-    const { data: schemaUpdate, error: schemaError } = await supabase.rpc('exec_sql', {
+    const { error: schemaError } = await supabase.rpc('exec_sql', {
       sql: `
         -- إضافة الأعمدة المفقودة إذا لم تكن موجودة
         DO $$ 
@@ -43,7 +43,6 @@ serve(async (req) => {
     }
 
     // إضافة البيانات التجريبية
-    const today = new Date()
     const sampleCompanies = [
       {
         name: 'شركة محمد النفيعي للتشغيل والصيانة',
@@ -113,7 +112,7 @@ serve(async (req) => {
 
     let addedCount = 0
     for (const company of sampleCompanies) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('companies')
         .insert([company])
         .select()

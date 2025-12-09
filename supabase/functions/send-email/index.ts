@@ -308,7 +308,7 @@ async function sendEmailViaSMTP(
     if (conn) {
       try {
         conn.close()
-      } catch (e) {
+      } catch {
         // تجاهل أخطاء الإغلاق
       }
     }
@@ -388,7 +388,6 @@ Deno.serve(async (req) => {
 
     // تحويل to إلى array إذا كان string
     const recipients = Array.isArray(emailData.to) ? emailData.to : [emailData.to]
-    const from = `SawTracker Backup System <${gmailUser}>`
     const html = emailData.html || emailData.text?.replace(/\n/g, '<br>') || emailData.text || ''
     const text = emailData.text || ''
 
@@ -488,7 +487,7 @@ Deno.serve(async (req) => {
           return { recipient: recipients[index], success: false, error: result.reason?.message || 'Failed' }
         }
       })
-    } catch (timeoutError) {
+    } catch {
       // إذا انتهت مهلة الوقت، نعيد نتائج جزئية
       console.warn('Overall timeout reached, some emails may not have been sent')
       // محاولة الحصول على النتائج الجزئية

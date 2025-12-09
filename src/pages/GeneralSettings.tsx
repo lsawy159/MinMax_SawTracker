@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
+import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import NotificationSettings from '@/components/settings/NotificationSettings'
 import StatusSettings from '@/components/settings/StatusSettings'
@@ -12,7 +13,7 @@ import StatusSettings from '@/components/settings/StatusSettings'
 interface GeneralSetting {
   id?: string
   setting_key: string
-  setting_value: any
+  setting_value: string | number | boolean | Record<string, unknown> | null
   category: string
   description: string
   setting_type: 'text' | 'number' | 'boolean' | 'select' | 'time'
@@ -22,7 +23,7 @@ interface GeneralSetting {
 interface SettingsCategory {
   key: string
   label: string
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   settings?: GeneralSetting[]
   component?: React.ComponentType
 }
@@ -33,13 +34,16 @@ export default function GeneralSettings() {
   const { user } = useAuth()
   const { canView, canEdit } = usePermissions()
   const [activeTab, setActiveTab] = useState<TabType>('system')
-  const [settings, setSettings] = useState<Record<string, any>>({})
+  // Settings can be string, number, boolean, or object
+  const [settings, setSettings] = useState<Record<string, string | number | boolean | Record<string, unknown> | null>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('adminSettings')
   const hasEditPermission = canEdit('adminSettings') || user?.role === 'admin'
+  // Reserved for future use: isAdmin
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isAdmin = user?.role === 'admin'
 
   const loadSettings = async () => {
@@ -54,7 +58,7 @@ export default function GeneralSettings() {
       }
 
       if (data) {
-        const settingsMap: Record<string, any> = {}
+        const settingsMap: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
         data.forEach(setting => {
           settingsMap[setting.setting_key] = setting.setting_value
         })
@@ -496,7 +500,7 @@ export default function GeneralSettings() {
     }
 
     if (confirm('هل أنت متأكد من إعادة تعيين جميع الإعدادات إلى القيم الافتراضية؟')) {
-      const defaultSettings: Record<string, any> = {}
+      const defaultSettings: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
       settingsCategories.forEach(category => {
         if (category.settings) {
           category.settings.forEach(setting => {
@@ -509,7 +513,7 @@ export default function GeneralSettings() {
     }
   }
 
-  const updateSetting = (key: string, value: any) => {
+  const updateSetting = (key: string, value: string | number | boolean | Record<string, unknown> | null) => {
     if (!hasEditPermission) {
       toast.error('ليس لديك صلاحية لتعديل الإعدادات')
       return
@@ -529,7 +533,7 @@ export default function GeneralSettings() {
         return (
           <input
             type="text"
-            value={value}
+            value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -540,7 +544,7 @@ export default function GeneralSettings() {
         return (
           <input
             type="number"
-            value={value}
+            value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, Number(e.target.value))}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -566,7 +570,7 @@ export default function GeneralSettings() {
       case 'select':
         return (
           <select
-            value={value}
+            value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -581,7 +585,7 @@ export default function GeneralSettings() {
         return (
           <input
             type="time"
-            value={value}
+            value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
             disabled={disabled}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"

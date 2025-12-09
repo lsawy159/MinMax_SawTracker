@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase, ActivityLog, User } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import { useAuth } from '@/contexts/AuthContext'
+import { logger } from '@/utils/logger'
 import { 
   Activity, 
   User as UserIcon, 
   Calendar, 
-  Filter, 
   Search,
   Eye,
   Edit,
@@ -49,6 +49,7 @@ export default function ActivityLogs() {
   const [selectedLogIds, setSelectedLogIds] = useState<Set<number>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteAllMode, setDeleteAllMode] = useState(false)
+  const [deleteFromDatabase, setDeleteFromDatabase] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
@@ -207,27 +208,27 @@ export default function ActivityLogs() {
     const changes = details.changes || {}
     
     // محاولة استخراج old_data و new_data
-    let oldData: any = null
-    let newData: any = null
+    let oldData: Record<string, unknown> | null = null
+    let newData: Record<string, unknown> | null = null
     
     try {
       if (typeof log.old_data === 'string') {
-        oldData = JSON.parse(log.old_data)
-      } else if (log.old_data) {
-        oldData = log.old_data
+        oldData = JSON.parse(log.old_data) as Record<string, unknown>
+      } else if (log.old_data && typeof log.old_data === 'object') {
+        oldData = log.old_data as Record<string, unknown>
       }
       
       if (typeof log.new_data === 'string') {
-        newData = JSON.parse(log.new_data)
-      } else if (log.new_data) {
-        newData = log.new_data
+        newData = JSON.parse(log.new_data) as Record<string, unknown>
+      } else if (log.new_data && typeof log.new_data === 'object') {
+        newData = log.new_data as Record<string, unknown>
       }
-    } catch (e) {
+    } catch {
       // تجاهل أخطاء التحليل
     }
-
+    
     // جمع التغييرات
-    const changeList: Array<{ field: string; oldValue: any; newValue: any }> = []
+    const changeList: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
     
     // استخراج التغييرات من changes
     if (typeof changes === 'object' && Object.keys(changes).length > 0) {
@@ -269,9 +270,9 @@ export default function ActivityLogs() {
     // تحديد اسم الكيان
     let entityName = ''
     if (entityType === 'employee' && employeeName) {
-      entityName = employeeName
+      entityName = String(employeeName)
     } else if (entityType === 'company' && companyName) {
-      entityName = companyName
+      entityName = String(companyName)
     }
 
     return (
@@ -328,28 +329,7 @@ export default function ActivityLogs() {
     const details = log.details || {}
     const employeeName = details.employee_name || details.name
     const companyName = details.company_name || details.company
-    const changes = details.changes || {}
     
-    // محاولة استخراج old_data و new_data إذا كانت موجودة
-    let oldData: any = null
-    let newData: any = null
-    
-    try {
-      if (typeof log.old_data === 'string') {
-        oldData = JSON.parse(log.old_data)
-      } else if (log.old_data) {
-        oldData = log.old_data
-      }
-      
-      if (typeof log.new_data === 'string') {
-        newData = JSON.parse(log.new_data)
-      } else if (log.new_data) {
-        newData = log.new_data
-      }
-    } catch (e) {
-      // تجاهل أخطاء التحليل
-    }
-
     // بناء النص حسب نوع العملية
     if (action.includes('create') || action.includes('add') || action.includes('إنشاء') || action.includes('إضافة')) {
       if (entityType === 'employee' && employeeName) {
@@ -441,7 +421,6 @@ export default function ActivityLogs() {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
   const todayLogs = filteredLogs.filter(log => {
     const logDate = new Date(log.created_at)
@@ -450,10 +429,6 @@ export default function ActivityLogs() {
   const weekLogs = filteredLogs.filter(log => {
     const logDate = new Date(log.created_at)
     return logDate >= weekAgo
-  })
-  const monthLogs = filteredLogs.filter(log => {
-    const logDate = new Date(log.created_at)
-    return logDate >= monthAgo
   })
   const employeeLogs = filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'employee')
   const companyLogs = filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'company')
@@ -501,6 +476,7 @@ export default function ActivityLogs() {
       return
     }
     setDeleteAllMode(false)
+    setDeleteFromDatabase(false) // افتراضي: حذف من العرض فقط
     setShowDeleteModal(true)
   }
 
@@ -510,7 +486,64 @@ export default function ActivityLogs() {
       return
     }
     setDeleteAllMode(true)
+    setDeleteFromDatabase(false) // افتراضي: حذف المعروض فقط
     setShowDeleteModal(true)
+  }
+
+  // دالة لحذف جميع السجلات من قاعدة البيانات
+  const deleteAllFromDatabase = async (): Promise<number> => {
+    let totalDeleted = 0
+    const batchSize = 500
+    
+    // جلب جميع IDs من قاعدة البيانات بدون limit
+    let hasMore = true
+    let offset = 0
+    
+    while (hasMore) {
+      const { data: batchData, error: fetchError } = await supabase
+        .from('activity_log')
+        .select('id')
+        .order('id', { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      
+      if (fetchError) {
+        console.error('[ActivityLogs] Error fetching batch for deletion:', fetchError)
+        throw fetchError
+      }
+      
+      if (!batchData || batchData.length === 0) {
+        hasMore = false
+        break
+      }
+      
+      const batchIds = batchData.map(log => log.id)
+      
+      // حذف الدفعة
+      const { data: deletedData, error: deleteError } = await supabase
+        .from('activity_log')
+        .delete()
+        .in('id', batchIds)
+        .select()
+      
+      if (deleteError) {
+        console.error(`[ActivityLogs] Error deleting batch:`, deleteError)
+        throw deleteError
+      }
+      
+      const actualDeleted = deletedData?.length || 0
+      totalDeleted += actualDeleted
+      
+      logger.debug(`[ActivityLogs] Deleted batch: ${actualDeleted} rows, Total: ${totalDeleted}`)
+      
+      // إذا كانت الدفعة أقل من batchSize، يعني وصلنا للنهاية
+      if (batchData.length < batchSize) {
+        hasMore = false
+      } else {
+        offset += batchSize
+      }
+    }
+    
+    return totalDeleted
   }
 
   const confirmDelete = async () => {
@@ -522,58 +555,73 @@ export default function ActivityLogs() {
     setDeleting(true)
     try {
       if (deleteAllMode) {
-        // حذف جميع النشاطات - استخدام حذف بالدفعات من جميع IDs
-        const allIds = logs.map(log => log.id)
-        
-        if (allIds.length === 0) {
-          toast.error('لا توجد نشاطات للحذف')
-          setDeleting(false)
-          return
-        }
-
-        console.log(`[ActivityLogs] Starting delete of ${allIds.length} logs`)
-
-        // حذف بالدفعات (Supabase قد يرفض حذف عدد كبير في مرة واحدة)
-        const batchSize = 500
-        let deletedCount = 0
-        let failedBatches = 0
-        
-        for (let i = 0; i < allIds.length; i += batchSize) {
-          const batch = allIds.slice(i, i + batchSize)
-          console.log(`[ActivityLogs] Deleting batch ${Math.floor(i / batchSize) + 1}, IDs: ${batch.length}`)
+        if (deleteFromDatabase) {
+          // حذف جميع السجلات من قاعدة البيانات
+          logger.debug('[ActivityLogs] Starting delete of ALL logs from database')
           
-          const { data, error, count } = await supabase
-            .from('activity_log')
-            .delete()
-            .in('id', batch)
-            .select()
-
-          if (error) {
-            console.error(`[ActivityLogs] Error deleting batch ${Math.floor(i / batchSize) + 1}:`, error)
-            failedBatches++
-            // نستمر في الحذف حتى لو فشلت دفعة واحدة
-            continue
+          const totalDeleted = await deleteAllFromDatabase()
+          
+          if (totalDeleted === 0) {
+            toast.error('فشل حذف النشاطات. قد تكون هناك مشكلة في الصلاحيات أو RLS policies')
+            console.error('[ActivityLogs] No rows were deleted. Check RLS policies for DELETE on activity_log table')
+          } else {
+            toast.success(`تم حذف جميع النشاطات من قاعدة البيانات (${totalDeleted} نشاط) بنجاح`)
           }
           
-          // التحقق من عدد الصفوف المحذوفة
-          const actualDeleted = data?.length || 0
-          console.log(`[ActivityLogs] Batch ${Math.floor(i / batchSize) + 1} deleted: ${actualDeleted} rows`)
-          deletedCount += actualDeleted
-        }
-
-        if (failedBatches > 0) {
-          toast.error(`تم حذف ${deletedCount} نشاط من ${allIds.length}. فشل حذف ${failedBatches} دفعة`)
-        } else if (deletedCount === 0) {
-          toast.error('فشل حذف النشاطات. قد تكون هناك مشكلة في الصلاحيات أو RLS policies')
-          console.error('[ActivityLogs] No rows were deleted. Check RLS policies for DELETE on activity_log table')
+          setLogs([])
+          setUsersMap(new Map())
+          await loadLogs()
         } else {
-          toast.success(`تم حذف جميع النشاطات (${deletedCount} نشاط) بنجاح`)
-        }
+          // حذف السجلات المعروضة فقط
+          const allIds = logs.map(log => log.id)
+          
+          if (allIds.length === 0) {
+            toast.error('لا توجد نشاطات للحذف')
+            setDeleting(false)
+            return
+          }
 
-        setLogs([])
-        setUsersMap(new Map())
-        // إعادة تحميل البيانات للتأكد من التحديث
-        await loadLogs()
+          logger.debug(`[ActivityLogs] Starting delete of ${allIds.length} visible logs`)
+
+          // حذف بالدفعات
+          const batchSize = 500
+          let deletedCount = 0
+          let failedBatches = 0
+          
+          for (let i = 0; i < allIds.length; i += batchSize) {
+            const batch = allIds.slice(i, i + batchSize)
+            logger.debug(`[ActivityLogs] Deleting batch ${Math.floor(i / batchSize) + 1}, IDs: ${batch.length}`)
+            
+            const { data, error } = await supabase
+              .from('activity_log')
+              .delete()
+              .in('id', batch)
+              .select()
+
+            if (error) {
+              console.error(`[ActivityLogs] Error deleting batch ${Math.floor(i / batchSize) + 1}:`, error)
+              failedBatches++
+              continue
+            }
+            
+            const actualDeleted = data?.length || 0
+            logger.debug(`[ActivityLogs] Batch ${Math.floor(i / batchSize) + 1} deleted: ${actualDeleted} rows`)
+            deletedCount += actualDeleted
+          }
+
+          if (failedBatches > 0) {
+            toast.error(`تم حذف ${deletedCount} نشاط من ${allIds.length}. فشل حذف ${failedBatches} دفعة`)
+          } else if (deletedCount === 0) {
+            toast.error('فشل حذف النشاطات. قد تكون هناك مشكلة في الصلاحيات أو RLS policies')
+            console.error('[ActivityLogs] No rows were deleted. Check RLS policies for DELETE on activity_log table')
+          } else {
+            toast.success(`تم حذف السجلات المعروضة (${deletedCount} نشاط) بنجاح`)
+          }
+
+          setLogs([])
+          setUsersMap(new Map())
+          await loadLogs()
+        }
       } else {
         // حذف النشاطات المحددة
         const idsToDelete = Array.from(selectedLogIds)
@@ -583,67 +631,97 @@ export default function ActivityLogs() {
           return
         }
 
-        console.log(`[ActivityLogs] Starting delete of ${idsToDelete.length} selected logs`)
+        if (deleteFromDatabase) {
+          // حذف من قاعدة البيانات
+          logger.debug(`[ActivityLogs] Starting delete of ${idsToDelete.length} selected logs from database`)
 
-        // حذف بالدفعات إذا كان العدد كبير (أكثر من 1000)
-        const batchSize = 1000
-        let deletedCount = 0
-        
-        if (idsToDelete.length > batchSize) {
-          for (let i = 0; i < idsToDelete.length; i += batchSize) {
-            const batch = idsToDelete.slice(i, i + batchSize)
-            console.log(`[ActivityLogs] Deleting batch ${Math.floor(i / batchSize) + 1}, IDs: ${batch.length}`)
-            
+          // حذف بالدفعات إذا كان العدد كبير (أكثر من 1000)
+          const batchSize = 1000
+          let deletedCount = 0
+          
+          if (idsToDelete.length > batchSize) {
+            for (let i = 0; i < idsToDelete.length; i += batchSize) {
+              const batch = idsToDelete.slice(i, i + batchSize)
+              logger.debug(`[ActivityLogs] Deleting batch ${Math.floor(i / batchSize) + 1}, IDs: ${batch.length}`)
+              
+              const { data, error } = await supabase
+                .from('activity_log')
+                .delete()
+                .in('id', batch)
+                .select()
+
+              if (error) {
+                console.error(`[ActivityLogs] Error deleting batch:`, error)
+                throw error
+              }
+              
+              const actualDeleted = data?.length || 0
+              logger.debug(`[ActivityLogs] Batch deleted: ${actualDeleted} rows`)
+              deletedCount += actualDeleted
+            }
+          } else {
             const { data, error } = await supabase
               .from('activity_log')
               .delete()
-              .in('id', batch)
+              .in('id', idsToDelete)
               .select()
 
             if (error) {
-              console.error(`[ActivityLogs] Error deleting batch:`, error)
+              console.error('[ActivityLogs] Error deleting logs:', error)
               throw error
             }
             
-            const actualDeleted = data?.length || 0
-            console.log(`[ActivityLogs] Batch deleted: ${actualDeleted} rows`)
-            deletedCount += actualDeleted
+            deletedCount = data?.length || 0
+            logger.debug(`[ActivityLogs] Deleted: ${deletedCount} rows`)
           }
-        } else {
-          const { data, error } = await supabase
-            .from('activity_log')
-            .delete()
-            .in('id', idsToDelete)
-            .select()
 
-          if (error) {
-            console.error('[ActivityLogs] Error deleting logs:', error)
-            throw error
+          if (deletedCount === 0) {
+            toast.error('فشل حذف النشاطات. قد تكون هناك مشكلة في الصلاحيات أو RLS policies')
+            console.error('[ActivityLogs] No rows were deleted. Check RLS policies for DELETE on activity_log table')
+          } else if (deletedCount < idsToDelete.length) {
+            toast.warning(`تم حذف ${deletedCount} نشاط من ${idsToDelete.length} محدد من قاعدة البيانات`)
+          } else {
+            toast.success(`تم حذف ${deletedCount} نشاط من قاعدة البيانات بنجاح`)
           }
+
+          // إعادة تحميل البيانات للتأكد من التحديث
+          await loadLogs()
+          setSelectedLogIds(new Set())
+        } else {
+          // حذف من العرض فقط - إزالة السجلات المحددة من state فقط
+          logger.debug(`[ActivityLogs] Removing ${idsToDelete.length} selected logs from display only`)
           
-          deletedCount = data?.length || 0
-          console.log(`[ActivityLogs] Deleted: ${deletedCount} rows`)
+          const updatedLogs = logs.filter(log => !idsToDelete.includes(log.id))
+          setLogs(updatedLogs)
+          
+          // إزالة المستخدمين الذين لم يعودوا موجودين في السجلات
+          const remainingUserIds = new Set<string>()
+          updatedLogs.forEach(log => {
+            if (log.user_id) {
+              remainingUserIds.add(log.user_id)
+            }
+          })
+          
+          const updatedUsersMap = new Map<string, User>()
+          remainingUserIds.forEach(userId => {
+            const user = usersMap.get(userId)
+            if (user) {
+              updatedUsersMap.set(userId, user)
+            }
+          })
+          setUsersMap(updatedUsersMap)
+          
+          toast.success(`تم إزالة ${idsToDelete.length} نشاط من العرض`)
+          setSelectedLogIds(new Set())
         }
-
-        if (deletedCount === 0) {
-          toast.error('فشل حذف النشاطات. قد تكون هناك مشكلة في الصلاحيات أو RLS policies')
-          console.error('[ActivityLogs] No rows were deleted. Check RLS policies for DELETE on activity_log table')
-        } else if (deletedCount < idsToDelete.length) {
-          toast.warning(`تم حذف ${deletedCount} نشاط من ${idsToDelete.length} محدد`)
-        } else {
-          toast.success(`تم حذف ${deletedCount} نشاط بنجاح`)
-        }
-
-        // إعادة تحميل البيانات للتأكد من التحديث
-        await loadLogs()
-        setSelectedLogIds(new Set())
       }
 
       setShowDeleteModal(false)
       setDeleteAllMode(false)
-    } catch (error: any) {
+      setDeleteFromDatabase(false)
+    } catch (error: unknown) {
       console.error('Error deleting logs:', error)
-      toast.error(error.message || 'فشل في حذف النشاطات')
+      toast.error((error instanceof Error ? error.message : String(error)) || 'فشل في حذف النشاطات')
     } finally {
       setDeleting(false)
     }
@@ -1111,7 +1189,7 @@ export default function ActivityLogs() {
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-red-100 rounded-full">
@@ -1120,27 +1198,124 @@ export default function ActivityLogs() {
                   <h3 className="text-xl font-bold text-gray-900">تأكيد الحذف</h3>
                 </div>
                 
-                <p className="text-gray-700 mb-6">
-                  {deleteAllMode ? (
-                    <>
-                      هل أنت متأكد من حذف <span className="font-bold text-red-600">جميع النشاطات</span> ({logs.length} نشاط)؟
-                      <br />
-                      <span className="text-sm text-red-600 mt-2 block">هذه العملية لا يمكن التراجع عنها!</span>
-                    </>
-                  ) : (
-                    <>
-                      هل أنت متأكد من حذف <span className="font-bold text-red-600">{selectedLogIds.size} نشاط</span> محدد؟
-                      <br />
-                      <span className="text-sm text-red-600 mt-2 block">هذه العملية لا يمكن التراجع عنها!</span>
-                    </>
-                  )}
-                </p>
+                {deleteAllMode ? (
+                  <div className="space-y-4 mb-6">
+                    <p className="text-gray-700">
+                      اختر نوع الحذف:
+                    </p>
+                    
+                    {/* خيار حذف المعروض فقط */}
+                    <button
+                      onClick={() => setDeleteFromDatabase(false)}
+                      disabled={deleting}
+                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
+                        !deleteFromDatabase
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-bold text-gray-900 mb-1">حذف السجلات المعروضة فقط</div>
+                          <div className="text-sm text-gray-600">
+                            سيتم حذف {logs.length} سجل المعروض حالياً في الصفحة
+                          </div>
+                        </div>
+                        {!deleteFromDatabase && (
+                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* خيار حذف من قاعدة البيانات */}
+                    <button
+                      onClick={() => setDeleteFromDatabase(true)}
+                      disabled={deleting}
+                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
+                        deleteFromDatabase
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-bold text-gray-900 mb-1">حذف جميع السجلات من قاعدة البيانات</div>
+                          <div className="text-sm text-gray-600">
+                            سيتم حذف <span className="font-bold text-red-600">جميع</span> السجلات من قاعدة البيانات بشكل نهائي
+                          </div>
+                          <div className="text-xs text-red-600 mt-2 font-medium">
+                            ⚠️ تحذير: هذه العملية لا يمكن التراجع عنها!
+                          </div>
+                        </div>
+                        {deleteFromDatabase && (
+                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mb-6">
+                    <p className="text-gray-700">
+                      اختر نوع الحذف للسجلات المحددة ({selectedLogIds.size} نشاط):
+                    </p>
+                    
+                    {/* خيار حذف من العرض فقط */}
+                    <button
+                      onClick={() => setDeleteFromDatabase(false)}
+                      disabled={deleting}
+                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
+                        !deleteFromDatabase
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-bold text-gray-900 mb-1">حذف من العرض فقط</div>
+                          <div className="text-sm text-gray-600">
+                            سيتم إزالة {selectedLogIds.size} سجل من العرض فقط، لكنها ستبقى في قاعدة البيانات
+                          </div>
+                        </div>
+                        {!deleteFromDatabase && (
+                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* خيار حذف من قاعدة البيانات */}
+                    <button
+                      onClick={() => setDeleteFromDatabase(true)}
+                      disabled={deleting}
+                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
+                        deleteFromDatabase
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-bold text-gray-900 mb-1">حذف من قاعدة البيانات</div>
+                          <div className="text-sm text-gray-600">
+                            سيتم حذف {selectedLogIds.size} سجل من قاعدة البيانات بشكل نهائي
+                          </div>
+                          <div className="text-xs text-red-600 mt-2 font-medium">
+                            ⚠️ تحذير: هذه العملية لا يمكن التراجع عنها!
+                          </div>
+                        </div>
+                        {deleteFromDatabase && (
+                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
                       setShowDeleteModal(false)
                       setDeleteAllMode(false)
+                      setDeleteFromDatabase(false)
                     }}
                     disabled={deleting}
                     className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"

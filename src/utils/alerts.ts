@@ -1,5 +1,6 @@
 import { Alert } from '../components/alerts/AlertCard'
 import { supabase } from '../lib/supabase'
+import { logger } from './logger'
 
 // Default thresholds for alerts
 const DEFAULT_THRESHOLDS = {
@@ -53,7 +54,7 @@ export async function getNotificationThresholds() {
       .maybeSingle()
 
     if (error || !data || !data.setting_value) {
-      console.log('Using default notification thresholds')
+      logger.debug('Using default notification thresholds')
       // Cache the defaults
       thresholdsCache = DEFAULT_THRESHOLDS
       cacheTimestamp = now
@@ -358,23 +359,17 @@ export async function checkCommercialRegistrationExpiry(company: Company): Promi
   
   // تحديد الأولوية حسب عدد الأيام المتبقية
   let priority: Alert['priority']
-  let badgeText: string
   
   if (daysRemaining < 0) {
     priority = 'urgent'
-    badgeText = 'منتهي'
   } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
     priority = 'urgent'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
     priority = 'high'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
     priority = 'medium'
-    badgeText = 'متوسط'
   } else {
     priority = 'low'
-    badgeText = 'طفيف'
   }
   
   // إنشاء رسالة التنبيه
@@ -514,23 +509,17 @@ export async function checkPowerSubscriptionExpiry(company: Company): Promise<Al
   
   // تحديد الأولوية حسب عدد الأيام المتبقية
   let priority: Alert['priority']
-  let badgeText: string
   
   if (daysRemaining < 0) {
     priority = 'urgent'
-    badgeText = 'منتهي'
   } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
     priority = 'urgent'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
     priority = 'high'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
     priority = 'medium'
-    badgeText = 'متوسط'
   } else {
     priority = 'low'
-    badgeText = 'طفيف'
   }
   
   // إنشاء رسالة التنبيه
@@ -598,23 +587,17 @@ export async function checkMoqeemSubscriptionExpiry(company: Company): Promise<A
   
   // تحديد الأولوية حسب عدد الأيام المتبقية
   let priority: Alert['priority']
-  let badgeText: string
   
   if (daysRemaining < 0) {
     priority = 'urgent'
-    badgeText = 'منتهي'
   } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
     priority = 'urgent'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
     priority = 'high'
-    badgeText = 'عاجل'
   } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
     priority = 'medium'
-    badgeText = 'متوسط'
   } else {
     priority = 'low'
-    badgeText = 'طفيف'
   }
   
   // إنشاء رسالة التنبيه

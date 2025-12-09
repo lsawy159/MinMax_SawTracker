@@ -2,8 +2,11 @@
 // This prevents TDZ (Temporal Dead Zone) errors in production builds
 import React, { ReactNode, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
+import { queryClient } from './lib/queryClient'
+import { logger } from './utils/logger'
 import './App.css'
 
 // Lazy load all pages for code splitting
@@ -14,7 +17,6 @@ const Companies = lazy(() => import('./pages/Companies'))
 const Projects = lazy(() => import('./pages/Projects'))
 const Users = lazy(() => import('./pages/Users'))
 const Settings = lazy(() => import('./pages/Settings'))
-const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Alerts = lazy(() => import('./pages/Alerts'))
 const Reports = lazy(() => import('./pages/Reports'))
@@ -55,7 +57,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // إذا كان loading = false و session = null، فهذا يعني عدم وجود جلسة
   // في هذه الحالة فقط نقوم بـ redirect إلى login
   if (!session) {
-    console.log('[ProtectedRoute] No session found, redirecting to login')
+    logger.debug('[ProtectedRoute] No session found, redirecting to login')
     return <Navigate to="/login" replace />
   }
 
@@ -218,17 +220,19 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
-      <AuthProvider>
-        <Toaster position="top-center" richColors />
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
+        <AuthProvider>
+          <Toaster position="top-center" richColors />
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
 

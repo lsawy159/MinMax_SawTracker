@@ -6,12 +6,10 @@ import {
   AlertTriangle, 
   Calendar, 
   Clock, 
-  Filter, 
   Check, 
   Trash2, 
   RefreshCw,
   Search,
-  X,
   Mail
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -82,7 +80,7 @@ export default function Notifications() {
       
       toast.success(`تم توليد ${data?.length || 0} تنبيه جديد`)
       loadNotifications()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating notifications:', error)
       toast.error('فشل توليد التنبيهات')
     } finally {
@@ -100,7 +98,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم تحديد التنبيه كمقروء')
-    } catch (error) {
+    } catch {
       toast.error('فشل تحديث التنبيه')
     }
   }
@@ -116,7 +114,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم تحديد جميع التنبيهات كمقروءة')
-    } catch (error) {
+    } catch {
       toast.error('فشل تحديث التنبيهات')
     }
   }
@@ -131,7 +129,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم تحديد التنبيه كغير مقروء')
-    } catch (error) {
+    } catch {
       toast.error('فشل تحديث التنبيه')
     }
   }
@@ -147,7 +145,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم تحديد جميع التنبيهات كغير مقروءة')
-    } catch (error) {
+    } catch {
       toast.error('فشل تحديث التنبيهات')
     }
   }
@@ -164,7 +162,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم حذف التنبيه')
-    } catch (error) {
+    } catch {
       toast.error('فشل حذف التنبيه')
     }
   }
@@ -181,7 +179,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم حذف جميع التنبيهات')
-    } catch (error) {
+    } catch {
       toast.error('فشل حذف التنبيهات')
     }
   }

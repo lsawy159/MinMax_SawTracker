@@ -44,7 +44,7 @@ serve(async (req) => {
     }
     
     // الآن جرب إضافة عمود واحد
-    const { data: columnTest, error: columnError } = await supabase
+    const { error: columnError } = await supabase
       .from('companies')
       .select('commercial_registration_status')
       .limit(1)
@@ -53,7 +53,7 @@ serve(async (req) => {
       console.log('العمود مفقود، جاري محاولة إضافته...')
       
       // جرب إضافة عمود واحد ببيانات اختبار
-      const { data: singleColumnTest, error: singleError } = await supabase
+      const { error: singleError } = await supabase
         .from('companies')
         .select('*')
         .limit(1)
@@ -64,7 +64,7 @@ serve(async (req) => {
         console.log('تم جلب البيانات، سأجرب إضافة عمود واحد...')
         
         // إضافة عمود واحد
-        const { data: addResult, error: addError } = await supabase
+        const { error: addError } = await supabase
           .from('companies')
           .select('*')
           .limit(1)

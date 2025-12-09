@@ -53,7 +53,7 @@ export const adminPermissions: PermissionMatrix = {
  * إذا كان المستخدم مدير، يتم إرجاع صلاحيات المدير الكاملة تلقائياً
  */
 export const normalizePermissions = (
-  permissions: any,
+  permissions: unknown,
   role?: 'admin' | 'user'
 ): PermissionMatrix => {
   // إذا كان المستخدم مدير، إرجاع صلاحيات المدير الكاملة تلقائيًا
@@ -66,59 +66,61 @@ export const normalizePermissions = (
     return defaultPermissions
   }
 
+  const perms = permissions as Record<string, unknown>
+
   return {
     employees: {
-      view: permissions.employees?.view ?? defaultPermissions.employees.view,
-      create: permissions.employees?.create ?? defaultPermissions.employees.create,
-      edit: permissions.employees?.edit ?? defaultPermissions.employees.edit,
-      delete: permissions.employees?.delete ?? defaultPermissions.employees.delete
+      view: (perms.employees as Record<string, boolean>)?.view ?? defaultPermissions.employees.view,
+      create: (perms.employees as Record<string, boolean>)?.create ?? defaultPermissions.employees.create,
+      edit: (perms.employees as Record<string, boolean>)?.edit ?? defaultPermissions.employees.edit,
+      delete: (perms.employees as Record<string, boolean>)?.delete ?? defaultPermissions.employees.delete
     },
     companies: {
-      view: permissions.companies?.view ?? defaultPermissions.companies.view,
-      create: permissions.companies?.create ?? defaultPermissions.companies.create,
-      edit: permissions.companies?.edit ?? defaultPermissions.companies.edit,
-      delete: permissions.companies?.delete ?? defaultPermissions.companies.delete
+      view: (perms.companies as Record<string, boolean>)?.view ?? defaultPermissions.companies.view,
+      create: (perms.companies as Record<string, boolean>)?.create ?? defaultPermissions.companies.create,
+      edit: (perms.companies as Record<string, boolean>)?.edit ?? defaultPermissions.companies.edit,
+      delete: (perms.companies as Record<string, boolean>)?.delete ?? defaultPermissions.companies.delete
     },
     users: {
-      view: permissions.users?.view ?? defaultPermissions.users.view,
-      create: permissions.users?.create ?? defaultPermissions.users.create,
-      edit: permissions.users?.edit ?? defaultPermissions.users.edit,
-      delete: permissions.users?.delete ?? defaultPermissions.users.delete
+      view: (perms.users as Record<string, boolean>)?.view ?? defaultPermissions.users.view,
+      create: (perms.users as Record<string, boolean>)?.create ?? defaultPermissions.users.create,
+      edit: (perms.users as Record<string, boolean>)?.edit ?? defaultPermissions.users.edit,
+      delete: (perms.users as Record<string, boolean>)?.delete ?? defaultPermissions.users.delete
     },
     settings: {
-      view: permissions.settings?.view ?? defaultPermissions.settings.view,
-      edit: permissions.settings?.edit ?? defaultPermissions.settings.edit
+      view: (perms.settings as Record<string, boolean>)?.view ?? defaultPermissions.settings.view,
+      edit: (perms.settings as Record<string, boolean>)?.edit ?? defaultPermissions.settings.edit
     },
     adminSettings: {
-      view: permissions.adminSettings?.view ?? defaultPermissions.adminSettings.view,
-      edit: permissions.adminSettings?.edit ?? defaultPermissions.adminSettings.edit
+      view: (perms.adminSettings as Record<string, boolean>)?.view ?? defaultPermissions.adminSettings.view,
+      edit: (perms.adminSettings as Record<string, boolean>)?.edit ?? defaultPermissions.adminSettings.edit
     },
     projects: {
-      view: permissions.projects?.view ?? defaultPermissions.projects.view,
-      create: permissions.projects?.create ?? defaultPermissions.projects.create,
-      edit: permissions.projects?.edit ?? defaultPermissions.projects.edit,
-      delete: permissions.projects?.delete ?? defaultPermissions.projects.delete
+      view: (perms.projects as Record<string, boolean>)?.view ?? defaultPermissions.projects.view,
+      create: (perms.projects as Record<string, boolean>)?.create ?? defaultPermissions.projects.create,
+      edit: (perms.projects as Record<string, boolean>)?.edit ?? defaultPermissions.projects.edit,
+      delete: (perms.projects as Record<string, boolean>)?.delete ?? defaultPermissions.projects.delete
     },
     reports: {
-      view: permissions.reports?.view ?? defaultPermissions.reports.view,
-      export: permissions.reports?.export ?? defaultPermissions.reports.export
+      view: (perms.reports as Record<string, boolean>)?.view ?? defaultPermissions.reports.view,
+      export: (perms.reports as Record<string, boolean>)?.export ?? defaultPermissions.reports.export
     },
     alerts: {
-      view: permissions.alerts?.view ?? defaultPermissions.alerts.view
+      view: (perms.alerts as Record<string, boolean>)?.view ?? defaultPermissions.alerts.view
     },
     advancedSearch: {
-      view: permissions.advancedSearch?.view ?? defaultPermissions.advancedSearch.view
+      view: (perms.advancedSearch as Record<string, boolean>)?.view ?? defaultPermissions.advancedSearch.view
     },
     importExport: {
-      view: permissions.importExport?.view ?? defaultPermissions.importExport.view,
-      import: permissions.importExport?.import ?? defaultPermissions.importExport.import,
-      export: permissions.importExport?.export ?? defaultPermissions.importExport.export
+      view: (perms.importExport as Record<string, boolean>)?.view ?? defaultPermissions.importExport.view,
+      import: (perms.importExport as Record<string, boolean>)?.import ?? defaultPermissions.importExport.import,
+      export: (perms.importExport as Record<string, boolean>)?.export ?? defaultPermissions.importExport.export
     },
     activityLogs: {
-      view: permissions.activityLogs?.view ?? defaultPermissions.activityLogs.view
+      view: (perms.activityLogs as Record<string, boolean>)?.view ?? defaultPermissions.activityLogs.view
     },
     dashboard: {
-      view: permissions.dashboard?.view ?? defaultPermissions.dashboard.view
+      view: (perms.dashboard as Record<string, boolean>)?.view ?? defaultPermissions.dashboard.view
     }
   }
 }
@@ -169,7 +171,8 @@ export function usePermissions() {
 
     // للصلاحيات المعقدة (create, edit, delete)
     if (action in sectionPermissions) {
-      return Boolean((sectionPermissions as any)[action])
+      const sectionPerms = sectionPermissions as Record<string, boolean>
+      return Boolean(sectionPerms[action])
     }
 
     return false

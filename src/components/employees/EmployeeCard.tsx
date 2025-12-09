@@ -19,11 +19,71 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [projects, setProjects] = useState<Project[]>([])
-  const [formData, setFormData] = useState<any>({
+  
+  // Define form data type with precise field types
+  type EmployeeFormData = {
+    id?: string
+    company_id: string
+    name?: string
+    profession?: string
+    nationality?: string
+    birth_date?: string
+    phone?: string
+    passport_number?: string
+    residence_number: number
+    joining_date?: string
+    contract_expiry?: string
+    hired_worker_contract_expiry: string
+    residence_expiry?: string
+    project_id: string | null
+    project_name?: string | null
+    project?: Project
+    bank_account?: string
+    residence_image_url: string
+    health_insurance_expiry: string
+    salary: number
+    notes: string
+    additional_fields: Record<string, string | number | boolean | null>
+    company?: Company
+    created_at?: string
+    updated_at?: string
+  }
+
+  /**
+   * Helper function to safely get additional field values with type conversion
+   */
+  function getAdditionalFieldValue(
+    value: unknown,
+    fieldType: 'text' | 'number' | 'select' | 'checkbox' | 'textarea' = 'text'
+  ): string | number | boolean {
+    // Handle empty values
+    if (value === null || value === undefined) {
+      switch (fieldType) {
+        case 'number':
+          return 0
+        case 'checkbox':
+          return false
+        default:
+          return ''
+      }
+    }
+
+    // Handle different types
+    switch (fieldType) {
+      case 'number':
+        return typeof value === 'number' ? value : Number(value) || 0
+      case 'checkbox':
+        return typeof value === 'boolean' ? value : Boolean(value)
+      default:
+        return String(value)
+    }
+  }
+  
+  const [formData, setFormData] = useState<EmployeeFormData>({
     ...employee,
     company_id: employee.company_id,
     project_id: employee.project_id || employee.project?.id || null,
-    additional_fields: employee.additional_fields || {},
+    additional_fields: (employee.additional_fields || {}) as Record<string, string | number | boolean | null>,
     // التأمين الصحي للموظف
     health_insurance_expiry: employee.health_insurance_expiry || '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
     hired_worker_contract_expiry: employee.hired_worker_contract_expiry || '',
@@ -34,7 +94,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     birth_date: employee.birth_date || '',
     joining_date: employee.joining_date || '',
     residence_expiry: employee.residence_expiry || '',
-    contract_expiry: employee.contract_expiry || ''
+    contract_expiry: employee.contract_expiry || '',
+    residence_number: employee.residence_number || 0
   })
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'basic' | 'custom'>('basic')
@@ -250,7 +311,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       setIsProjectDropdownOpen(false)
 
       toast.success('تم إنشاء المشروع بنجاح')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating project:', error)
       toast.error(error?.message || 'فشل إنشاء المشروع')
     } finally {
@@ -283,7 +344,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     return 'text-green-600 bg-green-50 border-green-200'
   }
 
-  const logActivity = async (action: string, changes: any) => {
+  const logActivity = async (action: string, changes: Record<string, unknown>) => {
     try {
       await supabase
         .from('activity_log')
@@ -306,7 +367,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     setSaving(true)
     try {
       // تحضير البيانات للحفظ
-      const updateData: any = {
+      const updateData: Partial<Employee> = {
         name: formData.name,
         profession: formData.profession,
         nationality: formData.nationality,
@@ -352,7 +413,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       if (error) throw error
 
       // إنشاء قائمة التغييرات بمقارنة البيانات القديمة والجديدة
-      const changes: Record<string, { old_value: any; new_value: any }> = {}
+      const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
       
       // الحقول التي يجب تتبعها
       const fieldsToTrack = [
@@ -398,7 +459,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
       
       onUpdate()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving employee:', error)
       toast.error('فشل حفظ التعديلات')
     } finally {
@@ -411,12 +472,14 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     setFormData({
       ...employee,
       company_id: employee.company_id,
-      additional_fields: employee.additional_fields || {},
+      project_id: employee.project_id || employee.project?.id || null,
+      additional_fields: (employee.additional_fields || {}) as Record<string, string | number | boolean | null>,
       health_insurance_expiry: employee.health_insurance_expiry || '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
       hired_worker_contract_expiry: employee.hired_worker_contract_expiry || '',
       salary: employee.salary || 0,
       notes: employee.notes || '',
-      residence_image_url: employee.residence_image_url || ''
+      residence_image_url: employee.residence_image_url || '',
+      residence_number: employee.residence_number || 0
     })
     setIsEditMode(false)
     setIsCompanyDropdownOpen(false)
@@ -646,7 +709,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <input
                   type="text"
                   value={formData.residence_number || ''}
-                  onChange={(e) => setFormData({ ...formData, residence_number: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, residence_number: parseInt(e.target.value) || 0 })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono ${
                     isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
@@ -1118,7 +1181,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                       {field.field_type === 'text' && (
                         <input
                           type="text"
-                          value={formData.additional_fields[field.field_name] || ''}
+                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
                           onChange={(e) => setFormData({
                             ...formData,
                             additional_fields: {
@@ -1135,7 +1198,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
                       {field.field_type === 'textarea' && (
                         <textarea
-                          value={formData.additional_fields[field.field_name] || ''}
+                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'textarea'))}
                           onChange={(e) => setFormData({
                             ...formData,
                             additional_fields: {
@@ -1154,7 +1217,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                       {field.field_type === 'number' && (
                         <input
                           type="number"
-                          value={formData.additional_fields[field.field_name] || ''}
+                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'number'))}
                           onChange={(e) => setFormData({
                             ...formData,
                             additional_fields: {
@@ -1172,7 +1235,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                       {field.field_type === 'date' && (
                         <input
                           type="date"
-                          value={formData.additional_fields[field.field_name] || ''}
+                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
                           onChange={(e) => setFormData({
                             ...formData,
                             additional_fields: {
@@ -1189,7 +1252,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
                       {field.field_type === 'select' && field.field_options.options && (
                         <select
-                          value={formData.additional_fields[field.field_name] || ''}
+                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
                           onChange={(e) => setFormData({
                             ...formData,
                             additional_fields: {
@@ -1203,9 +1266,13 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                           }`}
                         >
                           <option value="">اختر...</option>
-                          {field.field_options.options.map((option: string) => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
+                          {Array.isArray(field.field_options.options) && field.field_options.options.map((option: string | { label: string; value: string | number }) => {
+                            const optionValue = typeof option === 'object' ? option.value : option
+                            const optionLabel = typeof option === 'object' ? option.label : option
+                            return (
+                              <option key={String(optionValue)} value={String(optionValue)}>{String(optionLabel)}</option>
+                            )
+                          })}
                         </select>
                       )}
 
@@ -1213,7 +1280,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={formData.additional_fields[field.field_name] || false}
+                            checked={(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'checkbox') as boolean)}
                             onChange={(e) => setFormData({
                               ...formData,
                               additional_fields: {

@@ -1,13 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from 'react' // [FIX] تم إضافة useCallback
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react' // [FIX] تم إضافة useCallback و useMemo
 import { supabase, Company } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
-import { Building2, Users, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { Building2, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
+import { logger } from '@/utils/logger'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
@@ -32,7 +33,6 @@ type ViewMode = 'grid' | 'table'
 export default function Companies() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
-  const [filteredCompanies, setFilteredCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
 
   // Modal states
@@ -93,7 +93,7 @@ export default function Companies() {
         setSortDirection(filters.sortDirection || 'asc')
       }
     } catch (error) {
-      console.error('Error loading saved filters:', error)
+      logger.error('Error loading saved filters:', error)
     }
   }, []) // <-- [FIX] مصفوفة اعتماديات فارغة لأنها لا تعتمد على state
 
@@ -116,7 +116,7 @@ export default function Companies() {
       }
       localStorage.setItem('companiesFilters', JSON.stringify(filters))
     } catch (error) {
-      console.error('Error saving filters:', error)
+      logger.error('Error saving filters:', error)
     }
   }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
     searchTerm,
@@ -134,43 +134,43 @@ export default function Companies() {
 
   // [FIX] تم تغليف الدالة بـ useCallback
   const loadCompanies = useCallback(async () => {
-    console.log('🔍 [DEBUG] Starting loadCompanies...')
+    logger.debug('Starting loadCompanies...')
     
     try {
-      console.log('📊 [DEBUG] Fetching companies from database...')
+      logger.debug('Fetching companies from database...')
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
         .order('name')
 
-      console.log('📋 [DEBUG] Companies data fetched:', {
+      logger.debug('📋 [DEBUG] Companies data fetched:', {
         data: companiesData,
         error: companiesError,
         dataLength: companiesData?.length || 0
       })
 
       if (companiesError) {
-        console.error('❌ [DEBUG] Companies fetch error:', companiesError)
+        logger.error('Companies fetch error:', companiesError)
         throw companiesError
       }
 
       // معالجة البيانات null/undefined
       if (!companiesData) {
-        console.warn('⚠️ [DEBUG] No companies data received, setting empty array')
+        logger.warn('No companies data received, setting empty array')
         setCompanies([])
         return
       }
 
-      console.log(`🏢 [DEBUG] Processing ${companiesData.length} companies...`)
+      logger.debug(`Processing ${companiesData.length} companies...`)
       
       // [OPTIMIZATION] جلب عدد الموظفين لكل الشركات باستعلام واحد بدلاً من 133 استعلام
-      console.log('👥 [DEBUG] Fetching employee counts for all companies in a single query...')
+      logger.debug('Fetching employee counts for all companies in a single query...')
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select('company_id')
 
       if (employeesError) {
-        console.error('❌ [DEBUG] Error fetching employees:', employeesError)
+        logger.error('Error fetching employees:', employeesError)
         throw employeesError
       }
 
@@ -182,7 +182,7 @@ export default function Companies() {
         }
       })
 
-      console.log(`✅ [DEBUG] Employee counts calculated for ${Object.keys(employeeCounts).length} companies`)
+      logger.debug(`Employee counts calculated for ${Object.keys(employeeCounts).length} companies`)
 
       // دمج البيانات
       const companiesWithCount = (companiesData || []).map((company) => {
@@ -193,7 +193,7 @@ export default function Companies() {
 
           return { ...company, employee_count: employeeCount, available_slots: availableSlots }
         } catch (companyError) {
-          console.error(`❌ [DEBUG] Error processing company ${company.id}:`, companyError)
+          logger.error(`Error processing company ${company.id}:`, companyError)
           return { 
             ...company, 
             employee_count: 0, 
@@ -202,13 +202,13 @@ export default function Companies() {
         }
       })
 
-      console.log('💾 [DEBUG] Setting companies data:', companiesWithCount.length, 'companies')
+      logger.debug('Setting companies data:', companiesWithCount.length, 'companies')
       setCompanies(companiesWithCount)
 
-      console.log(`✅ [DEBUG] Successfully loaded ${companiesWithCount.length} companies`)
+      logger.debug(`Successfully loaded ${companiesWithCount.length} companies`)
       
     } catch (error) {
-      console.error('❌ [DEBUG] Critical error in loadCompanies:', error)
+      logger.error('Critical error in loadCompanies:', error)
       console.error('❌ [DEBUG] Error details:', {
         message: error?.message,
         code: error?.code,
@@ -219,13 +219,18 @@ export default function Companies() {
       // في حالة الخطأ، قم بمسح البيانات وتعيين قائمة فارغة
       setCompanies([])
     } finally {
-      console.log('🏁 [DEBUG] loadCompanies completed, setting loading to false')
+      logger.debug('loadCompanies completed, setting loading to false')
       setLoading(false)
     }
   }, []) // <-- [FIX] مصفوفة فارغة لأنها لا تعتمد على state (setters مستقرة)
 
-  // [FIX] تم تغليف الدالة بـ useCallback
-  const applyFiltersAndSort = useCallback(() => {
+  // Helper function for calculating days remaining
+  const getDaysRemaining = useCallback((date: string) => {
+    return differenceInDays(new Date(date), new Date())
+  }, [])
+
+  // [FIX] تم تحويلها إلى useMemo بدلاً من useState + useEffect
+  const filteredCompanies = useMemo(() => {
     let filtered = [...companies]
 
     // Apply search filter
@@ -355,8 +360,8 @@ export default function Companies() {
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: string | number
+      let bValue: string | number
 
       switch (sortField) {
         case 'name':
@@ -400,7 +405,7 @@ export default function Companies() {
       }
     })
 
-    setFilteredCompanies(filtered)
+    return filtered
   }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
     companies,
     searchTerm,
@@ -415,7 +420,8 @@ export default function Companies() {
     customEndDate,
     exemptionsFilter,
     sortField,
-    sortDirection
+    sortDirection,
+    getDaysRemaining
   ])
 
 
@@ -426,19 +432,9 @@ export default function Companies() {
   }, [loadCompanies, loadSavedFilters]) // <-- [FIX] تم التحديث
   
   useEffect(() => {
-    applyFiltersAndSort()
-    // Save filters to localStorage
+    // Save filters to localStorage whenever filters change
     saveFiltersToStorage()
-  }, [applyFiltersAndSort, saveFiltersToStorage]) // <-- [FIX] تم التحديث
-
-  const getDaysRemaining = (date: string) => {
-    return differenceInDays(new Date(date), new Date())
-  }
-
-  // دالة حساب الأماكن الشاغرة
-  const calculateAvailableSlots = (maxEmployees: number, currentEmployees: number): number => {
-    return Math.max(0, maxEmployees - currentEmployees)
-  }
+  }, [saveFiltersToStorage, searchTerm, commercialRegStatus, socialInsuranceStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, employeeCountFilter, availableSlotsFilter, dateRangeFilter, customStartDate, customEndDate, exemptionsFilter, sortField, sortDirection])
 
   // دالة الحصول على لون حالة الأماكن الشاغرة
   const getAvailableSlotsColor = (availableSlots: number) => {
@@ -457,7 +453,7 @@ export default function Companies() {
   }
 
   // دالة الحصول على وصف حالة الأماكن الشاغرة
-  const getAvailableSlotsText = (availableSlots: number, maxEmployees: number) => {
+  const getAvailableSlotsText = (availableSlots: number) => {
     if (availableSlots === 0) return 'مكتملة'
     if (availableSlots === 1) return 'مكان واحد متبقي'
     if (availableSlots <= 3) return 'أماكن قليلة متاحة'
@@ -481,7 +477,7 @@ export default function Companies() {
     setExemptionsFilter('all')
   }
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
       // Toggle direction if same field
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -490,39 +486,39 @@ export default function Companies() {
       setSortField(field)
       setSortDirection('asc')
     }
-  }
+  }, [sortField, sortDirection])
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />
     return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
 
-  const handleAddCompany = () => {
+  const handleAddCompany = useCallback(() => {
     setSelectedCompany(null)
     setShowAddModal(true)
-  }
+  }, [])
 
-  const handleEditCompany = (company: Company) => {
+  const handleEditCompany = useCallback((company: Company) => {
     setSelectedCompany(company)
     setShowEditModal(true)
-  }
+  }, [])
 
-  const handleDeleteCompany = (company: Company) => {
+  const handleDeleteCompany = useCallback((company: Company) => {
     setSelectedCompany(company)
     setShowDeleteModal(true)
-  }
+  }, [])
 
-  const handleCompanyCardClick = (company: Company & { employee_count: number; available_slots?: number }) => {
+  const handleCompanyCardClick = useCallback((company: Company & { employee_count: number; available_slots?: number }) => {
     setSelectedCompanyForDetail(company)
     setShowCompanyDetailModal(true)
-  }
+  }, [])
 
-  const handleCloseCompanyDetailModal = () => {
+  const handleCloseCompanyDetailModal = useCallback(() => {
     setShowCompanyDetailModal(false)
     setSelectedCompanyForDetail(null)
     // إعادة تعيين الصف المحدد عند إغلاق المودال
     setSelectedRowIndex(null)
-  }
+  }, [])
 
   const handleDeleteConfirm = async () => {
     if (!selectedCompany) return
@@ -551,27 +547,27 @@ export default function Companies() {
       setShowDeleteModal(false)
       setSelectedCompany(null)
     } catch (error) {
-      console.error('Error deleting company:', error)
+      logger.error('Error deleting company:', error)
     }
   }
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setShowAddModal(false)
     setShowEditModal(false)
     setShowDeleteModal(false)
     setSelectedCompany(null)
-  }
+  }, [])
 
-  const handleModalSuccess = async () => {
+  const handleModalSuccess = useCallback(async () => {
     try {
       handleModalClose()
       await loadCompanies()
     } catch (error) {
-      console.error('Error in handleModalSuccess:', error)
+      logger.error('Error in handleModalSuccess:', error)
       // لا نعيد تحميل القائمة في حالة الخطأ - نترك المودال مفتوحاً
       toast.error('حدث خطأ أثناء تحديث القائمة')
     }
-  }
+  }, [handleModalClose, loadCompanies])
 
   const activeFiltersCount = [
     searchTerm !== '',
@@ -663,7 +659,7 @@ export default function Companies() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedRowIndex, paginatedCompanies, showAddModal, showEditModal, showDeleteModal, showCompanyDetailModal, showFiltersModal, viewMode])
+  }, [selectedRowIndex, paginatedCompanies, showAddModal, showEditModal, showDeleteModal, showCompanyDetailModal, showFiltersModal, viewMode, handleCompanyCardClick])
 
   // إعادة تعيين الصف المحدد عند تغيير الفلاتر أو الصفحة
   useEffect(() => {

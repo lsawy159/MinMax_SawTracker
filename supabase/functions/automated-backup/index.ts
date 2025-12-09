@@ -128,7 +128,7 @@ SET standard_conforming_strings = on;
         }
 
         return { table, data: tableData, error: null, skipped: false }
-      } catch (tableError: any) {
+      } catch (tableError: unknown) {
         // للجداول الاختيارية، نتخطاها بهدوء بدون تحذير
         if (isOptional) {
           return { table, data: null, error: null, skipped: true }
@@ -192,7 +192,7 @@ SET standard_conforming_strings = on;
     const compressionRatio = ((originalSize - compressedSize) / originalSize * 100)
 
     // التحقق من وجود bucket قبل المحاولة
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
+    const { data: buckets } = await supabase.storage.listBuckets()
     const backupsBucketExists = buckets?.some(bucket => bucket.name === 'backups')
     
     if (!backupsBucketExists) {
@@ -356,6 +356,7 @@ SET standard_conforming_strings = on;
 
 // دالة مساعدة لإرسال بريد إشعار النسخ الاحتياطي
 async function sendBackupNotificationEmail(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   supabaseUrl: string,
   backupId: string,
@@ -365,7 +366,6 @@ async function sendBackupNotificationEmail(
   backupType: string,
   errorMessage?: string
 ) {
-  const bucketName = 'backups'
   try {
     // قراءة إعدادات البريد من security_settings
     const { data: emailNotificationSetting } = await supabase
@@ -399,7 +399,7 @@ async function sendBackupNotificationEmail(
         : recipientsSetting.setting_value
       
       if (Array.isArray(recipientsValue)) {
-        recipients = recipientsValue.filter((email: any) => typeof email === 'string' && email.includes('@'))
+        recipients = recipientsValue.filter((email: unknown) => typeof email === 'string' && email.includes('@'))
       }
     } catch (parseError) {
       console.warn('خطأ في تحليل قائمة المستلمين:', parseError)

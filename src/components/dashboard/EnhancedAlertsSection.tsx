@@ -2,26 +2,19 @@ import React, { useState } from 'react'
 import { 
   Bell, 
   AlertTriangle, 
-  Building2, 
-  Shield, 
-  FileText, 
   TrendingUp,
   DollarSign,
   Users,
   Filter,
   Search,
   BarChart3,
-  PieChart,
   Calendar,
-  Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Eye,
   RefreshCw,
   Download,
   Settings,
-  ArrowRight,
   Target,
   Shield as ShieldIcon
 } from 'lucide-react'
@@ -30,8 +23,7 @@ import { EnhancedAlertCard } from '@/components/alerts/EnhancedAlertCard'
 import { 
   getEnhancedAlertsStats, 
   getCriticalAlerts, 
-  generateAlertSummaryReport,
-  filterEnhancedAlertsByMultipleCriteria 
+  generateAlertSummaryReport
 } from '@/utils/enhancedCompanyAlerts'
 
 interface EnhancedAlertsSectionProps {
@@ -81,32 +73,6 @@ export function EnhancedAlertsSection({
   const stats = getEnhancedAlertsStats(alerts)
   const criticalAlerts = getCriticalAlerts(alerts)
   const summaryReport = generateAlertSummaryReport(alerts)
-
-  const getAlertTypeIcon = (type: EnhancedAlert['alert_type']) => {
-    switch (type) {
-      case 'commercial_registration':
-        return <Building2 className="h-4 w-4" />
-      case 'social_insurance_expiry':
-        return <Shield className="h-4 w-4" />
-      case 'government_docs_renewal':
-        return <FileText className="h-4 w-4" />
-      default:
-        return <AlertTriangle className="h-4 w-4" />
-    }
-  }
-
-  const getAlertTypeColor = (type: EnhancedAlert['alert_type']) => {
-    switch (type) {
-      case 'commercial_registration':
-        return 'text-blue-600 bg-blue-100'
-      case 'social_insurance_expiry':
-        return 'text-green-600 bg-green-100'
-      case 'government_docs_renewal':
-        return 'text-purple-600 bg-purple-100'
-      default:
-        return 'text-gray-600 bg-gray-100'
-    }
-  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -189,7 +155,12 @@ export function EnhancedAlertsSection({
               <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب الأولوية</label>
               <select
                 value={filterMode}
-                onChange={(e) => setFilterMode(e.target.value as any)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === 'all' || value === 'critical' || value === 'urgent') {
+                    setFilterMode(value)
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">جميع التنبيهات</option>

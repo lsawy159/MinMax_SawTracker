@@ -39,7 +39,7 @@ export async function createSampleCompanies() {
     ]
     
     for (const companyData of sampleCompanies) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('companies')
         .insert(companyData)
         .select()

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Bell, Save, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
 import { invalidateNotificationThresholdsCache } from '@/utils/alerts'
 import { invalidateEmployeeNotificationThresholdsCache } from '@/utils/employeeAlerts'
 
@@ -81,7 +82,7 @@ export default function NotificationSettings() {
     try {
       // محاولة تحميل الإعدادات من قاعدة البيانات
       // إذا لم توجد، استخدام القيم الافتراضية
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('system_settings')
         .select('*')
         .eq('setting_key', 'notification_thresholds')
@@ -117,8 +118,8 @@ export default function NotificationSettings() {
           ...data.setting_value
         })
       }
-    } catch (error) {
-      console.log('Using default notification settings')
+    } catch {
+      logger.debug('Using default notification settings')
     } finally {
       setLoading(false)
     }
@@ -146,7 +147,7 @@ export default function NotificationSettings() {
       window.dispatchEvent(new CustomEvent('settingsUpdated'))
 
       toast.success('تم حفظ إعدادات التنبيهات بنجاح')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving settings:', error)
       toast.error('فشل حفظ الإعدادات')
     } finally {

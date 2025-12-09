@@ -3,13 +3,14 @@ import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
-import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText, Shield } from 'lucide-react'
+import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
+import { logger } from '@/utils/logger'
 
 export default function Employees() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
@@ -27,7 +28,6 @@ export default function Employees() {
   const [residenceFilter, setResidenceFilter] = useState<string>('')
   const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('')  // تحديث: insuranceFilter → healthInsuranceFilter
   
-  const [companies, setCompanies] = useState<string[]>([])
   const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string; unified_number?: number }>>([])
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [isCompanyDropdownOpen, setCompanyDropdownOpen] = useState(false)
@@ -92,6 +92,8 @@ export default function Employees() {
       setEmployees(employeesData)
       
       // استخراج القوائم الفريدة للفلاتر
+      // Reserved for future use: uniqueCompanies
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const uniqueCompanies = [...new Set(employeesData.map(e => e.company?.name).filter(Boolean))] as string[]
       const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
       const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
@@ -130,11 +132,11 @@ export default function Employees() {
         setProjects(uniqueProjects.sort())
       }
       
-      setCompanies(uniqueCompanies.sort())
+      // Companies list is no longer stored in state, only used for filtering
       setNationalities(uniqueNationalities.sort())
       setProfessions(uniqueProfessions.sort())
     } catch (error) {
-      console.error('Error loading employees:', error)
+      logger.error('Error loading employees:', error)
     } finally {
       setLoading(false)
     }
@@ -163,7 +165,7 @@ export default function Employees() {
       
       // إضافة debounce لتجنب تحديثات متعددة متزامنة
       debounceTimeoutRef.current = setTimeout(() => {
-        console.log('[Employees] Employee updated event received, reloading...')
+        logger.debug('[Employees] Employee updated event received, reloading...')
         if (loadEmployeesRef.current) {
           loadEmployeesRef.current()
         }
@@ -414,7 +416,7 @@ export default function Employees() {
 
   // تم إزالة دوال التعديل السريع
   
-  const logActivity = async (employeeId: string, action: string, changes: any) => {
+  const logActivity = async (employeeId: string, action: string, changes: Record<string, unknown>) => {
     try {
       const employee = employees.find(e => e.id === employeeId)
       await supabase
@@ -430,7 +432,7 @@ export default function Employees() {
           }
         })
     } catch (error) {
-      console.error('Error logging activity:', error)
+      logger.error('Error logging activity:', error)
     }
   }
 
@@ -449,7 +451,7 @@ export default function Employees() {
         .eq('id', employeeToDelete.id)
 
       if (error) {
-        console.error('Delete error:', error)
+        logger.error('Delete error:', error)
         throw error
       }
 
@@ -474,9 +476,10 @@ export default function Employees() {
         setIsCardOpen(false)
         setSelectedEmployee(null)
       }
-    } catch (error: any) {
-      console.error('Error deleting employee:', error)
-      toast.error(error.message || 'فشل في حذف الموظف')
+    } catch (error) {
+      logger.error('Error deleting employee:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل في حذف الموظف'
+      toast.error(errorMessage)
     }
   }
 
@@ -536,7 +539,7 @@ export default function Employees() {
             .in('id', batch)
 
           if (error) {
-            console.error(`Error deleting batch ${currentBatch}/${totalBatches}:`, error)
+            logger.error(`Error deleting batch ${currentBatch}/${totalBatches}:`, error)
             failedBatches.push(...batch)
             continue
           }
@@ -553,14 +556,14 @@ export default function Employees() {
                   employee_name: employee.name,
                   company: employee.company?.name
                 })
-              } catch (logError) {
-                // Continue even if logging fails
-                console.warn('Failed to log activity for employee:', employee.id)
+              } catch {
+                // Continue even if logging fails - error intentionally ignored
+                logger.warn('Failed to log activity for employee:', employee.id)
               }
             }
           }
-        } catch (batchError: any) {
-          console.error(`Error in batch ${currentBatch}/${totalBatches}:`, batchError)
+        } catch (batchError) {
+          logger.error(`Error in batch ${currentBatch}/${totalBatches}:`, batchError)
           failedBatches.push(...batch)
         }
       }
@@ -578,9 +581,10 @@ export default function Employees() {
       await loadEmployees()
       clearSelection()
       setShowBulkDeleteModal(false)
-    } catch (error: any) {
-      console.error('Error bulk deleting employees:', error)
-      toast.error(error.message || 'فشل في حذف الموظفين')
+    } catch (error) {
+      logger.error('Error bulk deleting employees:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل في حذف الموظفين'
+      toast.error(errorMessage)
     } finally {
       setDeletingEmployees(false)
     }
@@ -617,9 +621,10 @@ export default function Employees() {
       await loadEmployees()
       clearSelection()
       setShowBulkResidenceModal(false)
-    } catch (error: any) {
-      console.error('Error bulk updating residence:', error)
-      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء الإقامة')
+    } catch (error) {
+      logger.error('Error bulk updating residence:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء الإقامة'
+      toast.error(errorMessage)
     }
   }
 
@@ -654,9 +659,10 @@ export default function Employees() {
       await loadEmployees()
       clearSelection()
       setShowBulkInsuranceModal(false)
-    } catch (error: any) {
-      console.error('Error bulk updating insurance:', error)
-      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء التأمين')
+    } catch (error) {
+      logger.error('Error bulk updating insurance:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء التأمين'
+      toast.error(errorMessage)
     }
   }
 
@@ -691,9 +697,10 @@ export default function Employees() {
       await loadEmployees()
       clearSelection()
       setShowBulkContractModal(false)
-    } catch (error: any) {
-      console.error('Error bulk updating contract:', error)
-      toast.error(error.message || 'فشل في تحديث تاريخ انتهاء العقد')
+    } catch (error) {
+      logger.error('Error bulk updating contract:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء العقد'
+      toast.error(errorMessage)
     }
   }
 
@@ -751,8 +758,8 @@ export default function Employees() {
 
   // Apply sorting to filtered employees
   const sortedAndFilteredEmployees = [...filteredEmployees].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: string | number
+    let bValue: string | number
 
     switch (sortField) {
       case 'name':

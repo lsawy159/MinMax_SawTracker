@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Building2, Users, Edit2, Trash2, FileText } from 'lucide-react'
 import { 
   calculateCommercialRegistrationStatus, 
@@ -18,10 +19,10 @@ interface CompanyCardProps {
   onDelete: (company: Company) => void
   getAvailableSlotsColor?: (slots: number) => string
   getAvailableSlotsTextColor?: (slots: number) => string
-  getAvailableSlotsText?: (slots: number, maxEmployees: number) => string
+  getAvailableSlotsText?: (slots: number) => string
 }
 
-export default function CompanyCard({ 
+function CompanyCard({ 
   company, 
   onEdit, 
   onDelete,
@@ -59,7 +60,7 @@ export default function CompanyCard({
       {(getAvailableSlotsTextColor && getAvailableSlotsText) && (
         <div 
           className={`absolute top-3 left-3 w-2.5 h-2.5 rounded-full ${getAvailableSlotsTextColor(company.available_slots || 0).replace('text-', 'bg-')}`} 
-          title={getAvailableSlotsText(company.available_slots || 0, company.max_employees || 4)} 
+          title={getAvailableSlotsText(company.available_slots || 0)} 
         />
       )}
       
@@ -126,7 +127,7 @@ export default function CompanyCard({
                 </span>
                 {(company.available_slots || 0) > 0 && (
                   <span className={`text-xs font-medium ${getAvailableSlotsTextColor?.(company.available_slots || 0) || ''}`}>
-                    {getAvailableSlotsText(company.available_slots || 0, company.max_employees || 4)}
+                    {getAvailableSlotsText(company.available_slots || 0)}
                   </span>
                 )}
               </>
@@ -245,3 +246,17 @@ export default function CompanyCard({
     </div>
   )
 }
+
+export default memo(CompanyCard, (prevProps, nextProps) => {
+  // Custom comparison function - مقارنة الحقول المهمة فقط
+  return (
+    prevProps.company.id === nextProps.company.id &&
+    prevProps.company.employee_count === nextProps.company.employee_count &&
+    prevProps.company.available_slots === nextProps.company.available_slots &&
+    prevProps.company.commercial_registration_expiry === nextProps.company.commercial_registration_expiry &&
+    prevProps.company.social_insurance_expiry === nextProps.company.social_insurance_expiry &&
+    prevProps.company.ending_subscription_power_date === nextProps.company.ending_subscription_power_date &&
+    prevProps.company.ending_subscription_moqeem_date === nextProps.company.ending_subscription_moqeem_date &&
+    prevProps.company.notes === nextProps.company.notes
+  )
+})

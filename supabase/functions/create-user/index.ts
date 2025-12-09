@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     // التحقق من عدم وجود مدير آخر (للأمان الإضافي)
-    const { data: existingAdmins, error: adminCheckError } = await supabase
+    const { error: adminCheckError } = await supabase
       .from('users')
       .select('id')
       .eq('role', 'admin')
@@ -155,6 +155,7 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error in create-user function:', error)
     return new Response(

@@ -13,13 +13,7 @@ import {
   DollarSign,
   Users,
   FileText,
-  TrendingUp,
-  MapPin,
-  Phone,
-  Mail,
-  Download,
-  Eye,
-  Filter
+  TrendingUp
 } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'

@@ -9,6 +9,7 @@ import {
   calculateMoqeemSubscriptionStatus
 } from '@/utils/autoCompanyStatus'
 import { normalizeDate } from '@/utils/dateParser'
+import { logger } from '@/utils/logger'
 
 interface CompanyModalProps {
   isOpen: boolean
@@ -39,7 +40,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
   useEffect(() => {
     if (isOpen) {
       if (company) {
-        console.log('📋 تحميل بيانات المؤسسة للتعديل:', {
+        logger.debug('📋 تحميل بيانات المؤسسة للتعديل:', {
           id: company.id,
           name: company.name,
           hasEndingPowerDate: !!company.ending_subscription_power_date,
@@ -62,7 +63,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           notes: company.notes || ''
         })
       } else {
-        console.log('🆕 إعادة تعيين النموذج للإضافة الجديدة')
+        logger.debug('🆕 إعادة تعيين النموذج للإضافة الجديدة')
         setFormData({
           name: '',
           unified_number: '',
@@ -105,7 +106,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     
     // تسجيل التغييرات للمساعدة في تتبع الأخطاء
     if (oldValue !== value) {
-      console.log(`📝 تغيير في الحقل "${name}":`, {
+      logger.debug(`📝 تغيير في الحقل "${name}":`, {
         from: oldValue,
         to: value
       })
@@ -122,7 +123,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
   }
 
   const validateForm = () => {
-    console.log('🔍 بدء التحقق من صحة البيانات:', formData)
+    logger.debug('🔍 بدء التحقق من صحة البيانات:', formData)
     
     // التحقق من الحقول الإجبارية
     if (!formData.name.trim()) {
@@ -194,7 +195,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     }
     
     const today = new Date()
-    const invalidDates = Object.entries(allDates).filter(([name, date]) => {
+    const invalidDates = Object.entries(allDates).filter(([, date]) => {
       if (date && date.trim()) {
         const dateObj = new Date(date.trim())
         return dateObj < new Date(today.getFullYear() - 10, 0, 1) // أقدم من 10 سنوات
@@ -209,7 +210,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       return false
     }
 
-    console.log('✅ تم التحقق من صحة البيانات بنجاح')
+    logger.debug('✅ تم التحقق من صحة البيانات بنجاح')
     return true
   }
 
@@ -221,9 +222,9 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     }
 
     setLoading(true)
-    console.log('🚀 بدء عملية حفظ المؤسسة:', {
-      isEditing,
-      companyId: company?.id,
+      logger.debug('🚀 بدء عملية حفظ المؤسسة:', {
+        isEditing,
+        companyId: company?.id,
       formData
     })
 
@@ -259,7 +260,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         throw new Error('رقم اشتراك التأمينات مطلوب')
       })()
 
-      const companyData: any = {
+      const companyData: Record<string, unknown> = {
         name: formData.name.trim() || null,
         unified_number: unifiedNumber,
         social_insurance_number: formData.social_insurance_number.trim() || null,
@@ -287,13 +288,13 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         }
       })
 
-      console.log('📊 البيانات المحضرة للحفظ:', companyData)
+      logger.debug('📊 البيانات المحضرة للحفظ:', companyData)
 
       let error
       let result
 
       if (isEditing && company) {
-        console.log('🔄 تحديث مؤسسة موجودة:', company.id)
+        logger.debug('🔄 تحديث مؤسسة موجودة:', company.id)
         result = await supabase
           .from('companies')
           .update(companyData)
@@ -301,7 +302,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         error = result.error
 
         if (!error) {
-          console.log('✅ تم تحديث المؤسسة بنجاح')
+          logger.debug('✅ تم تحديث المؤسسة بنجاح')
           await supabase.from('activity_log').insert({
             action: 'تعديل مؤسسة',
             entity_type: 'company',
@@ -310,14 +311,14 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           })
         }
       } else {
-        console.log('➕ إضافة مؤسسة جديدة')
+        logger.debug('➕ إضافة مؤسسة جديدة')
         result = await supabase
           .from('companies')
           .insert([companyData])
         error = result.error
 
         if (!error) {
-          console.log('✅ تم إضافة المؤسسة بنجاح')
+          logger.debug('✅ تم إضافة المؤسسة بنجاح')
           await supabase.from('activity_log').insert({
             action: 'إضافة مؤسسة جديدة',
             entity_type: 'company',
@@ -354,7 +355,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         throw new Error(errorMessage)
       }
 
-      console.log('🎉 تمت العملية بنجاح')
+      logger.debug('🎉 تمت العملية بنجاح')
       
       // معلومات إضافية عن البيانات المحفوظة
       const successInfo = {
@@ -372,7 +373,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         )
       }
       
-      console.log('📋 ملخص البيانات المحفوظة:', successInfo)
+      logger.debug('📋 ملخص البيانات المحفوظة:', successInfo)
       
       // إظهار رسائل تفصيلية للمستخدم
       if (isEditing) {
@@ -392,11 +393,11 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         // حتى لو فشل onSuccess، نغلق المودال
         onClose()
       }
-    } catch (error: any) {
-      const errorMsg = error.message || `حدث خطأ غير متوقع أثناء ${isEditing ? 'تحديث' : 'إضافة'} المؤسسة`
+    } catch (error: unknown) {
+      const errorMsg = (error instanceof Error ? error.message : String(error)) || `حدث خطأ غير متوقع أثناء ${isEditing ? 'تحديث' : 'إضافة'} المؤسسة`
       console.error('💥 خطأ في حفظ المؤسسة:', {
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         formData,
         isEditing,
         companyId: company?.id
@@ -406,14 +407,14 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       // setLoading(false) في finally سيتولى إيقاف حالة التحميل
     } finally {
       setLoading(false)
-      console.log('🏁 انتهت عملية حفظ المؤسسة')
+      logger.debug('🏁 انتهت عملية حفظ المؤسسة')
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">

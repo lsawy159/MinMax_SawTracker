@@ -5,7 +5,7 @@ import ProjectModal from '@/components/projects/ProjectModal'
 import ProjectCard from '@/components/projects/ProjectCard'
 import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
 import ProjectStatistics from '@/components/projects/ProjectStatistics'
-import { FolderKanban, Plus, Search, Edit2, Trash2, Shield } from 'lucide-react'
+import { FolderKanban, Plus, Search, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 
@@ -15,7 +15,7 @@ type ProjectStatus = 'all' | 'active' | 'inactive' | 'completed'
 type ActiveTab = 'list' | 'statistics'
 
 export default function Projects() {
-  const { canView, canCreate, canEdit, canDelete } = usePermissions()
+  const { canView, canCreate } = usePermissions()
   const [projects, setProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [filteredProjects, setFilteredProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,7 +69,7 @@ export default function Projects() {
       })
 
       setProjects(projectsWithStats)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading projects:', error)
       toast.error('حدث خطأ أثناء تحميل المشاريع')
     } finally {
@@ -189,9 +189,10 @@ export default function Projects() {
       loadProjects()
       setShowDeleteModal(false)
       setSelectedProject(null)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting project:', error)
-      toast.error(error?.message || 'حدث خطأ أثناء حذف المشروع')
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حذف المشروع'
+      toast.error(errorMessage)
     }
   }
 

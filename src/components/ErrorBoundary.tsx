@@ -1,16 +1,9 @@
 // Import React directly to ensure consistent React instance
 import React, { type ErrorInfo } from 'react';
 
-const serializeError = (error: any) => {
-  if (error instanceof Error) {
-    return error.message + '\n' + error.stack;
-  }
-  return JSON.stringify(error, null, 2);
-};
-
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: any;
+  error: Error | null;
   errorInfo: ErrorInfo | null;
 }
 
@@ -23,7 +16,7 @@ export class ErrorBoundary extends React.Component<
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error, errorInfo: null };
   }
 

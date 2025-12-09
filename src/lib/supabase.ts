@@ -36,7 +36,7 @@ export interface Company {
   social_insurance_number?: string  // رقم اشتراك التأمينات الاجتماعية
   social_insurance_status?: string  // بدلاً من insurance_subscription_status
   commercial_registration_status?: string
-  additional_fields?: Record<string, any>
+  additional_fields?: Record<string, unknown>
   // حقول انتهاء الاشتراكات الجديدة
   ending_subscription_power_date?: string
   ending_subscription_moqeem_date?: string
@@ -86,7 +86,7 @@ export interface Employee {
   salary?: number
   // حقل الملاحظات
   notes?: string
-  additional_fields?: Record<string, any>  // للحقول المخصصة من قاعدة البيانات فقط
+  additional_fields?: Record<string, unknown>  // للحقول المخصصة من قاعدة البيانات فقط
   created_at: string
   updated_at: string
 }
@@ -96,7 +96,7 @@ export interface User {
   email: string
   full_name: string
   role: 'admin' | 'user'
-  permissions: Record<string, any>
+  permissions: Record<string, unknown>
   is_active: boolean
   created_at: string
   last_login?: string
@@ -108,7 +108,7 @@ export interface CustomField {
   field_name: string
   field_label: string
   field_type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea'
-  field_options: Record<string, any>
+  field_options: Record<string, string | number | boolean | string[] | { label: string; value: string | number }[]>
   is_required: boolean
   is_active: boolean
   display_order: number
@@ -139,15 +139,15 @@ export interface ActivityLog {
   action: string
   entity_type?: string
   entity_id?: string | number // يمكن أن يكون UUID (string) أو number
-  details: Record<string, any>
+  details: Record<string, unknown>
   ip_address?: string
   user_agent?: string
   session_id?: string
   operation?: string
   operation_status?: string
   affected_rows?: number
-  old_data?: Record<string, any>
-  new_data?: Record<string, any>
+  old_data?: Record<string, unknown>
+  new_data?: Record<string, unknown>
   created_at: string
 }
 

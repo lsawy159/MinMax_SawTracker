@@ -1,5 +1,6 @@
 import { Employee, Company } from '../lib/supabase'
 import { supabase } from '../lib/supabase'
+import { logger } from './logger'
 
 export interface EmployeeAlert {
   id: string
@@ -27,8 +28,12 @@ export interface EmployeeAlert {
 
 /**
  * Generate alerts for employee document expirations
+ * @param employees - List of employees to check
+ * @param companies - Reserved for future use: company data for enrichment
  */
 export async function generateEmployeeAlerts(employees: Employee[], companies: Company[]): Promise<EmployeeAlert[]> {
+  // Reserved for future use: companies parameter for future enrichment features
+  void companies
   const alerts: EmployeeAlert[] = []
   
   for (const employee of employees) {
@@ -113,7 +118,7 @@ async function getEmployeeNotificationThresholds() {
       .maybeSingle()
 
     if (error || !data || !data.setting_value) {
-      console.log('Using default employee notification thresholds')
+      logger.debug('Using default employee notification thresholds')
       // Cache the defaults
       employeeThresholdsCache = DEFAULT_EMPLOYEE_THRESHOLDS
       employeeCacheTimestamp = now

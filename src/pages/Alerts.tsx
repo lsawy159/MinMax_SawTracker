@@ -4,20 +4,16 @@ import { AlertCard, Alert } from '@/components/alerts/AlertCard'
 import { EmployeeAlertCard, EmployeeAlert } from '@/components/alerts/EmployeeAlertCard'
 import { 
   generateCompanyAlertsSync,
-  getAlertsStats, 
-  getUrgentAlerts, 
-  filterAlertsByType,
+  getAlertsStats,
   filterAlertsByPriority
 } from '@/utils/alerts'
 import { 
   generateEmployeeAlerts, 
   enrichEmployeeAlertsWithCompanyData,
   getEmployeeAlertsStats,
-  getUrgentEmployeeAlerts,
-  filterEmployeeAlertsByType,
   filterEmployeeAlertsByPriority
 } from '@/utils/employeeAlerts'
-import { Bell, Filter, Search, AlertTriangle, Building2, Users, Calendar, Clock, X, CheckCircle2, Mail } from 'lucide-react'
+import { Bell, Search, AlertTriangle, Building2, Users, X, CheckCircle2, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import CompanyCard from '@/components/companies/CompanyCard'
@@ -32,6 +28,8 @@ interface AlertsProps {
 
 export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: AlertsProps) {
   const { canView } = usePermissions()
+  // Reserved for future use: employees state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
@@ -130,6 +128,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     }
   }
 
+  // Reserved for future use: handleViewCompany function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleViewCompany = (companyId: string) => {
     navigate(`/companies?id=${companyId}`)
   }
@@ -578,7 +578,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               {/* فلتر الأولوية */}
               <select
                 value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value as any)}
+                onChange={(e) => setActiveFilter(e.target.value as 'all' | 'urgent' | 'high' | 'medium' | 'low')}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">جميع الأولويات (طارئ وعاجل)</option>
@@ -658,7 +658,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   <AlertCard
                     key={alert.id}
                     alert={alert}
-                    onViewCompany={handleViewCompany}
                     onShowCompanyCard={handleShowCompanyCard}
                     onMarkAsRead={handleMarkAsRead}
                     onMarkAsUnread={handleMarkAsUnread}
@@ -746,7 +745,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 onDelete={() => {}} // يمكن إضافة وظيفة حذف إذا لزم الأمر
                 getAvailableSlotsColor={(slots) => slots > 0 ? 'text-green-600' : 'text-red-600'}
                 getAvailableSlotsTextColor={(slots) => slots > 0 ? 'text-green-600' : 'text-red-600'}
-                getAvailableSlotsText={(slots, maxEmployees) => `متاح: ${slots} من ${maxEmployees}`}
+                getAvailableSlotsText={(slots) => `متاح: ${slots} أماكن`}
               />
             </div>
           </div>

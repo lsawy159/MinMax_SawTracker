@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react'
 import { supabase, User } from '../lib/supabase'
 import { Session, AuthError } from '@supabase/supabase-js'
+import { logger } from '../utils/logger'
 
 // واجهة موسعة للمصادقة
 export interface AuthContextType {
@@ -46,12 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   /**
    * إنشاء جلسة في جدول user_sessions
-   * يتم استدعاؤها تلقائياً بعد تسجيل الدخول الناجح
+   * يتم استدعاؤها فقط من دالة signIn عند تسجيل الدخول اليدوي
+   * تسجل نشاط الدخول في activity_log عند إنشاء جلسة جديدة
    */
   const createUserSession = useCallback(async (userId: string, session: Session) => {
     // منع الاستدعاءات المتزامنة
     if (creatingSessionRef.current) {
-      console.log('[Auth] Session creation already in progress, skipping duplicate call')
+      logger.debug('[Auth] Session creation already in progress, skipping duplicate call')
       return
     }
 
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // إذا كانت هناك جلسة نشطة، لا ننشئ جلسة جديدة (تجنب التكرار)
       if (existingSessions && existingSessions.length > 0) {
-        console.log('[Auth] Active session already exists for user, skipping creation')
+        logger.debug('[Auth] Active session already exists for user, skipping creation')
         creatingSessionRef.current = false
         return
       }
@@ -96,21 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         created_at: new Date().toISOString()
       }
 
-      // الحصول على عنوان IP العام (من خدمة مجانية)
-      let clientIP = null
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json', {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        })
-        if (ipResponse.ok) {
-          const ipData = await ipResponse.json()
-          clientIP = ipData.ip || null
-        }
-      } catch (ipError) {
-        // تجاهل الأخطاء - IP ليس حرجاً
-        console.warn('[Auth] Failed to fetch IP address (non-critical):', ipError)
-      }
+      // الحصول على عنوان IP (اختياري - يمكن الحصول عليه من Edge Function headers)
+      // لا نستخدم خدمات خارجية لأسباب الأمان والخصوصية
+      const clientIP: string | null = null
+      // في Edge Function، يمكن الحصول على IP من headers:
+      // request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
+      // هنا في Frontend، نتركه null - يمكن ملؤه من Edge Function إذا لزم الأمر
 
       // إنشاء الجلسة في قاعدة البيانات
       const { error: sessionError } = await supabase
@@ -130,17 +123,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (sessionError) {
         // إذا كان الخطأ بسبب عدم وجود الجدول، نتجاهله بهدوء
         if (sessionError.message?.includes('not found') || sessionError.message?.includes('schema cache')) {
-          console.warn('[Auth] user_sessions table not found, skipping session creation')
+          logger.warn('[Auth] user_sessions table not found, skipping session creation')
           return
         }
-        console.error('[Auth] Error creating user session:', sessionError)
+        logger.error('[Auth] Error creating user session:', sessionError)
         // لا نرمي الخطأ هنا لأن إنشاء الجلسة ليس حرجاً لعملية تسجيل الدخول
       } else {
-        console.log('[Auth] User session created successfully')
+        logger.debug('[Auth] User session created successfully')
+        
+        // تسجيل نشاط الدخول في activity_log فقط عند إنشاء جلسة جديدة
+        void Promise.resolve(supabase
+          .from('activity_log')
+          .insert({
+            user_id: userId,
+            action: 'login',
+            entity_type: 'user',
+            entity_id: userId,
+            operation: 'login',
+            details: {
+              email: session.user.email,
+              timestamp: new Date().toISOString(),
+              session_created: true
+            },
+            ip_address: null, // سيتم ملؤه من Edge Function إذا كان متاحاً
+            user_agent: userAgent,
+            operation_status: 'success',
+            affected_rows: 1,
+            created_at: new Date().toISOString()
+          }))
+          .then(({ error }) => {
+            if (error) {
+              logger.warn('[Auth] Failed to log login activity:', error)
+            } else {
+              logger.debug('[Auth] Login activity logged successfully')
+            }
+          })
+          .catch(err => {
+            logger.warn('[Auth] Error logging login activity:', err)
+          })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // تجاهل الأخطاء بهدوء - إنشاء الجلسة ليس حرجاً
-      console.warn('[Auth] Failed to create user session (non-critical):', error?.message || error)
+      logger.warn('[Auth] Failed to create user session (non-critical):', error instanceof Error ? error.message : String(error))
     } finally {
       // إعادة تعيين الـ ref بعد انتهاء العملية
       creatingSessionRef.current = false
@@ -167,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initialSessionCheckedRef.current = true
       
       if (sessionError) {
-        console.error('[Auth] Error getting initial session:', sessionError)
+        logger.error('[Auth] Error getting initial session:', sessionError)
         setError(sessionError.message)
         setLoading(false)
         loadingRef.current = false
@@ -175,19 +199,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (initialSession) {
-        console.log('[Auth] Initial session found:', initialSession.user.id)
+        logger.debug('[Auth] Initial session found:', initialSession.user.id)
         setSession(initialSession)
         // لا نقم بجلب بيانات المستخدم هنا، authStateChange سيتولى الأمر
       } else {
         // لا يوجد مستخدم، توقف عن التحميل
-        console.log('[Auth] No initial session found')
+        logger.debug('[Auth] No initial session found')
         setLoading(false)
         loadingRef.current = false
       }
     }).catch(err => {
       if (mountedRef.current) {
         initialSessionCheckedRef.current = true
-        console.error('[Auth] Critical error during getSession:', err)
+        logger.error('[Auth] Critical error during getSession:', err)
         setError(err.message || 'Error loading session')
         setLoading(false)
         loadingRef.current = false
@@ -197,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // تعيين مؤقت للتحميل الأقصى
     loadingTimeout = setTimeout(() => {
       if (mountedRef.current && loadingRef.current) {
-        console.warn('[Auth] Auth loading timed out after 5s.')
+        logger.warn('[Auth] Auth loading timed out after 5s.')
         setLoading(false)
         loadingRef.current = false
       }
@@ -208,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, newSession) => {
         if (!mountedRef.current) return
         
-        console.log(`[Auth] Auth state changed: ${event}`, { 
+        logger.debug(`[Auth] Auth state changed: ${event}`, { 
           hasSession: !!newSession, 
           userId: newSession?.user?.id 
         })
@@ -239,58 +263,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // بيانات المستخدم يتم جلبها الآن عبر useEffect [session]
             // لا نوقف loading هنا، بل ننتظر fetchUserData
             
-            // تحديث last_login عند تسجيل الدخول (فقط عند SIGNED_IN)
+            // ملاحظة: تسجيل نشاط الدخول وإنشاء الجلسة يتم الآن فقط في دالة signIn
+            // هذا يضمن عدم تسجيل نشاط دخول عند refresh أو استعادة الجلسة
+            // عند حدث SIGNED_IN من refresh، لا نقوم بأي شيء لأن الجلسة تم إنشاؤها بالفعل في signIn
             if (event === 'SIGNED_IN') {
-              // تحديث last_login في جدول users
-              void               void Promise.resolve(supabase
-                .from('users')
-                .update({ last_login: new Date().toISOString() })
-                .eq('id', newSession.user.id))
-                .then(({ error }) => {
-                  if (error) {
-                    console.warn('[Auth] Failed to update last_login:', error)
-                  } else {
-                    console.log('[Auth] last_login updated successfully')
-                  }
-                })
-                .catch(err => {
-                  console.warn('[Auth] Error updating last_login:', err)
-                })
-              
-              // إنشاء جلسة في user_sessions
-              createUserSession(newSession.user.id, newSession).catch(err => {
-                console.warn('[Auth] Failed to create session (non-critical):', err)
-              })
-
-              // تسجيل تسجيل الدخول في activity_log
-              void Promise.resolve(supabase
-                .from('activity_log')
-                .insert({
-                  user_id: newSession.user.id,
-                  action: 'login',
-                  entity_type: 'user',
-                  entity_id: newSession.user.id,
-                  operation: 'login',
-                  details: {
-                    email: newSession.user.email,
-                    timestamp: new Date().toISOString()
-                  },
-                  ip_address: null, // سيتم ملؤه من Edge Function إذا كان متاحاً
-                  user_agent: navigator.userAgent,
-                  operation_status: 'success',
-                  affected_rows: 1,
-                  created_at: new Date().toISOString()
-                }))
-                .then(({ error }) => {
-                  if (error) {
-                    console.warn('[Auth] Failed to log login activity:', error)
-                  } else {
-                    console.log('[Auth] Login activity logged successfully')
-                  }
-                })
-                .catch(err => {
-                  console.warn('[Auth] Error logging login activity:', err)
-                })
+              logger.debug('[Auth] SIGNED_IN event detected (may be from refresh or manual login)')
+              // لا نقوم بأي شيء هنا - الجلسة ونشاط الدخول تم إنشاؤهما في signIn عند تسجيل الدخول اليدوي
             }
           } else {
             setLoading(false)
@@ -305,51 +283,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           // إذا كان هناك session، نترك loading كما هو حتى يكتمل fetchUserData
           
-          // تحديث last_login للجلسة الأولية (فقط إذا لم يتم التحقق من قبل)
-          // إنشاء جلسة في user_sessions للجلسة الأولية (فقط إذا لم تكن موجودة)
-          // لا حاجة للتحقق هنا لأن createUserSession تتحقق من ذلك داخلياً
+          // ملاحظة: لا نقوم بإنشاء جلسة أو تسجيل نشاط دخول هنا
+          // INITIAL_SESSION يحدث عند refresh أو استعادة الجلسة، وليس عند تسجيل دخول يدوي
+          // تسجيل نشاط الدخول يتم فقط في دالة signIn عند تسجيل الدخول اليدوي
           if (newSession && !initialSessionCheckedRef.current) {
             initialSessionCheckedRef.current = true
-            
-            // تحديث last_login للجلسة الأولية (إذا لم يتم تحديثه مؤخراً)
-            // نتحقق من أن last_login ليس حديثاً (أقل من دقيقة) لتجنب التحديث المتكرر
-            void Promise.resolve(supabase
-              .from('users')
-              .select('last_login')
-              .eq('id', newSession.user.id)
-              .single())
-              .then(({ data: userData }) => {
-                if (userData) {
-                  const lastLogin = userData.last_login ? new Date(userData.last_login) : null
-                  const now = new Date()
-                  const minutesSinceLastLogin = lastLogin ? (now.getTime() - lastLogin.getTime()) / (1000 * 60) : Infinity
-                  
-                  // تحديث فقط إذا كان last_login قديم (أكثر من 5 دقائق) أو غير موجود
-                  if (!lastLogin || minutesSinceLastLogin > 5) {
-                    void Promise.resolve(supabase
-                      .from('users')
-                      .update({ last_login: now.toISOString() })
-                      .eq('id', newSession.user.id))
-                      .then(({ error }) => {
-                        if (error) {
-                          console.warn('[Auth] Failed to update last_login for initial session:', error)
-                        } else {
-                          console.log('[Auth] last_login updated for initial session')
-                        }
-                      })
-                      .catch(err => {
-                        console.warn('[Auth] Error updating last_login for initial session:', err)
-                      })
-                  }
-                }
-              })
-              .catch(err => {
-                console.warn('[Auth] Error checking/updating last_login for initial session:', err)
-              })
-            
-            createUserSession(newSession.user.id, newSession).catch(err => {
-              console.warn('[Auth] Failed to create session (non-critical):', err)
-            })
+            logger.debug('[Auth] INITIAL_SESSION detected (likely from refresh), skipping session creation and login activity logging')
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
@@ -367,7 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // دالة Clean-up
     return () => {
-      console.log('[Auth] Unmounting AuthProvider')
+      logger.debug('[Auth] Unmounting AuthProvider')
       mountedRef.current = false
       authListener?.subscription?.unsubscribe()
       if (loadingTimeout) {
@@ -391,7 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // التحقق من أن fetchUserData لا يزال قيد التنفيذ لنفس المستخدم
     if (fetchingRef.current && currentFetchingUserIdRef.current === currentUserId) {
-      console.log('[Auth] Skipping fetchUserData, already in progress for this user')
+      logger.debug('[Auth] Skipping fetchUserData, already in progress for this user')
       return
     }
     
@@ -401,13 +340,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // التحقق من أن المستخدم لم يتغير (إذا كان هناك user محمل بالفعل)
     // هذا يمنع جلب بيانات المستخدم إذا كان المستخدم مختلف
     if (loadedUser && loadedUser.id === currentUserId) {
-      console.log('[Auth] User data already loaded, skipping fetchUserData')
+      logger.debug('[Auth] User data already loaded, skipping fetchUserData')
       setLoading(false)
       loadingRef.current = false
       return
     }
     
-    console.log(`[Auth] Fetching user data for user ID: ${currentUserId}`)
+    logger.debug(`[Auth] Fetching user data for user ID: ${currentUserId}`)
     fetchingRef.current = true
     currentFetchingUserIdRef.current = currentUserId // حفظ معرف المستخدم الحالي
 
@@ -422,12 +361,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // التحقق من أن المستخدم لم يتغير أثناء التنفيذ
       if (currentFetchingUserIdRef.current !== currentUserId) {
-        console.log('[Auth] User changed during fetch, aborting')
+        logger.debug('[Auth] User changed during fetch, aborting')
         return
       }
       
       if (userError) {
-        console.error('[Auth] Error fetching user data:', userError)
+        logger.error('[Auth] Error fetching user data:', userError)
         setError(userError.message)
         // إذا فشل جلب بيانات المستخدم، قم بتسجيل الخروج
         // هذا يمنع بقاء المستخدم مسجلاً بجلسة auth ولكن بدون بيانات user
@@ -435,20 +374,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setSession(null)
       } else if (userData) {
-        console.log('[Auth] User data fetched successfully:', userData.email, 'Role:', userData.role)
+        logger.debug('[Auth] User data fetched successfully:', userData.email, 'Role:', userData.role)
         setUser(userData)
         setError(null) // مسح أي أخطاء سابقة
       } else {
-        console.warn('[Auth] User session exists but no user data found in "users" table.')
+        logger.warn('[Auth] User session exists but no user data found in "users" table.')
         setError('User profile not found. Contacting support.')
         await supabase.auth.signOut()
         setUser(null)
         setSession(null)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (mountedRef.current) {
-        console.error('[Auth] Critical error in fetchUserData:', err)
-        setError(err.message || 'Failed to fetch user data')
+        logger.error('[Auth] Critical error in fetchUserData:', err)
+        setError((err instanceof Error ? err.message : String(err)) || 'Failed to fetch user data')
         setUser(null)
       }
     } finally {
@@ -465,7 +404,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // التحقق من أن fetchUserData لا يزال قيد التنفيذ قبل الاستدعاء
     if (fetchingRef.current) {
-      console.log('[Auth] useEffect: fetchUserData already in progress, skipping')
+      logger.debug('[Auth] useEffect: fetchUserData already in progress, skipping')
       return
     }
     
@@ -475,17 +414,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // لدينا جلسة - تحقق من الحاجة إلى جلب بيانات المستخدم
       if (!loadedUser || session.user.id !== loadedUser.id) {
         // بيانات المستخدم غير متطابقة أو غير موجودة - جلب البيانات
-        console.log('[Auth] useEffect: Session exists but user data missing or different, fetching...')
+        logger.debug('[Auth] useEffect: Session exists but user data missing or different, fetching...')
         fetchUserData(session)
       } else {
         // بيانات المستخدم موجودة ومتطابقة - لا حاجة للجلب
-        console.log('[Auth] useEffect: User data already loaded and matches session')
+        logger.debug('[Auth] useEffect: User data already loaded and matches session')
         setLoading(false)
         loadingRef.current = false
       }
     } else {
       // لا توجد جلسة
-      console.log('[Auth] useEffect: No session, clearing user')
+      logger.debug('[Auth] useEffect: No session, clearing user')
       setUser(null)
       // لا نوقف loading إلا إذا كان getSession() قد اكتمل
       // هذا يمنع redirect غير مرغوب عند refresh
@@ -504,23 +443,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // لا نعين fetchingRef هنا لأن onAuthStateChange سيتولى استدعاء fetchUserData
     
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        console.error('[Auth] Sign in error:', signInError)
+        logger.error('[Auth] Sign in error:', signInError)
         throw signInError
       }
       
-      // onAuthStateChange سيتولى الباقي (تحديث الجلسة وجلب بيانات المستخدم وإنشاء الجلسة)
-      // سيتم إعادة تعيين fetchingRef.current = false في onAuthStateChange عند SIGNED_IN
-      console.log('[Auth] Sign in successful, waiting for auth state change...')
+      // بعد نجاح تسجيل الدخول، إنشاء الجلسة وتسجيل نشاط الدخول مباشرة
+      // هذا يضمن تسجيل نشاط الدخول فقط عند تسجيل الدخول اليدوي وليس عند refresh
+      if (signInData?.session) {
+        logger.debug('[Auth] Sign in successful, creating session and logging login activity...')
+        
+        // تحديث last_login
+        void Promise.resolve(supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', signInData.session.user.id))
+          .then(({ error }) => {
+            if (error) {
+              logger.warn('[Auth] Failed to update last_login:', error)
+            } else {
+              logger.debug('[Auth] last_login updated successfully')
+            }
+          })
+          .catch(err => {
+            logger.warn('[Auth] Error updating last_login:', err)
+          })
+        
+        // إنشاء الجلسة وتسجيل نشاط الدخول
+        // ملاحظة: createUserSession تسجل نشاط الدخول داخلياً عند إنشاء جلسة جديدة
+        await createUserSession(signInData.session.user.id, signInData.session).catch(err => {
+          logger.warn('[Auth] Failed to create session (non-critical):', err)
+        })
+      }
       
-      // لا حاجة لاستدعاء createUserSession هنا لأن onAuthStateChange يتولى ذلك عند SIGNED_IN event
+      // onAuthStateChange سيتولى تحديث الجلسة وجلب بيانات المستخدم
+      logger.debug('[Auth] Sign in successful, waiting for auth state change...')
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (mountedRef.current) {
         let errorMessage = 'An error occurred during sign in.'
         if (err instanceof AuthError) {
@@ -532,14 +496,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             errorMessage = err.message
           }
         }
-        console.error('[Auth] Sign in catch block:', errorMessage)
+        logger.error('[Auth] Sign in catch block:', errorMessage)
         setError(errorMessage)
         setLoading(false) // توقف التحميل عند الخطأ
         fetchingRef.current = false
       }
     }
     // ملاحظة: لا نقم بتعيين setLoading(false) عند النجاح، لأننا ننتظر fetchUserData
-  }, [])
+  }, [createUserSession])
 
   /**
    * إنهاء جميع الجلسات النشطة للمستخدم عند تسجيل الخروج
@@ -552,11 +516,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .eq('is_active', true)
       
-      console.log('[Auth] User sessions terminated')
-    } catch (error: any) {
+      logger.debug('[Auth] User sessions terminated')
+    } catch (error: unknown) {
       // تجاهل الأخطاء بهدوء - إنهاء الجلسات ليس حرجاً
-      if (!error?.message?.includes('not found') && !error?.message?.includes('schema cache')) {
-        console.warn('[Auth] Failed to terminate user sessions (non-critical):', error?.message || error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (!errorMessage.includes('not found') && !errorMessage.includes('schema cache')) {
+        logger.warn('[Auth] Failed to terminate user sessions (non-critical):', errorMessage)
       }
     }
   }, [])
@@ -577,10 +542,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // onAuthStateChange سيتولى الباقي
       setUser(null)
       setSession(null)
-      console.log('[Auth] Sign out successful.')
-    } catch (err: any) {
-      console.error('[Auth] Sign out error:', err)
-      setError(err.message || 'Failed to sign out')
+      logger.debug('[Auth] Sign out successful.')
+    } catch (err: unknown) {
+      logger.error('[Auth] Sign out error:', err)
+      setError((err instanceof Error ? err.message : String(err)) || 'Failed to sign out')
     } finally {
       if (mountedRef.current) {
         setLoading(false) // دائماً أوقف التحميل بعد تسجيل الخروج
@@ -590,7 +555,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUserData = useCallback(async () => {
     if (!session) {
-      console.log('[Auth] No session, skipping user refresh.')
+      logger.debug('[Auth] No session, skipping user refresh.')
       return
     }
     
@@ -632,7 +597,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const criticalTimeout = setTimeout(() => {
       if (mountedRef.current && loadingRef.current) {
-        console.error('[Auth] CRITICAL: Auth loading forced to false after 10s.')
+        logger.error('[Auth] CRITICAL: Auth loading forced to false after 10s.')
         setLoading(false)
         loadingRef.current = false
         if (!session) {
@@ -645,112 +610,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // -----------------------------------------------------------------
-  // (هذا هو الكود المعلق الأصلي الموجود في ملفك - تم الإبقاء عليه)
-  // -----------------------------------------------------------------
-  // useEffect(() => {
-  //   mountedRef.current = true
-  //   let loadingTimeout: NodeJS.Timeout | null = null
-
-  //   const fetchInitialSession = async () => {
-  //     console.log('[Auth] 1. Starting fetchInitialSession')
-  //     try {
-  //       // Set loading timeout
-  //       loadingTimeout = setTimeout(() => {
-  //         if (mountedRef.current && loadingRef.current) {
-  //           console.warn('[Auth] Auth loading timed out after 5s.')
-  //           setError('Authentication timeout. Please refresh.')
-  //           setLoading(false)
-  //           loadingRef.current = false
-  //         }
-  //       }, 5000)
-
-  //       // 1. Get session from Supabase
-  //       const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
-  //       if (!mountedRef.current) return
-  //       console.log('[Auth] 2. Got initial session:', !!initialSession)
-
-  //       if (sessionError) {
-  //         throw new AuthError(sessionError.message, sessionError.status)
-  //       }
-        
-  //       if (initialSession) {
-  //         // 3. Set session and fetch user data
-  //         setSession(initialSession)
-  //         await fetchUserData(initialSession)
-  //       } else {
-  //         // 3b. No session, stop loading
-  //         setLoading(false)
-  //         loadingRef.current = false
-  //       }
-  //     } catch (err: any) {
-  //       if (mountedRef.current) {
-  //         console.error('[Auth] Error in fetchInitialSession:', err)
-  //         setError(err.message || 'Error loading session')
-  //         setUser(null)
-  //         setSession(null)
-  //         setLoading(false)
-  //         loadingRef.current = false
-  //       }
-  //     } finally {
-  //       if (loadingTimeout) {
-  //         clearTimeout(loadingTimeout)
-  //       }
-  //     }
-  //   }
-    
-  //   fetchInitialSession()
-
-  //   // 2. Listen for auth state changes
-  //   const { data: authListener } = supabase.auth.onAuthStateChange(
-  //     async (event, newSession) => {
-  //       if (!mountedRef.current) return
-        
-  //       console.log(`[Auth] Auth state changed: ${event}`, { 
-  //         hasSession: !!newSession, 
-  //         userId: newSession?.user?.id 
-  //       })
-
-  //       if (event === 'INITIAL_SESSION') {
-  //         // Already handled by getSession()
-  //         return
-  //       }
-
-  //       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-  //         if (newSession) {
-  //           setSession(newSession)
-  //           // Fetch user data only if user is different or not set
-  //           if (!user || user.id !== newSession.user.id) {
-  //             await fetchUserData(newSession)
-  //           } else {
-  //             // Stop loading if user is already correct
-  //             setLoading(false)
-  //             loadingRef.current = false
-  //           }
-  //         }
-  //       } else if (event === 'SIGNED_OUT') {
-  //         setUser(null)
-  //         setSession(null)
-  //         setError(null)
-  //         setLoading(false)
-  //         loadingRef.current = false
-  //       }
-  //     }
-  //   )
-
-  //   // Clean-up
-  //   return () => {
-  //     console.log('[Auth] Unmounting AuthProvider')
-  //     mountedRef.current = false
-  //     authListener?.subscription?.unsubscribe()
-  //     if (loadingTimeout) {
-  //       clearTimeout(loadingTimeout)
-  //     }
-  //   }
-  // }, [fetchUserData, user]) // [FIX] Added fetchUserData and user
-  // -----------------------------------------------------------------
-  // (نهاية الكود المعلق الأصلي)
-  // -----------------------------------------------------------------
 
 
   return (

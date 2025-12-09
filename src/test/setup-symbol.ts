@@ -21,11 +21,11 @@
         enumerable: false,
         configurable: true,
       })
-    } catch (e) {
+    } catch {
       // Fallback if defineProperty fails
       try {
-        (global as any).Symbol = Symbol
-      } catch (e2) {
+        (global as unknown as Record<string, unknown>).Symbol = Symbol
+      } catch {
         // Ignore
       }
     }
@@ -40,10 +40,10 @@
         enumerable: false,
         configurable: true,
       })
-    } catch (e) {
+    } catch {
       try {
-        (globalThis as any).Symbol = Symbol
-      } catch (e2) {
+        (globalThis as unknown as Record<string, unknown>).Symbol = Symbol
+      } catch {
         // Ignore
       }
     }
@@ -58,17 +58,17 @@
         enumerable: false,
         configurable: true,
       })
-    } catch (e) {
+    } catch {
       try {
-        (window as any).Symbol = Symbol
-      } catch (e2) {
+        (window as unknown as Record<string, unknown>).Symbol = Symbol
+      } catch {
         // Ignore
       }
     }
   }
   
   // Ensure global.globalThis exists (for older Node.js)
-  if (typeof global !== 'undefined' && typeof (global as any).globalThis === 'undefined') {
+  if (typeof global !== 'undefined' && typeof (global as unknown as Record<string, unknown>).globalThis === 'undefined') {
     try {
       Object.defineProperty(global, 'globalThis', {
         value: global,
@@ -76,10 +76,10 @@
         enumerable: false,
         configurable: true,
       })
-    } catch (e) {
+    } catch {
       try {
-        (global as any).globalThis = global
-      } catch (e2) {
+        (global as unknown as Record<string, unknown>).globalThis = global
+      } catch {
         // Ignore
       }
     }
