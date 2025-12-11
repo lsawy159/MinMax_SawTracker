@@ -25,8 +25,6 @@ const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const SecurityManagement = lazy(() => import('./pages/SecurityManagement'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
-const EnhancedAlertsTestPage = lazy(() => import('./pages/EnhancedAlertsTestPage'))
-const CommercialRegTestPage = lazy(() => import('./pages/CommercialRegTestPage'))
 
 // Loading fallback component
 function PageLoader() {
@@ -196,20 +194,6 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <Navigate to="/admin-settings" replace />
-            </Suspense>
-          </ProtectedRoute>
-        } />
-        <Route path="/enhanced-alerts-test" element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <EnhancedAlertsTestPage />
-            </Suspense>
-          </ProtectedRoute>
-        } />
-        <Route path="/commercial-reg-test" element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <CommercialRegTestPage />
             </Suspense>
           </ProtectedRoute>
         } />
