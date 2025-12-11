@@ -90,45 +90,45 @@ describe('autoCompanyStatus utils', () => {
       
       expect(result.status).toBe('منتهي')
       expect(result.daysRemaining).toBeLessThan(0)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.description).toContain('منذ')
       expect(result.color.backgroundColor).toBe('bg-red-50')
     })
 
-    it('should return "حرج" status for 0 days remaining (today)', () => {
+    it('should return "طارئ" status for 0 days remaining (today)', () => {
       const result = calculateCommercialRegistrationStatus(today.toISOString())
       
-      expect(result.status).toBe('حرج')
+      expect(result.status).toBe('طارئ')
       expect(result.daysRemaining).toBe(0)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.description).toContain('اليوم')
     })
 
-    it('should return "حرج" status for 1 day remaining (tomorrow)', () => {
+    it('should return "طارئ" status for 1 day remaining (tomorrow)', () => {
       const result = calculateCommercialRegistrationStatus(tomorrow.toISOString())
       
-      expect(result.status).toBe('حرج')
+      expect(result.status).toBe('طارئ')
       expect(result.daysRemaining).toBe(1)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.description).toContain('غداً')
     })
 
-    it('should return "حرج" status for 5 days remaining', () => {
+    it('should return "طارئ" status for 5 days remaining', () => {
       const result = calculateCommercialRegistrationStatus(in5Days.toISOString())
       
-      expect(result.status).toBe('حرج')
+      expect(result.status).toBe('طارئ')
       expect(result.daysRemaining).toBe(5)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.color.backgroundColor).toBe('bg-red-50')
     })
 
-    it('should return "متوسط" status for 15 days remaining', () => {
+    it('should return "عاجل" status for 15 days remaining', () => {
       const result = calculateCommercialRegistrationStatus(in15Days.toISOString())
       
-      expect(result.status).toBe('متوسط')
+      expect(result.status).toBe('عاجل')
       expect(result.daysRemaining).toBe(15)
-      expect(result.priority).toBe('medium')
-      expect(result.color.backgroundColor).toBe('bg-yellow-50')
+      expect(result.priority).toBe('high')
+      expect(result.color.backgroundColor).toBe('bg-orange-50')
     })
 
     it('should return "ساري" status for 45 days remaining', () => {
@@ -154,9 +154,9 @@ describe('autoCompanyStatus utils', () => {
       const mediumResult = calculateCommercialRegistrationStatus(in15Days.toISOString())
       const validResult = calculateCommercialRegistrationStatus(in45Days.toISOString())
       
-      expect(expiredResult.priority).toBe('critical')
-      expect(criticalResult.priority).toBe('critical')
-      expect(mediumResult.priority).toBe('medium')
+      expect(expiredResult.priority).toBe('urgent')
+      expect(criticalResult.priority).toBe('urgent')
+      expect(mediumResult.priority).toBe('high')
       expect(validResult.priority).toBe('low')
     })
   })
@@ -176,25 +176,25 @@ describe('autoCompanyStatus utils', () => {
       
       expect(result.status).toBe('منتهي')
       expect(result.daysRemaining).toBeLessThan(0)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.description).toContain('انتهى')
     })
 
     it('should return "حرج" status for 0 days remaining', () => {
       const result = calculateSocialInsuranceStatus(today.toISOString())
       
-      expect(result.status).toBe('حرج')
+      expect(result.status).toBe('طارئ')
       expect(result.daysRemaining).toBe(0)
-      expect(result.priority).toBe('critical')
+      expect(result.priority).toBe('urgent')
       expect(result.description).toContain('اليوم')
     })
 
     it('should return "متوسط" status for 15 days remaining', () => {
       const result = calculateSocialInsuranceStatus(in15Days.toISOString())
       
-      expect(result.status).toBe('متوسط')
+      expect(result.status).toBe('عاجل')
       expect(result.daysRemaining).toBe(15)
-      expect(result.priority).toBe('medium')
+      expect(result.priority).toBe('high')
     })
 
     it('should return "ساري" status for 45 days remaining', () => {
@@ -222,7 +222,8 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.total).toBe(0)
       expect(stats.expired).toBe(0)
-      expect(stats.critical).toBe(0)
+      expect(stats.urgent).toBe(0)
+      expect(stats.high).toBe(0)
       expect(stats.medium).toBe(0)
       expect(stats.valid).toBe(0)
       expect(stats.notSpecified).toBe(0)
@@ -241,9 +242,11 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.total).toBe(5)
       expect(stats.expired).toBe(1)
-      expect(stats.critical).toBe(1)
-      expect(stats.medium).toBe(1)
+      expect(stats.urgent).toBe(1)
+      expect(stats.high).toBe(1)
+      expect(stats.medium).toBe(0)
       expect(stats.valid).toBe(1)
+      expect(stats.notSpecified).toBe(1)
       expect(stats.notSpecified).toBe(1)
     })
 
@@ -295,7 +298,8 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.total).toBe(0)
       expect(stats.expired).toBe(0)
-      expect(stats.critical).toBe(0)
+      expect(stats.urgent).toBe(0)
+      expect(stats.high).toBe(0)
       expect(stats.medium).toBe(0)
       expect(stats.valid).toBe(0)
     })
@@ -312,8 +316,9 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.total).toBe(4)
       expect(stats.expired).toBe(1)
-      expect(stats.critical).toBe(1)
-      expect(stats.medium).toBe(1)
+      expect(stats.urgent).toBe(1)
+      expect(stats.high).toBe(1)
+      expect(stats.medium).toBe(0)
       expect(stats.valid).toBe(1)
     })
 
@@ -322,13 +327,15 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats).toHaveProperty('total')
       expect(stats).toHaveProperty('expired')
-      expect(stats).toHaveProperty('critical')
+      expect(stats).toHaveProperty('urgent')
+      expect(stats).toHaveProperty('high')
       expect(stats).toHaveProperty('medium')
       expect(stats).toHaveProperty('valid')
       expect(stats).toHaveProperty('notSpecified')
       expect(stats).toHaveProperty('percentageValid')
       expect(stats).toHaveProperty('percentageExpired')
-      expect(stats).toHaveProperty('percentageCritical')
+      expect(stats).toHaveProperty('percentageUrgent')
+      expect(stats).toHaveProperty('percentageHigh')
       expect(stats).toHaveProperty('percentageMedium')
       expect(stats).toHaveProperty('percentageNotSpecified')
     })
@@ -385,7 +392,7 @@ describe('autoCompanyStatus utils', () => {
         {
           id: '1',
           name: 'شركة متوسطة',
-          commercial_registration_expiry: in15Days.toISOString().split('T')[0], // متوسط
+          commercial_registration_expiry: in15Days.toISOString().split('T')[0], // عاجل
           social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
         {
@@ -398,7 +405,7 @@ describe('autoCompanyStatus utils', () => {
       
       const stats = calculateCompanyStatusStats(companies)
       
-      expect(stats.totalMediumAlerts).toBe(1)
+      expect(stats.totalCriticalAlerts).toBe(0)
     })
 
     it('should handle companies with null dates', () => {
@@ -455,7 +462,7 @@ describe('autoCompanyStatus utils', () => {
       
       const result = calculateCommercialRegistrationStatus(day7.toISOString())
       
-      expect(result.status).toBe('حرج')
+      expect(result.status).toBe('طارئ')
       expect(result.daysRemaining).toBe(7)
     })
 
@@ -465,7 +472,7 @@ describe('autoCompanyStatus utils', () => {
       
       const result = calculateCommercialRegistrationStatus(day8.toISOString())
       
-      expect(result.status).toBe('متوسط')
+      expect(result.status).toBe('عاجل')
       expect(result.daysRemaining).toBe(8)
     })
 

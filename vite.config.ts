@@ -28,6 +28,11 @@ export default defineConfig({
       host: 'localhost',
       port: 5174,
       clientPort: 5174  // ← إضافة مهمة
+    },
+    // تعطيل caching في development
+    middlewareMode: false,
+    fs: {
+      strict: false,
     }
   },
   build: {

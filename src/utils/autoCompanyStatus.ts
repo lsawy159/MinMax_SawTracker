@@ -3,20 +3,21 @@ import { supabase } from '@/lib/supabase'
 import { logger } from './logger'
 
 /**
- * القيم الافتراضية لإعدادات الحالات
+ * القيم الافتراضية لإعدادات الحالات (موحد مع الموظفين)
+ * طارئ - عاجل - متوسط - ساري
  */
 export const DEFAULT_STATUS_THRESHOLDS = {
-  commercial_reg_critical_days: 7,
-  commercial_reg_urgent_days: 30, // kept for backward compatibility, not used in logic
+  commercial_reg_urgent_days: 7,
+  commercial_reg_high_days: 15,
   commercial_reg_medium_days: 30,
-  social_insurance_critical_days: 7,
-  social_insurance_urgent_days: 30, // kept for backward compatibility, not used in logic
+  social_insurance_urgent_days: 7,
+  social_insurance_high_days: 15,
   social_insurance_medium_days: 30,
-  power_subscription_critical_days: 7,
-  power_subscription_urgent_days: 30, // kept for backward compatibility, not used in logic
+  power_subscription_urgent_days: 7,
+  power_subscription_high_days: 15,
   power_subscription_medium_days: 30,
-  moqeem_subscription_critical_days: 7,
-  moqeem_subscription_urgent_days: 30, // kept for backward compatibility, not used in logic
+  moqeem_subscription_urgent_days: 7,
+  moqeem_subscription_high_days: 15,
   moqeem_subscription_medium_days: 30
 }
 
@@ -91,17 +92,107 @@ export const calculateDaysRemaining = (date: string | null | undefined): number 
 }
 
 /**
+ * دالة عامة موحدة لحساب الحالة (للموظفين والمؤسسات)
+ * النظام الموحد: طارئ - عاجل - متوسط - ساري
+ */
+export const calculateUnifiedStatus = (
+  daysRemaining: number,
+  urgentDays: number,
+  highDays: number,
+  mediumDays: number,
+  itemName: string
+): {
+  status: 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
+  color: {
+    backgroundColor: string
+    textColor: string
+    borderColor: string
+  }
+  description: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+} => {
+  if (daysRemaining < 0) {
+    const expiredDays = Math.abs(daysRemaining)
+    return {
+      status: 'منتهي',
+      color: {
+        backgroundColor: 'bg-red-50',
+        textColor: 'text-red-700',
+        borderColor: 'border-red-200'
+      },
+      description: `انتهى ${itemName} منذ ${expiredDays} يوم`,
+      priority: 'urgent'
+    }
+  } else if (daysRemaining <= urgentDays) {
+    // طارئ (أحمر)
+    const description = daysRemaining === 0 
+      ? `ينتهي ${itemName} اليوم - إجراء فوري مطلوب`
+      : daysRemaining === 1
+      ? `ينتهي ${itemName} غداً - إجراء فوري مطلوب`
+      : `ينتهي ${itemName} خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
+    
+    return {
+      status: 'طارئ',
+      color: {
+        backgroundColor: 'bg-red-50',
+        textColor: 'text-red-700',
+        borderColor: 'border-red-200'
+      },
+      description,
+      priority: 'urgent'
+    }
+  } else if (daysRemaining <= highDays) {
+    // عاجل (برتقالي)
+    return {
+      status: 'عاجل',
+      color: {
+        backgroundColor: 'bg-orange-50',
+        textColor: 'text-orange-700',
+        borderColor: 'border-orange-200'
+      },
+      description: `ينتهي ${itemName} خلال ${daysRemaining} يوم - يحتاج متابعة`,
+      priority: 'high'
+    }
+  } else if (daysRemaining <= mediumDays) {
+    // متوسط (أصفر)
+    return {
+      status: 'متوسط',
+      color: {
+        backgroundColor: 'bg-yellow-50',
+        textColor: 'text-yellow-700',
+        borderColor: 'border-yellow-200'
+      },
+      description: `ينتهي ${itemName} خلال ${daysRemaining} يوم - متابعة مطلوبة`,
+      priority: 'medium'
+    }
+  } else {
+    // ساري (أخضر) - أكثر من mediumDays
+    return {
+      status: 'ساري',
+      color: {
+        backgroundColor: 'bg-green-50',
+        textColor: 'text-green-700',
+        borderColor: 'border-green-200'
+      },
+      description: `${itemName} ساري المفعول (${daysRemaining} يوم متبقي)`,
+      priority: 'low'
+    }
+  }
+}
+
+/**
  * حساب حالة المؤسسة بناءً على تاريخ انتهاء السجل التجاري
- * النظام الجديد:
- * - ≤7 أيام: أحمر (حرج)
- * - 8-30 يوم: أصفر (متوسط)
- * - >30 يوم: أخضر (ساري)
+ * النظام الموحد (نفس الموظفين):
+ * - ≤ طارئ: أحمر (طارئ)
+ * - ≤ عاجل: برتقالي (عاجل)
+ * - ≤ متوسط: أصفر (متوسط)
+ * - > متوسط: أخضر (ساري)
  */
 export const calculateCommercialRegistrationStatus = (
   expiryDate: string | null | undefined,
   thresholds?: typeof DEFAULT_STATUS_THRESHOLDS
 ): {
-  status: 'غير محدد' | 'منتهي' | 'حرج' | 'عاجل' | 'متوسط' | 'ساري'
+  status: 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
   daysRemaining: number
   color: {
     backgroundColor: string
@@ -109,12 +200,8 @@ export const calculateCommercialRegistrationStatus = (
     borderColor: string
   }
   description: string
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
 } => {
-  // Get thresholds if not provided (use cache or defaults)
-  const statusThresholds = thresholds || getStatusThresholdsSync()
-  const criticalDays = statusThresholds.commercial_reg_critical_days
-  const mediumDays = statusThresholds.commercial_reg_medium_days
   if (!expiryDate) {
     return {
       status: 'غير محدد',
@@ -129,80 +216,30 @@ export const calculateCommercialRegistrationStatus = (
     }
   }
 
+  // Get thresholds if not provided (use cache or defaults)
+  const statusThresholds = thresholds || getStatusThresholdsSync()
+  const urgentDays = statusThresholds.commercial_reg_urgent_days
+  const highDays = statusThresholds.commercial_reg_high_days
+  const mediumDays = statusThresholds.commercial_reg_medium_days
+
   const daysRemaining = calculateDaysRemaining(expiryDate)
+  const result = calculateUnifiedStatus(daysRemaining, urgentDays, highDays, mediumDays, 'السجل التجاري')
   
-  if (daysRemaining < 0) {
-    // منتهي الصلاحية
-    const expiredDays = Math.abs(daysRemaining)
-    return {
-      status: 'منتهي',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description: `انتهى السجل التجاري منذ ${expiredDays} يوم`,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= criticalDays) {
-    // حرج - أقل من أو يساوي criticalDays
-    const description = daysRemaining === 0 
-      ? 'ينتهي السجل التجاري اليوم - إجراء فوري مطلوب'
-      : daysRemaining === 1
-      ? 'ينتهي السجل التجاري غداً - إجراء فوري مطلوب'
-      : `ينتهي السجل التجاري خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
-    
-    return {
-      status: 'حرج',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= mediumDays) {
-    // متوسط - من criticalDays+1 إلى mediumDays
-    return {
-      status: 'متوسط',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-yellow-50',
-        textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
-      },
-      description: `ينتهي السجل التجاري خلال ${daysRemaining} يوم - متابعة مطلوبة`,
-      priority: 'medium'
-    }
-  } else {
-    // ساري - أكثر من mediumDays
-    return {
-      status: 'ساري',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-green-50',
-        textColor: 'text-green-700',
-        borderColor: 'border-green-200'
-      },
-      description: `السجل التجاري ساري المفعول (${daysRemaining} يوم متبقي)`,
-      priority: 'low'
-    }
+  return {
+    ...result,
+    daysRemaining
   }
 }
 
 /**
  * حساب حالة المؤسسة بناءً على تاريخ انتهاء اشتراك التأمينات
- * نفس النظام المستخدم للسجل التجاري
+ * النظام الموحد: طارئ - عاجل - متوسط - ساري
  */
-// تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
 export const calculateSocialInsuranceStatus = (
   expiryDate: string | null | undefined,
   thresholds?: typeof DEFAULT_STATUS_THRESHOLDS
 ): {
-  status: 'غير محدد' | 'منتهي' | 'حرج' | 'عاجل' | 'متوسط' | 'ساري'
+  status: 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
   daysRemaining: number
   color: {
     backgroundColor: string
@@ -210,7 +247,7 @@ export const calculateSocialInsuranceStatus = (
     borderColor: string
   }
   description: string
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
 } => {
   if (!expiryDate) {
     return {
@@ -228,70 +265,16 @@ export const calculateSocialInsuranceStatus = (
 
   // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
-  const criticalDays = statusThresholds.social_insurance_critical_days
+  const urgentDays = statusThresholds.social_insurance_urgent_days
+  const highDays = statusThresholds.social_insurance_high_days
   const mediumDays = statusThresholds.social_insurance_medium_days
 
   const daysRemaining = calculateDaysRemaining(expiryDate)
+  const result = calculateUnifiedStatus(daysRemaining, urgentDays, highDays, mediumDays, 'التأمينات الاجتماعية')
   
-  if (daysRemaining < 0) {
-    // منتهي الصلاحية
-    const expiredDays = Math.abs(daysRemaining)
-    return {
-      status: 'منتهي',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description: `انتهى التأمينات الاجتماعية منذ ${expiredDays} يوم`,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= criticalDays) {
-    // حرج - أقل من أو يساوي criticalDays
-    const description = daysRemaining === 0 
-      ? 'تنتهي التأمينات الاجتماعية اليوم - إجراء فوري مطلوب'
-      : daysRemaining === 1
-      ? 'تنتهي التأمينات الاجتماعية غداً - إجراء فوري مطلوب'
-      : `تنتهي التأمينات الاجتماعية خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
-    
-    return {
-      status: 'حرج',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= mediumDays) {
-    // متوسط - من criticalDays+1 إلى mediumDays
-    return {
-      status: 'متوسط',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-yellow-50',
-        textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
-      },
-      description: `تنتهي التأمينات الاجتماعية خلال ${daysRemaining} يوم - متابعة مطلوبة`,
-      priority: 'medium'
-    }
-  } else {
-    // ساري - أكثر من mediumDays
-    return {
-      status: 'ساري',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-green-50',
-        textColor: 'text-green-700',
-        borderColor: 'border-green-200'
-      },
-      description: `التأمينات الاجتماعية سارية المفعول (${daysRemaining} يوم متبقي)`,
-      priority: 'low'
-    }
+  return {
+    ...result,
+    daysRemaining
   }
 }
 
@@ -301,15 +284,15 @@ export const calculateSocialInsuranceStatus = (
 export interface CommercialRegStats {
   total: number
   expired: number
-  critical: number
-  urgent: number
-  medium: number
-  valid: number
+  urgent: number    // طارئ - أحمر
+  high: number      // عاجل - برتقالي
+  medium: number    // متوسط - أصفر
+  valid: number     // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
-  percentageCritical: number
   percentageUrgent: number
+  percentageHigh: number
   percentageMedium: number
   percentageNotSpecified: number
 }
@@ -318,15 +301,15 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
   const stats = {
     total: companies.length,
     expired: 0,
-    critical: 0,
-    urgent: 0,
-    medium: 0,
-    valid: 0,
+    urgent: 0,    // طارئ - أحمر
+    high: 0,      // عاجل - برتقالي
+    medium: 0,    // متوسط - أصفر
+    valid: 0,     // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
-    percentageCritical: 0,
     percentageUrgent: 0,
+    percentageHigh: 0,
     percentageMedium: 0,
     percentageNotSpecified: 0
   }
@@ -338,8 +321,11 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
       case 'منتهي':
         stats.expired++
         break
-      case 'حرج':
-        stats.critical++
+      case 'طارئ':
+        stats.urgent++
+        break
+      case 'عاجل':
+        stats.high++
         break
       case 'متوسط':
         stats.medium++
@@ -357,8 +343,8 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
   if (stats.total > 0) {
     stats.percentageValid = Math.round((stats.valid / stats.total) * 100)
     stats.percentageExpired = Math.round((stats.expired / stats.total) * 100)
-    stats.percentageCritical = Math.round((stats.critical / stats.total) * 100)
     stats.percentageUrgent = Math.round((stats.urgent / stats.total) * 100)
+    stats.percentageHigh = Math.round((stats.high / stats.total) * 100)
     stats.percentageMedium = Math.round((stats.medium / stats.total) * 100)
     stats.percentageNotSpecified = Math.round((stats.notSpecified / stats.total) * 100)
   }
@@ -372,15 +358,15 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
 export interface InsuranceStats {
   total: number
   expired: number
-  critical: number
-  urgent: number
-  medium: number
-  valid: number
+  urgent: number    // طارئ - أحمر
+  high: number      // عاجل - برتقالي
+  medium: number    // متوسط - أصفر
+  valid: number     // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
-  percentageCritical: number
   percentageUrgent: number
+  percentageHigh: number
   percentageMedium: number
   percentageNotSpecified: number
 }
@@ -390,15 +376,15 @@ export const calculateSocialInsuranceStats = (companies: Array<{ social_insuranc
   const stats = {
     total: companies.length,
     expired: 0,
-    critical: 0,
-    urgent: 0,
-    medium: 0,
-    valid: 0,
+    urgent: 0,    // طارئ - أحمر
+    high: 0,      // عاجل - برتقالي
+    medium: 0,    // متوسط - أصفر
+    valid: 0,     // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
-    percentageCritical: 0,
     percentageUrgent: 0,
+    percentageHigh: 0,
     percentageMedium: 0,
     percentageNotSpecified: 0
   }
@@ -410,8 +396,11 @@ export const calculateSocialInsuranceStats = (companies: Array<{ social_insuranc
       case 'منتهي':
         stats.expired++
         break
-      case 'حرج':
-        stats.critical++
+      case 'طارئ':
+        stats.urgent++
+        break
+      case 'عاجل':
+        stats.high++
         break
       case 'متوسط':
         stats.medium++
@@ -429,8 +418,8 @@ export const calculateSocialInsuranceStats = (companies: Array<{ social_insuranc
   if (stats.total > 0) {
     stats.percentageValid = Math.round((stats.valid / stats.total) * 100)
     stats.percentageExpired = Math.round((stats.expired / stats.total) * 100)
-    stats.percentageCritical = Math.round((stats.critical / stats.total) * 100)
     stats.percentageUrgent = Math.round((stats.urgent / stats.total) * 100)
+    stats.percentageHigh = Math.round((stats.high / stats.total) * 100)
     stats.percentageMedium = Math.round((stats.medium / stats.total) * 100)
     stats.percentageNotSpecified = Math.round((stats.notSpecified / stats.total) * 100)
   }
@@ -440,13 +429,13 @@ export const calculateSocialInsuranceStats = (companies: Array<{ social_insuranc
 
 /**
  * حساب حالة المؤسسة بناءً على تاريخ انتهاء اشتراك قوى
- * نفس النظام المستخدم للسجل التجاري
+ * يستخدم النظام الموحد: طارئ، عاجل، متوسط، ساري
  */
 export const calculatePowerSubscriptionStatus = (
   expiryDate: string | null | undefined,
   thresholds?: typeof DEFAULT_STATUS_THRESHOLDS
 ): {
-  status: 'غير محدد' | 'منتهي' | 'حرج' | 'عاجل' | 'متوسط' | 'ساري'
+  status: 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
   daysRemaining: number
   color: {
     backgroundColor: string
@@ -454,7 +443,7 @@ export const calculatePowerSubscriptionStatus = (
     borderColor: string
   }
   description: string
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
 } => {
   if (!expiryDate) {
     return {
@@ -470,80 +459,31 @@ export const calculatePowerSubscriptionStatus = (
     }
   }
 
-  // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
-  const criticalDays = statusThresholds.power_subscription_critical_days
-  const mediumDays = statusThresholds.power_subscription_medium_days
-
   const daysRemaining = calculateDaysRemaining(expiryDate)
+  const result = calculateUnifiedStatus(
+    daysRemaining,
+    statusThresholds.power_subscription_urgent_days,
+    statusThresholds.power_subscription_high_days,
+    statusThresholds.power_subscription_medium_days,
+    'اشتراك قوى'
+  )
   
-  if (daysRemaining < 0) {
-    const expiredDays = Math.abs(daysRemaining)
-    return {
-      status: 'منتهي',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description: `انتهى اشتراك قوى منذ ${expiredDays} يوم`,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= criticalDays) {
-    const description = daysRemaining === 0 
-      ? 'ينتهي اشتراك قوى اليوم - إجراء فوري مطلوب'
-      : daysRemaining === 1
-      ? 'ينتهي اشتراك قوى غداً - إجراء فوري مطلوب'
-      : `ينتهي اشتراك قوى خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
-    
-    return {
-      status: 'حرج',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= mediumDays) {
-    return {
-      status: 'متوسط',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-yellow-50',
-        textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
-      },
-      description: `ينتهي اشتراك قوى خلال ${daysRemaining} يوم - متابعة مطلوبة`,
-      priority: 'medium'
-    }
-  } else {
-    return {
-      status: 'ساري',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-green-50',
-        textColor: 'text-green-700',
-        borderColor: 'border-green-200'
-      },
-      description: `اشتراك قوى ساري المفعول (${daysRemaining} يوم متبقي)`,
-      priority: 'low'
-    }
+  return {
+    ...result,
+    daysRemaining
   }
 }
 
 /**
  * حساب حالة المؤسسة بناءً على تاريخ انتهاء اشتراك مقيم
- * نفس النظام المستخدم للسجل التجاري
+ * يستخدم النظام الموحد: طارئ، عاجل، متوسط، ساري
  */
 export const calculateMoqeemSubscriptionStatus = (
   expiryDate: string | null | undefined,
   thresholds?: typeof DEFAULT_STATUS_THRESHOLDS
 ): {
-  status: 'غير محدد' | 'منتهي' | 'حرج' | 'عاجل' | 'متوسط' | 'ساري'
+  status: 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
   daysRemaining: number
   color: {
     backgroundColor: string
@@ -551,7 +491,7 @@ export const calculateMoqeemSubscriptionStatus = (
     borderColor: string
   }
   description: string
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
 } => {
   if (!expiryDate) {
     return {
@@ -567,68 +507,19 @@ export const calculateMoqeemSubscriptionStatus = (
     }
   }
 
-  // Get thresholds if not provided
   const statusThresholds = thresholds || getStatusThresholdsSync()
-  const criticalDays = statusThresholds.moqeem_subscription_critical_days
-  const mediumDays = statusThresholds.moqeem_subscription_medium_days
-
   const daysRemaining = calculateDaysRemaining(expiryDate)
+  const result = calculateUnifiedStatus(
+    daysRemaining,
+    statusThresholds.moqeem_subscription_urgent_days,
+    statusThresholds.moqeem_subscription_high_days,
+    statusThresholds.moqeem_subscription_medium_days,
+    'اشتراك مقيم'
+  )
   
-  if (daysRemaining < 0) {
-    const expiredDays = Math.abs(daysRemaining)
-    return {
-      status: 'منتهي',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description: `انتهى اشتراك مقيم منذ ${expiredDays} يوم`,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= criticalDays) {
-    const description = daysRemaining === 0 
-      ? 'ينتهي اشتراك مقيم اليوم - إجراء فوري مطلوب'
-      : daysRemaining === 1
-      ? 'ينتهي اشتراك مقيم غداً - إجراء فوري مطلوب'
-      : `ينتهي اشتراك مقيم خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
-    
-    return {
-      status: 'حرج',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-red-50',
-        textColor: 'text-red-700',
-        borderColor: 'border-red-200'
-      },
-      description,
-      priority: 'critical'
-    }
-  } else if (daysRemaining <= mediumDays) {
-    return {
-      status: 'متوسط',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-yellow-50',
-        textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
-      },
-      description: `ينتهي اشتراك مقيم خلال ${daysRemaining} يوم - متابعة مطلوبة`,
-      priority: 'medium'
-    }
-  } else {
-    return {
-      status: 'ساري',
-      daysRemaining,
-      color: {
-        backgroundColor: 'bg-green-50',
-        textColor: 'text-green-700',
-        borderColor: 'border-green-200'
-      },
-      description: `اشتراك مقيم ساري المفعول (${daysRemaining} يوم متبقي)`,
-      priority: 'low'
-    }
+  return {
+    ...result,
+    daysRemaining
   }
 }
 
@@ -638,15 +529,15 @@ export const calculateMoqeemSubscriptionStatus = (
 export interface PowerStats {
   total: number
   expired: number
-  critical: number
-  urgent: number
-  medium: number
-  valid: number
+  urgent: number    // طارئ - أحمر
+  high: number      // عاجل - برتقالي
+  medium: number    // متوسط - أصفر
+  valid: number     // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
-  percentageCritical: number
   percentageUrgent: number
+  percentageHigh: number
   percentageMedium: number
   percentageNotSpecified: number
 }
@@ -655,15 +546,15 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
   const stats = {
     total: companies.length,
     expired: 0,
-    critical: 0,
-    urgent: 0,
-    medium: 0,
-    valid: 0,
+    urgent: 0,    // طارئ - أحمر
+    high: 0,      // عاجل - برتقالي
+    medium: 0,    // متوسط - أصفر
+    valid: 0,     // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
-    percentageCritical: 0,
     percentageUrgent: 0,
+    percentageHigh: 0,
     percentageMedium: 0,
     percentageNotSpecified: 0
   }
@@ -675,8 +566,11 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
       case 'منتهي':
         stats.expired++
         break
-      case 'حرج':
-        stats.critical++
+      case 'طارئ':
+        stats.urgent++
+        break
+      case 'عاجل':
+        stats.high++
         break
       case 'متوسط':
         stats.medium++
@@ -694,8 +588,8 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
   if (stats.total > 0) {
     stats.percentageValid = Math.round((stats.valid / stats.total) * 100)
     stats.percentageExpired = Math.round((stats.expired / stats.total) * 100)
-    stats.percentageCritical = Math.round((stats.critical / stats.total) * 100)
     stats.percentageUrgent = Math.round((stats.urgent / stats.total) * 100)
+    stats.percentageHigh = Math.round((stats.high / stats.total) * 100)
     stats.percentageMedium = Math.round((stats.medium / stats.total) * 100)
     stats.percentageNotSpecified = Math.round((stats.notSpecified / stats.total) * 100)
   }
@@ -709,15 +603,15 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
 export interface MoqeemStats {
   total: number
   expired: number
-  critical: number
-  urgent: number
-  medium: number
-  valid: number
+  urgent: number    // طارئ - أحمر
+  high: number      // عاجل - برتقالي
+  medium: number    // متوسط - أصفر
+  valid: number     // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
-  percentageCritical: number
   percentageUrgent: number
+  percentageHigh: number
   percentageMedium: number
   percentageNotSpecified: number
 }
@@ -726,15 +620,15 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
   const stats = {
     total: companies.length,
     expired: 0,
-    critical: 0,
-    urgent: 0,
-    medium: 0,
-    valid: 0,
+    urgent: 0,    // طارئ - أحمر
+    high: 0,      // عاجل - برتقالي
+    medium: 0,    // متوسط - أصفر
+    valid: 0,     // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
-    percentageCritical: 0,
     percentageUrgent: 0,
+    percentageHigh: 0,
     percentageMedium: 0,
     percentageNotSpecified: 0
   }
@@ -746,8 +640,11 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
       case 'منتهي':
         stats.expired++
         break
-      case 'حرج':
-        stats.critical++
+      case 'طارئ':
+        stats.urgent++
+        break
+      case 'عاجل':
+        stats.high++
         break
       case 'متوسط':
         stats.medium++
@@ -765,8 +662,8 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
   if (stats.total > 0) {
     stats.percentageValid = Math.round((stats.valid / stats.total) * 100)
     stats.percentageExpired = Math.round((stats.expired / stats.total) * 100)
-    stats.percentageCritical = Math.round((stats.critical / stats.total) * 100)
     stats.percentageUrgent = Math.round((stats.urgent / stats.total) * 100)
+    stats.percentageHigh = Math.round((stats.high / stats.total) * 100)
     stats.percentageMedium = Math.round((stats.medium / stats.total) * 100)
     stats.percentageNotSpecified = Math.round((stats.notSpecified / stats.total) * 100)
   }
@@ -776,6 +673,7 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
 
 /**
  * حساب إحصائيات موحدة للمؤسسة (السجل التجاري + اشتراك التأمينات + اشتراك قوى + اشتراك مقيم)
+ * النظام الموحد: طارئ، عاجل، متوسط، ساري
  */
 export interface CompanyStatusStats {
   totalCompanies: number
@@ -784,16 +682,16 @@ export interface CompanyStatusStats {
   powerStats: PowerStats
   moqeemStats: MoqeemStats
   // إحصائيات موحدة (تشمل جميع الحالات)
-  totalValid: number
-  totalMedium: number
-  totalCritical: number
-  totalExpired: number
+  totalValid: number       // ساري - أخضر
+  totalMedium: number      // متوسط - أصفر
+  totalCritical: number    // طارئ + عاجل معاً (urgent + high) - أحمر/برتقالي
+  totalExpired: number     // منتهي
   totalValidPercentage: number
   totalMediumPercentage: number
-  totalCriticalPercentage: number
+  totalCriticalPercentage: number    // نسبة (طارئ + عاجل)
   totalExpiredPercentage: number
-  totalCriticalAlerts: number
-  totalMediumAlerts: number
+  totalCriticalAlerts: number        // عدد المؤسسات التي تحتاج اهتمام عاجل (urgent + high)
+  totalMediumAlerts: number          // عدد المؤسسات متوسطة الأهمية
 }
 
 export const calculateCompanyStatusStats = (companies: Array<{
@@ -835,10 +733,10 @@ export const calculateCompanyStatusStats = (companies: Array<{
     const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
     const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
     
-    if (commercialStatus.priority === 'critical' || 
-        insuranceStatus.priority === 'critical' ||
-        powerStatus.priority === 'critical' ||
-        moqeemStatus.priority === 'critical') {
+    if (commercialStatus.priority === 'urgent' || 
+        insuranceStatus.priority === 'urgent' ||
+        powerStatus.priority === 'urgent' ||
+        moqeemStatus.priority === 'urgent') {
       totalCriticalAlerts++
     }
     
@@ -876,7 +774,7 @@ export const calculateCompanyStatusStats = (companies: Array<{
       totalExpired++
     }
     // إذا كان هناك حالة حرجة (وليس منتهية)، المؤسسة حرجة
-    else if (priorities.includes('critical')) {
+    else if (priorities.includes('urgent')) {
       totalCritical++
     }
     // إذا كان هناك حالة عاجلة (وليس حرجة أو منتهية)، المؤسسة حرجة أيضاً

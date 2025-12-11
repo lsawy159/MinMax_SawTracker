@@ -4,7 +4,7 @@ import { differenceInDays } from 'date-fns'
 // Simple enhanced alert interface for compatibility
 export interface SimpleEnhancedAlert {
   id: string
-  type: 'commercial_registration' | 'social_insurance_expiry'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry' | 'social_insurance_expiry'  // تحديث: insurance_subscription → social_insurance_expiry
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -21,7 +21,7 @@ export interface SimpleEnhancedAlert {
   estimated_cost?: string
   
   // Enhanced fields for compatibility
-  alert_type: 'commercial_registration' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
   document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
@@ -70,7 +70,7 @@ export const DEFAULT_ENHANCED_THRESHOLDS: AlertThresholds = {
 
 export interface EnhancedAlert {
   id: string
-  type: 'commercial_registration' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -85,7 +85,7 @@ export interface EnhancedAlert {
   created_at: string
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   estimated_cost?: string
-  alert_type: 'commercial_registration' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
   document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
@@ -128,7 +128,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
         
         alerts.push({
           id: `enhanced_${company.id}_${company.commercial_registration_expiry}`,
-          type: 'commercial_registration',
+          type: 'commercial_registration_expiry',
           priority,
           title: 'انتهاء صلاحية السجل التجاري',
           message: `ينتهي السجل التجاري للمؤسسة "${company.name}" ${daysRemaining < 0 ? `منذ ${Math.abs(daysRemaining)} يوم` : `خلال ${daysRemaining} يوم`}`,
@@ -147,7 +147,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
           estimated_cost: '500 - 2000 ريال',
           
           // Enhanced fields
-          alert_type: 'commercial_registration',
+          alert_type: 'commercial_registration_expiry',
           document_category: 'legal',
           renewal_complexity: 'moderate',
           estimated_renewal_time: daysRemaining < 7 ? '1-3 أيام' : '1-2 أسبوع',
@@ -354,7 +354,7 @@ function estimateRenewalTime(days: number, complexity: EnhancedAlert['renewal_co
 // Reserved for future use: Get enhanced title for alert based on type and days
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEnhancedTitle(type: string, days: number): string {
-  if (type === 'commercial_registration') {
+  if (type === 'commercial_registration_expiry') {
     if (days < 0) return 'السجل التجاري منتهي'
     if (days <= 7) return 'السجل التجاري عاجل'
     if (days <= 30) return 'تجديد السجل التجاري مطلوب'
@@ -374,7 +374,7 @@ function getEnhancedTitle(type: string, days: number): string {
 function getEnhancedMessage(type: string, days: number, company: Company): string {
   const companyName = company.name
   
-  if (type === 'commercial_registration') {
+  if (type === 'commercial_registration_expiry') {
     if (days < 0) {
       return `انتهت صلاحية السجل التجاري للمؤسسة "${companyName}" منذ ${Math.abs(days)} يوم. هذا يؤثر على الوضع القانوني للمؤسسة ويعرضها للمخاطر القانونية والمالية.`
     } else if (days <= 7) {
@@ -404,7 +404,7 @@ function getEnhancedMessage(type: string, days: number, company: Company): strin
 function getEnhancedActionRequired(type: string, days: number, company: Company): string {
   const companyName = company.name
   
-  if (type === 'commercial_registration') {
+  if (type === 'commercial_registration_expiry') {
     if (days < 0) {
       return `قم بترتيب تجديد السجل التجاري للمؤسسة "${companyName}" في أقرب وقت ممكن. تأكد من تجميع جميع الوثائق المطلوبة والحصول على موعد عاجل.`
     } else if (days <= 7) {
@@ -432,7 +432,7 @@ function getEnhancedActionRequired(type: string, days: number, company: Company)
 // Reserved for future use: Get list of related documents needed for renewal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getRelatedDocuments(type: string): string[] {
-  if (type === 'commercial_registration') {
+  if (type === 'commercial_registration_expiry') {
     return [
       'السجل التجاري الحالي',
       'بطاقة الهوية للمالك',
@@ -463,7 +463,7 @@ function getRelatedDocuments(type: string): string[] {
 // Reserved for future use: Get cost estimate for renewal process
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getRenewalCostEstimate(type: string): { min: number; max: number; currency: string } {
-  if (type === 'commercial_registration') {
+  if (type === 'commercial_registration_expiry') {
     return { min: 500, max: 2000, currency: 'SAR' }
   } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
     return { min: 2000, max: 10000, currency: 'SAR' }
@@ -509,7 +509,7 @@ export function getEnhancedAlertsStats(alerts: EnhancedAlert[]) {
     byRisk,
     byDocumentCategory,
     byBusinessImpact,
-    commercialRegAlerts: alerts.filter(a => a.alert_type === 'commercial_registration').length,
+  commercialRegAlerts: alerts.filter(a => a.alert_type === 'commercial_registration_expiry').length,
     socialInsuranceAlerts: alerts.filter(a => a.alert_type === 'social_insurance_expiry').length,  // تحديث: insurance_subscription → social_insurance_expiry
     govDocsAlerts: alerts.filter(a => a.alert_type === 'government_docs_renewal').length
   }

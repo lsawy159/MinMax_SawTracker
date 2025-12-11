@@ -97,7 +97,7 @@ export default function EnhancedAlertsTestPage() {
   }
 
   // Filter alerts by type for demonstration
-  const commercialRegAlerts = alerts.filter(alert => alert.alert_type === 'commercial_registration')
+  const commercialRegAlerts = alerts.filter(alert => alert.alert_type === 'commercial_registration_expiry')
   const insuranceAlerts = alerts.filter(alert => alert.alert_type === 'social_insurance_expiry')
   const govDocsAlerts = alerts.filter(alert => alert.alert_type === 'government_docs_renewal')
   const criticalAlerts = getCriticalAlerts(alerts)

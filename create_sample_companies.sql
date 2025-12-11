@@ -21,15 +21,17 @@ SELECT
   CASE 
     WHEN commercial_registration_expiry IS NULL THEN 'غير محدد'
     WHEN commercial_registration_expiry <= CURRENT_DATE THEN 'منتهي'
-    WHEN commercial_registration_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 'حرج'
-    WHEN commercial_registration_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 'متوسط'
+    WHEN commercial_registration_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 'طارئ'
+    WHEN commercial_registration_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 'عاجل'
+    WHEN commercial_registration_expiry <= CURRENT_DATE + INTERVAL '45 days' THEN 'متوسط'
     ELSE 'ساري'
   END as commercial_reg_status,
   CASE 
     WHEN insurance_subscription_expiry IS NULL THEN 'غير محدد'
     WHEN insurance_subscription_expiry <= CURRENT_DATE THEN 'منتهي'
-    WHEN insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 'حرج'
-    WHEN insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 'متوسط'
+    WHEN insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 'طارئ'
+    WHEN insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 'عاجل'
+    WHEN insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '45 days' THEN 'متوسط'
     ELSE 'ساري'
   END as insurance_status
 FROM companies
@@ -43,14 +45,16 @@ SELECT
   
   -- إحصائيات السجل التجاري
   SUM(CASE WHEN commercial_registration_expiry <= CURRENT_DATE THEN 1 ELSE 0 END) as expired_commercial,
-  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE AND commercial_registration_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 1 ELSE 0 END) as critical_commercial,
-  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE + INTERVAL '7 days' AND commercial_registration_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as medium_commercial,
-  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as valid_commercial,
+  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE AND commercial_registration_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 1 ELSE 0 END) as urgent_commercial,
+  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE + INTERVAL '7 days' AND commercial_registration_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as high_commercial,
+  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE + INTERVAL '30 days' AND commercial_registration_expiry <= CURRENT_DATE + INTERVAL '45 days' THEN 1 ELSE 0 END) as medium_commercial,
+  SUM(CASE WHEN commercial_registration_expiry > CURRENT_DATE + INTERVAL '45 days' THEN 1 ELSE 0 END) as valid_commercial,
   
   -- إحصائيات التأمين
   SUM(CASE WHEN insurance_subscription_expiry <= CURRENT_DATE THEN 1 ELSE 0 END) as expired_insurance,
-  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE AND insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 1 ELSE 0 END) as critical_insurance,
-  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE + INTERVAL '7 days' AND insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as medium_insurance,
-  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as valid_insurance
+  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE AND insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '7 days' THEN 1 ELSE 0 END) as urgent_insurance,
+  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE + INTERVAL '7 days' AND insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '30 days' THEN 1 ELSE 0 END) as high_insurance,
+  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE + INTERVAL '30 days' AND insurance_subscription_expiry <= CURRENT_DATE + INTERVAL '45 days' THEN 1 ELSE 0 END) as medium_insurance,
+  SUM(CASE WHEN insurance_subscription_expiry > CURRENT_DATE + INTERVAL '45 days' THEN 1 ELSE 0 END) as valid_insurance
   
 FROM companies;

@@ -444,7 +444,7 @@ export default function AdvancedSearch() {
         filteredComps = filteredComps.filter(c => {
           const status = calculateCommercialRegistrationStatus(c.commercial_registration_expiry)
           if (commercialRegStatus === 'expired') return status.status === 'منتهي'
-          if (commercialRegStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'حرج'
+          if (commercialRegStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'طارئ'
           if (commercialRegStatus === 'valid') return status.status === 'ساري' || status.status === 'متوسط'
           return true
         })
@@ -455,7 +455,7 @@ export default function AdvancedSearch() {
         filteredComps = filteredComps.filter(c => {
           const status = calculateSocialInsuranceStatus(c.social_insurance_expiry)  // تحديث: insurance_subscription_expiry → social_insurance_expiry
           if (socialInsuranceStatus === 'expired') return status.status === 'منتهي'
-          if (socialInsuranceStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'حرج'
+          if (socialInsuranceStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'طارئ'
           if (socialInsuranceStatus === 'valid') return status.status === 'ساري' || status.status === 'متوسط'
           return true
         })

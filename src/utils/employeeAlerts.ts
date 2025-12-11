@@ -36,6 +36,8 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
   void companies
   const alerts: EmployeeAlert[] = []
   
+
+  
   for (const employee of employees) {
     // Add contract expiry alerts
     const contractAlert = await checkContractExpiry(employee)
@@ -76,7 +78,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
 }
 
 // Default thresholds for employee alerts
-const DEFAULT_EMPLOYEE_THRESHOLDS = {
+export const DEFAULT_EMPLOYEE_THRESHOLDS = {
   residence_urgent_days: 7,
   residence_high_days: 15,
   residence_medium_days: 30,
@@ -91,6 +93,8 @@ const DEFAULT_EMPLOYEE_THRESHOLDS = {
   hired_worker_contract_medium_days: 30
 }
 
+export type EmployeeNotificationThresholds = typeof DEFAULT_EMPLOYEE_THRESHOLDS
+
 // Cache for employee notification thresholds
 let employeeThresholdsCache: typeof DEFAULT_EMPLOYEE_THRESHOLDS | null = null
 let employeeCacheTimestamp: number = 0
@@ -103,7 +107,7 @@ export function invalidateEmployeeNotificationThresholdsCache() {
 }
 
 // Get notification thresholds from database settings with caching
-async function getEmployeeNotificationThresholds() {
+async function getEmployeeNotificationThresholds(): Promise<EmployeeNotificationThresholds> {
   // Check if cache is valid
   const now = Date.now()
   if (employeeThresholdsCache && (now - employeeCacheTimestamp) < EMPLOYEE_CACHE_TTL) {
@@ -138,6 +142,11 @@ async function getEmployeeNotificationThresholds() {
     employeeCacheTimestamp = now
     return DEFAULT_EMPLOYEE_THRESHOLDS
   }
+}
+
+// Exposed helper for other modules (e.g., Employees table color coding)
+export async function getEmployeeNotificationThresholdsPublic(): Promise<EmployeeNotificationThresholds> {
+  return getEmployeeNotificationThresholds()
 }
 
 /**
@@ -506,20 +515,52 @@ export function filterEmployeeAlertsByType(alerts: EmployeeAlert[], type: Employ
 
 /**
  * Get employee alerts statistics
+ * تحسب عدد الموظفين الفريدين الذين لديهم تنبيهات وليس عدد التنبيهات
  */
 export function getEmployeeAlertsStats(alerts: EmployeeAlert[]) {
-  const total = alerts.length
-  const urgent = alerts.filter(a => a.priority === 'urgent').length
-  const high = alerts.filter(a => a.priority === 'high').length
-  const medium = alerts.filter(a => a.priority === 'medium').length
-  const low = alerts.filter(a => a.priority === 'low').length
+  // عد التنبيهات الكلية
+  const totalAlerts = alerts.length
+  
+  // عد الموظفين الفريدين الذين لديهم تنبيهات
+  const uniqueEmployeeIds = new Set(alerts.map(a => a.employee.id))
+  const total = uniqueEmployeeIds.size
+  
+
+  
+  // حساب الأولويات بناءً على الموظفين الفريدين
+  // للموظف الواحد، نستخدم أعلى أولوية لديه
+  const employeeMaxPriority = new Map<string, 'urgent' | 'high' | 'medium' | 'low'>()
+  const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+  
+  alerts.forEach(alert => {
+    const empId = alert.employee.id
+    
+    // إذا لم يكن الموظف موجود في الخريطة، أضفه
+    if (!employeeMaxPriority.has(empId)) {
+      employeeMaxPriority.set(empId, alert.priority)
+    } else {
+      // إذا كان موجود، احتفظ بالأولوية الأعلى
+      const currentPriority = employeeMaxPriority.get(empId)!
+      if (priorityOrder[alert.priority] > priorityOrder[currentPriority]) {
+        employeeMaxPriority.set(empId, alert.priority)
+      }
+    }
+  })
+  
+  const urgent = Array.from(employeeMaxPriority.values()).filter(p => p === 'urgent').length
+  const high = Array.from(employeeMaxPriority.values()).filter(p => p === 'high').length
+  const medium = Array.from(employeeMaxPriority.values()).filter(p => p === 'medium').length
+  const low = Array.from(employeeMaxPriority.values()).filter(p => p === 'low').length
+  
+  // عد التنبيهات حسب النوع (عدد التنبيهات، ليس الموظفين)
   const contractAlerts = alerts.filter(a => a.type === 'contract_expiry').length
   const residenceAlerts = alerts.filter(a => a.type === 'residence_expiry').length
   const healthInsuranceAlerts = alerts.filter(a => a.type === 'health_insurance_expiry').length
   const hiredWorkerContractAlerts = alerts.filter(a => a.type === 'hired_worker_contract_expiry').length
   
   return {
-    total,
+    total,  // عدد الموظفين الفريدين
+    totalAlerts,  // عدد التنبيهات الكلية (للمرجع)
     urgent,
     high,
     medium,

@@ -57,7 +57,7 @@ serve(async (req) => {
           // إضافة تواريخ إذا لم تكن موجودة
           if (!commercialRegExpiry) {
             // توزيع الشركات على حالات مختلفة
-            const daysToAdd = i % 10 < 3 ? 5 :  // 30% حرج (5 أيام)
+            const daysToAdd = i % 10 < 3 ? 5 :  // 30% طارئ (5 أيام)
                              i % 10 < 6 ? 20 :   // 30% متوسط (20 يوم)
                              Math.floor(Math.random() * 180) + 90 // 40% ساري (90-270 يوم)
             
@@ -67,7 +67,7 @@ serve(async (req) => {
           }
           
           if (!insuranceExpiry) {
-            const daysToAdd = i % 8 < 2 ? 3 :   // 25% حرج جداً (3 أيام)
+            const daysToAdd = i % 8 < 2 ? 3 :   // 25% طارئ جداً (3 أيام)
                              i % 8 < 4 ? 15 :   // 25% متوسط (15 يوم)
                              Math.floor(Math.random() * 200) + 60 // 50% ساري (60-260 يوم)
             

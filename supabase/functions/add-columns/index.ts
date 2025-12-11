@@ -112,8 +112,9 @@ serve(async (req) => {
             const daysDiff = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
             
             if (daysDiff <= 0) commercialRegStatus = 'منتهي'
-            else if (daysDiff <= 7) commercialRegStatus = 'حرج (ينتهي خلال 7 أيام)'
-            else if (daysDiff <= 30) commercialRegStatus = 'متوسط (ينتهي خلال شهر)'
+            else if (daysDiff <= 7) commercialRegStatus = 'طارئ (ينتهي خلال أيام قليلة)'
+            else if (daysDiff <= 30) commercialRegStatus = 'عاجل (يتطلب اهتماماً سريعاً)'
+            else if (daysDiff <= 45) commercialRegStatus = 'متوسط (يتطلب متابعة)'
             else commercialRegStatus = 'ساري'
           }
           
@@ -122,8 +123,9 @@ serve(async (req) => {
             const daysDiff = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
             
             if (daysDiff <= 0) insuranceStatus = 'منتهي'
-            else if (daysDiff <= 7) insuranceStatus = 'حرج (ينتهي خلال 7 أيام)'
-            else if (daysDiff <= 30) insuranceStatus = 'متوسط (ينتهي خلال شهر)'
+            else if (daysDiff <= 7) insuranceStatus = 'طارئ (ينتهي خلال أيام قليلة)'
+            else if (daysDiff <= 30) insuranceStatus = 'عاجل (يتطلب اهتماماً سريعاً)'
+            else if (daysDiff <= 45) insuranceStatus = 'متوسط (يتطلب متابعة)'
             else insuranceStatus = 'ساري'
           }
           

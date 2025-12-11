@@ -63,7 +63,7 @@ describe('alerts utils', () => {
     mockAlerts = [
       {
         id: '1',
-        type: 'commercial_registration',
+        type: 'commercial_registration_expiry',
         priority: 'urgent',
         title: 'تنبيه عاجل 1',
         message: 'رسالة تجريبية',
@@ -87,7 +87,7 @@ describe('alerts utils', () => {
       },
       {
         id: '3',
-        type: 'commercial_registration',
+        type: 'commercial_registration_expiry',
         priority: 'medium',
         title: 'تنبيه متوسط',
         message: 'رسالة تجريبية',
@@ -217,12 +217,12 @@ describe('alerts utils', () => {
   })
 
   describe('filterAlertsByType', () => {
-    it('should filter alerts by commercial_registration type', () => {
-      const commercialAlerts = filterAlertsByType(mockAlerts, 'commercial_registration')
+    it('should filter alerts by commercial_registration_expiry type', () => {
+      const commercialAlerts = filterAlertsByType(mockAlerts, 'commercial_registration_expiry')
       
       expect(commercialAlerts.length).toBe(2)
       commercialAlerts.forEach(alert => {
-        expect(alert.type).toBe('commercial_registration')
+        expect(alert.type).toBe('commercial_registration_expiry')
       })
     })
 
@@ -236,7 +236,7 @@ describe('alerts utils', () => {
     })
 
     it('should return empty array if no alerts match type', () => {
-      const emptyAlerts = filterAlertsByType([], 'commercial_registration')
+      const emptyAlerts = filterAlertsByType([], 'commercial_registration_expiry')
       expect(emptyAlerts).toEqual([])
     })
   })
@@ -245,10 +245,16 @@ describe('alerts utils', () => {
     it('should return correct statistics', () => {
       const stats = getAlertsStats(mockAlerts)
       
+      // الآن نعد المؤسسات الفريدة (4 شركات مختلفة)
       expect(stats.total).toBe(4)
+      
+      // نعد الأولويات بناءً على أعلى أولوية لكل مؤسسة
+      // شركة 1: urgent, شركة 2: urgent, شركة 3: medium, شركة 4: low
       expect(stats.urgent).toBe(2)
       expect(stats.medium).toBe(1)
       expect(stats.low).toBe(1)
+      
+      // عد التنبيهات حسب النوع (عدد التنبيهات وليس المؤسسات)
       expect(stats.commercialRegAlerts).toBe(2)
       expect(stats.socialInsuranceAlerts).toBe(2)
     })

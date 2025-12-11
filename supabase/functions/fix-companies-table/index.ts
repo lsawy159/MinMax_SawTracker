@@ -90,7 +90,7 @@ serve(async (req) => {
         ending_subscription_moqeem_date: '2026-04-15',
         government_documents_renewal: '2025-12-20',
         commercial_registration_status: 'متوسط (ينتهي خلال شهر)',
-        insurance_subscription_status: 'حرج (ينتهي خلال 7 أيام)'
+        insurance_subscription_status: 'طارئ (ينتهي خلال 7 أيام)'
       },
       {
         name: 'شركة منتهية الصلاحية',
@@ -134,9 +134,12 @@ serve(async (req) => {
       const total = allCompanies.length
       const expiredCommercial = allCompanies.filter(c => c.commercial_registration_status === 'منتهي').length
       const expiredInsurance = allCompanies.filter(c => c.insurance_subscription_status === 'منتهي').length
-      const criticalCommercial = allCompanies.filter(c => c.commercial_registration_status?.includes('حرج')).length
-      const criticalInsurance = allCompanies.filter(c => c.insurance_subscription_status?.includes('حرج')).length
+      const urgentCommercial = allCompanies.filter(c => c.commercial_registration_status?.includes('طارئ')).length
+      const highCommercial = allCompanies.filter(c => c.commercial_registration_status?.includes('عاجل')).length
       const mediumCommercial = allCompanies.filter(c => c.commercial_registration_status?.includes('متوسط')).length
+
+      const urgentInsurance = allCompanies.filter(c => c.insurance_subscription_status?.includes('طارئ')).length
+      const highInsurance = allCompanies.filter(c => c.insurance_subscription_status?.includes('عاجل')).length
       const mediumInsurance = allCompanies.filter(c => c.insurance_subscription_status?.includes('متوسط')).length
 
       const result = {
@@ -149,9 +152,11 @@ serve(async (req) => {
             total,
             expiredCommercial,
             expiredInsurance,
-            criticalCommercial,
-            criticalInsurance,
+            urgentCommercial,
+            highCommercial,
             mediumCommercial,
+            urgentInsurance,
+            highInsurance,
             mediumInsurance,
             activeCommercial: total - expiredCommercial,
             activeInsurance: total - expiredInsurance

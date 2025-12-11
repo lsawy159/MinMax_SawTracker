@@ -9,6 +9,7 @@ import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
+import { useLocation } from 'react-router-dom'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
@@ -32,6 +33,7 @@ type ViewMode = 'grid' | 'table'
 
 export default function Companies() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
+  const location = useLocation()
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -250,7 +252,7 @@ export default function Companies() {
         const statusInfo = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
 
         if (commercialRegStatus === 'expired') return statusInfo.status === 'منتهي'
-        if (commercialRegStatus === 'expiring_soon') return statusInfo.status === 'حرج' || statusInfo.status === 'متوسط'
+        if (commercialRegStatus === 'expiring_soon') return statusInfo.status === 'طارئ' || statusInfo.status === 'عاجل' || statusInfo.status === 'متوسط'
         if (commercialRegStatus === 'valid') return statusInfo.status === 'ساري'
         return true
       })
@@ -262,7 +264,7 @@ export default function Companies() {
         const statusInfo = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
 
         if (socialInsuranceStatus === 'expired') return statusInfo.status === 'منتهي'
-        if (socialInsuranceStatus === 'expiring_soon') return statusInfo.status === 'حرج' || statusInfo.status === 'عاجل' || statusInfo.status === 'متوسط'
+        if (socialInsuranceStatus === 'expiring_soon') return statusInfo.status === 'طارئ' || statusInfo.status === 'عاجل' || statusInfo.status === 'متوسط'
         if (socialInsuranceStatus === 'valid') return statusInfo.status === 'ساري'
         return true
       })
@@ -430,6 +432,18 @@ export default function Companies() {
     // Load saved filters from localStorage
     loadSavedFilters()
   }, [loadCompanies, loadSavedFilters]) // <-- [FIX] تم التحديث
+  
+  // Handle URL parameters for alerts filter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const filter = params.get('filter')
+    
+    if (filter === 'alerts') {
+      // فلترة المؤسسات التي لديها تنبيهات (سجل تجاري أو تأمينات منتهية أو قريبة من الانتهاء)
+      setCommercialRegStatus('expired')
+      setSocialInsuranceStatus('expired')
+    }
+  }, [location.search])
   
   useEffect(() => {
     // Save filters to localStorage whenever filters change
@@ -1207,7 +1221,7 @@ export default function Companies() {
                               {company.commercial_registration_expiry ? (
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   commercialStatus.status === 'منتهي' ? 'bg-red-100 text-red-700' :
-                                  commercialStatus.status === 'حرج' ? 'bg-red-100 text-red-700' :
+                                  commercialStatus.status === 'طارئ' ? 'bg-red-100 text-red-700' :
                                   commercialStatus.status === 'عاجل' ? 'bg-orange-100 text-orange-700' :
                                   commercialStatus.status === 'متوسط' ? 'bg-yellow-100 text-yellow-700' :
                                   'bg-green-100 text-green-700'
@@ -1222,7 +1236,7 @@ export default function Companies() {
                               {company.social_insurance_expiry ? (  // تحديث: insurance_subscription_expiry → social_insurance_expiry
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   socialInsuranceStatus.status === 'منتهي' ? 'bg-red-100 text-red-700' :
-                                  socialInsuranceStatus.status === 'حرج' ? 'bg-red-100 text-red-700' :
+                                  socialInsuranceStatus.status === 'طارئ' ? 'bg-red-100 text-red-700' :
                                   socialInsuranceStatus.status === 'عاجل' ? 'bg-orange-100 text-orange-700' :
                                   socialInsuranceStatus.status === 'متوسط' ? 'bg-yellow-100 text-yellow-700' :
                                   'bg-green-100 text-green-700'
@@ -1237,7 +1251,7 @@ export default function Companies() {
                               {company.ending_subscription_power_date ? (
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   powerStatus.status === 'منتهي' ? 'bg-red-100 text-red-700' :
-                                  powerStatus.status === 'حرج' ? 'bg-red-100 text-red-700' :
+                                  powerStatus.status === 'طارئ' ? 'bg-red-100 text-red-700' :
                                   powerStatus.status === 'عاجل' ? 'bg-orange-100 text-orange-700' :
                                   powerStatus.status === 'متوسط' ? 'bg-yellow-100 text-yellow-700' :
                                   powerStatus.status === 'ساري' ? 'bg-green-100 text-green-700' :
@@ -1253,7 +1267,7 @@ export default function Companies() {
                               {company.ending_subscription_moqeem_date ? (
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   moqeemStatus.status === 'منتهي' ? 'bg-red-100 text-red-700' :
-                                  moqeemStatus.status === 'حرج' ? 'bg-red-100 text-red-700' :
+                                  moqeemStatus.status === 'طارئ' ? 'bg-red-100 text-red-700' :
                                   moqeemStatus.status === 'عاجل' ? 'bg-orange-100 text-orange-700' :
                                   moqeemStatus.status === 'متوسط' ? 'bg-yellow-100 text-yellow-700' :
                                   moqeemStatus.status === 'ساري' ? 'bg-green-100 text-green-700' :

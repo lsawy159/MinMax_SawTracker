@@ -49,12 +49,12 @@ serve(async (req) => {
       .maybeSingle()
     
     const thresholds = statusSettings?.setting_value || {
-      commercial_reg_critical_days: 7,
-      commercial_reg_urgent_days: 30,
-      commercial_reg_medium_days: 45,
-      social_insurance_critical_days: 7,
-      social_insurance_urgent_days: 30,
-      social_insurance_medium_days: 45
+      commercial_reg_urgent_days: 7,   // طارئ
+      commercial_reg_high_days: 30,    // عاجل
+      commercial_reg_medium_days: 45,  // متوسط
+      social_insurance_urgent_days: 7,   // طارئ
+      social_insurance_high_days: 30,    // عاجل
+      social_insurance_medium_days: 45   // متوسط
     }
     
     if (allCompanies && allCompanies.length > 0) {
@@ -73,9 +73,9 @@ serve(async (req) => {
             
             if (daysDiff <= 0) {
               commercialRegStatus = 'منتهي'
-            } else if (daysDiff <= thresholds.commercial_reg_critical_days) {
-              commercialRegStatus = 'حرج'
             } else if (daysDiff <= thresholds.commercial_reg_urgent_days) {
+              commercialRegStatus = 'طارئ'
+            } else if (daysDiff <= thresholds.commercial_reg_high_days) {
               commercialRegStatus = 'عاجل'
             } else if (daysDiff <= thresholds.commercial_reg_medium_days) {
               commercialRegStatus = 'متوسط'
@@ -91,9 +91,9 @@ serve(async (req) => {
             
             if (daysDiff <= 0) {
               insuranceStatus = 'منتهي'
-            } else if (daysDiff <= thresholds.social_insurance_critical_days) {
-              insuranceStatus = 'حرج'
             } else if (daysDiff <= thresholds.social_insurance_urgent_days) {
+              insuranceStatus = 'طارئ'
+            } else if (daysDiff <= thresholds.social_insurance_high_days) {
               insuranceStatus = 'عاجل'
             } else if (daysDiff <= thresholds.social_insurance_medium_days) {
               insuranceStatus = 'متوسط'
@@ -162,9 +162,11 @@ serve(async (req) => {
         total,
         expiredCommercial: 0,
         expiredInsurance: 0,
-        criticalCommercial: 0,
-        criticalInsurance: 0,
+        urgentCommercial: 0,
+        highCommercial: 0,
         mediumCommercial: 0,
+        urgentInsurance: 0,
+        highInsurance: 0,
         mediumInsurance: 0,
         activeCommercial: 0,
         activeInsurance: 0
@@ -173,8 +175,8 @@ serve(async (req) => {
       for (const company of finalCompanies) {
         if (company.commercial_registration_status) {
           if (company.commercial_registration_status === 'منتهي') stats.expiredCommercial++
-          else if (company.commercial_registration_status === 'حرج' || company.commercial_registration_status.includes('حرج')) stats.criticalCommercial++
-          else if (company.commercial_registration_status === 'عاجل') stats.criticalCommercial++ // عاجل يعامل كحرج في الإحصائيات
+          else if (company.commercial_registration_status === 'طارئ' || company.commercial_registration_status.includes('طارئ')) stats.urgentCommercial++
+          else if (company.commercial_registration_status === 'عاجل' || company.commercial_registration_status.includes('عاجل')) stats.highCommercial++
           else if (company.commercial_registration_status === 'متوسط' || company.commercial_registration_status.includes('متوسط')) stats.mediumCommercial++
           else if (company.commercial_registration_status === 'ساري') stats.activeCommercial++
         }
@@ -182,8 +184,8 @@ serve(async (req) => {
         if (company.insurance_subscription_status || company.social_insurance_status) {
           const status = company.insurance_subscription_status || company.social_insurance_status
           if (status === 'منتهي') stats.expiredInsurance++
-          else if (status === 'حرج' || status.includes('حرج')) stats.criticalInsurance++
-          else if (status === 'عاجل') stats.criticalInsurance++ // عاجل يعامل كحرج في الإحصائيات
+          else if (status === 'طارئ' || status.includes('طارئ')) stats.urgentInsurance++
+          else if (status === 'عاجل' || status.includes('عاجل')) stats.highInsurance++
           else if (status === 'متوسط' || status.includes('متوسط')) stats.mediumInsurance++
           else if (status === 'ساري') stats.activeInsurance++
         }

@@ -6,41 +6,41 @@ import { invalidateStatusThresholdsCache } from '@/utils/autoCompanyStatus'
 import { logger } from '@/utils/logger'
 
 interface StatusSettingsData {
-  // السجل التجاري
-  commercial_reg_critical_days: number
-  commercial_reg_urgent_days: number
-  commercial_reg_medium_days: number
-  // التأمينات الاجتماعية
-  social_insurance_critical_days: number
-  social_insurance_urgent_days: number
-  social_insurance_medium_days: number
-  // اشتراك قوى
-  power_subscription_critical_days: number
-  power_subscription_urgent_days: number
-  power_subscription_medium_days: number
-  // اشتراك مقيم
-  moqeem_subscription_critical_days: number
-  moqeem_subscription_urgent_days: number
-  moqeem_subscription_medium_days: number
+  // السجل التجاري - النظام الموحد: طارئ، عاجل، متوسط
+  commercial_reg_urgent_days: number    // طارئ (أحمر)
+  commercial_reg_high_days: number      // عاجل (برتقالي)
+  commercial_reg_medium_days: number    // متوسط (أصفر)
+  // التأمينات الاجتماعية - النظام الموحد: طارئ، عاجل، متوسط
+  social_insurance_urgent_days: number  // طارئ (أحمر)
+  social_insurance_high_days: number    // عاجل (برتقالي)
+  social_insurance_medium_days: number  // متوسط (أصفر)
+  // اشتراك قوى - النظام الموحد: طارئ، عاجل، متوسط
+  power_subscription_urgent_days: number   // طارئ (أحمر)
+  power_subscription_high_days: number     // عاجل (برتقالي)
+  power_subscription_medium_days: number   // متوسط (أصفر)
+  // اشتراك مقيم - النظام الموحد: طارئ، عاجل، متوسط
+  moqeem_subscription_urgent_days: number  // طارئ (أحمر)
+  moqeem_subscription_high_days: number    // عاجل (برتقالي)
+  moqeem_subscription_medium_days: number  // متوسط (أصفر)
 }
 
 export default function StatusSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<StatusSettingsData>({
-    // القيم الافتراضية
-    commercial_reg_critical_days: 7,
-    commercial_reg_urgent_days: 30,
-    commercial_reg_medium_days: 45,
-    social_insurance_critical_days: 7,
-    social_insurance_urgent_days: 30,
-    social_insurance_medium_days: 45,
-    power_subscription_critical_days: 7,
-    power_subscription_urgent_days: 30,
-    power_subscription_medium_days: 45,
-    moqeem_subscription_critical_days: 7,
-    moqeem_subscription_urgent_days: 30,
-    moqeem_subscription_medium_days: 45
+    // القيم الافتراضية - النظام الموحد
+    commercial_reg_urgent_days: 7,      // طارئ
+    commercial_reg_high_days: 30,       // عاجل
+    commercial_reg_medium_days: 45,     // متوسط
+    social_insurance_urgent_days: 7,    // طارئ
+    social_insurance_high_days: 30,     // عاجل
+    social_insurance_medium_days: 45,   // متوسط
+    power_subscription_urgent_days: 7,  // طارئ
+    power_subscription_high_days: 30,   // عاجل
+    power_subscription_medium_days: 45, // متوسط
+    moqeem_subscription_urgent_days: 7, // طارئ
+    moqeem_subscription_high_days: 30,  // عاجل
+    moqeem_subscription_medium_days: 45 // متوسط
   })
 
   useEffect(() => {
@@ -134,13 +134,13 @@ export default function StatusSettings() {
                   type="number"
                   min="1"
                   max="365"
-                  value={settings.commercial_reg_critical_days}
-                  onChange={(e) => setSettings({ ...settings, commercial_reg_critical_days: parseInt(e.target.value) || 0 })}
+                  value={settings.commercial_reg_urgent_days}
+                  onChange={(e) => setSettings({ ...settings, commercial_reg_urgent_days: parseInt(e.target.value) || 0 })}
                   className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-center font-bold"
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.commercial_reg_critical_days} أيام = حالة حرج</p>
+              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.commercial_reg_urgent_days} أيام = حالة طارئ</p>
             </div>
 
             <div>
@@ -158,7 +158,7 @@ export default function StatusSettings() {
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">من {settings.commercial_reg_critical_days + 1} إلى {settings.commercial_reg_urgent_days} أيام = حالة عاجل</p>
+              <p className="text-xs text-gray-500 mt-1">من {settings.commercial_reg_urgent_days + 1} إلى {settings.commercial_reg_high_days} أيام = حالة عاجل</p>
             </div>
 
             <div>
@@ -202,13 +202,13 @@ export default function StatusSettings() {
                   type="number"
                   min="1"
                   max="365"
-                  value={settings.social_insurance_critical_days}
-                  onChange={(e) => setSettings({ ...settings, social_insurance_critical_days: parseInt(e.target.value) || 0 })}
+                  value={settings.social_insurance_urgent_days}
+                  onChange={(e) => setSettings({ ...settings, social_insurance_urgent_days: parseInt(e.target.value) || 0 })}
                   className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-center font-bold"
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.social_insurance_critical_days} أيام = حالة حرج</p>
+              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.social_insurance_urgent_days} أيام = حالة طارئ</p>
             </div>
 
             <div>
@@ -226,7 +226,7 @@ export default function StatusSettings() {
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">من {settings.social_insurance_critical_days + 1} إلى {settings.social_insurance_urgent_days} أيام = حالة عاجل</p>
+              <p className="text-xs text-gray-500 mt-1">من {settings.social_insurance_urgent_days + 1} إلى {settings.social_insurance_high_days} أيام = حالة عاجل</p>
             </div>
 
             <div>
@@ -270,13 +270,13 @@ export default function StatusSettings() {
                   type="number"
                   min="1"
                   max="365"
-                  value={settings.power_subscription_critical_days}
-                  onChange={(e) => setSettings({ ...settings, power_subscription_critical_days: parseInt(e.target.value) || 0 })}
+                  value={settings.power_subscription_urgent_days}
+                  onChange={(e) => setSettings({ ...settings, power_subscription_urgent_days: parseInt(e.target.value) || 0 })}
                   className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-center font-bold"
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.power_subscription_critical_days} أيام = حالة حرج</p>
+              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.power_subscription_urgent_days} أيام = حالة طارئ</p>
             </div>
 
             <div>
@@ -294,7 +294,7 @@ export default function StatusSettings() {
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">من {settings.power_subscription_critical_days + 1} إلى {settings.power_subscription_urgent_days} أيام = حالة عاجل</p>
+              <p className="text-xs text-gray-500 mt-1">من {settings.power_subscription_urgent_days + 1} إلى {settings.power_subscription_high_days} أيام = حالة عاجل</p>
             </div>
 
             <div>
@@ -338,13 +338,13 @@ export default function StatusSettings() {
                   type="number"
                   min="1"
                   max="365"
-                  value={settings.moqeem_subscription_critical_days}
-                  onChange={(e) => setSettings({ ...settings, moqeem_subscription_critical_days: parseInt(e.target.value) || 0 })}
+                  value={settings.moqeem_subscription_urgent_days}
+                  onChange={(e) => setSettings({ ...settings, moqeem_subscription_urgent_days: parseInt(e.target.value) || 0 })}
                   className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-center font-bold"
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.moqeem_subscription_critical_days} أيام = حالة حرج</p>
+              <p className="text-xs text-gray-500 mt-1">منتهي أو ≤ {settings.moqeem_subscription_urgent_days} أيام = حالة طارئ</p>
             </div>
 
             <div>
@@ -362,7 +362,7 @@ export default function StatusSettings() {
                 />
                 <span className="text-sm text-gray-600">أيام أو أقل</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">من {settings.moqeem_subscription_critical_days + 1} إلى {settings.moqeem_subscription_urgent_days} أيام = حالة عاجل</p>
+              <p className="text-xs text-gray-500 mt-1">من {settings.moqeem_subscription_urgent_days + 1} إلى {settings.moqeem_subscription_high_days} أيام = حالة عاجل</p>
             </div>
 
             <div>
@@ -401,11 +401,11 @@ export default function StatusSettings() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-600"></div>
-              <span className="text-gray-700">حرج: ≤ {settings.commercial_reg_critical_days} يوم</span>
+              <span className="text-gray-700">طارئ: ≤ {settings.commercial_reg_urgent_days} يوم</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-              <span className="text-gray-700">عاجل: {settings.commercial_reg_critical_days + 1} - {settings.commercial_reg_urgent_days} يوم</span>
+              <span className="text-gray-700">عاجل: {settings.commercial_reg_urgent_days + 1} - {settings.commercial_reg_high_days} يوم</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>

@@ -93,6 +93,9 @@ serve(async (req) => {
     console.log(`تم جلب ${companies?.length || 0} شركة`)
     
     const today = new Date()
+    const urgentDays = 7
+    const highDays = 30
+    const mediumDays = 45
     let updatedCount = 0
     const results = []
     
@@ -109,10 +112,12 @@ serve(async (req) => {
             
             if (daysDiff <= 0) {
               commercialRegStatus = 'منتهي'
-            } else if (daysDiff <= 7) {
-              commercialRegStatus = 'حرج (ينتهي خلال 7 أيام)'
-            } else if (daysDiff <= 30) {
-              commercialRegStatus = 'متوسط (ينتهي خلال شهر)'
+            } else if (daysDiff <= urgentDays) {
+              commercialRegStatus = 'طارئ (ينتهي خلال أيام قليلة)'
+            } else if (daysDiff <= highDays) {
+              commercialRegStatus = 'عاجل (يتطلب اهتماماً سريعاً)'
+            } else if (daysDiff <= mediumDays) {
+              commercialRegStatus = 'متوسط (يتطلب متابعة)'
             } else {
               commercialRegStatus = 'ساري'
             }
@@ -125,10 +130,12 @@ serve(async (req) => {
             
             if (daysDiff <= 0) {
               insuranceStatus = 'منتهي'
-            } else if (daysDiff <= 7) {
-              insuranceStatus = 'حرج (ينتهي خلال 7 أيام)'
-            } else if (daysDiff <= 30) {
-              insuranceStatus = 'متوسط (ينتهي خلال شهر)'
+            } else if (daysDiff <= urgentDays) {
+              insuranceStatus = 'طارئ (ينتهي خلال أيام قليلة)'
+            } else if (daysDiff <= highDays) {
+              insuranceStatus = 'عاجل (يتطلب اهتماماً سريعاً)'
+            } else if (daysDiff <= mediumDays) {
+              insuranceStatus = 'متوسط (يتطلب متابعة)'
             } else {
               insuranceStatus = 'ساري'
             }
@@ -185,9 +192,11 @@ serve(async (req) => {
       total: finalCompanies?.length || 0,
       expiredCommercial: 0,
       expiredInsurance: 0,
-      criticalCommercial: 0,
-      criticalInsurance: 0,
+      urgentCommercial: 0,
+      highCommercial: 0,
       mediumCommercial: 0,
+      urgentInsurance: 0,
+      highInsurance: 0,
       mediumInsurance: 0,
       activeCommercial: 0,
       activeInsurance: 0
@@ -197,14 +206,16 @@ serve(async (req) => {
       for (const company of finalCompanies) {
         if (company.commercial_registration_status) {
           if (company.commercial_registration_status === 'منتهي') stats.expiredCommercial++
-          else if (company.commercial_registration_status.includes('حرج')) stats.criticalCommercial++
+          else if (company.commercial_registration_status.includes('طارئ')) stats.urgentCommercial++
+          else if (company.commercial_registration_status.includes('عاجل')) stats.highCommercial++
           else if (company.commercial_registration_status.includes('متوسط')) stats.mediumCommercial++
           else if (company.commercial_registration_status === 'ساري') stats.activeCommercial++
         }
         
         if (company.insurance_subscription_status) {
           if (company.insurance_subscription_status === 'منتهي') stats.expiredInsurance++
-          else if (company.insurance_subscription_status.includes('حرج')) stats.criticalInsurance++
+          else if (company.insurance_subscription_status.includes('طارئ')) stats.urgentInsurance++
+          else if (company.insurance_subscription_status.includes('عاجل')) stats.highInsurance++
           else if (company.insurance_subscription_status.includes('متوسط')) stats.mediumInsurance++
           else if (company.insurance_subscription_status === 'ساري') stats.activeInsurance++
         }

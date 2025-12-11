@@ -5,7 +5,8 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
 export interface Alert {
   id: string
-  type: 'commercial_registration' | 'social_insurance_expiry' | 'power_subscription' | 'moqeem_subscription'  // تحديث: insurance_subscription → social_insurance_expiry
+  // أنواع تنبيهات المؤسسات
+  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'power_subscription_expiry' | 'moqeem_subscription_expiry'
   priority: 'urgent' | 'high' | 'medium' | 'low'
   title: string
   message: string
@@ -75,13 +76,13 @@ export function AlertCard({
 
   const getTypeIcon = (type: Alert['type']) => {
     switch (type) {
-      case 'commercial_registration':
+      case 'commercial_registration_expiry':
         return <Building2 className="h-5 w-5" />
-      case 'social_insurance_expiry':  // تحديث: insurance_subscription → social_insurance_expiry
+      case 'social_insurance_expiry':
         return <Shield className="h-5 w-5" />
-      case 'power_subscription':
+      case 'power_subscription_expiry':
         return <Zap className="h-5 w-5" />
-      case 'moqeem_subscription':
+      case 'moqeem_subscription_expiry':
         return <Home className="h-5 w-5" />
       default:
         return <AlertTriangle className="h-5 w-5" />

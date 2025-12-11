@@ -20,7 +20,7 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
 export interface EnhancedAlert {
   id: string
-  type: 'commercial_registration' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -36,7 +36,7 @@ export interface EnhancedAlert {
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   
   // Enhanced fields
-  alert_type: 'commercial_registration' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
   document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
@@ -174,7 +174,7 @@ export function EnhancedAlertCard({
 
   const getTypeIcon = (type: EnhancedAlert['alert_type']) => {
     switch (type) {
-      case 'commercial_registration':
+  case 'commercial_registration_expiry':
         return <Building2 className="h-5 w-5" />
       case 'social_insurance_expiry':  // تحديث: insurance_subscription → social_insurance_expiry
         return <Shield className="h-5 w-5" />
