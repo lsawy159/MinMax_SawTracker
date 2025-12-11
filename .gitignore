@@ -48,6 +48,43 @@ replacements.txt
 *.md
 !.github/**/*.md
 
+# Temporary test pages (development only)
+src/pages/EnhancedAlertsTestPage.tsx
+src/pages/CommercialRegTestPage.tsx
+
+# Unused utility files
+src/utils/errorHandler.ts
+src/utils/insuranceSubscription.ts
+src/utils/commercialRegistration.ts
+
+# Temporary development scripts
+src/scripts/createSampleCompanies.ts
+src/scripts/populateCompanyDates.ts
+create_sample_companies.ts
+
+# Supabase temporary/fix functions (already applied)
+supabase/functions/add-columns/
+supabase/functions/fix-companies-table/
+supabase/functions/fix-database/
+supabase/functions/fix-statistics/
+supabase/functions/add-test-data/
+supabase/functions/add-companies/
+supabase/functions/add-expiry-dates/
+
+# SQL temporary/test files
+check_status.sql
+create_sample_companies.sql
+SIMPLE_CHECK.sql
+STORAGE_RLS_POLICIES.sql
+check_admin_user.sql
+execute_sql.py
+
+# Build logs and plan files
+build.log
+PLAN_OVERVIEW.txt
+replacements.txt
+public/use.txt
+
 # Local documentation directory - never commit to git
 docs-local/
 
