@@ -366,6 +366,11 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const handleSave = async () => {
     setSaving(true)
     try {
+      const normalizeDate = (value: string | null | undefined) => {
+        const trimmed = value?.trim()
+        return trimmed ? trimmed : null
+      }
+
       // تحضير البيانات للحفظ
       const updateData: Partial<Employee> = {
         name: formData.name,
@@ -375,15 +380,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         passport_number: formData.passport_number,
         project_id: formData.project_id || null,
         bank_account: formData.bank_account,
-        birth_date: formData.birth_date,
+        birth_date: normalizeDate(formData.birth_date),
         residence_number: Number(formData.residence_number),
-        joining_date: formData.joining_date,
-        contract_expiry: formData.contract_expiry,
+        joining_date: normalizeDate(formData.joining_date),
+        contract_expiry: normalizeDate(formData.contract_expiry),
         hired_worker_contract_expiry: formData.hired_worker_contract_expiry || null,
-        residence_expiry: formData.residence_expiry,
+        residence_expiry: normalizeDate(formData.residence_expiry),
         residence_image_url: formData.residence_image_url || null,
         salary: Number(formData.salary) || 0,
-        health_insurance_expiry: formData.health_insurance_expiry || null,  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+        health_insurance_expiry: normalizeDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         notes: formData.notes || null,
         additional_fields: formData.additional_fields
       }
