@@ -9,6 +9,8 @@ import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import NotificationSettings from '@/components/settings/NotificationSettings'
 import StatusSettings from '@/components/settings/StatusSettings'
+import EmployeeTableColorSettings from '@/components/settings/EmployeeTableColorSettings'
+import UnifiedSettings from '@/components/settings/UnifiedSettings'
 
 interface GeneralSetting {
   id?: string
@@ -28,7 +30,7 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
-type TabType = 'system' | 'fields' | 'notifications' | 'status' | 'backup' | 'security' | 'ui' | 'reports' | 'advanced-notifications'
+type TabType = 'system' | 'fields' | 'notifications' | 'employeeColors' | 'status' | 'backup' | 'security' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -96,6 +98,12 @@ export default function GeneralSettings() {
 
   const settingsCategories: SettingsCategory[] = [
     {
+      key: 'unified',
+      label: 'الإعدادات المركزية (موحدة)',
+      icon: Settings,
+      component: UnifiedSettings
+    },
+    {
       key: 'system',
       label: 'إعدادات النظام الأساسية',
       icon: Globe,
@@ -159,6 +167,12 @@ export default function GeneralSettings() {
       label: 'إعدادات التنبيهات',
       icon: Bell,
       component: NotificationSettings
+    },
+    {
+      key: 'employeeColors',
+      label: 'ألوان جدول الموظفين',
+      icon: Palette,
+      component: EmployeeTableColorSettings
     },
     {
       key: 'status',

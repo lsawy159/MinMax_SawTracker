@@ -48,7 +48,8 @@ function CompanyCard({
       moqeemStatus.priority
     ]
     
-    if (priorities.includes('critical')) return 'border-red-400'
+    if (priorities.includes('urgent')) return 'border-red-400'
+    if (priorities.includes('high')) return 'border-orange-400'
     if (priorities.includes('medium')) return 'border-yellow-400'
     if (priorities.includes('low')) return 'border-green-400'
     return 'border-gray-200'
@@ -157,7 +158,7 @@ function CompanyCard({
             {company.commercial_registration_expiry ? (
               <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{commercialRegStatus.status === 'حرج' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-sm">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{commercialRegStatus.status}</span>
                     <span className="text-xs opacity-75">{commercialRegStatus.description}</span>
@@ -177,7 +178,7 @@ function CompanyCard({
             {company.social_insurance_expiry ? (
               <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${socialInsuranceStatus.color.backgroundColor} ${socialInsuranceStatus.color.textColor} ${socialInsuranceStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{socialInsuranceStatus.status === 'حرج' ? '🚨' : socialInsuranceStatus.status === 'عاجل' ? '🔥' : socialInsuranceStatus.status === 'متوسط' ? '⚠️' : socialInsuranceStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-sm">{socialInsuranceStatus.status === 'طارئ' ? '🚨' : socialInsuranceStatus.status === 'عاجل' ? '🔥' : socialInsuranceStatus.status === 'متوسط' ? '⚠️' : socialInsuranceStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{socialInsuranceStatus.status}</span>
                     <span className="text-xs opacity-75">{socialInsuranceStatus.description}</span>
@@ -197,7 +198,7 @@ function CompanyCard({
             {company.ending_subscription_power_date ? (
               <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{powerStatus.status === 'حرج' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-sm">{powerStatus.status === 'طارئ' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{powerStatus.status}</span>
                     <span className="text-xs opacity-75">{powerStatus.description}</span>
@@ -217,7 +218,7 @@ function CompanyCard({
             {company.ending_subscription_moqeem_date ? (
               <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{moqeemStatus.status === 'حرج' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-sm">{moqeemStatus.status === 'طارئ' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{moqeemStatus.status}</span>
                     <span className="text-xs opacity-75">{moqeemStatus.description}</span>

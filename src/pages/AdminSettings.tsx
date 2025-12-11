@@ -5,12 +5,14 @@ import Layout from '@/components/layout/Layout'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import NotificationSettings from '@/components/settings/NotificationSettings'
 import StatusSettings from '@/components/settings/StatusSettings'
-import { Settings, Database, Bell, Shield, TrendingUp } from 'lucide-react'
+import EmployeeTableColorSettings from '@/components/settings/EmployeeTableColorSettings'
+import UnifiedSettings from '@/components/settings/UnifiedSettings'
+import { Settings, Database, Bell, Shield, TrendingUp, Palette, Sparkles } from 'lucide-react'
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'fields' | 'notifications' | 'status' | 'general'>('fields')
+  const [activeTab, setActiveTab] = useState<'unified' | 'fields' | 'notifications' | 'employeeColors' | 'status' | 'general'>('unified')
 
   useEffect(() => {
     // التحقق من صلاحيات المدير
@@ -34,17 +36,28 @@ export default function AdminSettings() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
-              <p className="text-gray-600 mt-1">إدارة الحقول المخصصة وإعدادات التنبيهات</p>
+              <p className="text-gray-600 mt-1">إدارة جميع إعدادات النظام: الحالات، التنبيهات، الألوان، والحقول المخصصة</p>
             </div>
           </div>
         </div>
 
         {/* Tabs Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('unified')}
+              className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
+                activeTab === 'unified'
+                  ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              الإعدادات المركزية
+            </button>
             <button
               onClick={() => setActiveTab('fields')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
+              className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
                 activeTab === 'fields'
                   ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -65,6 +78,17 @@ export default function AdminSettings() {
               إعدادات التنبيهات
             </button>
             <button
+              onClick={() => setActiveTab('employeeColors')}
+              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
+                activeTab === 'employeeColors'
+                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Palette className="w-5 h-5" />
+              ألوان جدول الموظفين
+            </button>
+            <button
               onClick={() => setActiveTab('status')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
                 activeTab === 'status'
@@ -83,16 +107,18 @@ export default function AdminSettings() {
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <Shield className="w-5 h-5" />
-              الإعدادات العامة
+              <Sparkles className="w-5 h-5" />
+              إعدادات عامة
             </button>
           </div>
         </div>
 
         {/* Tab Content */}
         <div>
+          {activeTab === 'unified' && <UnifiedSettings />}
           {activeTab === 'fields' && <CustomFieldManager />}
           {activeTab === 'notifications' && <NotificationSettings />}
+          {activeTab === 'employeeColors' && <EmployeeTableColorSettings />}
           {activeTab === 'status' && <StatusSettings />}
           {activeTab === 'general' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

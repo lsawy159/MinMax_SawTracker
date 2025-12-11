@@ -96,10 +96,10 @@ export function useAlertsStats() {
       // Badge المؤسسات: الحالات العاجلة والعالية (urgent/high) فقط للأنواع المحددة
       const companyProblemUrgent = companyAlerts.filter(alert => 
         (alert.priority === 'urgent' || alert.priority === 'high') && (
-          alert.type === 'commercial_registration' ||
+          alert.type === 'commercial_registration_expiry' ||
           alert.type === 'social_insurance_expiry' ||
-          alert.type === 'power_subscription' ||
-          alert.type === 'moqeem_subscription'
+          alert.type === 'power_subscription_expiry' ||
+          alert.type === 'moqeem_subscription_expiry'
         )
       ).length
       
@@ -116,7 +116,7 @@ export function useAlertsStats() {
         )
       ).length
       
-      const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration').length
+  const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration_expiry').length
       const insuranceAlerts = companyAlerts.filter(alert => alert.type === 'social_insurance_expiry').length
       const contractAlerts = employeeAlerts.filter(alert => alert.type === 'contract_expiry').length
       const residenceAlerts = employeeAlerts.filter(alert => alert.type === 'residence_expiry').length

@@ -24,10 +24,10 @@ serve(async (req) => {
     // إضافة شركات تجريبية بالحقول الأساسية فقط
     const testCompanies = [
       {
-        name: 'شركة إحصائيات - حرج',
+        name: 'شركة إحصائيات - طارئ',
         unified_number: 'CRIT001',
-        commercial_registration_expiry: '2025-12-10', // حرج (3 أيام)
-        insurance_subscription_expiry: '2025-12-08', // حرج جداً (1 يوم)
+        commercial_registration_expiry: '2025-12-10', // طارئ (3 أيام)
+        insurance_subscription_expiry: '2025-12-08', // طارئ جداً (1 يوم)
         qiwa_expiry: '2026-05-15',
         ending_subscription_moqeem_date: '2026-03-10'
       },
@@ -111,9 +111,11 @@ serve(async (req) => {
       total: allCompanies?.length || 0,
       expiredCommercial: 0,
       expiredInsurance: 0,
-      criticalCommercial: 0,
-      criticalInsurance: 0,
+      urgentCommercial: 0,
+      highCommercial: 0,
       mediumCommercial: 0,
+      urgentInsurance: 0,
+      highInsurance: 0,
       mediumInsurance: 0,
       validCommercial: 0,
       validInsurance: 0,
@@ -136,9 +138,12 @@ serve(async (req) => {
             stats.expiredCommercial++
             console.log('  حالة: منتهي')
           } else if (daysDiff <= 7) {
-            stats.criticalCommercial++
-            console.log('  حالة: حرج')
+            stats.urgentCommercial++
+            console.log('  حالة: طارئ')
           } else if (daysDiff <= 30) {
+            stats.highCommercial++
+            console.log('  حالة: عاجل')
+          } else if (daysDiff <= 45) {
             stats.mediumCommercial++
             console.log('  حالة: متوسط')
           } else {
@@ -159,9 +164,12 @@ serve(async (req) => {
             stats.expiredInsurance++
             console.log('  حالة: منتهي')
           } else if (daysDiff <= 7) {
-            stats.criticalInsurance++
-            console.log('  حالة: حرج')
+            stats.urgentInsurance++
+            console.log('  حالة: طارئ')
           } else if (daysDiff <= 30) {
+            stats.highInsurance++
+            console.log('  حالة: عاجل')
+          } else if (daysDiff <= 45) {
             stats.mediumInsurance++
             console.log('  حالة: متوسط')
           } else {
@@ -181,11 +189,13 @@ serve(async (req) => {
     console.log('الإحصائيات النهائية:')
     console.log(`- إجمالي الشركات: ${stats.total}`)
     console.log(`- منتهي السجل التجاري: ${stats.expiredCommercial}`)
-    console.log(`- حرج السجل التجاري: ${stats.criticalCommercial}`)
+    console.log(`- طارئ السجل التجاري: ${stats.urgentCommercial}`)
+    console.log(`- عاجل السجل التجاري: ${stats.highCommercial}`)
     console.log(`- متوسط السجل التجاري: ${stats.mediumCommercial}`)
     console.log(`- ساري السجل التجاري: ${stats.validCommercial}`)
     console.log(`- منتهي التأمين: ${stats.expiredInsurance}`)
-    console.log(`- حرج التأمين: ${stats.criticalInsurance}`)
+    console.log(`- طارئ التأمين: ${stats.urgentInsurance}`)
+    console.log(`- عاجل التأمين: ${stats.highInsurance}`)
     console.log(`- متوسط التأمين: ${stats.mediumInsurance}`)
     console.log(`- ساري التأمين: ${stats.validInsurance}`)
     console.log(`- نسبة منتهي الصلاحية: ${expiredPercent}%`)

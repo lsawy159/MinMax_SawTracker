@@ -17,8 +17,11 @@ import {
   getEmployeeAlertsStats,
   getUrgentEmployeeAlerts,
   filterEmployeeAlertsByType,
+  getEmployeeNotificationThresholdsPublic,
+  DEFAULT_EMPLOYEE_THRESHOLDS,
   type EmployeeAlert
 } from '@/utils/employeeAlerts'
+import { getStatusThresholds, DEFAULT_STATUS_THRESHOLDS } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
 
 interface Stats {
@@ -32,52 +35,52 @@ interface Stats {
   utilizationRate: number
   // إحصائيات العقود (5 فئات)
   expiredContracts: number
-  urgent7Contracts: number
-  urgent30Contracts: number
-  medium45Contracts: number
-  valid45PlusContracts: number
+  urgentContracts: number
+  highContracts: number
+  mediumContracts: number
+  validContracts: number
   // إحصائيات الإقامات (5 فئات)
   expiredResidences: number
-  urgent7Residences: number
-  urgent30Residences: number
-  medium45Residences: number
-  valid45PlusResidences: number
+  urgentResidences: number
+  highResidences: number
+  mediumResidences: number
+  validResidences: number
   // إحصائيات التأمين الصحي (5 فئات)
   expiredInsurance: number
-  urgent7Insurance: number
-  urgent30Insurance: number
-  medium45Insurance: number
-  valid45PlusInsurance: number
+  urgentInsurance: number
+  highInsurance: number
+  mediumInsurance: number
+  validInsurance: number
   // إحصائيات عقد أجير (5 فئات)
   expiredHiredWorkerContracts: number
-  urgent7HiredWorkerContracts: number
-  urgent30HiredWorkerContracts: number
-  medium45HiredWorkerContracts: number
-  valid45PlusHiredWorkerContracts: number
+  urgentHiredWorkerContracts: number
+  highHiredWorkerContracts: number
+  mediumHiredWorkerContracts: number
+  validHiredWorkerContracts: number
   // إحصائيات السجل التجاري (5 فئات)
   expiredCommercialReg: number
-  urgent7CommercialReg: number
-  urgent30CommercialReg: number
-  medium45CommercialReg: number
-  valid45PlusCommercialReg: number
+  urgentCommercialReg: number
+  highCommercialReg: number
+  mediumCommercialReg: number
+  validCommercialReg: number
   // إحصائيات التأمينات الاجتماعية (5 فئات)
   expiredInsuranceSocial: number
-  urgent7InsuranceSocial: number
-  urgent30InsuranceSocial: number
-  medium45InsuranceSocial: number
-  valid45PlusInsuranceSocial: number
+  urgentInsuranceSocial: number
+  highInsuranceSocial: number
+  mediumInsuranceSocial: number
+  validInsuranceSocial: number
   // إحصائيات اشتراك قوى (5 فئات)
   expiredPower: number
-  urgent7Power: number
-  urgent30Power: number
-  medium45Power: number
-  valid45PlusPower: number
+  urgentPower: number
+  highPower: number
+  mediumPower: number
+  validPower: number
   // إحصائيات اشتراك مقيم (5 فئات)
   expiredMoqeem: number
-  urgent7Moqeem: number
-  urgent30Moqeem: number
-  medium45Moqeem: number
-  valid45PlusMoqeem: number
+  urgentMoqeem: number
+  highMoqeem: number
+  mediumMoqeem: number
+  validMoqeem: number
 }
 
 export default function Dashboard() {
@@ -85,6 +88,8 @@ export default function Dashboard() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
+  const [companyThresholds, setCompanyThresholds] = useState(DEFAULT_STATUS_THRESHOLDS)
+  const [employeeThresholds, setEmployeeThresholds] = useState(DEFAULT_EMPLOYEE_THRESHOLDS)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
@@ -102,52 +107,52 @@ export default function Dashboard() {
     utilizationRate: 0,
     // إحصائيات العقود (5 فئات)
     expiredContracts: 0,
-    urgent7Contracts: 0,
-    urgent30Contracts: 0,
-    medium45Contracts: 0,
-    valid45PlusContracts: 0,
+    urgentContracts: 0,
+    highContracts: 0,
+    mediumContracts: 0,
+    validContracts: 0,
     // إحصائيات الإقامات (5 فئات)
     expiredResidences: 0,
-    urgent7Residences: 0,
-    urgent30Residences: 0,
-    medium45Residences: 0,
-    valid45PlusResidences: 0,
+    urgentResidences: 0,
+    highResidences: 0,
+    mediumResidences: 0,
+    validResidences: 0,
     // إحصائيات التأمين الصحي (5 فئات)
     expiredInsurance: 0,
-    urgent7Insurance: 0,
-    urgent30Insurance: 0,
-    medium45Insurance: 0,
-    valid45PlusInsurance: 0,
+    urgentInsurance: 0,
+    highInsurance: 0,
+    mediumInsurance: 0,
+    validInsurance: 0,
     // إحصائيات عقد أجير (5 فئات)
     expiredHiredWorkerContracts: 0,
-    urgent7HiredWorkerContracts: 0,
-    urgent30HiredWorkerContracts: 0,
-    medium45HiredWorkerContracts: 0,
-    valid45PlusHiredWorkerContracts: 0,
+    urgentHiredWorkerContracts: 0,
+    highHiredWorkerContracts: 0,
+    mediumHiredWorkerContracts: 0,
+    validHiredWorkerContracts: 0,
     // إحصائيات السجل التجاري (5 فئات)
     expiredCommercialReg: 0,
-    urgent7CommercialReg: 0,
-    urgent30CommercialReg: 0,
-    medium45CommercialReg: 0,
-    valid45PlusCommercialReg: 0,
+    urgentCommercialReg: 0,
+    highCommercialReg: 0,
+    mediumCommercialReg: 0,
+    validCommercialReg: 0,
     // إحصائيات التأمينات الاجتماعية (5 فئات)
     expiredInsuranceSocial: 0,
-    urgent7InsuranceSocial: 0,
-    urgent30InsuranceSocial: 0,
-    medium45InsuranceSocial: 0,
-    valid45PlusInsuranceSocial: 0,
+    urgentInsuranceSocial: 0,
+    highInsuranceSocial: 0,
+    mediumInsuranceSocial: 0,
+    validInsuranceSocial: 0,
     // إحصائيات اشتراك قوى (5 فئات)
     expiredPower: 0,
-    urgent7Power: 0,
-    urgent30Power: 0,
-    medium45Power: 0,
-    valid45PlusPower: 0,
+    urgentPower: 0,
+    highPower: 0,
+    mediumPower: 0,
+    validPower: 0,
     // إحصائيات اشتراك مقيم (5 فئات)
     expiredMoqeem: 0,
-    urgent7Moqeem: 0,
-    urgent30Moqeem: 0,
-    medium45Moqeem: 0,
-    valid45PlusMoqeem: 0
+    urgentMoqeem: 0,
+    highMoqeem: 0,
+    mediumMoqeem: 0,
+    validMoqeem: 0
   })
 
   useEffect(() => {
@@ -221,10 +226,12 @@ export default function Dashboard() {
     try {
       setLoading(true)
 
-      // Fetch employees and companies in parallel
-      const [employeesResult, companiesResult] = await Promise.all([
+      // Fetch employees, companies، والإعدادات في آن واحد
+      const [employeesResult, companiesResult, companyThresholdsData, employeeThresholdsData] = await Promise.all([
         supabase.from('employees').select('*'),
-        supabase.from('companies').select('*')
+        supabase.from('companies').select('*'),
+        getStatusThresholds(),
+        getEmployeeNotificationThresholdsPublic()
       ])
 
       if (employeesResult.error) throw employeesResult.error
@@ -232,13 +239,20 @@ export default function Dashboard() {
 
       const employeesData = employeesResult.data || []
       const companiesData = companiesResult.data || []
-
+      
       setEmployees(employeesData)
       setCompanies(companiesData)
+      setCompanyThresholds(companyThresholdsData)
+      setEmployeeThresholds(employeeThresholdsData)
 
       if (employeesData.length > 0 && companiesData.length > 0) {
         // Calculate basic stats immediately (critical)
-        const calculatedStats = await calculateStats(employeesData, companiesData)
+        const calculatedStats = await calculateStats(
+          employeesData,
+          companiesData,
+          companyThresholdsData,
+          employeeThresholdsData
+        )
         setStats(calculatedStats)
       }
     } catch (error) {
@@ -271,9 +285,13 @@ export default function Dashboard() {
   }
 
   // دالة مساعدة لحساب الفئات الخمس لأي تاريخ انتهاء
-  const calculateFiveCategories = (expiryDate: string | null | undefined, today: Date) => {
+  const calculateFiveCategories = (
+    expiryDate: string | null | undefined,
+    today: Date,
+    thresholds: { urgent: number; high: number; medium: number }
+  ) => {
     if (!expiryDate) {
-      return { expired: 0, urgent7: 0, urgent30: 0, medium45: 0, valid45Plus: 0 }
+      return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 0 }
     }
     
     // إعادة تعيين الوقت لضمان المقارنة الصحيحة
@@ -285,19 +303,24 @@ export default function Dashboard() {
     const diff = differenceInDays(expiry, todayNormalized)
     
     if (diff < 0) {
-      return { expired: 1, urgent7: 0, urgent30: 0, medium45: 0, valid45Plus: 0 }
-    } else if (diff <= 7) {
-      return { expired: 0, urgent7: 1, urgent30: 0, medium45: 0, valid45Plus: 0 }
-    } else if (diff <= 30) {
-      return { expired: 0, urgent7: 0, urgent30: 1, medium45: 0, valid45Plus: 0 }
-    } else if (diff <= 45) {
-      return { expired: 0, urgent7: 0, urgent30: 0, medium45: 1, valid45Plus: 0 }
+      return { expired: 1, urgent: 0, high: 0, medium: 0, valid: 0 }
+    } else if (diff <= thresholds.urgent) {
+      return { expired: 0, urgent: 1, high: 0, medium: 0, valid: 0 }
+    } else if (diff <= thresholds.high) {
+      return { expired: 0, urgent: 0, high: 1, medium: 0, valid: 0 }
+    } else if (diff <= thresholds.medium) {
+      return { expired: 0, urgent: 0, high: 0, medium: 1, valid: 0 }
     } else {
-      return { expired: 0, urgent7: 0, urgent30: 0, medium45: 0, valid45Plus: 1 }
+      return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 1 }
     }
   }
 
-  const calculateStats = async (employees: Employee[], companies: Company[]) => {
+  const calculateStats = async (
+    employees: Employee[],
+    companies: Company[],
+    companyThresholdsInput = companyThresholds,
+    employeeThresholdsInput = employeeThresholds
+  ) => {
     const today = new Date()
     
     // حساب إحصائيات الموظفين
@@ -332,91 +355,123 @@ export default function Dashboard() {
     const utilizationRate = totalContractSlots > 0 ? Math.round(((totalContractSlots - totalAvailableSlots) / totalContractSlots) * 100) : 0
     
     // حساب إحصائيات العقود (5 فئات)
-    let expiredContracts = 0, urgent7Contracts = 0, urgent30Contracts = 0, medium45Contracts = 0, valid45PlusContracts = 0
+    let expiredContracts = 0, urgentContracts = 0, highContracts = 0, mediumContracts = 0, validContracts = 0
     employees.forEach(emp => {
-      const cats = calculateFiveCategories(emp.contract_expiry, today)
+      const cats = calculateFiveCategories(emp.contract_expiry, today, {
+        urgent: employeeThresholdsInput.contract_urgent_days,
+        high: employeeThresholdsInput.contract_high_days,
+        medium: employeeThresholdsInput.contract_medium_days
+      })
       expiredContracts += cats.expired
-      urgent7Contracts += cats.urgent7
-      urgent30Contracts += cats.urgent30
-      medium45Contracts += cats.medium45
-      valid45PlusContracts += cats.valid45Plus
+      urgentContracts += cats.urgent
+      highContracts += cats.high
+      mediumContracts += cats.medium
+      validContracts += cats.valid
     })
 
     // حساب إحصائيات الإقامات (5 فئات)
-    let expiredResidences = 0, urgent7Residences = 0, urgent30Residences = 0, medium45Residences = 0, valid45PlusResidences = 0
+    let expiredResidences = 0, urgentResidences = 0, highResidences = 0, mediumResidences = 0, validResidences = 0
     employees.forEach(emp => {
-      const cats = calculateFiveCategories(emp.residence_expiry, today)
+      const cats = calculateFiveCategories(emp.residence_expiry, today, {
+        urgent: employeeThresholdsInput.residence_urgent_days,
+        high: employeeThresholdsInput.residence_high_days,
+        medium: employeeThresholdsInput.residence_medium_days
+      })
       expiredResidences += cats.expired
-      urgent7Residences += cats.urgent7
-      urgent30Residences += cats.urgent30
-      medium45Residences += cats.medium45
-      valid45PlusResidences += cats.valid45Plus
+      urgentResidences += cats.urgent
+      highResidences += cats.high
+      mediumResidences += cats.medium
+      validResidences += cats.valid
     })
 
     // حساب إحصائيات التأمين الصحي (5 فئات)
-    let expiredInsurance = 0, urgent7Insurance = 0, urgent30Insurance = 0, medium45Insurance = 0, valid45PlusInsurance = 0
+    let expiredInsurance = 0, urgentInsurance = 0, highInsurance = 0, mediumInsurance = 0, validInsurance = 0
     employees.forEach(emp => {
-      const cats = calculateFiveCategories(emp.health_insurance_expiry, today)
+      const cats = calculateFiveCategories(emp.health_insurance_expiry, today, {
+        urgent: employeeThresholdsInput.health_insurance_urgent_days,
+        high: employeeThresholdsInput.health_insurance_high_days,
+        medium: employeeThresholdsInput.health_insurance_medium_days
+      })
       expiredInsurance += cats.expired
-      urgent7Insurance += cats.urgent7
-      urgent30Insurance += cats.urgent30
-      medium45Insurance += cats.medium45
-      valid45PlusInsurance += cats.valid45Plus
+      urgentInsurance += cats.urgent
+      highInsurance += cats.high
+      mediumInsurance += cats.medium
+      validInsurance += cats.valid
     })
 
     // حساب إحصائيات عقد أجير (5 فئات)
-    let expiredHiredWorkerContracts = 0, urgent7HiredWorkerContracts = 0, urgent30HiredWorkerContracts = 0, medium45HiredWorkerContracts = 0, valid45PlusHiredWorkerContracts = 0
+    let expiredHiredWorkerContracts = 0, urgentHiredWorkerContracts = 0, highHiredWorkerContracts = 0, mediumHiredWorkerContracts = 0, validHiredWorkerContracts = 0
     employees.forEach(emp => {
-      const cats = calculateFiveCategories(emp.hired_worker_contract_expiry, today)
+      const cats = calculateFiveCategories(emp.hired_worker_contract_expiry, today, {
+        urgent: employeeThresholdsInput.hired_worker_contract_urgent_days,
+        high: employeeThresholdsInput.hired_worker_contract_high_days,
+        medium: employeeThresholdsInput.hired_worker_contract_medium_days
+      })
       expiredHiredWorkerContracts += cats.expired
-      urgent7HiredWorkerContracts += cats.urgent7
-      urgent30HiredWorkerContracts += cats.urgent30
-      medium45HiredWorkerContracts += cats.medium45
-      valid45PlusHiredWorkerContracts += cats.valid45Plus
+      urgentHiredWorkerContracts += cats.urgent
+      highHiredWorkerContracts += cats.high
+      mediumHiredWorkerContracts += cats.medium
+      validHiredWorkerContracts += cats.valid
     })
 
     // حساب إحصائيات السجل التجاري (5 فئات)
-    let expiredCommercialReg = 0, urgent7CommercialReg = 0, urgent30CommercialReg = 0, medium45CommercialReg = 0, valid45PlusCommercialReg = 0
+    let expiredCommercialReg = 0, urgentCommercialReg = 0, highCommercialReg = 0, mediumCommercialReg = 0, validCommercialReg = 0
     companies.forEach(company => {
-      const cats = calculateFiveCategories(company.commercial_registration_expiry, today)
+      const cats = calculateFiveCategories(company.commercial_registration_expiry, today, {
+        urgent: companyThresholdsInput.commercial_reg_urgent_days,
+        high: companyThresholdsInput.commercial_reg_high_days,
+        medium: companyThresholdsInput.commercial_reg_medium_days
+      })
       expiredCommercialReg += cats.expired
-      urgent7CommercialReg += cats.urgent7
-      urgent30CommercialReg += cats.urgent30
-      medium45CommercialReg += cats.medium45
-      valid45PlusCommercialReg += cats.valid45Plus
+      urgentCommercialReg += cats.urgent
+      highCommercialReg += cats.high
+      mediumCommercialReg += cats.medium
+      validCommercialReg += cats.valid
     })
 
     // حساب إحصائيات التأمينات الاجتماعية (5 فئات)
-    let expiredInsuranceSocial = 0, urgent7InsuranceSocial = 0, urgent30InsuranceSocial = 0, medium45InsuranceSocial = 0, valid45PlusInsuranceSocial = 0
+    let expiredInsuranceSocial = 0, urgentInsuranceSocial = 0, highInsuranceSocial = 0, mediumInsuranceSocial = 0, validInsuranceSocial = 0
     companies.forEach(company => {
-      const cats = calculateFiveCategories(company.social_insurance_expiry, today)
+      const cats = calculateFiveCategories(company.social_insurance_expiry, today, {
+        urgent: companyThresholdsInput.social_insurance_urgent_days,
+        high: companyThresholdsInput.social_insurance_high_days,
+        medium: companyThresholdsInput.social_insurance_medium_days
+      })
       expiredInsuranceSocial += cats.expired
-      urgent7InsuranceSocial += cats.urgent7
-      urgent30InsuranceSocial += cats.urgent30
-      medium45InsuranceSocial += cats.medium45
-      valid45PlusInsuranceSocial += cats.valid45Plus
+      urgentInsuranceSocial += cats.urgent
+      highInsuranceSocial += cats.high
+      mediumInsuranceSocial += cats.medium
+      validInsuranceSocial += cats.valid
     })
 
     // حساب إحصائيات اشتراك قوى (5 فئات)
-    let expiredPower = 0, urgent7Power = 0, urgent30Power = 0, medium45Power = 0, valid45PlusPower = 0
+    let expiredPower = 0, urgentPower = 0, highPower = 0, mediumPower = 0, validPower = 0
     companies.forEach(company => {
-      const cats = calculateFiveCategories(company.ending_subscription_power_date, today)
+      const cats = calculateFiveCategories(company.ending_subscription_power_date, today, {
+        urgent: companyThresholdsInput.power_subscription_urgent_days,
+        high: companyThresholdsInput.power_subscription_high_days,
+        medium: companyThresholdsInput.power_subscription_medium_days
+      })
       expiredPower += cats.expired
-      urgent7Power += cats.urgent7
-      urgent30Power += cats.urgent30
-      medium45Power += cats.medium45
-      valid45PlusPower += cats.valid45Plus
+      urgentPower += cats.urgent
+      highPower += cats.high
+      mediumPower += cats.medium
+      validPower += cats.valid
     })
 
     // حساب إحصائيات اشتراك مقيم (5 فئات)
-    let expiredMoqeem = 0, urgent7Moqeem = 0, urgent30Moqeem = 0, medium45Moqeem = 0, valid45PlusMoqeem = 0
+    let expiredMoqeem = 0, urgentMoqeem = 0, highMoqeem = 0, mediumMoqeem = 0, validMoqeem = 0
     companies.forEach(company => {
-      const cats = calculateFiveCategories(company.ending_subscription_moqeem_date, today)
+      const cats = calculateFiveCategories(company.ending_subscription_moqeem_date, today, {
+        urgent: companyThresholdsInput.moqeem_subscription_urgent_days,
+        high: companyThresholdsInput.moqeem_subscription_high_days,
+        medium: companyThresholdsInput.moqeem_subscription_medium_days
+      })
       expiredMoqeem += cats.expired
-      urgent7Moqeem += cats.urgent7
-      urgent30Moqeem += cats.urgent30
-      medium45Moqeem += cats.medium45
-      valid45PlusMoqeem += cats.valid45Plus
+      urgentMoqeem += cats.urgent
+      highMoqeem += cats.high
+      mediumMoqeem += cats.medium
+      validMoqeem += cats.valid
     })
 
     return {
@@ -430,52 +485,52 @@ export default function Dashboard() {
       utilizationRate,
       // إحصائيات العقود (5 فئات)
       expiredContracts,
-      urgent7Contracts,
-      urgent30Contracts,
-      medium45Contracts,
-      valid45PlusContracts,
+      urgentContracts,
+      highContracts,
+      mediumContracts,
+      validContracts,
       // إحصائيات الإقامات (5 فئات)
       expiredResidences,
-      urgent7Residences,
-      urgent30Residences,
-      medium45Residences,
-      valid45PlusResidences,
+      urgentResidences,
+      highResidences,
+      mediumResidences,
+      validResidences,
       // إحصائيات التأمين الصحي (5 فئات)
       expiredInsurance,
-      urgent7Insurance,
-      urgent30Insurance,
-      medium45Insurance,
-      valid45PlusInsurance,
+      urgentInsurance,
+      highInsurance,
+      mediumInsurance,
+      validInsurance,
       // إحصائيات عقد أجير (5 فئات)
       expiredHiredWorkerContracts,
-      urgent7HiredWorkerContracts,
-      urgent30HiredWorkerContracts,
-      medium45HiredWorkerContracts,
-      valid45PlusHiredWorkerContracts,
+      urgentHiredWorkerContracts,
+      highHiredWorkerContracts,
+      mediumHiredWorkerContracts,
+      validHiredWorkerContracts,
       // إحصائيات السجل التجاري (5 فئات)
       expiredCommercialReg,
-      urgent7CommercialReg,
-      urgent30CommercialReg,
-      medium45CommercialReg,
-      valid45PlusCommercialReg,
+      urgentCommercialReg,
+      highCommercialReg,
+      mediumCommercialReg,
+      validCommercialReg,
       // إحصائيات التأمينات الاجتماعية (5 فئات)
       expiredInsuranceSocial,
-      urgent7InsuranceSocial,
-      urgent30InsuranceSocial,
-      medium45InsuranceSocial,
-      valid45PlusInsuranceSocial,
+      urgentInsuranceSocial,
+      highInsuranceSocial,
+      mediumInsuranceSocial,
+      validInsuranceSocial,
       // إحصائيات اشتراك قوى (5 فئات)
       expiredPower,
-      urgent7Power,
-      urgent30Power,
-      medium45Power,
-      valid45PlusPower,
+      urgentPower,
+      highPower,
+      mediumPower,
+      validPower,
       // إحصائيات اشتراك مقيم (5 فئات)
       expiredMoqeem,
-      urgent7Moqeem,
-      urgent30Moqeem,
-      medium45Moqeem,
-      valid45PlusMoqeem
+      urgentMoqeem,
+      highMoqeem,
+      mediumMoqeem,
+      validMoqeem
     }
   }
 
@@ -529,10 +584,12 @@ export default function Dashboard() {
   // Memoize alert statistics to avoid recalculation
   const companyAlertsStats = useMemo(() => getAlertsStats(unreadCompanyAlerts), [unreadCompanyAlerts])
   const companyUrgentAlerts = useMemo(() => getUrgentAlerts(unreadCompanyAlerts), [unreadCompanyAlerts])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const commercialRegAlerts = useMemo(() => 
-    filterAlertsByType(unreadCompanyAlerts, 'commercial_registration'),
+    filterAlertsByType(unreadCompanyAlerts, 'commercial_registration_expiry'),
     [unreadCompanyAlerts]
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const insuranceAlerts = useMemo(() => 
     filterAlertsByType(unreadCompanyAlerts, 'social_insurance_expiry'),
     [unreadCompanyAlerts]
@@ -547,16 +604,16 @@ export default function Dashboard() {
     getUrgentEmployeeAlerts(unreadEmployeeAlerts),
     [unreadEmployeeAlerts]
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const contractAlerts = useMemo(() => 
     filterEmployeeAlertsByType(unreadEmployeeAlerts, 'contract_expiry'),
     [unreadEmployeeAlerts]
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const residenceAlerts = useMemo(() => 
     filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry'),
     [unreadEmployeeAlerts]
-  )
-
-  // Memoize total alerts
+  )  // Memoize total alerts
   const totalAlerts = useMemo(() => 
     companyAlertsStats.total + employeeAlertsStats.total,
     [companyAlertsStats.total, employeeAlertsStats.total]
@@ -760,32 +817,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7CommercialReg}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentCommercialReg}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.commercial_reg_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-orange-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30CommercialReg}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highCommercialReg}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.commercial_reg_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-orange-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45CommercialReg}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumCommercialReg}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{companyThresholds.commercial_reg_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-orange-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusCommercialReg}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validCommercialReg}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.commercial_reg_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -809,32 +866,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7InsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentInsuranceSocial}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.social_insurance_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30InsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highInsuranceSocial}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.social_insurance_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45InsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumInsuranceSocial}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{companyThresholds.social_insurance_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusInsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validInsuranceSocial}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.social_insurance_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -858,32 +915,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7Power}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentPower}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.power_subscription_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30Power}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highPower}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.power_subscription_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45Power}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumPower}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{companyThresholds.power_subscription_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusPower}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validPower}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.power_subscription_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -907,32 +964,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7Moqeem}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentMoqeem}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.moqeem_subscription_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-teal-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30Moqeem}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highMoqeem}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.moqeem_subscription_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-teal-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45Moqeem}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumMoqeem}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{companyThresholds.moqeem_subscription_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-teal-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusMoqeem}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validMoqeem}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.moqeem_subscription_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -1015,32 +1072,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7Contracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.contract_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-blue-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30Contracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.contract_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-blue-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45Contracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{employeeThresholds.contract_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-blue-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusContracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {employeeThresholds.contract_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -1064,32 +1121,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7Residences}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentResidences}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.residence_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-purple-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30Residences}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highResidences}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.residence_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-purple-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45Residences}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumResidences}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{employeeThresholds.residence_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-purple-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusResidences}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validResidences}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {employeeThresholds.residence_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -1113,32 +1170,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7Insurance}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentInsurance}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.health_insurance_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-green-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30Insurance}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highInsurance}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.health_insurance_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-green-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45Insurance}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumInsurance}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{employeeThresholds.health_insurance_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-green-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusInsurance}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validInsurance}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {employeeThresholds.health_insurance_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -1162,32 +1219,32 @@ export default function Dashboard() {
                               <span className="text-xs text-gray-600">طارئة</span>
                               <AlertTriangle className="w-3 h-3 text-red-600" />
                             </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgent7HiredWorkerContracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 7 أيام</p>
+                            <p className="text-lg font-bold text-red-600">{stats.urgentHiredWorkerContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.hired_worker_contract_urgent_days} أيام</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-amber-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">عاجل</span>
                               <Clock className="w-3 h-3 text-orange-500" />
                             </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.urgent30HiredWorkerContracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال 30 يوم</p>
+                            <p className="text-lg font-bold text-orange-600">{stats.highHiredWorkerContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">خلال {employeeThresholds.hired_worker_contract_high_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-amber-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">متوسط</span>
                               <Calendar className="w-3 h-3 text-yellow-500" />
                             </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.medium45HiredWorkerContracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">45 يوم</p>
+                            <p className="text-lg font-bold text-yellow-600">{stats.mediumHiredWorkerContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{employeeThresholds.hired_worker_contract_medium_days} يوم</p>
                           </div>
                           <div className="bg-white rounded-lg p-2.5 border border-amber-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs text-gray-600">ساري</span>
                               <Shield className="w-3 h-3 text-green-500" />
                             </div>
-                            <p className="text-lg font-bold text-green-600">{stats.valid45PlusHiredWorkerContracts}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من 45 يوم</p>
+                            <p className="text-lg font-bold text-green-600">{stats.validHiredWorkerContracts}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {employeeThresholds.hired_worker_contract_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>
@@ -1256,9 +1313,6 @@ export default function Dashboard() {
                     <p className="text-xs text-gray-600 mt-0.5">
                       {totalAlerts > 0 ? `${totalAlerts} تنبيه - ${totalUrgentAlerts} عاجل` : 'لا توجد تنبيهات حالياً'}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {companyAlertsStats.total} مؤسسة | {employeeAlertsStats.total} موظف
-                    </p>
                   </div>
                 </div>
                 
@@ -1272,30 +1326,22 @@ export default function Dashboard() {
 
               {/* إحصائيات التنبيهات */}
               {totalAlerts > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-1.5 mb-2">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                     <div className="text-base font-bold text-gray-900">{totalAlerts}</div>
                     <div className="text-xs text-gray-600">إجمالي التنبيهات</div>
                   </div>
-                  <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-2">
+                  <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-3">
                     <div className="text-base font-bold text-red-600">{totalUrgentAlerts}</div>
                     <div className="text-xs text-red-700">عاجل</div>
                   </div>
-                  <div className="bg-yellow-50 rounded-lg shadow-sm border border-yellow-200 p-2">
-                    <div className="text-base font-bold text-yellow-600">{companyAlertsStats.medium + employeeAlertsStats.medium}</div>
-                    <div className="text-xs text-yellow-700">متوسط</div>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-2">
+                  <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-3">
                     <div className="text-base font-bold text-blue-600">{companyAlertsStats.total}</div>
-                    <div className="text-xs text-blue-700">مؤسسات</div>
+                    <div className="text-xs text-blue-700">مؤسسات متأثرة</div>
                   </div>
-                  <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-2">
+                  <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-3">
                     <div className="text-base font-bold text-purple-600">{employeeAlertsStats.total}</div>
-                    <div className="text-xs text-purple-700">موظفين</div>
-                  </div>
-                  <div className="bg-green-50 rounded-lg shadow-sm border border-green-200 p-2">
-                    <div className="text-base font-bold text-green-600">{commercialRegAlerts.length}</div>
-                    <div className="text-xs text-green-700">سجل تجاري</div>
+                    <div className="text-xs text-purple-700">موظفين متأثرين</div>
                   </div>
                 </div>
               )}
@@ -1361,63 +1407,14 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      {/* ملخص التنبيهات حسب النوع */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                        {commercialRegAlerts.length > 0 && (
-                          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                              <h4 className="font-semibold text-xs text-gray-900">السجل التجاري</h4>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              {commercialRegAlerts.length} مؤسسة تحتاج إلى تجديد السجل التجاري
-                            </p>
-                          </div>
-                        )}
 
-                        {insuranceAlerts.length > 0 && (
-                          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-green-600" />
-                              <h4 className="font-semibold text-xs text-gray-900">اشتراك التأمينات الاجتماعية</h4>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              {insuranceAlerts.length} مؤسسة تحتاج إلى تجديد اشتراك التأمينات الاجتماعية
-                            </p>
-                          </div>
-                        )}
-
-                        {contractAlerts.length > 0 && (
-                          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-purple-600" />
-                              <h4 className="font-semibold text-xs text-gray-900">عقود الموظفين</h4>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              {contractAlerts.length} موظف يحتاج إلى تجديد العقد
-                            </p>
-                          </div>
-                        )}
-
-                        {residenceAlerts.length > 0 && (
-                          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                              <h4 className="font-semibold text-xs text-gray-900">إقامات الموظفين</h4>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              {residenceAlerts.length} موظف يحتاج إلى تجديد الإقامة
-                            </p>
-                          </div>
-                        )}
-                      </div>
 
                       {/* أزرار عرض المزيد */}
                       {(companyAlerts.length > companyUrgentAlerts.length || employeeAlerts.length > employeeUrgentAlerts.length) && (
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                           {companyAlerts.length > companyUrgentAlerts.length && (
                             <button
-                              onClick={() => navigate('/companies?tab=alerts')}
+                              onClick={() => navigate('/companies?filter=alerts')}
                               className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center gap-1 p-2 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
                             >
                               عرض جميع تنبيهات المؤسسات ({companyAlertsStats.total})
@@ -1427,7 +1424,7 @@ export default function Dashboard() {
 
                           {employeeAlerts.length > employeeUrgentAlerts.length && (
                             <button
-                              onClick={() => navigate('/employees?tab=alerts')}
+                              onClick={() => navigate('/employees?filter=alerts')}
                               className="text-purple-600 hover:text-purple-800 text-xs font-medium flex items-center justify-center gap-1 p-2 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
                             >
                               عرض جميع تنبيهات الموظفين ({employeeAlertsStats.total})

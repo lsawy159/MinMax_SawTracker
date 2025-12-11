@@ -173,7 +173,7 @@ export function EnhancedAlertsSection({
               <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب النوع</label>
               <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <option value="all">جميع الأنواع</option>
-                <option value="commercial_registration">السجل التجاري</option>
+                <option value="commercial_registration_expiry">السجل التجاري</option>
                 <option value="insurance_subscription">التأمين</option>
                 <option value="government_docs_renewal">الوثائق الحكومية</option>
               </select>

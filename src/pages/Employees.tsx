@@ -11,6 +11,22 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
+import { getEmployeeNotificationThresholdsPublic, type EmployeeNotificationThresholds } from '@/utils/employeeAlerts'
+
+const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
+  residence_urgent_days: 7,
+  residence_high_days: 15,
+  residence_medium_days: 30,
+  contract_urgent_days: 7,
+  contract_high_days: 15,
+  contract_medium_days: 30,
+  health_insurance_urgent_days: 30,
+  health_insurance_high_days: 45,
+  health_insurance_medium_days: 60,
+  hired_worker_contract_urgent_days: 7,
+  hired_worker_contract_high_days: 15,
+  hired_worker_contract_medium_days: 30
+}
 
 export default function Employees() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
@@ -34,6 +50,7 @@ export default function Employees() {
   const [nationalities, setNationalities] = useState<string[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
+  const [colorThresholds, setColorThresholds] = useState<EmployeeNotificationThresholds | null>(null)
   
   // حالة المودال
   const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company; project?: Project }) | null>(null)
@@ -147,6 +164,35 @@ export default function Employees() {
     loadEmployeesRef.current = loadEmployees
   }, [loadEmployees])
 
+  // تحميل إعدادات الألوان مع الاستماع لتحديثات الإعدادات
+  useEffect(() => {
+    let isMounted = true
+
+    const loadThresholds = async () => {
+      try {
+        const thresholds = await getEmployeeNotificationThresholdsPublic()
+        if (isMounted) {
+          setColorThresholds(thresholds)
+        }
+      } catch (error) {
+        logger.error('Error loading color thresholds:', error)
+      }
+    }
+
+    loadThresholds()
+
+    const handleSettingsUpdated = () => {
+      loadThresholds()
+    }
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdated)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('settingsUpdated', handleSettingsUpdated)
+    }
+  }, [])
+
   useEffect(() => {
     if (hasViewPermission) {
       loadEmployees()
@@ -254,6 +300,12 @@ export default function Employees() {
     }
     
     switch (filter) {
+      case 'alerts':
+        // فلترة الموظفين الذين لديهم تنبيهات (عقود أو إقامات أو تأمين منتهية أو قريبة من الانتهاء)
+        setContractFilter('لديه تنبيه')
+        setResidenceFilter('لديه تنبيه')
+        setHealthInsuranceFilter('لديه تنبيه')
+        break
       case 'expired-contracts':
         setContractFilter('منتهية')
         break
@@ -326,17 +378,51 @@ export default function Employees() {
     return 'ساري'
   }
 
-  const getStatusColor = (days: number | null) => {
+  // دالة للتحقق من وجود تنبيه
+  const hasAlert = (contractExpiry: string | null, residenceExpiry: string | null | undefined, healthInsuranceExpiry: string | null | undefined): boolean => {
+    const contractStatus = getContractStatus(contractExpiry)
+    const residenceStatus = getResidenceStatus(residenceExpiry)
+    const insuranceStatus = getHealthInsuranceStatus(healthInsuranceExpiry)
+    
+    // يوجد تنبيه إذا كانت أي وثيقة منتهية أو تنتهي قريباً
+    return (
+      contractStatus === 'منتهية' || 
+      contractStatus === 'تنتهي خلال 30 يوم' || 
+      contractStatus === 'تنتهي خلال 90 يوم' ||
+      residenceStatus === 'منتهية' || 
+      residenceStatus === 'تنتهي خلال 7 أيام' ||
+      residenceStatus === 'تنتهي خلال 15 يوم' ||
+      residenceStatus === 'تنتهي خلال 30 يوم' ||
+      residenceStatus === 'تنتهي خلال 90 يوم' ||
+      insuranceStatus === 'منتهي' ||
+      insuranceStatus === 'ينتهي خلال 30 يوم' ||
+      insuranceStatus === 'ينتهي خلال 60 يوم' ||
+      insuranceStatus === 'ينتهي خلال 90 يوم'
+    )
+  }
+
+  const getStatusColor = (
+    days: number | null,
+    thresholds: EmployeeNotificationThresholds | null,
+    fieldType: 'residence' | 'contract' | 'health_insurance' | 'hired_worker_contract' = 'residence'
+  ) => {
     // إذا كان null (لا يوجد تاريخ انتهاء)، يعتبر ساري
     if (days === null) return 'text-green-600 bg-green-50'
-    // منتهي أو أقل من أو يساوي 7 أيام: أحمر (طارئ)
+
+    const resolvedThresholds = thresholds || COLOR_THRESHOLD_FALLBACK
+
+    const urgentDays = resolvedThresholds[`${fieldType}_urgent_days` as keyof EmployeeNotificationThresholds] as number
+    const highDays = resolvedThresholds[`${fieldType}_high_days` as keyof EmployeeNotificationThresholds] as number
+    const mediumDays = resolvedThresholds[`${fieldType}_medium_days` as keyof EmployeeNotificationThresholds] as number
+
+    // منتهي أو أقل من أو يساوي الحد الطارئ: أحمر (طارئ)
     if (days < 0) return 'text-red-600 bg-red-50'
-    if (days <= 7) return 'text-red-600 bg-red-50'
-    // 8-15 يوم: برتقالي (عاجل)
-    if (days <= 15) return 'text-orange-600 bg-orange-50'
-    // 16-30 يوم: أصفر (تحذير)
-    if (days <= 30) return 'text-yellow-600 bg-yellow-50'
-    // أكثر من 30 يوم: أخضر (ساري)
+    if (days <= urgentDays) return 'text-red-600 bg-red-50'
+    // بين الطارئ والعاجل: برتقالي (عاجل)
+    if (days <= highDays) return 'text-orange-600 bg-orange-50'
+    // بين العاجل والمتوسط: أصفر (تحذير)
+    if (days <= mediumDays) return 'text-yellow-600 bg-yellow-50'
+    // أكثر من المتوسط: أخضر (ساري)
     return 'text-green-600 bg-green-50'
   }
 
@@ -719,9 +805,23 @@ export default function Employees() {
     const matchesNationality = !nationalityFilter || emp.nationality === nationalityFilter
     const matchesProfession = !professionFilter || emp.profession === professionFilter
     const matchesProject = !projectFilter || emp.project?.name === projectFilter || (emp.project_name === projectFilter && !emp.project)
-    const matchesContract = !contractFilter || getContractStatus(emp.contract_expiry) === contractFilter
-    const matchesResidence = !residenceFilter || getResidenceStatus(emp.residence_expiry) === residenceFilter
-    const matchesInsurance = !healthInsuranceFilter || getHealthInsuranceStatus(emp.health_insurance_expiry) === healthInsuranceFilter  // تحديث: insuranceFilter → healthInsuranceFilter, ending_subscription_insurance_date → health_insurance_expiry
+    
+    // فلترة خاصة لـ "لديه تنبيه"
+    const matchesContract = !contractFilter || (
+      contractFilter === 'لديه تنبيه' 
+        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : getContractStatus(emp.contract_expiry) === contractFilter
+    )
+    const matchesResidence = !residenceFilter || (
+      residenceFilter === 'لديه تنبيه'
+        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : getResidenceStatus(emp.residence_expiry) === residenceFilter
+    )
+    const matchesInsurance = !healthInsuranceFilter || (
+      healthInsuranceFilter === 'لديه تنبيه'
+        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : getHealthInsuranceStatus(emp.health_insurance_expiry) === healthInsuranceFilter
+    )
     
     return matchesSearch && matchesResidenceNumber && matchesCompany && matchesNationality && matchesProfession && matchesProject && matchesContract && matchesResidence && matchesInsurance
   })
@@ -1798,7 +1898,7 @@ export default function Employees() {
                               ) : '-'}
                             </span>
                             {employee.contract_expiry && (
-                              <span className={`text-xs ${getStatusColor(contractDays)}`}>
+                              <span className={`text-xs ${getStatusColor(contractDays, colorThresholds, 'contract')}`}>
                                 {formatDateStatus(contractDays, 'منتهي')}
                               </span>
                             )}
@@ -1817,7 +1917,7 @@ export default function Employees() {
                               ) : '-'}
                             </span>
                             {employee.hired_worker_contract_expiry && (
-                              <span className={`text-xs ${getStatusColor(hiredWorkerContractDays)}`}>
+                              <span className={`text-xs ${getStatusColor(hiredWorkerContractDays, colorThresholds, 'hired_worker_contract')}`}>
                                 {formatDateStatus(hiredWorkerContractDays, 'منتهي')}
                               </span>
                             )}
@@ -1836,7 +1936,7 @@ export default function Employees() {
                               ) : '-'}
                             </span>
                             {employee.residence_expiry && (
-                              <span className={`text-xs ${getStatusColor(residenceDays)}`}>
+                              <span className={`text-xs ${getStatusColor(residenceDays, colorThresholds, 'residence')}`}>
                                 {formatDateStatus(residenceDays, 'منتهية')}
                               </span>
                             )}
@@ -1855,7 +1955,7 @@ export default function Employees() {
                               ) : '-'}
                             </span>
                             {employee.health_insurance_expiry && (
-                              <span className={`text-xs ${getStatusColor(healthInsuranceDays)}`}>
+                              <span className={`text-xs ${getStatusColor(healthInsuranceDays, colorThresholds, 'health_insurance')}`}>
                                 {formatDateStatus(healthInsuranceDays, 'منتهي')}
                               </span>
                             )}

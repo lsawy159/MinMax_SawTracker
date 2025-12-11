@@ -160,7 +160,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           
           alerts.push({
             id: `commercial_${company.id}_${company.commercial_registration_expiry}`,
-            type: 'commercial_registration',
+            type: 'commercial_registration_expiry',
             priority,
             title: 'انتهاء صلاحية السجل التجاري',
             message: `ينتهي السجل التجاري للمؤسسة "${company.name}" ${daysRemaining < 0 ? `منذ ${Math.abs(daysRemaining)} يوم` : `خلال ${daysRemaining} يوم`}`,
@@ -253,7 +253,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           
           alerts.push({
             id: `power_${company.id}_${company.ending_subscription_power_date}`,
-            type: 'power_subscription',
+            type: 'power_subscription_expiry',
             priority,
             title: 'انتهاء صلاحية اشتراك قوى',
             message,
@@ -308,7 +308,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           
           alerts.push({
             id: `moqeem_${company.id}_${company.ending_subscription_moqeem_date}`,
-            type: 'moqeem_subscription',
+            type: 'moqeem_subscription_expiry',
             priority,
             title: 'انتهاء صلاحية اشتراك مقيم',
             message,
@@ -393,7 +393,7 @@ export async function checkCommercialRegistrationExpiry(company: Company): Promi
   
   return {
     id: `commercial_${company.id}_${company.commercial_registration_expiry}`,
-    type: 'commercial_registration',
+    type: 'commercial_registration_expiry',
     priority,
     title: 'انتهاء صلاحية السجل التجاري',
     message,
@@ -549,7 +549,7 @@ export async function checkPowerSubscriptionExpiry(company: Company): Promise<Al
   
   return {
     id: `power_${company.id}_${company.ending_subscription_power_date}`,
-    type: 'power_subscription',
+    type: 'power_subscription_expiry',
     priority,
     title: 'انتهاء صلاحية اشتراك قوى',
     message,
@@ -627,7 +627,7 @@ export async function checkMoqeemSubscriptionExpiry(company: Company): Promise<A
   
   return {
     id: `moqeem_${company.id}_${company.ending_subscription_moqeem_date}`,
-    type: 'moqeem_subscription',
+    type: 'moqeem_subscription_expiry',
     priority,
     title: 'انتهاء صلاحية اشتراك مقيم',
     message,
@@ -659,20 +659,51 @@ export function filterAlertsByType(alerts: Alert[], type: Alert['type']): Alert[
 
 /**
  * الحصول على إحصائيات التنبيهات
+ * تحسب عدد المؤسسات الفريدة التي لديها تنبيهات وليس عدد التنبيهات
  */
 export function getAlertsStats(alerts: Alert[]) {
-  const total = alerts.length
-  const urgent = alerts.filter(a => a.priority === 'urgent').length
-  const high = alerts.filter(a => a.priority === 'high').length
-  const medium = alerts.filter(a => a.priority === 'medium').length
-  const low = alerts.filter(a => a.priority === 'low').length
-  const commercialRegAlerts = alerts.filter(a => a.type === 'commercial_registration').length
+  // عد التنبيهات الكلية
+  const totalAlerts = alerts.length
+  
+  // عد المؤسسات الفريدة التي لديها تنبيهات
+  const uniqueCompanyIds = new Set(alerts.map(a => a.company?.id).filter(Boolean))
+  const total = uniqueCompanyIds.size
+  
+  // حساب الأولويات بناءً على المؤسسات الفريدة
+  // للمؤسسة الواحدة، نستخدم أعلى أولوية لديها
+  const companyMaxPriority = new Map<string, 'urgent' | 'high' | 'medium' | 'low'>()
+  const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+  
+  alerts.forEach(alert => {
+    const companyId = alert.company?.id
+    if (!companyId) return
+    
+    // إذا لم تكن المؤسسة موجودة في الخريطة، أضفها
+    if (!companyMaxPriority.has(companyId)) {
+      companyMaxPriority.set(companyId, alert.priority)
+    } else {
+      // إذا كانت موجودة، احتفظ بالأولوية الأعلى
+      const currentPriority = companyMaxPriority.get(companyId)!
+      if (priorityOrder[alert.priority] > priorityOrder[currentPriority]) {
+        companyMaxPriority.set(companyId, alert.priority)
+      }
+    }
+  })
+  
+  const urgent = Array.from(companyMaxPriority.values()).filter(p => p === 'urgent').length
+  const high = Array.from(companyMaxPriority.values()).filter(p => p === 'high').length
+  const medium = Array.from(companyMaxPriority.values()).filter(p => p === 'medium').length
+  const low = Array.from(companyMaxPriority.values()).filter(p => p === 'low').length
+  
+  // عد التنبيهات حسب النوع (عدد التنبيهات، ليس المؤسسات)
+  const commercialRegAlerts = alerts.filter(a => a.type === 'commercial_registration_expiry').length
   const socialInsuranceAlerts = alerts.filter(a => a.type === 'social_insurance_expiry').length
-  const powerAlerts = alerts.filter(a => a.type === 'power_subscription').length
-  const moqeemAlerts = alerts.filter(a => a.type === 'moqeem_subscription').length
+  const powerAlerts = alerts.filter(a => a.type === 'power_subscription_expiry').length
+  const moqeemAlerts = alerts.filter(a => a.type === 'moqeem_subscription_expiry').length
   
   return {
-    total,
+    total,  // عدد المؤسسات الفريدة
+    totalAlerts,  // عدد التنبيهات الكلية (للمرجع)
     urgent,
     high,
     medium,

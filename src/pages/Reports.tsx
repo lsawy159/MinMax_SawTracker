@@ -52,12 +52,12 @@ export default function Reports() {
     const days = differenceInDays(new Date(expiryDate), new Date())
     if (days < 0) return 'expired'
     
-    const criticalDays = statusThresholds.commercial_reg_critical_days || 7
-    const urgentDays = statusThresholds.commercial_reg_urgent_days || 30
-    const mediumDays = statusThresholds.commercial_reg_medium_days || 45
+    const urgentDays = statusThresholds.commercial_reg_urgent_days || 7
+    const highDays = statusThresholds.commercial_reg_high_days || 15
+    const mediumDays = statusThresholds.commercial_reg_medium_days || 30
     
-    if (days <= criticalDays) return 'urgent' // حرج
-    if (days <= urgentDays) return 'urgent' // عاجل
+    if (days <= urgentDays) return 'urgent' // طارئ
+    if (days <= highDays) return 'urgent' // عاجل
     if (days <= mediumDays) return 'medium' // متوسط
     return 'valid'
   }, [statusThresholds])
@@ -322,7 +322,7 @@ export default function Reports() {
       'الاسم': item.name,
       'تاريخ الانتهاء': item.expiryDate,
       'الأيام المتبقية': item.daysRemaining,
-      'الحالة': item.status === 'expired' ? 'منتهي' : item.status === 'urgent' ? (item.daysRemaining <= (statusThresholds.commercial_reg_critical_days || 7) ? 'حرج' : 'عاجل') : item.status === 'medium' ? 'متوسط' : 'ساري'
+      'الحالة': item.status === 'expired' ? 'منتهي' : item.status === 'urgent' ? (item.daysRemaining <= (statusThresholds.commercial_reg_urgent_days || 7) ? 'طارئ' : 'عاجل') : item.status === 'medium' ? 'متوسط' : 'ساري'
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(data)
