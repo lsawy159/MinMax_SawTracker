@@ -12,46 +12,46 @@ import { invalidateStatusThresholdsCache } from '@/utils/autoCompanyStatus'
  * تجمع: إعدادات الحالات، إعدادات التنبيهات، وألوان الجداول
  */
 interface UnifiedSettingsData {
-  // إعدادات الموظفين - الإقامة
+  // الموظفين - الإقامة
   residence_urgent_days: number
   residence_high_days: number
   residence_medium_days: number
-  
-  // إعدادات الموظفين - العقود
+
+  // الموظفين - العقود
   contract_urgent_days: number
   contract_high_days: number
   contract_medium_days: number
-  
-  // إعدادات الموظفين - التأمين الصحي
+
+  // الموظفين - التأمين الصحي
   health_insurance_urgent_days: number
   health_insurance_high_days: number
   health_insurance_medium_days: number
-  
-  // إعدادات الموظفين - عقد أجير
+
+  // الموظفين - عقد أجير
   hired_worker_contract_urgent_days: number
   hired_worker_contract_high_days: number
   hired_worker_contract_medium_days: number
-  
-  // إعدادات المؤسسات - السجل التجاري (موحد مع الموظفين)
+
+  // المؤسسات - السجل التجاري (موحد مع الموظفين)
   commercial_reg_urgent_days: number
   commercial_reg_high_days: number
   commercial_reg_medium_days: number
-  
-  // إعدادات المؤسسات - التأمينات الاجتماعية
+
+  // المؤسسات - التأمينات الاجتماعية
   social_insurance_urgent_days: number
   social_insurance_high_days: number
   social_insurance_medium_days: number
-  
-  // إعدادات المؤسسات - اشتراك قوى
+
+  // المؤسسات - اشتراك قوى
   power_subscription_urgent_days: number
   power_subscription_high_days: number
   power_subscription_medium_days: number
-  
-  // إعدادات المؤسسات - اشتراك مقيم
+
+  // المؤسسات - اشتراك مقيم
   moqeem_subscription_urgent_days: number
   moqeem_subscription_high_days: number
   moqeem_subscription_medium_days: number
-  
+
   [key: string]: number
 }
 
@@ -60,37 +60,37 @@ const DEFAULT_SETTINGS: UnifiedSettingsData = {
   residence_urgent_days: 7,
   residence_high_days: 15,
   residence_medium_days: 30,
-  
+
   // الموظفين - العقود
   contract_urgent_days: 7,
   contract_high_days: 15,
   contract_medium_days: 30,
-  
+
   // الموظفين - التأمين الصحي
   health_insurance_urgent_days: 30,
   health_insurance_high_days: 45,
   health_insurance_medium_days: 60,
-  
+
   // الموظفين - عقد أجير
   hired_worker_contract_urgent_days: 7,
   hired_worker_contract_high_days: 15,
   hired_worker_contract_medium_days: 30,
-  
+
   // المؤسسات - السجل التجاري (موحد مع الموظفين)
   commercial_reg_urgent_days: 7,
   commercial_reg_high_days: 15,
   commercial_reg_medium_days: 30,
-  
+
   // المؤسسات - التأمينات الاجتماعية
   social_insurance_urgent_days: 7,
   social_insurance_high_days: 15,
   social_insurance_medium_days: 30,
-  
+
   // المؤسسات - اشتراك قوى
   power_subscription_urgent_days: 7,
   power_subscription_high_days: 15,
   power_subscription_medium_days: 30,
-  
+
   // المؤسسات - اشتراك مقيم
   moqeem_subscription_urgent_days: 7,
   moqeem_subscription_high_days: 15,
@@ -361,48 +361,48 @@ export default function UnifiedSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* رأس الصفحة */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg">
-            <SettingsIcon className="w-8 h-8" />
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm p-3 text-white">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-md">
+            <SettingsIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">الإعدادات المركزية</h1>
-            <p className="text-indigo-100 mt-1">
-              صفحة موحدة لجميع إعدادات الحالات والتنبيهات وألوان الجداول
+            <h1 className="text-lg font-bold">الإعدادات المركزية</h1>
+            <p className="text-[11px] text-indigo-100 mt-0.5">
+              صفحة موحدة لإعدادات الحالات والتنبيهات وألوان الجداول
             </p>
           </div>
         </div>
       </div>
 
       {/* تبويبات الأقسام */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
-        <div className="flex gap-2">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1.5">
+        <div className="flex gap-1.5">
           <button
             onClick={() => setActiveTab('employees')}
-            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${
               activeTab === 'employees'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <Bell className="w-5 h-5" />
+            <div className="flex items-center justify-center gap-1.5">
+              <Bell className="w-4 h-4" />
               <span>إعدادات الموظفين</span>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('companies')}
-            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${
               activeTab === 'companies'
-                ? 'bg-green-600 text-white shadow-md'
+                ? 'bg-green-600 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <TrendingUp className="w-5 h-5" />
+            <div className="flex items-center justify-center gap-1.5">
+              <TrendingUp className="w-4 h-4" />
               <span>إعدادات المؤسسات</span>
             </div>
           </button>
@@ -411,33 +411,33 @@ export default function UnifiedSettings() {
 
       {/* محتوى إعدادات الموظفين */}
       {activeTab === 'employees' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
-                <Palette className="w-6 h-6 text-blue-600" />
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-md">
+                <Palette className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">إعدادات ألوان وتنبيهات الموظفين</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-base font-bold text-gray-900">إعدادات ألوان وتنبيهات الموظفين</h2>
+                <p className="text-xs text-gray-600 mt-0.5">
                   تحكم في الأيام والألوان والتنبيهات لجميع حالات الموظفين. التغييرات تنعكس فوراً على الجداول والكروت والتنبيهات.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {EMPLOYEE_SECTIONS.map((section) => (
-                <div key={section.key} className="border border-gray-200 rounded-lg p-5 bg-gradient-to-br from-gray-50 to-white">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">{section.icon}</span>
+                <div key={section.key} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-gray-50 to-white">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="text-lg">{section.icon}</span>
                     <div>
-                      <h3 className="text-base font-bold text-gray-900">{section.title}</h3>
-                      <p className="text-xs text-gray-600">{section.description}</p>
+                      <h3 className="text-sm font-bold text-gray-900">{section.title}</h3>
+                      <p className="text-[11px] text-gray-600">{section.description}</p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3 text-xs font-semibold text-gray-700">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2 text-[11px] font-semibold text-gray-700">
                       <span className="flex items-center gap-1">
                         <div className="w-3 h-3 rounded-full bg-red-500"></div>
                         أحمر (طارئ)
@@ -504,33 +504,33 @@ export default function UnifiedSettings() {
           </div>
 
           {/* معاينة سريعة للموظفين */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">معاينة سريعة - الموظفين</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">معاينة سريعة - الموظفين</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {employeePreviews.map((section) => (
-                <div key={section.key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xl">{section.icon}</span>
-                    <span className="text-sm font-semibold text-gray-900">{section.title}</span>
+                <div key={section.key} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">{section.icon}</span>
+                    <span className="text-[13px] font-semibold text-gray-900">{section.title}</span>
                   </div>
-                  <div className="space-y-2 text-xs text-gray-700">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="space-y-1.5 text-[11px] text-gray-700">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
                       <span>حتى {section.values.urgentDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
                       <span>حتى {section.values.highDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
                       <span>حتى {section.values.mediumDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                       <span>من {section.values.greenStart} يوم</span>
                     </div>
                   </div>
@@ -543,55 +543,55 @@ export default function UnifiedSettings() {
 
       {/* محتوى إعدادات المؤسسات */}
       {activeTab === 'companies' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-green-600" />
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-md">
+                <TrendingUp className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">إعدادات ألوان وتنبيهات المؤسسات (موحد)</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-base font-bold text-gray-900">إعدادات ألوان وتنبيهات المؤسسات (موحد)</h2>
+                <p className="text-[11px] text-gray-600 mt-0.5">
                   تحكم في الأيام والألوان والتنبيهات لجميع اشتراكات المؤسسات. نفس نظام الموظفين: طارئ - عاجل - متوسط - ساري.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {COMPANY_SECTIONS.map((section) => (
-                <div key={section.key} className="border border-gray-200 rounded-lg p-5 bg-gradient-to-br from-gray-50 to-white">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">{section.icon}</span>
+                <div key={section.key} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-gray-50 to-white">
+                  <div className="flex items-center gap-2.5 mb-2.5">
+                    <span className="text-xl">{section.icon}</span>
                     <div>
-                      <h3 className="text-base font-bold text-gray-900">{section.title}</h3>
-                      <p className="text-xs text-gray-600">{section.description}</p>
+                      <h3 className="text-sm font-bold text-gray-900">{section.title}</h3>
+                      <p className="text-[11px] text-gray-600">{section.description}</p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3 text-xs font-semibold text-gray-700">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2 text-[11px] font-semibold text-gray-700">
                       <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
                         أحمر (طارئ)
                       </span>
                       <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
                         برتقالي (عاجل)
                       </span>
                       <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
                         أصفر (متوسط)
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <input
                         type="number"
                         min={1}
                         max={365}
                         value={settings[section.fields.urgent]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.urgent]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-red-200 rounded-lg text-center text-sm font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500"
+                        className="w-full px-2.5 py-1.5 border border-red-200 rounded-md text-center text-[13px] font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500"
                       />
                       <input
                         type="number"
@@ -599,7 +599,7 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.high]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.high]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-orange-200 rounded-lg text-center text-sm font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500"
+                        className="w-full px-2.5 py-1.5 border border-orange-200 rounded-md text-center text-[13px] font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500"
                       />
                       <input
                         type="number"
@@ -607,25 +607,25 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.medium]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.medium]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-yellow-200 rounded-lg text-center text-sm font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500"
+                        className="w-full px-2.5 py-1.5 border border-yellow-200 rounded-md text-center text-[13px] font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500"
                       />
                     </div>
 
-                    <div className="text-xs text-gray-600 space-y-1 bg-white border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2">
+                    <div className="text-[11px] text-gray-600 space-y-1 bg-white border border-gray-200 rounded-md p-2.5">
+                      <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-red-600" />
                         <span>أحمر: منتهي أو ≤ {settings[section.fields.urgent]} يوم</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-orange-600" />
                         <span>برتقالي: ≤ {settings[section.fields.high]} يوم</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-yellow-600" />
                         <span>أصفر: ≤ {settings[section.fields.medium]} يوم</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                         <span>أخضر (ساري): أكثر من {settings[section.fields.medium]} يوم</span>
                       </div>
                     </div>
@@ -637,33 +637,33 @@ export default function UnifiedSettings() {
           </div>
 
           {/* معاينة سريعة للمؤسسات */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Eye className="w-5 h-5 text-green-600" />
-              <h3 className="text-lg font-semibold text-gray-900">معاينة سريعة - المؤسسات</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Eye className="w-4 h-4 text-green-600" />
+              <h3 className="text-base font-semibold text-gray-900">معاينة سريعة - المؤسسات</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {companyPreviews.map((section) => (
-                <div key={section.key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xl">{section.icon}</span>
-                    <span className="text-sm font-semibold text-gray-900">{section.title}</span>
+                <div key={section.key} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">{section.icon}</span>
+                    <span className="text-[13px] font-semibold text-gray-900">{section.title}</span>
                   </div>
-                  <div className="space-y-2 text-xs text-gray-700">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="space-y-1.5 text-[11px] text-gray-700">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
                       <span>طارئ: حتى {section.values.urgentDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
                       <span>عاجل: حتى {section.values.highDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
                       <span>متوسط: حتى {section.values.mediumDays} يوم</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                       <span>ساري: أكثر من {section.values.mediumDays} يوم</span>
                     </div>
                   </div>
@@ -675,10 +675,10 @@ export default function UnifiedSettings() {
       )}
 
       {/* أزرار الحفظ */}
-      <div className="flex items-center justify-end gap-3 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="flex items-center justify-end gap-2.5 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
         <button
           onClick={() => setSettings(DEFAULT_SETTINGS)}
-          className="px-6 py-3 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-semibold"
+          className="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition font-semibold"
           disabled={saving}
         >
           استعادة الافتراضي
@@ -686,20 +686,20 @@ export default function UnifiedSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-3 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-2 shadow-md disabled:opacity-60 font-semibold"
+          className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-1.5 shadow-md disabled:opacity-60 font-semibold"
         >
-          <Save className="w-5 h-5" />
+          <Save className="w-4 h-4" />
           {saving ? 'جاري الحفظ...' : 'حفظ جميع التغييرات'}
         </button>
       </div>
 
       {/* ملاحظة توضيحية */}
-      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-3">
+        <div className="flex items-start gap-2.5">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-bold text-amber-900 mb-2">نظام موحد للموظفين والمؤسسات</h4>
-            <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
+            <h4 className="font-bold text-amber-900 mb-1.5">نظام موحد للموظفين والمؤسسات</h4>
+            <ul className="text-[13px] text-amber-800 space-y-1 list-disc list-inside">
               <li><strong>المسميات الموحدة:</strong> جميع الأقسام تستخدم نفس المسميات: <span className="font-bold">طارئ - عاجل - متوسط - ساري</span></li>
               <li><strong>إعدادات الموظفين:</strong> تؤثر على ألوان الجداول، الكروت، والتنبيهات (الإقامة، العقود، التأمين الصحي، عقد أجير)</li>
               <li><strong>إعدادات المؤسسات:</strong> نفس النظام تماماً (السجل التجاري، التأمينات، اشتراك قوى، اشتراك مقيم)</li>

@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react'
 import Layout from '@/components/layout/Layout'
-import { Settings, Globe, Shield, Palette, FileText, Bell, Clock, Database, Save, RefreshCw, Database as DatabaseIcon, TrendingUp, Edit3 } from 'lucide-react'
+import { Settings, Globe, Shield, FileText, Clock, Database, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, TrendingUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import NotificationSettings from '@/components/settings/NotificationSettings'
-import StatusSettings from '@/components/settings/StatusSettings'
-import EmployeeTableColorSettings from '@/components/settings/EmployeeTableColorSettings'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
+import BackupManagement from '@/components/settings/BackupManagement'
+import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 interface GeneralSetting {
   id?: string
@@ -30,7 +29,7 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
-type TabType = 'system' | 'fields' | 'notifications' | 'employeeColors' | 'status' | 'backup' | 'security' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
+type TabType = 'system' | 'fields' | 'backup' | 'security' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -40,6 +39,8 @@ export default function GeneralSettings() {
   const [settings, setSettings] = useState<Record<string, string | number | boolean | Record<string, unknown> | null>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [showConfirmReset, setShowConfirmReset] = useState(false)
+  const [resetTabKey, setResetTabKey] = useState<TabType | null>(null)
 
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('adminSettings')
@@ -163,65 +164,10 @@ export default function GeneralSettings() {
       component: CustomFieldManager
     },
     {
-      key: 'notifications',
-      label: 'إعدادات التنبيهات',
-      icon: Bell,
-      component: NotificationSettings
-    },
-    {
-      key: 'employeeColors',
-      label: 'ألوان جدول الموظفين',
-      icon: Palette,
-      component: EmployeeTableColorSettings
-    },
-    {
-      key: 'status',
-      label: 'إعدادات الحالات',
-      icon: TrendingUp,
-      component: StatusSettings
-    },
-    {
       key: 'backup',
       label: 'إعدادات النسخ الاحتياطية',
       icon: Database,
-      settings: [
-        {
-          setting_key: 'backup_schedule',
-          setting_value: 'daily',
-          category: 'backup',
-          description: 'جدولة النسخ الاحتياطية التلقائية',
-          setting_type: 'select',
-          options: ['disabled', 'daily', 'weekly', 'monthly']
-        },
-        {
-          setting_key: 'backup_time',
-          setting_value: '02:00',
-          category: 'backup',
-          description: 'وقت النسخ الاحتياطي اليومي',
-          setting_type: 'time'
-        },
-        {
-          setting_key: 'backup_retention_days',
-          setting_value: 30,
-          category: 'backup',
-          description: 'عدد الأيام للاحتفاظ بالنسخ الاحتياطية',
-          setting_type: 'number'
-        },
-        {
-          setting_key: 'backup_compression',
-          setting_value: true,
-          category: 'backup',
-          description: 'ضغط ملفات النسخ الاحتياطية',
-          setting_type: 'boolean'
-        },
-        {
-          setting_key: 'backup_notifications',
-          setting_value: true,
-          category: 'backup',
-          description: 'تفعيل تنبيهات النسخ الاحتياطية',
-          setting_type: 'boolean'
-        }
-      ]
+      component: BackupManagement
     },
     {
       key: 'security',
@@ -435,44 +381,42 @@ export default function GeneralSettings() {
     }
   ]
 
-  const saveSettings = async () => {
+  const saveActiveTabSettings = async () => {
     if (!hasEditPermission) {
       toast.error('ليس لديك صلاحية لتعديل الإعدادات')
       return
     }
 
+    const categoryToSave = settingsCategories.find(cat => cat.key === activeTab)
+    if (!categoryToSave || !categoryToSave.settings) {
+      // تبويبات بدون settings تستخدم مكونات مستقلة (مثل الحقول المخصصة/الإعدادات الموحدة)
+      toast.info('هذا التبويب يدير الحفظ من داخل مكونه الخاص')
+      return
+    }
+
     setIsSaving(true)
     try {
-      // تجميع جميع الإعدادات من جميع الفئات
-      const allSettings: GeneralSetting[] = []
-      settingsCategories.forEach(category => {
-        if (category.settings) {
-          category.settings.forEach(setting => {
-            allSettings.push({
-              ...setting,
-              setting_value: settings[setting.setting_key] ?? setting.setting_value
-            })
-          })
-        }
-      })
+      // إعدادات التبويب الحالي فقط
+      const tabSettings = categoryToSave.settings.map(setting => ({
+        ...setting,
+        setting_value: settings[setting.setting_key] ?? setting.setting_value
+      }))
 
-      // حذف جميع الإعدادات الموجودة قبل إدراج الجديدة
-      // ملاحظة: لا يسمح PostgREST بالحذف بدون شرط، لذلك نستخدم قيمة UUID صالحة لا توجد فعلياً
-      // لتفادي الخطأ السابق 400 (id=neq.0) بسبب مقارنة UUID بقيمة رقمية.
+      // حذف الإعدادات الخاصة بهذا التبويب فقط
       const { error: deleteError } = await supabase
         .from('general_settings')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000')
+        .eq('category', categoryToSave.key)
 
       if (deleteError) {
-        console.error('Error deleting existing settings:', deleteError)
-        toast.error('فشل حذف الإعدادات الحالية قبل الحفظ')
+        console.error('Error deleting existing settings for tab:', deleteError)
+        toast.error('فشل حذف إعدادات هذا التبويب قبل الحفظ')
         return
       }
 
       const { error } = await supabase
         .from('general_settings')
-        .insert(allSettings.map(setting => ({
+        .insert(tabSettings.map(setting => ({
           setting_key: setting.setting_key,
           setting_value: setting.setting_value,
           category: setting.category,
@@ -489,42 +433,72 @@ export default function GeneralSettings() {
           hint: error.hint
         })
 
-        // معالجة خاصة لخطأ التعارض (مثل تكرار setting_key)
         if (error.code === '23505') {
           toast.error('يوجد تعارض في مفاتيح الإعدادات. تأكد من عدم تكرار نفس الاسم أكثر من مرة.')
         } else {
-          toast.error('فشل حفظ الإعدادات. يرجى المحاولة مرة أخرى.')
+          toast.error('فشل حفظ إعدادات هذا التبويب. يرجى المحاولة مرة أخرى.')
         }
         return
       }
 
-      toast.success('تم حفظ الإعدادات بنجاح')
+      toast.success('تم حفظ إعدادات هذا التبويب بنجاح')
     } catch (error) {
       console.error('Error saving settings:', error)
-      toast.error('حدث خطأ أثناء حفظ الإعدادات')
+      toast.error('حدث خطأ أثناء حفظ إعدادات التبويب')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const resetToDefaults = () => {
+  const resetToDefaults = (tabKey: TabType) => {
     if (!hasEditPermission) {
       toast.error('ليس لديك صلاحية لتعديل الإعدادات')
       return
     }
+    setResetTabKey(tabKey)
+    setShowConfirmReset(true)
+  }
 
-    if (confirm('هل أنت متأكد من إعادة تعيين جميع الإعدادات إلى القيم الافتراضية؟')) {
-      const defaultSettings: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
-      settingsCategories.forEach(category => {
-        if (category.settings) {
-          category.settings.forEach(setting => {
-            defaultSettings[setting.setting_key] = setting.setting_value
-          })
-        }
+  const getChangedSettings = () => {
+    if (!resetTabKey) return []
+    
+    const categoryToReset = settingsCategories.find(cat => cat.key === resetTabKey)
+    
+    // إذا كان التبويب لا يحتوي على settings array (يستخدم component)، أرجع مصفوفة فارغة
+    if (!categoryToReset || !categoryToReset.settings) return []
+    
+    return categoryToReset.settings.filter(setting => {
+      const currentValue = settings[setting.setting_key]
+      const defaultValue = setting.setting_value
+      return currentValue !== undefined && currentValue !== defaultValue
+    }).map(setting => ({
+      ...setting,
+      currentValue: settings[setting.setting_key],
+      defaultValue: setting.setting_value
+    }))
+  }
+
+  const handleConfirmReset = () => {
+    if (!resetTabKey) return
+    
+    const defaultSettings: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
+    const categoryToReset = settingsCategories.find(cat => cat.key === resetTabKey)
+    
+    if (categoryToReset && categoryToReset.settings) {
+      categoryToReset.settings.forEach(setting => {
+        defaultSettings[setting.setting_key] = setting.setting_value
       })
-      setSettings(defaultSettings)
-      toast.success('تم إعادة تعيين الإعدادات إلى القيم الافتراضية')
     }
+    
+    setSettings(prev => ({
+      ...prev,
+      ...defaultSettings
+    }))
+    
+    const categoryLabel = categoryToReset?.label || 'الإعدادات'
+    toast.success(`تم إعادة تعيين ${categoryLabel} إلى القيم الافتراضية`)
+    setShowConfirmReset(false)
+    setResetTabKey(null)
   }
 
   const updateSetting = (key: string, value: string | number | boolean | Record<string, unknown> | null) => {
@@ -625,61 +599,40 @@ export default function GeneralSettings() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-3">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <Settings className="w-8 h-8 text-white" />
+        <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
+                <Settings className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
-                <p className="text-gray-600 mt-1">إدارة جميع إعدادات النظام والإعدادات العامة</p>
+                <h1 className="text-xl font-bold text-gray-900">إعدادات النظام</h1>
+                <p className="text-xs text-gray-600 mt-0.5">إدارة إعدادات النظام والإعدادات العامة</p>
               </div>
             </div>
-            {hasEditPermission && (
-              <div className="flex gap-3">
-                <button
-                  onClick={resetToDefaults}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  إعادة تعيين
-                </button>
-                <button
-                  onClick={saveSettings}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sticky top-6">
-              <h3 className="font-semibold text-gray-900 mb-4 text-lg">فئات الإعدادات</h3>
-              <nav className="space-y-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 sticky top-3">
+              <h3 className="font-semibold text-gray-900 mb-2 text-xs">فئات الإعدادات</h3>
+              <nav className="space-y-1">
                 {settingsCategories.map(category => {
                   const Icon = category.icon
                   return (
                     <button
                       key={category.key}
                       onClick={() => setActiveTab(category.key as TabType)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right transition-all duration-200 ${
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-right transition-all duration-200 text-xs ${
                         activeTab === category.key
-                          ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-r-3 border-blue-500 shadow-sm'
+                          ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500 shadow-sm'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${activeTab === category.key ? 'text-blue-600' : 'text-gray-500'}`} />
-                      <span className="text-sm font-medium">{category.label}</span>
+                      <Icon className={`w-4 h-4 ${activeTab === category.key ? 'text-blue-600' : 'text-gray-500'}`} />
+                      <span className="font-medium">{category.label}</span>
                     </button>
                   )
                 })}
@@ -690,33 +643,59 @@ export default function GeneralSettings() {
           {/* Settings Content */}
           <div className="lg:col-span-3">
             {activeCategory && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 {/* Tab Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <activeCategory.icon className="w-6 h-6 text-blue-600" />
-                    <h2 className="text-2xl font-bold text-gray-900">{activeCategory.label}</h2>
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 py-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <activeCategory.icon className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <h2 className="text-sm font-semibold text-gray-900">{activeCategory.label}</h2>
+                        {activeCategory.settings && (
+                          <p className="text-xs text-gray-600">{activeCategory.settings.length} إعدادات</p>
+                        )}
+                      </div>
+                    </div>
+                    {hasEditPermission && activeCategory.settings && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => resetToDefaults(activeTab)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition font-medium"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          استعادة
+                        </button>
+                        <button
+                          onClick={saveActiveTabSettings}
+                          disabled={isSaving}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50 font-semibold"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          {isSaving ? 'جاري...' : 'حفظ هذا التبويب'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Tab Content */}
-                <div className="p-6">
+                <div className="p-3">
                   {activeCategory.component ? (
                     <activeCategory.component />
                   ) : activeCategory.settings ? (
-                    <div className="space-y-6">
+                    <div className="space-y-3">
                       {activeCategory.settings.map(setting => (
-                        <div key={setting.setting_key} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div key={setting.setting_key} className="border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex-1">
-                              <h3 className="font-medium text-gray-900 mb-1">
+                              <h3 className="font-medium text-gray-900 text-sm mb-0.5">
                                 {setting.description}
                               </h3>
-                              <p className="text-sm text-gray-500">
-                                المفتاح: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{setting.setting_key}</code>
+                              <p className="text-xs text-gray-500">
+                                المفتاح: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{setting.setting_key}</code>
                               </p>
                             </div>
-                            <div className="sm:w-64">
+                            <div className="sm:w-56">
                               {renderSettingInput(setting)}
                             </div>
                           </div>
@@ -724,9 +703,9 @@ export default function GeneralSettings() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <activeCategory.icon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                      <p>لا توجد إعدادات متاحة في هذا القسم</p>
+                    <div className="text-center py-6 text-gray-500">
+                      <activeCategory.icon className="w-10 h-10 mx-auto mb-2 text-gray-400" />
+                      <p className="text-xs">لا توجد إعدادات متاحة في هذا القسم</p>
                     </div>
                   )}
                 </div>
@@ -736,47 +715,97 @@ export default function GeneralSettings() {
         </div>
 
         {/* Quick Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-200 p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
-                <Settings className="w-6 h-6 text-white" />
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+                <Settings className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-gray-900">
+                <h3 className="font-bold text-xs text-gray-900">
                   {settingsCategories.reduce((acc, cat) => acc + (cat.settings?.length || 0), 0)}
                 </h3>
-                <p className="text-sm text-gray-600">إجمالي الإعدادات</p>
+                <p className="text-xs text-gray-600">إجمالي الإعدادات</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200 p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-md">
-                <DatabaseIcon className="w-6 h-6 text-white" />
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm border border-green-200 p-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                <DatabaseIcon className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-gray-900">{settingsCategories.length}</h3>
-                <p className="text-sm text-gray-600">فئات الإعدادات</p>
+                <h3 className="font-bold text-xs text-gray-900">{settingsCategories.length}</h3>
+                <p className="text-xs text-gray-600">فئات الإعدادات</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-sm border border-purple-200 p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-md">
-                <Clock className="w-6 h-6 text-white" />
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm border border-purple-200 p-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-sm">
+                <Clock className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-gray-900">
+                <h3 className="font-bold text-xs text-gray-900">
                   {new Date().toLocaleDateString('ar-SA')}
                 </h3>
-                <p className="text-sm text-gray-600">آخر تحديث</p>
+                <p className="text-xs text-gray-600">آخر تحديث</p>
               </div>
             </div>
           </div>
         </div>
+
+        <ConfirmationDialog
+          isOpen={showConfirmReset}
+          onClose={() => {
+            setShowConfirmReset(false)
+            setResetTabKey(null)
+          }}
+          onConfirm={handleConfirmReset}
+          title="إعادة تعيين الإعدادات"
+          message={`سيتم إعادة تعيين ${settingsCategories.find(cat => cat.key === resetTabKey)?.label || 'الإعدادات'} إلى القيم الافتراضية`}
+          confirmText="تأكيد"
+          cancelText="إلغاء"
+          isDangerous={true}
+          icon="alert"
+        >
+          {getChangedSettings().length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+              <p className="text-sm font-semibold text-blue-900 mb-3">الإعدادات التي ستتغير:</p>
+              <div className="space-y-2">
+                {getChangedSettings().map(setting => (
+                  <div key={setting.setting_key} className="bg-white border border-blue-100 rounded p-3">
+                    <p className="text-sm font-medium text-gray-900">{setting.description}</p>
+                    <div className="flex items-center justify-between mt-2 text-xs">
+                      <div>
+                        <span className="text-gray-600">الحالي: </span>
+                        <code className="bg-gray-100 px-2 py-1 rounded text-gray-700 font-mono">
+                          {String(setting.currentValue)}
+                        </code>
+                      </div>
+                      <div className="text-gray-400">←</div>
+                      <div>
+                        <code className="bg-green-100 px-2 py-1 rounded text-green-700 font-mono">
+                          {String(setting.defaultValue)}
+                        </code>
+                        <span className="text-gray-600"> :الافتراضي</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {getChangedSettings().length === 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">
+                ✓ جميع الإعدادات موجودة بالفعل على قيمها الافتراضية
+              </p>
+            </div>
+          )}
+        </ConfirmationDialog>
       </div>
     </Layout>
   )

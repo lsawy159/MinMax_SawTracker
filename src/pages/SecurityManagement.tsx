@@ -10,6 +10,7 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { formatDistanceToNow } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import { getErrorMessage, getErrorStatus, getInputValue } from '@/utils/errorHandling'
+import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 interface SecuritySetting {
   id: string
@@ -95,11 +96,6 @@ export default function SecurityManagement() {
   const [backups, setBackups] = useState<BackupRecord[]>([])
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
   const [isPollingBackup, setIsPollingBackup] = useState(false)
-  const [showEmailModal, setShowEmailModal] = useState(false)
-  const [selectedBackupForEmail, setSelectedBackupForEmail] = useState<BackupRecord | null>(null)
-  const [emailRecipients, setEmailRecipients] = useState<string>('')
-  const [isSendingEmail, setIsSendingEmail] = useState(false)
-  const [savedEmailRecipients, setSavedEmailRecipients] = useState<string[]>([])
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [backupToDelete, setBackupToDelete] = useState<{ id: string; filePath: string; fileName: string } | null>(null)
   const [selectedBackups, setSelectedBackups] = useState<Set<string>>(new Set())
@@ -114,6 +110,13 @@ export default function SecurityManagement() {
   const [sessionHistory, setSessionHistory] = useState<UserSession[]>([])
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
   const [isDeletingSessions, setIsDeletingSessions] = useState(false)
+
+  // Confirmation Dialogs
+  const [showConfirmTerminate, setShowConfirmTerminate] = useState(false)
+  const [sessionToTerminate, setSessionToTerminate] = useState<UserSession | null>(null)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [sessionToDelete, setSessionToDelete] = useState<UserSession | null>(null)
+  const [showConfirmDeleteMultiple, setShowConfirmDeleteMultiple] = useState(false)
 
   // Audit Stats
   const [auditStats, setAuditStats] = useState({
@@ -273,44 +276,6 @@ export default function SecurityManagement() {
         }
       })
       setSettingsValues(initialValues)
-      
-      // تحميل الإيميلات المحفوظة
-      const emailSetting = data.find(s => s.setting_key === 'backup_email_recipients')
-      if (emailSetting) {
-        try {
-          let recipients: string | string[] | Record<string, unknown> = emailSetting.setting_value as string | string[] | Record<string, unknown>
-          
-          // إذا كانت string، نحاول parse JSON فقط إذا كانت تبدو كـ JSON
-          if (typeof recipients === 'string') {
-            const trimmed = recipients.trim()
-            // التحقق إذا كانت تبدو كـ JSON array أو object
-            if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || 
-                (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-              try {
-                recipients = JSON.parse(trimmed)
-              } catch {
-                // إذا فشل، نعتبرها string عادي (إيميل واحد أو قائمة مفصولة بفواصل)
-                recipients = trimmed.split(',').map((e: string) => e.trim()).filter((e: string) => e)
-              }
-            } else {
-              // إذا كانت string عادي (ليس JSON)، نعتبرها قائمة مفصولة بفواصل
-              recipients = trimmed.split(',').map((e: string) => e.trim()).filter((e: string) => e)
-            }
-          }
-          
-          // التحقق إذا كانت array
-          if (Array.isArray(recipients) && recipients.length > 0) {
-            setSavedEmailRecipients(recipients)
-            setEmailRecipients(recipients.join(', '))
-          } else if (typeof recipients === 'string' && recipients.trim().includes('@')) {
-            // إذا كانت إيميل واحد فقط
-            setSavedEmailRecipients([recipients])
-            setEmailRecipients(recipients)
-          }
-        } catch (e) {
-          console.warn('خطأ في قراءة الإيميلات المحفوظة:', e)
-        }
-      }
     }
   }
 
@@ -1319,133 +1284,13 @@ export default function SecurityManagement() {
     }
   }
 
-  const openEmailModal = (backup: BackupRecord) => {
-    setSelectedBackupForEmail(backup)
-    setShowEmailModal(true)
-    // تحميل الإيميلات المحفوظة إذا كانت موجودة
-    if (savedEmailRecipients.length > 0) {
-      setEmailRecipients(savedEmailRecipients.join(', '))
-    }
+  const terminateSession = async (session: UserSession) => {
+    setSessionToTerminate(session)
+    setShowConfirmTerminate(true)
   }
 
-  const sendBackupByEmail = async () => {
-    if (!selectedBackupForEmail) return
-
-    // التحقق من وجود إيميلات
-    const emails = emailRecipients
-      .split(',')
-      .map(e => e.trim())
-      .filter(e => e && e.includes('@'))
-
-    if (emails.length === 0) {
-      toast.error('يرجى إدخال عنوان بريد إلكتروني واحد على الأقل')
-      return
-    }
-
-    setIsSendingEmail(true)
-    
-    try {
-      logger.debug('[Email Queue] Adding email to queue for backup:', selectedBackupForEmail.file_path)
-      
-      // إنشاء رابط تحميل موقّع (صالح لمدة سنة واحدة)
-      let downloadUrl = ''
-      
-      try {
-        const { data: signedUrlData, error: urlError } = await supabase.storage
-          .from('backups')
-          .createSignedUrl(selectedBackupForEmail.file_path, 60 * 60 * 24 * 365) // سنة واحدة (365 يوم)
-
-        if (!urlError && signedUrlData) {
-          downloadUrl = signedUrlData.signedUrl
-          logger.debug('[Email Queue] Download URL created successfully')
-        } else {
-          console.warn('[Email Queue] Could not create download URL:', urlError?.message || urlError)
-          // لا نرمي خطأ هنا، سنرسل البريد بدون رابط
-        }
-      } catch (urlCreateError: unknown) {
-        const urlErrorMessage = urlCreateError instanceof Error ? urlCreateError.message : String(urlCreateError)
-        console.warn('[Email Queue] Error creating download URL (non-critical):', urlErrorMessage)
-        // لا نرمي خطأ هنا، سنرسل البريد بدون رابط
-      }
-      
-      const date = new Date(selectedBackupForEmail.started_at).toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
-      const fileSizeMB = ((selectedBackupForEmail.file_size || 0) / (1024 * 1024)).toFixed(2)
-
-      // بناء محتوى البريد
-      const htmlContent = `
-        <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2 style="color: #2563eb;">نسخة احتياطية من SawTracker</h2>
-          <p><strong>اسم الملف:</strong> ${selectedBackupForEmail.file_path}</p>
-          <p><strong>نوع النسخة:</strong> ${selectedBackupForEmail.backup_type === 'full' ? 'كاملة' : selectedBackupForEmail.backup_type === 'incremental' ? 'تزايدية' : selectedBackupForEmail.backup_type === 'manual' ? 'يدوي' : 'جزئية'}</p>
-          <p><strong>حجم الملف:</strong> ${fileSizeMB} MB</p>
-          <p><strong>تاريخ الإنشاء:</strong> ${date}</p>
-          <p><strong>عدد الجداول:</strong> ${selectedBackupForEmail.tables_included?.length || 0}</p>
-          ${downloadUrl ? `
-            <p style="margin-top: 20px;">
-              <a href="${downloadUrl}" style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                تحميل النسخة الاحتياطية
-              </a>
-            </p>
-            <p style="margin-top: 10px; color: #666; font-size: 12px;">
-              ملاحظة: هذا الرابط صالح لمدة سنة واحدة (365 يوم). يمكنك استخدامه لتحميل النسخة الاحتياطية.
-            </p>
-          ` : `
-            <p style="margin-top: 20px; color: #ef4444; font-size: 14px;">
-              ⚠️ تعذر إنشاء رابط تحميل. يمكنك تحميل النسخة الاحتياطية من صفحة إدارة الأمان.
-            </p>
-          `}
-        </div>
-      `
-
-      const textContent = `نسخة احتياطية - ${selectedBackupForEmail.file_path}\nتاريخ الإنشاء: ${date}\nحجم الملف: ${fileSizeMB} MB${downloadUrl ? `\nرابط التحميل (صالح لمدة سنة): ${downloadUrl}` : '\n⚠️ تعذر إنشاء رابط تحميل.'}`
-
-      // إضافة سجل في email_queue
-      const { data: queueItem, error: queueError } = await supabase
-        .from('email_queue')
-        .insert({
-          to_emails: emails,
-          subject: `نسخة احتياطية - ${selectedBackupForEmail.file_path}`,
-          html_content: htmlContent,
-          text_content: textContent,
-          attachments: [],
-          status: 'pending',
-          priority: 0,
-          retry_count: 0,
-          max_retries: 3
-        })
-        .select()
-        .single()
-
-      if (queueError) {
-        console.error('[Email Queue] Error adding to queue:', queueError)
-        throw new Error('فشل في إضافة البريد إلى قائمة الانتظار: ' + queueError.message)
-      }
-
-      logger.debug('[Email Queue] Email added to queue successfully:', queueItem?.id)
-      toast.success(`تمت إضافة البريد إلى قائمة الانتظار. سيتم إرساله قريباً إلى ${emails.length} عنوان بريد إلكتروني`)
-      
-      // تحديث قائمة البريد
-      await loadEmailQueue()
-      
-      // إغلاق الـ modal
-      setShowEmailModal(false)
-      setEmailRecipients('')
-      setSelectedBackupForEmail(null)
-      
-    } catch (error: unknown) {
-      let errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير معروف'
-      console.error('[Email Queue] Error adding email to queue:', error)
-      if (!errorMessage || errorMessage === 'حدث خطأ غير معروف') {
-        errorMessage = 'فشل في إضافة البريد إلى قائمة الانتظار'
-      }
-      toast.error(errorMessage)
-    } finally {
-      setIsSendingEmail(false)
-    }
-  }
-
-  const terminateSession = async (sessionId: string) => {
-    if (!confirm('هل أنت متأكد من إنهاء هذه الجلسة؟')) return
+  const handleConfirmTerminate = async () => {
+    if (!sessionToTerminate) return
 
     try {
       // إنهاء الجلسة فعلياً في قاعدة البيانات
@@ -1455,14 +1300,14 @@ export default function SecurityManagement() {
           is_active: false,
           logged_out_at: new Date().toISOString()
         })
-        .eq('id', sessionId)
+        .eq('id', sessionToTerminate.id)
 
       if (error) {
         throw error
       }
 
       // تحديث الحالة المحلية
-      setActiveSessions(prev => prev.filter(s => s.id !== sessionId))
+      setActiveSessions(prev => prev.filter(s => s.id !== sessionToTerminate.id))
       
       // إعادة تحميل سجل الجلسات إذا كان محملاً
       if (sessionHistory.length > 0) {
@@ -1470,35 +1315,44 @@ export default function SecurityManagement() {
       }
       
       toast.success('تم إنهاء الجلسة بنجاح')
+      setShowConfirmTerminate(false)
+      setSessionToTerminate(null)
     } catch (error) {
       console.error('Error terminating session:', error)
       toast.error('فشل في إنهاء الجلسة')
     }
   }
 
-  const deleteSession = async (sessionId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه الجلسة؟')) return
+  const deleteSession = async (session: UserSession) => {
+    setSessionToDelete(session)
+    setShowConfirmDelete(true)
+  }
+
+  const handleConfirmDeleteSession = async () => {
+    if (!sessionToDelete) return
 
     try {
       const { error } = await supabase
         .from('user_sessions')
         .delete()
-        .eq('id', sessionId)
+        .eq('id', sessionToDelete.id)
 
       if (error) {
         throw error
       }
 
       // تحديث الحالة المحلية
-      setSessionHistory(prev => prev.filter(s => s.id !== sessionId))
-      setActiveSessions(prev => prev.filter(s => s.id !== sessionId))
+      setSessionHistory(prev => prev.filter(s => s.id !== sessionToDelete.id))
+      setActiveSessions(prev => prev.filter(s => s.id !== sessionToDelete.id))
       setSelectedSessions(prev => {
         const newSet = new Set(prev)
-        newSet.delete(sessionId)
+        newSet.delete(sessionToDelete.id)
         return newSet
       })
       
       toast.success('تم حذف الجلسة بنجاح')
+      setShowConfirmDelete(false)
+      setSessionToDelete(null)
     } catch (error) {
       console.error('Error deleting session:', error)
       toast.error('فشل في حذف الجلسة')
@@ -1510,9 +1364,10 @@ export default function SecurityManagement() {
       toast.warning('لم يتم تحديد أي جلسات للحذف')
       return
     }
+    setShowConfirmDeleteMultiple(true)
+  }
 
-    if (!confirm(`هل أنت متأكد من حذف ${selectedSessions.size} جلسة؟`)) return
-
+  const handleConfirmDeleteMultipleSessions = async () => {
     setIsDeletingSessions(true)
     try {
       const sessionIds = Array.from(selectedSessions)
@@ -1531,6 +1386,7 @@ export default function SecurityManagement() {
       setSelectedSessions(new Set())
       
       toast.success(`تم حذف ${sessionIds.length} جلسة بنجاح`)
+      setShowConfirmDeleteMultiple(false)
     } catch (error) {
       console.error('Error deleting sessions:', error)
       toast.error('فشل في حذف الجلسات')
@@ -1877,22 +1733,13 @@ export default function SecurityManagement() {
                           <td className="px-4 py-2">
                             <div className="flex gap-1">
                               {backup.status === 'completed' && (
-                                <>
-                                  <button
-                                    onClick={() => downloadBackup(backup.file_path)}
-                                    className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                                    title="تحميل"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => openEmailModal(backup)}
-                                    className="p-1 text-green-600 hover:bg-green-100 rounded"
-                                    title="إرسال بالبريد"
-                                  >
-                                    <Mail className="w-4 h-4" />
-                                  </button>
-                                </>
+                                <button
+                                  onClick={() => downloadBackup(backup.file_path)}
+                                  className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                  title="تحميل"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
                               )}
                               <button
                                 onClick={() => openDeleteModal(backup.id, backup.file_path, backup.file_path)}
@@ -2095,7 +1942,7 @@ export default function SecurityManagement() {
                           <span className="font-semibold">جلسة نشطة</span>
                         </div>
                         <button
-                          onClick={() => terminateSession(session.id)}
+                          onClick={() => terminateSession(session)}
                           className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
                         >
                           إنهاء الجلسة
@@ -2231,7 +2078,7 @@ export default function SecurityManagement() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <button
-                                    onClick={() => deleteSession(session.id)}
+                                    onClick={() => deleteSession(session)}
                                     className="p-1 text-red-600 hover:bg-red-100 rounded"
                                     title="حذف"
                                   >
@@ -2358,72 +2205,6 @@ export default function SecurityManagement() {
           </div>
         </div>
       </div>
-
-      {/* نافذة إرسال النسخة الاحتياطية بالبريد */}
-      {showEmailModal && selectedBackupForEmail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">إرسال نسخة احتياطية بالبريد</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">عنوان الملف</label>
-                <p className="text-gray-600 text-sm font-mono">{selectedBackupForEmail.file_path}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">عناوين البريد الإلكتروني</label>
-                <textarea
-                  value={emailRecipients}
-                  onChange={(e) => setEmailRecipients(e.target.value)}
-                  placeholder="أدخل عناوين البريد مفصولة بفواصل (مثال: email1@gmail.com, email2@gmail.com)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={4}
-                />
-                {savedEmailRecipients.length > 0 && (
-                  <button
-                    onClick={() => setEmailRecipients(savedEmailRecipients.join(', '))}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    استخدام الإيميلات المحفوظة: {savedEmailRecipients.join(', ')}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-6 justify-end">
-              <button
-                onClick={() => {
-                  setShowEmailModal(false)
-                  setSelectedBackupForEmail(null)
-                  setEmailRecipients('')
-                }}
-                disabled={isSendingEmail}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition disabled:opacity-50"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={sendBackupByEmail}
-                disabled={isSendingEmail || !emailRecipients.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isSendingEmail ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    جاري الإرسال...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="w-4 h-4" />
-                    إرسال
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* نافذة إضافة إعداد جديد */}
       {showAddSettingModal && (
@@ -2606,6 +2387,49 @@ export default function SecurityManagement() {
           </div>
         </div>
       )}
+
+      {/* Session Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={showConfirmTerminate}
+        onClose={() => {
+          setShowConfirmTerminate(false)
+          setSessionToTerminate(null)
+        }}
+        onConfirm={handleConfirmTerminate}
+        title="إنهاء الجلسة"
+        message={`هل أنت متأكد من إنهاء جلسة ${sessionToTerminate?.users?.email}؟ سيتم تسجيل خروج المستخدم من هذا الجهاز.`}
+        confirmText="إنهاء"
+        cancelText="إلغاء"
+        isDangerous={true}
+        icon="alert"
+      />
+
+      <ConfirmationDialog
+        isOpen={showConfirmDelete}
+        onClose={() => {
+          setShowConfirmDelete(false)
+          setSessionToDelete(null)
+        }}
+        onConfirm={handleConfirmDeleteSession}
+        title="حذف الجلسة"
+        message={`هل أنت متأكد من حذف جلسة ${sessionToDelete?.users?.email}؟ سيتم حذفها من السجل بشكل نهائي.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        isDangerous={true}
+        icon="alert"
+      />
+
+      <ConfirmationDialog
+        isOpen={showConfirmDeleteMultiple}
+        onClose={() => setShowConfirmDeleteMultiple(false)}
+        onConfirm={handleConfirmDeleteMultipleSessions}
+        title="حذف جلسات متعددة"
+        message={`هل أنت متأكد من حذف ${selectedSessions.size} جلسة؟ سيتم حذفها من السجل بشكل نهائي.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        isDangerous={true}
+        icon="alert"
+      />
     </Layout>
   )
 }
