@@ -45,8 +45,10 @@ replacements.txt
 *.sw?
 
 # Documentation files (keep locally, exclude from git)
+# ملاحظة: نسمح بملفات الملخصات التوثيقية المهمة
 *.md
 !.github/**/*.md
+!CLEANUP_SUMMARY.md
 
 # Temporary test pages (development only)
 src/pages/EnhancedAlertsTestPage.tsx
