@@ -5,6 +5,7 @@ import { Settings as SettingsIcon, Save, Building2, Users, Globe, Plus, Trash2, 
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
 import { usePermissions } from '@/utils/permissions'
+import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 interface CompanyLimit {
   company_id: string
@@ -37,6 +38,10 @@ export default function Settings() {
   const [showNationalityModal, setShowNationalityModal] = useState(false)
   const [editingNationality, setEditingNationality] = useState<Nationality | null>(null)
   const [nationalityName, setNationalityName] = useState('')
+  
+  // حوار التأكيد لحذف الجنسية
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [nationalityToDelete, setNationalityToDelete] = useState<Nationality | null>(null)
 
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('settings')
@@ -227,18 +232,25 @@ export default function Settings() {
   }
 
   const handleDeleteNationality = async (nationality: Nationality) => {
-    if (!confirm(`هل أنت متأكد من حذف جنسية "${nationality.name}"؟ سيتم حذفها من جميع الموظفين.`)) return
+    setNationalityToDelete(nationality)
+    setShowConfirmDelete(true)
+  }
+
+  const handleConfirmDeleteNationality = async () => {
+    if (!nationalityToDelete) return
 
     try {
       const { error } = await supabase
         .from('employees')
         .update({ nationality: null })
-        .eq('nationality', nationality.name)
+        .eq('nationality', nationalityToDelete.name)
 
       if (error) throw error
       
       toast.success('تم حذف الجنسية بنجاح')
       loadNationalities()
+      setShowConfirmDelete(false)
+      setNationalityToDelete(null)
     } catch (error) {
       console.error('Error deleting nationality:', error)
       toast.error('حدث خطأ أثناء حذف الجنسية')
@@ -574,6 +586,21 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      <ConfirmationDialog
+        isOpen={showConfirmDelete}
+        onClose={() => {
+          setShowConfirmDelete(false)
+          setNationalityToDelete(null)
+        }}
+        onConfirm={handleConfirmDeleteNationality}
+        title="حذف الجنسية"
+        message={`هل أنت متأكد من حذف جنسية "${nationalityToDelete?.name}"؟ سيتم حذفها من جميع الموظفين الذين يحملون هذه الجنسية.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        isDangerous={true}
+        icon="alert"
+      />
     </Layout>
   )
 }

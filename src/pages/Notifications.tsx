@@ -17,6 +17,7 @@ import { ar } from 'date-fns/locale'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
+import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 type FilterType = 'all' | 'unread' | 'read'
 type PriorityFilter = 'all' | 'urgent' | 'high' | 'medium' | 'low'
@@ -28,6 +29,11 @@ export default function Notifications() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [generating, setGenerating] = useState(false)
+
+  // Confirmation Dialogs
+  const [showConfirmDeleteOne, setShowConfirmDeleteOne] = useState(false)
+  const [notificationToDelete, setNotificationToDelete] = useState<Notification | null>(null)
+  const [showConfirmDeleteAll, setShowConfirmDeleteAll] = useState(false)
 
   useEffect(() => {
     loadNotifications()
@@ -150,26 +156,35 @@ export default function Notifications() {
     }
   }
 
-  const handleDelete = async (notificationId: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا التنبيه؟')) return
+  const handleDelete = async (notification: Notification) => {
+    setNotificationToDelete(notification)
+    setShowConfirmDeleteOne(true)
+  }
+
+  const handleConfirmDeleteOne = async () => {
+    if (!notificationToDelete) return
 
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ is_archived: true })
-        .eq('id', notificationId)
+        .eq('id', notificationToDelete.id)
 
       if (error) throw error
       loadNotifications()
       toast.success('تم حذف التنبيه')
+      setShowConfirmDeleteOne(false)
+      setNotificationToDelete(null)
     } catch {
       toast.error('فشل حذف التنبيه')
     }
   }
 
   const handleDeleteAll = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع التنبيهات؟')) return
+    setShowConfirmDeleteAll(true)
+  }
 
+  const handleConfirmDeleteAll = async () => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -179,6 +194,7 @@ export default function Notifications() {
       if (error) throw error
       loadNotifications()
       toast.success('تم حذف جميع التنبيهات')
+      setShowConfirmDeleteAll(false)
     } catch {
       toast.error('فشل حذف التنبيهات')
     }
@@ -471,7 +487,7 @@ export default function Notifications() {
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(notification.id)}
+                        onClick={() => handleDelete(notification)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -484,6 +500,34 @@ export default function Notifications() {
             ))}
           </div>
         )}
+
+        {/* Delete Confirmation Dialogs */}
+        <ConfirmationDialog
+          isOpen={showConfirmDeleteOne}
+          onClose={() => {
+            setShowConfirmDeleteOne(false)
+            setNotificationToDelete(null)
+          }}
+          onConfirm={handleConfirmDeleteOne}
+          title="حذف التنبيه"
+          message={`هل أنت متأكد من حذف هذا التنبيه: "${notificationToDelete?.title}"؟`}
+          confirmText="حذف"
+          cancelText="إلغاء"
+          isDangerous={true}
+          icon="alert"
+        />
+
+        <ConfirmationDialog
+          isOpen={showConfirmDeleteAll}
+          onClose={() => setShowConfirmDeleteAll(false)}
+          onConfirm={handleConfirmDeleteAll}
+          title="حذف جميع التنبيهات"
+          message="هل أنت متأكد من حذف جميع التنبيهات؟ هذا الإجراء لا يمكن التراجع عنه."
+          confirmText="حذف"
+          cancelText="إلغاء"
+          isDangerous={true}
+          icon="alert"
+        />
       </div>
     </Layout>
   )

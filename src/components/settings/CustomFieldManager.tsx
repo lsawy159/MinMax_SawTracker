@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, CustomField } from '@/lib/supabase'
 import { Plus, Edit2, Trash2, Save, X, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 type FieldType = 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea'
 type EntityType = 'employee' | 'company'
@@ -33,6 +34,10 @@ export default function CustomFieldManager() {
     display_order: 0
   })
   const [selectOptions, setSelectOptions] = useState<string>('')
+
+  // Confirmation Dialog
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [fieldToDelete, setFieldToDelete] = useState<CustomField | null>(null)
 
   useEffect(() => {
     loadFields()
@@ -146,19 +151,24 @@ export default function CustomFieldManager() {
   }
 
   const handleDelete = async (field: CustomField) => {
-    if (!confirm(`هل أنت متأكد من حذف الحقل "${field.field_label}"؟`)) {
-      return
-    }
+    setFieldToDelete(field)
+    setShowConfirmDelete(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!fieldToDelete) return
 
     try {
       const { error } = await supabase
         .from('custom_fields')
         .delete()
-        .eq('id', field.id)
+        .eq('id', fieldToDelete.id)
 
       if (error) throw error
       toast.success('تم حذف الحقل بنجاح')
       loadFields()
+      setShowConfirmDelete(false)
+      setFieldToDelete(null)
     } catch (error: unknown) {
       console.error('Error deleting field:', error)
       toast.error('فشل حذف الحقل')
@@ -514,6 +524,22 @@ export default function CustomFieldManager() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmDelete}
+        onClose={() => {
+          setShowConfirmDelete(false)
+          setFieldToDelete(null)
+        }}
+        onConfirm={handleConfirmDelete}
+        title="حذف الحقل المخصص"
+        message={`هل أنت متأكد من حذف الحقل "${fieldToDelete?.field_label}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        isDangerous={true}
+        icon="alert"
+      />
     </div>
   )
 }

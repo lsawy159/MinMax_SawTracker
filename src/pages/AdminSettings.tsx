@@ -3,16 +3,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import NotificationSettings from '@/components/settings/NotificationSettings'
-import StatusSettings from '@/components/settings/StatusSettings'
-import EmployeeTableColorSettings from '@/components/settings/EmployeeTableColorSettings'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
-import { Settings, Database, Bell, Shield, TrendingUp, Palette, Sparkles } from 'lucide-react'
+import { Settings, Database, Shield, Sparkles } from 'lucide-react'
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'unified' | 'fields' | 'notifications' | 'employeeColors' | 'status' | 'general'>('unified')
+  const [activeTab, setActiveTab] = useState<'unified' | 'fields' | 'general'>('unified')
 
   useEffect(() => {
     // التحقق من صلاحيات المدير
@@ -67,39 +64,6 @@ export default function AdminSettings() {
               إدارة الحقول المخصصة
             </button>
             <button
-              onClick={() => setActiveTab('notifications')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
-                activeTab === 'notifications'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Bell className="w-5 h-5" />
-              إعدادات التنبيهات
-            </button>
-            <button
-              onClick={() => setActiveTab('employeeColors')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
-                activeTab === 'employeeColors'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Palette className="w-5 h-5" />
-              ألوان جدول الموظفين
-            </button>
-            <button
-              onClick={() => setActiveTab('status')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
-                activeTab === 'status'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              إعدادات الحالات
-            </button>
-            <button
               onClick={() => setActiveTab('general')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
                 activeTab === 'general'
@@ -117,9 +81,6 @@ export default function AdminSettings() {
         <div>
           {activeTab === 'unified' && <UnifiedSettings />}
           {activeTab === 'fields' && <CustomFieldManager />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'employeeColors' && <EmployeeTableColorSettings />}
-          {activeTab === 'status' && <StatusSettings />}
           {activeTab === 'general' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="text-center py-12 text-gray-500">
