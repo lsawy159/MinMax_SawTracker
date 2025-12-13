@@ -1,11 +1,82 @@
 // Import React and ReactDOM first to ensure they are initialized
 import React, { StrictMode } from 'react'
-import ReactDOM from 'react-dom/client'
+import * as ReactDOM from 'react-dom/client'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'
 import App from './App.tsx'
 import { logger } from './utils/logger'
+import { initializeSecurity } from './utils/securityIntegration'
+
+// Register global handlers once and clean up on HMR to avoid listener duplication
+const registerGlobalHandlers = () => {
+  const onError = (event: ErrorEvent) => {
+    console.error('Global error caught:', {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      error: event.error,
+      stack: event.error?.stack,
+    })
+
+    if (event.error) {
+      console.error('Error object:', event.error)
+      console.error('Error stack:', event.error.stack)
+    }
+  }
+
+  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+    console.error('Unhandled promise rejection:', {
+      reason: event.reason,
+      promise: event.promise,
+    })
+
+    if (event.reason instanceof Error) {
+      console.error('Rejection error:', event.reason)
+      console.error('Rejection stack:', event.reason.stack)
+    } else {
+      console.error('Rejection reason (non-Error):', event.reason)
+    }
+  }
+
+  const onDomContentLoaded = () => {
+    logger.debug('DOM Content Loaded - Starting React app')
+  }
+
+  const onWindowLoad = () => {
+    logger.debug('Window fully loaded')
+  }
+
+  window.addEventListener('error', onError)
+  window.addEventListener('unhandledrejection', onUnhandledRejection)
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onDomContentLoaded, { once: true })
+  } else {
+    logger.debug('DOM already ready - Starting React app')
+  }
+
+  window.addEventListener('load', onWindowLoad, { once: true })
+
+  return () => {
+    window.removeEventListener('error', onError)
+    window.removeEventListener('unhandledrejection', onUnhandledRejection)
+    document.removeEventListener('DOMContentLoaded', onDomContentLoaded)
+    window.removeEventListener('load', onWindowLoad)
+  }
+}
+
+const cleanupGlobalHandlers = registerGlobalHandlers()
+
+// Initialize security features
+initializeSecurity()
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupGlobalHandlers()
+  })
+}
 
 // Validate that React is loaded correctly
 // This ensures React is initialized before any other code runs
@@ -21,54 +92,6 @@ if (!ReactDOM) {
 if (typeof React.createElement !== 'function') {
   throw new Error('React.createElement is not a function - React may not be initialized correctly')
 }
-
-// Global error handlers to catch all errors
-// This helps debug production build issues
-window.addEventListener('error', (event) => {
-  console.error('Global error caught:', {
-    message: event.message,
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno,
-    error: event.error,
-    stack: event.error?.stack,
-  })
-  
-  // Log to console with full details
-  if (event.error) {
-    console.error('Error object:', event.error)
-    console.error('Error stack:', event.error.stack)
-  }
-})
-
-// Catch unhandled promise rejections
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', {
-    reason: event.reason,
-    promise: event.promise,
-  })
-  
-  if (event.reason instanceof Error) {
-    console.error('Rejection error:', event.reason)
-    console.error('Rejection stack:', event.reason.stack)
-  } else {
-    console.error('Rejection reason (non-Error):', event.reason)
-  }
-})
-
-// Log when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    logger.debug('DOM Content Loaded - Starting React app')
-  })
-} else {
-  logger.debug('DOM already ready - Starting React app')
-}
-
-// Log when window is fully loaded
-window.addEventListener('load', () => {
-  logger.debug('Window fully loaded')
-})
 
 // Try to render the app
 try {

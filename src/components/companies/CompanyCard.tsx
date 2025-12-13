@@ -39,6 +39,12 @@ function CompanyCard({
   const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
   const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
 
+  const formatDaysText = (days: number) => {
+    if (days < 0) return `${Math.abs(days)} يوم منذ الانتهاء`
+    if (days === 0) return 'اليوم'
+    return `${days} يوم`
+  }
+
   // تحديد لون الحدود حسب أعلى أولوية (حرج > متوسط > ساري)
   const getBorderColor = () => {
     const priorities = [
@@ -161,7 +167,7 @@ function CompanyCard({
                   <div className="text-sm">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{commercialRegStatus.status}</span>
-                    <span className="text-xs opacity-75">{commercialRegStatus.description}</span>
+                    <span className="text-xs opacity-75">{formatDaysText(commercialRegStatus.daysRemaining)}</span>
                   </div>
                 </div>
               </div>
@@ -181,7 +187,7 @@ function CompanyCard({
                   <div className="text-sm">{socialInsuranceStatus.status === 'طارئ' ? '🚨' : socialInsuranceStatus.status === 'عاجل' ? '🔥' : socialInsuranceStatus.status === 'متوسط' ? '⚠️' : socialInsuranceStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{socialInsuranceStatus.status}</span>
-                    <span className="text-xs opacity-75">{socialInsuranceStatus.description}</span>
+                    <span className="text-xs opacity-75">{formatDaysText(socialInsuranceStatus.daysRemaining)}</span>
                   </div>
                 </div>
               </div>
@@ -201,7 +207,7 @@ function CompanyCard({
                   <div className="text-sm">{powerStatus.status === 'طارئ' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{powerStatus.status}</span>
-                    <span className="text-xs opacity-75">{powerStatus.description}</span>
+                    <span className="text-xs opacity-75">{formatDaysText(powerStatus.daysRemaining)}</span>
                   </div>
                 </div>
               </div>
@@ -221,7 +227,7 @@ function CompanyCard({
                   <div className="text-sm">{moqeemStatus.status === 'طارئ' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{moqeemStatus.status}</span>
-                    <span className="text-xs opacity-75">{moqeemStatus.description}</span>
+                    <span className="text-xs opacity-75">{formatDaysText(moqeemStatus.daysRemaining)}</span>
                   </div>
                 </div>
               </div>

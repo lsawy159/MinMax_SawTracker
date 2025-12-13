@@ -133,6 +133,7 @@ export default function BackupManagement() {
     // تحديث البيانات كل 30 ثانية
     const interval = setInterval(loadData, 30000)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // تشغيل النسخ الاحتياطي يدوياً

@@ -25,6 +25,8 @@ const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const SecurityManagement = lazy(() => import('./pages/SecurityManagement'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
+const UserGuide = lazy(() => import('./pages/UserGuide'))
+const AdminGuide = lazy(() => import('./pages/AdminGuide'))
 
 // Loading fallback component
 function PageLoader() {
@@ -194,6 +196,20 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <Navigate to="/admin-settings" replace />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/user-guide" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <UserGuide />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-guide" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <AdminGuide />
             </Suspense>
           </ProtectedRoute>
         } />

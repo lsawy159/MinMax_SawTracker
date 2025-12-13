@@ -35,6 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initialSessionCheckedRef = useRef(false) // تتبع ما إذا كان getSession() قد اكتمل
   const creatingSessionRef = useRef(false) // منع إنشاء جلسات متعددة في نفس الوقت
 
+  const clearStaleSession = useCallback(async (reason: string) => {
+    logger.warn('[Auth] Clearing stale session due to:', reason)
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (err) {
+      logger.warn('[Auth] Failed to clear local session (non-critical):', err)
+    } finally {
+      if (mountedRef.current) {
+        setSession(null)
+        setUser(null)
+      }
+    }
+  }, [])
+
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
 
@@ -193,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (sessionError) {
         logger.error('[Auth] Error getting initial session:', sessionError)
         setError(sessionError.message)
+        void clearStaleSession(sessionError.message || 'initial getSession failed')
         setLoading(false)
         loadingRef.current = false
         return
@@ -319,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId)
       }
     }
-  }, [createUserSession]) // إضافة createUserSession في dependencies
+  }, [createUserSession, clearStaleSession]) // إضافة createUserSession في dependencies
 
 
   // --- جلب بيانات المستخدم المخصصة ---
@@ -578,6 +593,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (sessionError && mountedRef.current) {
       setError(sessionError.message)
+      await clearStaleSession(sessionError.message || 'retryLogin getSession failed')
       setLoading(false)
       return
     }
@@ -588,7 +604,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (mountedRef.current) {
       setLoading(false)
     }
-  }, [])
+  }, [clearStaleSession])
 
 
   // --- توفير الـ Context ---
