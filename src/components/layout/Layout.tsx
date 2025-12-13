@@ -6,6 +6,7 @@ import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
 import { usePermissions } from '@/utils/permissions'
+import { MobileBottomNav } from './MobileBottomNav'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -356,10 +357,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           </aside>
 
           {/* Main Content */}
-          <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}>
+          <main className={`flex-1 pb-20 lg:pb-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}>
             {children}
           </main>
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav navItems={navItems} />
       </div>
     </TooltipProvider>
   )
