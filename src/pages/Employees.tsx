@@ -41,8 +41,10 @@ export default function Employees() {
   const [professionFilter, setProfessionFilter] = useState<string>('')
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [contractFilter, setContractFilter] = useState<string>('')
+  const [hiredWorkerContractFilter, setHiredWorkerContractFilter] = useState<string>('')
   const [residenceFilter, setResidenceFilter] = useState<string>('')
   const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('')  // تحديث: insuranceFilter → healthInsuranceFilter
+  const [showAlertsOnly, setShowAlertsOnly] = useState(false)
   
   const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string; unified_number?: number }>>([])
   const [companySearchQuery, setCompanySearchQuery] = useState('')
@@ -92,7 +94,7 @@ export default function Employees() {
   const hasViewPermission = canView('employees')
   
   // Sort states
-  const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+  const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'project' | 'contract_expiry' | 'hired_worker_contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: إضافة عقد أجير + المشروع + ending_subscription_insurance_date → health_insurance_expiry
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const loadEmployees = useCallback(async () => {
@@ -246,7 +248,7 @@ export default function Employees() {
   // Clear selection when filters change
   useEffect(() => {
     setSelectedEmployees(new Set())
-  }, [searchTerm, residenceNumberSearch, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, residenceFilter, healthInsuranceFilter])  // تحديث: insuranceFilter → healthInsuranceFilter
+  }, [searchTerm, residenceNumberSearch, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, hiredWorkerContractFilter, residenceFilter, healthInsuranceFilter, showAlertsOnly])  // تحديث: insuranceFilter → healthInsuranceFilter
 
   // إغلاق القائمة عند النقر خارجها
   useEffect(() => {
@@ -303,32 +305,33 @@ export default function Employees() {
       case 'alerts':
         // فلترة الموظفين الذين لديهم تنبيهات (عقود أو إقامات أو تأمين منتهية أو قريبة من الانتهاء)
         setContractFilter('لديه تنبيه')
+        setHiredWorkerContractFilter('لديه تنبيه')
         setResidenceFilter('لديه تنبيه')
         setHealthInsuranceFilter('لديه تنبيه')
         break
       case 'expired-contracts':
-        setContractFilter('منتهية')
+        setContractFilter('منتهي')
         break
       case 'expired-residences':
-        setResidenceFilter('منتهية')
+        setResidenceFilter('منتهي')
         break
       case 'expired-insurance':
         setHealthInsuranceFilter('منتهي')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'urgent-contracts':
-        setContractFilter('تنتهي خلال 30 يوم')
+        setContractFilter('طارئ')
         break
       case 'urgent-residences':
-        setResidenceFilter('تنتهي خلال 30 يوم')
+        setResidenceFilter('طارئ')
         break
       case 'expiring-insurance-30':
-        setHealthInsuranceFilter('ينتهي خلال 30 يوم')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('طارئ')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'expiring-insurance-60':
-        setHealthInsuranceFilter('ينتهي خلال 60 يوم')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('متوسط')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'expiring-insurance-90':
-        setHealthInsuranceFilter('ينتهي خلال 90 يوم')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('ساري')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'active-insurance':
         setHealthInsuranceFilter('ساري')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
@@ -347,58 +350,42 @@ export default function Employees() {
     }
   }
 
-  const getContractStatus = (contractExpiry: string | null) => {
-    if (!contractExpiry) return 'بدون عقد'
-    const days = getDaysRemaining(contractExpiry)
-    if (days < 0) return 'منتهية'
-    if (days <= 30) return 'تنتهي خلال 30 يوم'
-    if (days <= 90) return 'تنتهي خلال 90 يوم'
-    return 'ساري'
-  }
-
-  const getResidenceStatus = (residenceExpiry: string | null | undefined) => {
-    if (!residenceExpiry) return 'غير محدد'
-    const days = getDaysRemaining(residenceExpiry)
+  const getStatusForField = (
+    expiryDate: string | null | undefined,
+    fieldType: 'contract' | 'hired_worker_contract' | 'residence' | 'health_insurance'
+  ): 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري' => {
+    if (!expiryDate) return 'غير محدد'
+    const days = getDaysRemaining(expiryDate)
     if (days === null) return 'غير محدد'
-    if (days < 0) return 'منتهية'
-    if (days <= 7) return 'تنتهي خلال 7 أيام'
-    if (days <= 15) return 'تنتهي خلال 15 يوم'
-    if (days <= 30) return 'تنتهي خلال 30 يوم'
-    if (days <= 90) return 'تنتهي خلال 90 يوم'
-    return 'ساري'
-  }
 
-  const getHealthInsuranceStatus = (healthInsuranceExpiry: string | null | undefined) => {  // تحديث: getInsuranceStatus → getHealthInsuranceStatus
-    if (!healthInsuranceExpiry) return 'ساري'
-    const days = getDaysRemaining(healthInsuranceExpiry)
+    const thresholds = colorThresholds || COLOR_THRESHOLD_FALLBACK
+    const urgentDays = thresholds[`${fieldType}_urgent_days` as keyof EmployeeNotificationThresholds] as number
+    const highDays = thresholds[`${fieldType}_high_days` as keyof EmployeeNotificationThresholds] as number
+    const mediumDays = thresholds[`${fieldType}_medium_days` as keyof EmployeeNotificationThresholds] as number
+
     if (days < 0) return 'منتهي'
-    if (days <= 30) return 'ينتهي خلال 30 يوم'
-    if (days <= 60) return 'ينتهي خلال 60 يوم'
-    if (days <= 90) return 'ينتهي خلال 90 يوم'
+    if (days <= urgentDays) return 'طارئ'
+    if (days <= highDays) return 'عاجل'
+    if (days <= mediumDays) return 'متوسط'
     return 'ساري'
   }
 
   // دالة للتحقق من وجود تنبيه
-  const hasAlert = (contractExpiry: string | null, residenceExpiry: string | null | undefined, healthInsuranceExpiry: string | null | undefined): boolean => {
-    const contractStatus = getContractStatus(contractExpiry)
-    const residenceStatus = getResidenceStatus(residenceExpiry)
-    const insuranceStatus = getHealthInsuranceStatus(healthInsuranceExpiry)
-    
-    // يوجد تنبيه إذا كانت أي وثيقة منتهية أو تنتهي قريباً
-    return (
-      contractStatus === 'منتهية' || 
-      contractStatus === 'تنتهي خلال 30 يوم' || 
-      contractStatus === 'تنتهي خلال 90 يوم' ||
-      residenceStatus === 'منتهية' || 
-      residenceStatus === 'تنتهي خلال 7 أيام' ||
-      residenceStatus === 'تنتهي خلال 15 يوم' ||
-      residenceStatus === 'تنتهي خلال 30 يوم' ||
-      residenceStatus === 'تنتهي خلال 90 يوم' ||
-      insuranceStatus === 'منتهي' ||
-      insuranceStatus === 'ينتهي خلال 30 يوم' ||
-      insuranceStatus === 'ينتهي خلال 60 يوم' ||
-      insuranceStatus === 'ينتهي خلال 90 يوم'
-    )
+  const hasAlert = (
+    contractExpiry: string | null,
+    hiredWorkerContractExpiry: string | null | undefined,
+    residenceExpiry: string | null | undefined,
+    healthInsuranceExpiry: string | null | undefined
+  ): boolean => {
+    const statuses = [
+      getStatusForField(contractExpiry, 'contract'),
+      getStatusForField(hiredWorkerContractExpiry, 'hired_worker_contract'),
+      getStatusForField(residenceExpiry, 'residence'),
+      getStatusForField(healthInsuranceExpiry, 'health_insurance')
+    ]
+
+    // يعتبر تنبيه إذا كانت الحالة منتهية أو ضمن نطاق طارئ/عاجل/متوسط
+    return statuses.some(status => ['منتهي', 'طارئ', 'عاجل', 'متوسط'].includes(status))
   }
 
   const getStatusColor = (
@@ -478,8 +465,10 @@ export default function Employees() {
     setProfessionFilter('')
     setProjectFilter('')
     setContractFilter('')
+    setHiredWorkerContractFilter('')
     setResidenceFilter('')
     setHealthInsuranceFilter('')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+    setShowAlertsOnly(false)
     navigate('/employees')
   }
 
@@ -790,7 +779,16 @@ export default function Employees() {
     }
   }
 
+  const alertsCount = employees.reduce((count, emp) => {
+    return count + (hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry) ? 1 : 0)
+  }, 0)
+
   const filteredEmployees = employees.filter(emp => {
+    const contractStatus = getStatusForField(emp.contract_expiry, 'contract')
+    const hiredWorkerStatus = getStatusForField(emp.hired_worker_contract_expiry, 'hired_worker_contract')
+    const residenceStatus = getStatusForField(emp.residence_expiry, 'residence')
+    const insuranceStatus = getStatusForField(emp.health_insurance_expiry, 'health_insurance')
+
     // البحث الشامل في الاسم، رقم الإقامة، رقم الجواز، المهنة، والجنسية
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = !searchTerm || (
@@ -809,24 +807,31 @@ export default function Employees() {
     // فلترة خاصة لـ "لديه تنبيه"
     const matchesContract = !contractFilter || (
       contractFilter === 'لديه تنبيه' 
-        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : getContractStatus(emp.contract_expiry) === contractFilter
+        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : contractStatus === contractFilter
+    )
+    const matchesHiredWorkerContract = !hiredWorkerContractFilter || (
+      hiredWorkerContractFilter === 'لديه تنبيه'
+        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : hiredWorkerStatus === hiredWorkerContractFilter
     )
     const matchesResidence = !residenceFilter || (
       residenceFilter === 'لديه تنبيه'
-        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : getResidenceStatus(emp.residence_expiry) === residenceFilter
+        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : residenceStatus === residenceFilter
     )
     const matchesInsurance = !healthInsuranceFilter || (
       healthInsuranceFilter === 'لديه تنبيه'
-        ? hasAlert(emp.contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : getHealthInsuranceStatus(emp.health_insurance_expiry) === healthInsuranceFilter
+        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
+        : insuranceStatus === healthInsuranceFilter
     )
+
+    const matchesAlertsToggle = !showAlertsOnly || hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
     
-    return matchesSearch && matchesResidenceNumber && matchesCompany && matchesNationality && matchesProfession && matchesProject && matchesContract && matchesResidence && matchesInsurance
+    return matchesSearch && matchesResidenceNumber && matchesCompany && matchesNationality && matchesProfession && matchesProject && matchesContract && matchesHiredWorkerContract && matchesResidence && matchesInsurance && matchesAlertsToggle
   })
 
-  const hasActiveFilters = searchTerm || residenceNumberSearch || companyFilter || nationalityFilter || professionFilter || projectFilter || contractFilter || residenceFilter || healthInsuranceFilter  // تحديث: insuranceFilter → healthInsuranceFilter
+  const hasActiveFilters = searchTerm || residenceNumberSearch || companyFilter || nationalityFilter || professionFilter || projectFilter || contractFilter || hiredWorkerContractFilter || residenceFilter || healthInsuranceFilter || showAlertsOnly  // تحديث: insuranceFilter → healthInsuranceFilter
 
   // Calculate active filters count
   const activeFiltersCount = [
@@ -837,8 +842,10 @@ export default function Employees() {
     professionFilter !== '',
     projectFilter !== '',
     contractFilter !== '',
+    hiredWorkerContractFilter !== '',
     residenceFilter !== '',
-    healthInsuranceFilter !== ''  // تحديث: insuranceFilter → healthInsuranceFilter
+    healthInsuranceFilter !== '',  // تحديث: insuranceFilter → healthInsuranceFilter
+    showAlertsOnly
   ].filter(Boolean).length
 
   // Sort handling functions
@@ -878,9 +885,17 @@ export default function Employees() {
         aValue = (a.company?.name || '').toLowerCase()
         bValue = (b.company?.name || '').toLowerCase()
         break
+      case 'project':
+        aValue = (a.project?.name || a.project_name || '').toLowerCase()
+        bValue = (b.project?.name || b.project_name || '').toLowerCase()
+        break
       case 'contract_expiry':
         aValue = a.contract_expiry ? new Date(a.contract_expiry).getTime() : 0
         bValue = b.contract_expiry ? new Date(b.contract_expiry).getTime() : 0
+        break
+      case 'hired_worker_contract_expiry':
+        aValue = a.hired_worker_contract_expiry ? new Date(a.hired_worker_contract_expiry).getTime() : 0
+        bValue = b.hired_worker_contract_expiry ? new Date(b.hired_worker_contract_expiry).getTime() : 0
         break
       case 'residence_expiry':
         aValue = a.residence_expiry ? new Date(a.residence_expiry).getTime() : 0
@@ -1080,6 +1095,19 @@ export default function Employees() {
               )}
             </button>
 
+            {/* Alerts quick filter */}
+            <button
+              onClick={() => setShowAlertsOnly(prev => !prev)}
+              className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
+              title="عرض الموظفين ذوي التنبيهات فقط"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">تنبيهات</span>
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {alertsCount}
+              </span>
+            </button>
+
             {/* Sort Dropdown */}
             <div className="relative">
               <button
@@ -1107,7 +1135,9 @@ export default function Employees() {
                       { field: 'profession' as typeof sortField, label: 'المهنة' },
                       { field: 'nationality' as typeof sortField, label: 'الجنسية' },
                       { field: 'company' as typeof sortField, label: 'الشركة' },
+                      { field: 'project' as typeof sortField, label: 'المشروع' },
                       { field: 'contract_expiry' as typeof sortField, label: 'تاريخ انتهاء العقد' },
+                      { field: 'hired_worker_contract_expiry' as typeof sortField, label: 'تاريخ انتهاء عقد أجير' },
                       { field: 'residence_expiry' as typeof sortField, label: 'تاريخ انتهاء الإقامة' },
                       { field: 'health_insurance_expiry' as typeof sortField, label: 'تاريخ انتهاء التأمين الصحي' }
                     ].map(({ field, label }) => (
@@ -1305,9 +1335,28 @@ export default function Employees() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">جميع العقود</option>
-                        <option value="منتهية">عقود منتهية</option>
-                        <option value="تنتهي خلال 30 يوم">عقود خلال 30 يوم</option>
+                        <option value="منتهي">عقود منتهية</option>
+                        <option value="طارئ">عقود طارئة</option>
+                        <option value="عاجل">عقود عاجلة</option>
+                        <option value="متوسط">عقود متوسطة</option>
                         <option value="ساري">عقود سارية</option>
+                      </select>
+                    </div>
+
+                    {/* فلتر عقد أجير */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة عقد أجير</label>
+                      <select
+                        value={hiredWorkerContractFilter}
+                        onChange={(e) => setHiredWorkerContractFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">جميع الحالات</option>
+                        <option value="منتهي">منتهي</option>
+                        <option value="طارئ">طارئ</option>
+                        <option value="عاجل">عاجل</option>
+                        <option value="متوسط">متوسط</option>
+                        <option value="ساري">ساري</option>
                       </select>
                     </div>
 
@@ -1320,10 +1369,10 @@ export default function Employees() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">جميع الإقامات</option>
-                        <option value="منتهية">إقامات منتهية</option>
-                        <option value="تنتهي خلال 7 أيام">إقامات خلال 7 أيام</option>
-                        <option value="تنتهي خلال 15 يوم">إقامات خلال 15 يوم</option>
-                        <option value="تنتهي خلال 30 يوم">إقامات خلال 30 يوم</option>
+                        <option value="منتهي">إقامات منتهية</option>
+                        <option value="طارئ">إقامات طارئة</option>
+                        <option value="عاجل">إقامات عاجلة</option>
+                        <option value="متوسط">إقامات متوسطة</option>
                         <option value="ساري">إقامات سارية</option>
                       </select>
                     </div>
@@ -1339,9 +1388,9 @@ export default function Employees() {
                         <option value="">جميع الموظفين</option>
                         <option value="ساري">التأمين ساري</option>
                         <option value="منتهي">التأمين منتهي</option>
-                        <option value="ينتهي خلال 30 يوم">ينتهي خلال 30 يوم</option>
-                        <option value="ينتهي خلال 60 يوم">ينتهي خلال 60 يوم</option>
-                        <option value="ينتهي خلال 90 يوم">ينتهي خلال 90 يوم</option>
+                        <option value="طارئ">التأمين طارئ</option>
+                        <option value="عاجل">التأمين عاجل</option>
+                        <option value="متوسط">التأمين متوسط</option>
                       </select>
                     </div>
                   </div>
@@ -1428,6 +1477,17 @@ export default function Employees() {
                             </button>
                           </span>
                         )}
+                        {hiredWorkerContractFilter && (
+                          <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm rounded-full flex items-center gap-2">
+                            عقد أجير: {hiredWorkerContractFilter}
+                            <button
+                              onClick={() => setHiredWorkerContractFilter('')}
+                              className="hover:bg-indigo-100 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
                         {residenceFilter && (
                           <span className="px-3 py-1.5 bg-rose-50 text-rose-700 text-sm rounded-full flex items-center gap-2">
                             الإقامة: {residenceFilter}
@@ -1445,6 +1505,17 @@ export default function Employees() {
                             <button
                                 onClick={() => setHealthInsuranceFilter('')}
                               className="hover:bg-emerald-100 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {showAlertsOnly && (
+                          <span className="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-full flex items-center gap-2">
+                            تنبيهات فقط
+                            <button
+                              onClick={() => setShowAlertsOnly(false)}
+                              className="hover:bg-red-100 rounded-full p-0.5"
                             >
                               <X className="w-3 h-3" />
                             </button>

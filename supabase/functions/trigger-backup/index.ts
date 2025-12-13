@@ -1,8 +1,7 @@
 // Edge Function: trigger-backup
-// Purpose: استدعاء النسخ الاحتياطي اليدوي من الواجهة الأمامية
+// Purpose: استدعاء النسخس الاحتياطي اليدوي من الواجهة الأمامية
 // Usage: يُستدعى من صفحة الإعدادات -> تبويب النسخ الاحتياطية
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 interface TriggerBackupRequest {
