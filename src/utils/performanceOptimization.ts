@@ -131,11 +131,13 @@ export function withCodeSplitting<P extends object>(
 ) {
   const LazyComponent = createLazyComponent(importFunc, componentName)
 
-  return (props: P) => React.createElement(
-    Suspense,
-    { fallback: fallback || React.createElement(DefaultLoadingFallback, { name: componentName }) },
-    React.createElement(LazyComponent, props as any)
-  )
+  return (props: P) => {
+    return React.createElement(
+      Suspense,
+      { fallback: fallback || React.createElement(DefaultLoadingFallback, { name: componentName }) },
+      React.createElement(LazyComponent as unknown as React.ComponentType<P>, props)
+    )
+  }
 }
 
 /**
@@ -178,7 +180,7 @@ export function useRenderCount(componentName: string): number {
  * Usage:
  * const duration = usePerformanceMonitor('MyComponent')
  */
-export function usePerformanceMonitor(componentName: string): number {
+export function usePerformanceMonitor(): number {
   const startTime = performance.now()
 
   return performance.now() - startTime
@@ -226,18 +228,18 @@ export const BundleOptimizationGuide = {
  * Prevents duplicate module imports and improves performance
  */
 class ImportCache {
-  private static cache: Map<string, Promise<any>> = new Map()
+  private static cache: Map<string, Promise<unknown>> = new Map()
 
   static async load<T>(
     importFunc: () => Promise<T>,
     cacheKey: string
   ): Promise<T> {
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!
+      return this.cache.get(cacheKey)! as Promise<T>
     }
 
     const promise = importFunc()
-    this.cache.set(cacheKey, promise)
+    this.cache.set(cacheKey, promise as Promise<unknown>)
     return promise
   }
 
@@ -256,7 +258,7 @@ export { ImportCache }
 export class ChunkPreloader {
   private static preloadQueue: Set<string> = new Set()
 
-  static preload(importFunc: () => Promise<any>, chunkName: string): void {
+  static preload(importFunc: () => Promise<unknown>, chunkName: string): void {
     if (typeof window === 'undefined') return
 
     if (this.preloadQueue.has(chunkName)) return
@@ -279,7 +281,7 @@ export class ChunkPreloader {
     }
   }
 
-  static preloadMultiple(chunks: Array<{ import: () => Promise<any>; name: string }>): void {
+  static preloadMultiple(chunks: Array<{ import: () => Promise<unknown>; name: string }>): void {
     chunks.forEach(({ import: importFunc, name }) => {
       this.preload(importFunc, name)
     })

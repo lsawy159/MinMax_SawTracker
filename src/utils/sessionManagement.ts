@@ -44,6 +44,22 @@ interface SessionState {
 }
 
 /**
+ * Session Data for Event Listeners
+ */
+export interface SessionData {
+  userId?: string
+  email?: string
+  sessionStartTime?: number
+  lastActivityTime?: number
+  isActive?: boolean
+  tokenExpiryTime?: number
+  event?: string
+  timestamp?: number
+  message?: string
+  [key: string]: string | number | boolean | undefined
+}
+
+/**
  * Session Manager Class
  */
 export class SessionManager {
@@ -212,7 +228,7 @@ export class SessionManager {
   /**
    * Track user action (for audit logging)
    */
-  static async trackAction(actionType: string, details: any = {}): Promise<void> {
+  static async trackAction(actionType: string, details: Record<string, unknown> = {}): Promise<void> {
     if (!SessionConfig.TRACK_ACTIVITY || !this.sessionState) return
 
     try {
@@ -388,12 +404,12 @@ export class SessionManager {
   /**
    * Emit event
    */
-  private static emit(event: string, data?: any): void {
+  private static emit(event: string, data?: SessionData): void {
     const callbacks = this.listeners.get(event)
     if (callbacks) {
       callbacks.forEach(callback => {
         try {
-          callback(data)
+          callback(data || {})
         } catch (error) {
           logger.error(`[SessionManager] Error in event listener for ${event}:`, error)
         }
