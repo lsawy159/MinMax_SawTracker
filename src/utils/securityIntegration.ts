@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import { logger, AuditActionType } from './securityLogger'
+import { logger } from './securityLogger'
 import AuditService from './auditService'
 
 /**
@@ -98,10 +98,7 @@ export interface SecurityContext {
 /**
  * Check if user has permission for an action
  */
-export async function checkPermission(
-  actionType: AuditActionType | string,
-  resourceType: string
-): Promise<boolean> {
+export async function checkPermission(): Promise<boolean> {
   try {
     // This would typically check the user_permissions table
     // For now, we'll return true and let RLS handle the actual access control

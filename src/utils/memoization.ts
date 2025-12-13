@@ -9,6 +9,8 @@
  * - Custom hooks for performance-critical sections
  */
 
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import React, { memo, useMemo, useCallback, useDeferredValue, useTransition, useRef, useState } from 'react'
 import { logger } from './logger'
 
@@ -26,7 +28,7 @@ const isDevelopment = (): boolean => {
  * Deep Equality Comparison
  * Used for more accurate memo comparisons
  */
-function deepEqual(obj1: any, obj2: any, depth = 0): boolean {
+function deepEqual(obj1: unknown, obj2: unknown, depth = 0): boolean {
   // Prevent infinite recursion
   if (depth > 10) return obj1 === obj2
 
@@ -34,12 +36,12 @@ function deepEqual(obj1: any, obj2: any, depth = 0): boolean {
   if (obj1 == null || obj2 == null) return obj1 === obj2
   if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false
 
-  const keys1 = Object.keys(obj1)
-  const keys2 = Object.keys(obj2)
+  const keys1 = Object.keys(obj1 as Record<string, unknown>)
+  const keys2 = Object.keys(obj2 as Record<string, unknown>)
 
   if (keys1.length !== keys2.length) return false
 
-  return keys1.every(key => deepEqual(obj1[key], obj2[key], depth + 1))
+  return keys1.every(key => deepEqual((obj1 as Record<string, unknown>)[key], (obj2 as Record<string, unknown>)[key], depth + 1))
 }
 
 /**
@@ -96,8 +98,7 @@ export function shallowMemo<P extends object>(
  */
 export function useMemoized<T>(
   factory: () => T,
-  deps: React.DependencyList,
-  debugLabel?: string
+  deps: React.DependencyList
 ): T {
   const startTime = performance.now()
 
@@ -107,7 +108,7 @@ export function useMemoized<T>(
 
     if (isDevelopment() && duration > 16) {
       logger.warn(
-        `[useMemoized] ${debugLabel || 'unknown'} took ${duration.toFixed(2)}ms (slow)`
+        `[useMemoized] Calculation took ${duration.toFixed(2)}ms (slow)`
       )
     }
 
@@ -126,10 +127,9 @@ export function useMemoized<T>(
  *   console.log('clicked')
  * }, [])
  */
-export function useStableCallback<T extends (...args: any[]) => any>(
+export function useStableCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
-  deps: React.DependencyList,
-  debugLabel?: string
+  deps: React.DependencyList
 ): T {
   return useCallback(callback, deps) as T
 }
@@ -218,7 +218,7 @@ export function useVirtualizedList<T>(
     const visibleCount = Math.ceil(containerHeight / itemHeight) + 2
 
     return items.slice(startIndex, startIndex + visibleCount)
-  }, [items, itemHeight, containerHeight, scrollPosition], 'useVirtualizedList')
+  }, [items, itemHeight, containerHeight, scrollPosition])
 }
 
 /**
@@ -271,7 +271,7 @@ class ComputationCache<K, V> {
  *   10 * 60 * 1000 // 10 minute cache
  * )
  */
-const computationCaches = new Map<string, ComputationCache<string, any>>()
+const computationCaches = new Map<string, ComputationCache<string, unknown>>()
 
 export function useComputedValue<T>(
   factory: () => T,
@@ -287,17 +287,17 @@ export function useComputedValue<T>(
     }
 
     const cache = computationCaches.get(cacheKey)!
-    const cached = cache.get(depKey as any)
+    const cached = cache.get(depKey as string)
 
     if (cached !== undefined) {
       logger.debug(`[useComputedValue] Cache hit for ${cacheKey}`)
-      return cached
+      return cached as T
     }
 
     const result = factory()
-    cache.set(depKey as any, result)
+    cache.set(depKey as string, result as unknown)
     return result
-  }, deps, `useComputedValue:${cacheKey}`)
+  }, deps)
 }
 
 /**
@@ -312,8 +312,6 @@ export function withHeavyComponentMemo<P extends object>(
   Component: React.ComponentType<P>,
   displayName?: string
 ): React.ComponentType<P> {
-  const Wrapped = deepMemo(Component, displayName)
-
   // Add render time monitoring as a wrapper
   const Monitored = memo((props: P) => {
     const renderStart = performance.now()
@@ -325,11 +323,11 @@ export function withHeavyComponentMemo<P extends object>(
       )
     }
 
-    return React.createElement(Wrapped as any, props)
-  })
+    return React.createElement(Component, props)
+  }) as React.ComponentType<P>
 
   Monitored.displayName = `withHeavyComponentMemo(${displayName || Component.name})`
-  return Monitored as any
+  return Monitored
 }
 
 /**

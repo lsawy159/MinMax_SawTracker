@@ -425,11 +425,11 @@ export class AccessibilityAudit {
       failed: number
       score: string
     }
-    contrast: any
-    keyboard: any
-    aria: any
-    landmarks: any
-    images: any
+    contrast: Array<{ name: string; text: string; bg: string; ratio: string; isAACompliant: boolean; isAAACompliant: boolean; status: string }>
+    keyboard: { issues: string[]; recommendations: string[] }
+    aria: { hasBanner: boolean; hasNavigation: boolean; hasMain: boolean; hasContentinfo: boolean; issues: string[] }
+    landmarks: { hasBanner: boolean; hasNavigation: boolean; hasMain: boolean; hasContentinfo: boolean; issues: string[] }
+    images: { valid: boolean; issues: Array<{ src: string; message: string }> }
   } {
     logger.info('[AccessibilityAudit] Running comprehensive accessibility audit...')
 
@@ -474,43 +474,42 @@ export class AccessibilityAudit {
    */
   static logResults(results: {
     summary: { passed: number; failed: number; score: string }
-    contrast: any
-    keyboard: any
-    aria: any
-    landmarks: any
-    images: any
+    contrast: unknown
+    keyboard: unknown
+    aria: unknown
+    landmarks: unknown
+    images: unknown
   }): void {
-    console.group('♿ Accessibility Audit Results')
+    logger.info('♿ Accessibility Audit Results')
 
-    console.log('📊 Summary:', results.summary)
+    logger.warn('📊 Summary:', results.summary)
 
-    console.group('🎨 Color Contrast')
-    results.contrast.forEach((result: any) => {
-      console.log(`${result.status} ${result.name}: ${result.ratio}:1`)
+    logger.info('🎨 Color Contrast')
+    const contrastArray = results.contrast as Array<{ status: string; name: string; ratio: string }>
+    contrastArray.forEach((result) => {
+      logger.warn(`${result.status} ${result.name}: ${result.ratio}:1`)
     })
-    console.groupEnd()
 
-    console.group('⌨️ Keyboard Navigation')
-    if (results.keyboard.issues.length === 0) {
-      console.log('✅ All checks passed')
+    logger.info('⌨️ Keyboard Navigation')
+    const keyboardData = results.keyboard as { issues: string[] }
+    if (keyboardData.issues.length === 0) {
+      logger.warn('✅ All checks passed')
     } else {
-      results.keyboard.issues.forEach((issue: string) => console.warn(issue))
+      keyboardData.issues.forEach((issue) => logger.warn(issue))
     }
-    console.groupEnd()
 
-    console.group('🏗️ Landmarks')
-    console.log(results.aria)
-    console.groupEnd()
+    logger.info('🏗️ Landmarks')
+    logger.warn(results.aria)
 
-    console.group('🖼️ Images')
-    if (results.images.issues.length === 0) {
-      console.log('✅ All images have proper alt text')
+    logger.info('🖼️ Images')
+    const imagesData = results.images as { issues: Array<{ src: string; message: string }> }
+    if (imagesData.issues.length === 0) {
+      logger.warn('✅ All images have proper alt text')
     } else {
-      results.images.issues.forEach((issue: any) => console.warn(`${issue.src}: ${issue.message}`))
+      imagesData.issues.forEach((issue) => logger.warn(`${issue.src}: ${issue.message}`))
     }
-    console.groupEnd()
 
-    console.groupEnd()
+    logger.info('Audit results complete')
   }
 }
 
