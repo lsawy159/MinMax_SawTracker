@@ -770,34 +770,37 @@ export default function ActivityLogs() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Activity className="w-6 h-6 text-purple-600" />
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
+              <Activity className="w-5 sm:w-6 h-5 sm:h-6 text-purple-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">سجل النشاطات</h1>
-              <p className="text-gray-600 mt-1">تتبع جميع الإجراءات في النظام</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">سجل النشاطات</h1>
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">تتبع جميع الإجراءات</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3 text-xs sm:text-sm">
             {isAdmin && selectedLogIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap"
               >
-                <Trash2 className="w-5 h-5" />
-                حذف المحدد ({selectedLogIds.size})
+                <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
+                <span className="hidden sm:inline">حذف المحدد ({selectedLogIds.size})</span>
+                <span className="sm:hidden">حذف ({selectedLogIds.size})</span>
               </button>
             )}
             {isAdmin && (
               <button
                 onClick={handleDeleteAll}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
+                <span className="hidden sm:inline">حذف الكل</span>
+                <span className="sm:hidden">حذف</span>
                 حذف الكل
               </button>
             )}
@@ -1031,100 +1034,100 @@ export default function ActivityLogs() {
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Desktop View - Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
+            <div className="hidden md:block w-full overflow-x-auto">
+              <table className="w-full min-w-max">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {isAdmin && (
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase w-12">
+                      <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase w-10 sm:w-12">
                         <button
                           onClick={handleSelectAll}
-                          className="flex items-center justify-center w-5 h-5"
+                          className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5"
                         >
                           {allSelected ? (
-                            <CheckSquare className="w-5 h-5 text-purple-600" />
+                            <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
                           ) : someSelected ? (
-                            <div className="w-5 h-5 border-2 border-purple-600 rounded bg-purple-100" />
+                            <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-purple-600 rounded bg-purple-100" />
                           ) : (
-                            <Square className="w-5 h-5 text-gray-400" />
+                            <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
                           )}
                         </button>
                       </th>
                     )}
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">العملية</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">نوع الكيان</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">المستخدم</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">عنوان IP</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التاريخ والوقت</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التفاصيل</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">العملية</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">نوع الكيان</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">المستخدم</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">عنوان IP</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التاريخ والوقت</th>
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التفاصيل</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 transition">
                       {isAdmin && (
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <button
                             onClick={() => handleSelectLog(log.id)}
-                            className="flex items-center justify-center w-5 h-5"
+                            className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5"
                           >
                             {selectedLogIds.has(log.id) ? (
-                              <CheckSquare className="w-5 h-5 text-purple-600" />
+                              <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
                             ) : (
-                              <Square className="w-5 h-5 text-gray-400" />
+                              <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
                             )}
                           </button>
                         </td>
                       )}
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getActionColor(log.action)}`}>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
+                        <div className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border whitespace-nowrap ${getActionColor(log.action)}`}>
                           {getActionIcon(log.action)}
                           {getActionLabel(log.action)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
                         {log.entity_type ? getEntityLabel(log.entity_type) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
                         {log.user_id ? (
                           (() => {
                             const user = usersMap.get(log.user_id)
                             return user ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <UserIcon className="w-4 h-4 text-gray-400" />
-                                  <span className="font-medium text-gray-900">{user.full_name}</span>
+                              <div className="flex flex-col gap-0.5 sm:gap-1">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
+                                  <span className="font-medium text-gray-900 truncate">{user.full_name}</span>
                                 </div>
-                                <span className="text-xs text-gray-500 mr-6">{user.email}</span>
+                                <span className="text-xs text-gray-500 truncate">{user.email}</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <UserIcon className="w-4 h-4 text-gray-400" />
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                                 <span className="font-mono text-xs">{String(log.user_id).slice(0, 8)}...</span>
                               </div>
                             )
                           })()
                         ) : (
-                          <span className="text-gray-400">النظام</span>
+                          <span className="text-gray-400 text-xs">النظام</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 font-mono">
                         {log.ip_address || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Calendar className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
                           <HijriDateDisplay date={log.created_at}>
-                            {formatDateTimeWithHijri(log.created_at)}
+                            <span className="truncate">{formatDateTimeWithHijri(log.created_at)}</span>
                           </HijriDateDisplay>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                          className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-lg hover:bg-purple-50 transition"
                         >
-                          عرض التفاصيل
+                          التفاصيل
                         </button>
                       </td>
                     </tr>
@@ -1146,12 +1149,12 @@ export default function ActivityLogs() {
                     {isAdmin && (
                       <button
                         onClick={() => handleSelectLog(log.id)}
-                        className="flex items-center justify-center w-5 h-5 flex-shrink-0"
+                        className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5 flex-shrink-0"
                       >
                         {selectedLogIds.has(log.id) ? (
-                          <CheckSquare className="w-5 h-5 text-purple-600" />
+                          <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
                         ) : (
-                          <Square className="w-5 h-5 text-gray-400" />
+                          <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
                         )}
                       </button>
                     )}
@@ -1172,10 +1175,10 @@ export default function ActivityLogs() {
                         return user ? (
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1 text-xs">
-                              <UserIcon className="w-3 h-3 text-gray-400" />
-                              <span className="font-medium text-gray-900">{user.full_name}</span>
+                              <UserIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="font-medium text-gray-900 truncate">{user.full_name}</span>
                             </div>
-                            <span className="text-xs text-gray-500">{user.email}</span>
+                            <span className="text-xs text-gray-500 truncate">{user.email}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-500">{String(log.user_id).slice(0, 8)}...</span>
@@ -1190,17 +1193,17 @@ export default function ActivityLogs() {
                   {log.ip_address && (
                     <div className="py-1 px-2 bg-gray-50 rounded text-xs">
                       <span className="font-medium text-gray-600">IP: </span>
-                      <span className="text-gray-600 font-mono text-xs">{log.ip_address}</span>
+                      <span className="text-gray-600 font-mono text-xs truncate">{log.ip_address}</span>
                     </div>
                   )}
 
                   {/* Footer: Date + Button */}
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
-                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                      <Calendar className="w-3 h-3" />
-                      <span>
+                    <div className="flex items-center gap-1 text-xs text-gray-600 flex-wrap">
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">
                         <HijriDateDisplay date={log.created_at}>
-                          {formatDateTimeWithHijri(log.created_at)}
+                          <span>{formatDateTimeWithHijri(log.created_at)}</span>
                         </HijriDateDisplay>
                       </span>
                     </div>

@@ -526,17 +526,17 @@ export default function ExportTab() {
         </div>
 
         {/* Main Content with Sidebar */}
-        <div className="relative flex gap-4">
+        <div className="relative flex flex-col lg:flex-row gap-3 lg:gap-4">
           {/* Filters Sidebar */}
-          <div className={`transition-all duration-300 ease-in-out ${
-            showFiltersSidebar ? 'w-96 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          <div className={`transition-all duration-300 ease-in-out w-full lg:w-96 ${
+            showFiltersSidebar ? 'block opacity-100' : 'hidden lg:opacity-100'
           }`}>
-            <div className={`bg-white border border-gray-200 rounded-xl shadow-xl p-6 h-[calc(100vh-300px)] overflow-y-auto sticky top-4 ${showFiltersSidebar ? 'block' : 'hidden'}`}>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 md:p-6 max-h-96 md:max-h-[calc(100vh-300px)] overflow-y-auto lg:sticky lg:top-4">
               {/* Sidebar Header */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-blue-600" />
-                  <h4 className="text-lg font-bold text-gray-900">خيارات التصفية</h4>
+              <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 md:w-5 h-4 md:h-5 text-blue-600 flex-shrink-0" />
+                  <h4 className="text-base md:text-lg font-bold text-gray-900">خيارات التصفية</h4>
                   {getActiveEmployeeFiltersCount > 0 && (
                     <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-full">
                       {getActiveEmployeeFiltersCount} نشط
@@ -545,9 +545,9 @@ export default function ExportTab() {
                 </div>
                 <button
                   onClick={() => setShowFiltersSidebar(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition"
+                  className="p-1 hover:bg-gray-100 rounded-lg transition lg:hidden flex-shrink-0"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-4 md:w-5 h-4 md:h-5 text-gray-500" />
                 </button>
               </div>
 
@@ -719,20 +719,20 @@ export default function ExportTab() {
         </div>
 
         {/* Employees List */}
-          <div className="flex-1 border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-3">
+          <div className="flex-1 min-w-0 border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-3 md:px-4 py-2 md:py-3 border-b border-gray-200 flex items-center gap-2 md:gap-3 text-xs md:text-sm overflow-x-auto">
             <button
               onClick={toggleAllEmployees}
-              className="text-blue-600 hover:text-blue-700"
+              className="text-blue-600 hover:text-blue-700 flex-shrink-0"
             >
               {selectedEmployees.size === filteredEmployees.length ? (
-                <CheckSquare className="w-5 h-5" />
+                <CheckSquare className="w-4 md:w-5 h-4 md:h-5" />
               ) : (
-                <Square className="w-5 h-5" />
+                <Square className="w-4 md:w-5 h-4 md:h-5" />
               )}
             </button>
-            <span className="font-medium text-gray-700">
-              تحديد الكل ({filteredEmployees.length} موظف)
+            <span className="font-medium text-gray-700 whitespace-nowrap">
+              تحديد الكل ({filteredEmployees.length})
             </span>
           </div>
           <div className="max-h-96 overflow-y-auto">
@@ -793,17 +793,17 @@ export default function ExportTab() {
         </div>
 
         {/* Main Content with Sidebar */}
-        <div className="relative flex gap-4">
+        <div className="relative flex flex-col lg:flex-row gap-3 lg:gap-4">
           {/* Filters Sidebar */}
-          <div className={`transition-all duration-300 ease-in-out ${
-            showFiltersSidebar ? 'w-96 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          <div className={`transition-all duration-300 ease-in-out w-full lg:w-96 ${
+            showFiltersSidebar ? 'block opacity-100' : 'hidden lg:opacity-100'
           }`}>
-            <div className={`bg-white border border-gray-200 rounded-xl shadow-xl p-6 h-[calc(100vh-300px)] overflow-y-auto sticky top-4 ${showFiltersSidebar ? 'block' : 'hidden'}`}>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 md:p-6 max-h-96 md:max-h-[calc(100vh-300px)] overflow-y-auto lg:sticky lg:top-4">
               {/* Sidebar Header */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-green-600" />
-                  <h4 className="text-lg font-bold text-gray-900">خيارات التصفية</h4>
+              <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 md:w-5 h-4 md:h-5 text-green-600 flex-shrink-0" />
+                  <h4 className="text-base md:text-lg font-bold text-gray-900">خيارات التصفية</h4>
                   {getActiveCompanyFiltersCount > 0 && (
                     <span className="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded-full">
                       {getActiveCompanyFiltersCount} نشط
@@ -812,9 +812,9 @@ export default function ExportTab() {
                 </div>
                 <button
                   onClick={() => setShowFiltersSidebar(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition"
+                  className="p-1 hover:bg-gray-100 rounded-lg transition lg:hidden flex-shrink-0"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-4 md:w-5 h-4 md:h-5 text-gray-500" />
                 </button>
               </div>
 
@@ -1003,31 +1003,31 @@ export default function ExportTab() {
         </div>
 
         {/* Companies List */}
-          <div className="flex-1 border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-3">
+          <div className="flex-1 min-w-0 border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-3 md:px-4 py-2 md:py-3 border-b border-gray-200 flex items-center gap-2 md:gap-3 text-xs md:text-sm overflow-x-auto">
             <button
               onClick={toggleAllCompanies}
-              className="text-green-600 hover:text-green-700"
+              className="text-green-600 hover:text-green-700 flex-shrink-0"
             >
               {selectedCompanies.size === filteredCompanies.length ? (
-                <CheckSquare className="w-5 h-5" />
+                <CheckSquare className="w-4 md:w-5 h-4 md:h-5" />
               ) : (
-                <Square className="w-5 h-5" />
+                <Square className="w-4 md:w-5 h-4 md:h-5" />
               )}
             </button>
-            <span className="font-medium text-gray-700">
-              تحديد الكل ({filteredCompanies.length} مؤسسة)
+            <span className="font-medium text-gray-700 whitespace-nowrap">
+              تحديد الكل ({filteredCompanies.length})
             </span>
             </div>
             <div className="max-h-96 overflow-y-auto">
             {filteredCompanies.map(company => (
               <div
                 key={company.id}
-                className="px-4 py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
+                className="px-3 md:px-4 py-2 md:py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-2 md:gap-3 cursor-pointer text-xs md:text-sm"
                 onClick={() => toggleCompanySelection(company.id)}
               >
                 {selectedCompanies.has(company.id) ? (
-                  <CheckSquare className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <CheckSquare className="w-4 md:w-5 h-4 md:h-5 text-green-600 flex-shrink-0" />
                 ) : (
                   <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 )}
