@@ -4,7 +4,6 @@ import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, 
 import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import { AlertCard, Alert } from '@/components/alerts/AlertCard'
 import { 
   generateCompanyAlertsSync,
   getAlertsStats,
@@ -21,6 +20,7 @@ import {
   DEFAULT_EMPLOYEE_THRESHOLDS,
   type EmployeeAlert
 } from '@/utils/employeeAlerts'
+import type { Alert } from '@/components/alerts/AlertCard'
 import { getStatusThresholds, DEFAULT_STATUS_THRESHOLDS } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
 
@@ -93,7 +93,6 @@ export default function Dashboard() {
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
-  const [showAlerts, setShowAlerts] = useState(false)
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
   const navigate = useNavigate()
   const [stats, setStats] = useState<Stats>({
@@ -534,11 +533,13 @@ export default function Dashboard() {
     }
   }
 
-  // دوال التنبيهات
+  // دوال التنبيهات - محفوظة للاستخدام المستقبلي
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleViewCompany = (companyId: string) => {
     navigate(`/companies?id=${companyId}`)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleMarkAsRead = async (alertId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -583,6 +584,7 @@ export default function Dashboard() {
 
   // Memoize alert statistics to avoid recalculation
   const companyAlertsStats = useMemo(() => getAlertsStats(unreadCompanyAlerts), [unreadCompanyAlerts])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const companyUrgentAlerts = useMemo(() => getUrgentAlerts(unreadCompanyAlerts), [unreadCompanyAlerts])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const commercialRegAlerts = useMemo(() => 
@@ -600,6 +602,7 @@ export default function Dashboard() {
     getEmployeeAlertsStats(unreadEmployeeAlerts),
     [unreadEmployeeAlerts]
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const employeeUrgentAlerts = useMemo(() => 
     getUrgentEmployeeAlerts(unreadEmployeeAlerts),
     [unreadEmployeeAlerts]
@@ -614,10 +617,12 @@ export default function Dashboard() {
     filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry'),
     [unreadEmployeeAlerts]
   )  // Memoize total alerts
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const totalAlerts = useMemo(() => 
     companyAlertsStats.total + employeeAlertsStats.total,
     [companyAlertsStats.total, employeeAlertsStats.total]
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const totalUrgentAlerts = useMemo(() => 
     companyAlertsStats.urgent + employeeAlertsStats.urgent,
     [companyAlertsStats.urgent, employeeAlertsStats.urgent]
@@ -1301,143 +1306,7 @@ export default function Dashboard() {
             </div>
 
 
-            {/* قسم التنبيهات */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 bg-red-100 rounded-lg">
-                    <Bell className="w-3.5 h-3.5 text-red-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-gray-900">تنبيهات النظام</h2>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {totalAlerts > 0 ? `${totalAlerts} تنبيه - ${totalUrgentAlerts} عاجل` : 'لا توجد تنبيهات حالياً'}
-                    </p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => setShowAlerts(!showAlerts)}
-                  className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {showAlerts ? 'إخفاء التنبيهات' : 'عرض التنبيهات'}
-                </button>
-              </div>
 
-              {/* إحصائيات التنبيهات */}
-              {totalAlerts > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                    <div className="text-base font-bold text-gray-900">{totalAlerts}</div>
-                    <div className="text-xs text-gray-600">إجمالي التنبيهات</div>
-                  </div>
-                  <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-3">
-                    <div className="text-base font-bold text-red-600">{totalUrgentAlerts}</div>
-                    <div className="text-xs text-red-700">عاجل</div>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-3">
-                    <div className="text-base font-bold text-blue-600">{companyAlertsStats.total}</div>
-                    <div className="text-xs text-blue-700">مؤسسات متأثرة</div>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-3">
-                    <div className="text-base font-bold text-purple-600">{employeeAlertsStats.total}</div>
-                    <div className="text-xs text-purple-700">موظفين متأثرين</div>
-                  </div>
-                </div>
-              )}
-
-              {/* عرض التنبيهات */}
-              {showAlerts && (
-                <div className="space-y-3">
-                  {totalAlerts === 0 ? (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 text-center">
-                      <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <h3 className="text-xs font-medium text-gray-900 mb-1">لا توجد تنبيهات</h3>
-                      <p className="text-xs text-gray-600">
-                        جميع مؤسساتك وموظفيك محدثون ولا يحتاجون إلى إجراءات فورية
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* التنبيهات العاجلة للمؤسسات */}
-                      {companyUrgentAlerts.length > 0 && (
-                        <div>
-                          <h3 className="text-xs font-bold text-red-900 mb-1.5 flex items-center gap-2">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            تنبيهات عاجلة للمؤسسات ({companyUrgentAlerts.length})
-                          </h3>
-                          <div className="space-y-1.5">
-                            {companyUrgentAlerts.slice(0, 2).map((alert) => (
-                              <AlertCard
-                                key={alert.id}
-                                alert={alert}
-                                onShowCompanyCard={handleViewCompany}
-                                onMarkAsRead={handleMarkAsRead}
-                                isRead={readAlerts.has(alert.id)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* التنبيهات العاجلة للموظفين */}
-                      {employeeUrgentAlerts.length > 0 && (
-                        <div>
-                          <h3 className="text-xs font-bold text-orange-900 mb-1.5 flex items-center gap-2">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            تنبيهات عاجلة للموظفين ({employeeUrgentAlerts.length})
-                          </h3>
-                          <div className="space-y-1.5">
-                            {employeeUrgentAlerts.slice(0, 2).map((alert) => (
-                              <div key={alert.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                                {/* سيتم استبدال هذا بـ EmployeeAlertCard لاحقاً */}
-                                <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded-lg bg-orange-100 text-orange-600">
-                                    <AlertTriangle className="h-3.5 w-3.5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-xs text-orange-900">{alert.title}</h4>
-                                    <p className="text-xs text-gray-600">{alert.employee.name} - {alert.employee.profession}</p>
-                                    <p className="text-xs text-gray-500">{alert.company.name}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-
-
-                      {/* أزرار عرض المزيد */}
-                      {(companyAlerts.length > companyUrgentAlerts.length || employeeAlerts.length > employeeUrgentAlerts.length) && (
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {companyAlerts.length > companyUrgentAlerts.length && (
-                            <button
-                              onClick={() => navigate('/companies?filter=alerts')}
-                              className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center gap-1 p-2 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
-                            >
-                              عرض جميع تنبيهات المؤسسات ({companyAlertsStats.total})
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          )}
-
-                          {employeeAlerts.length > employeeUrgentAlerts.length && (
-                            <button
-                              onClick={() => navigate('/employees?filter=alerts')}
-                              className="text-purple-600 hover:text-purple-800 text-xs font-medium flex items-center justify-center gap-1 p-2 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
-                            >
-                              عرض جميع تنبيهات الموظفين ({employeeAlertsStats.total})
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
 
           </>
         )}
