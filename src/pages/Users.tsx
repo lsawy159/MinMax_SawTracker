@@ -357,69 +357,114 @@ export default function Users() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الاسم الكامل</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">البريد الإلكتروني</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الدور</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الحالة</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">آخر تسجيل دخول</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.full_name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          <Shield className="w-3 h-3" />
-                          {user.role === 'admin' ? 'مدير' : 'مستخدم'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          user.is_active
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {user.is_active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
-                          {user.is_active ? 'نشط' : 'غير نشط'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {user.last_login ? (
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            <HijriDateDisplay date={user.last_login}>
-                              {formatDateTimeWithHijri(user.last_login)}
-                            </HijriDateDisplay>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">لم يسجل دخول بعد</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {isAdmin ? (
-                          <div className="flex items-center gap-2">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الاسم الكامل</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">البريد الإلكتروني</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الدور</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الحالة</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">آخر تسجيل دخول</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.full_name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                            user.role === 'admin'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            <Shield className="w-3 h-3" />
+                            {user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                            user.is_active
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {user.is_active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                            {user.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {user.last_login ? (
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-gray-400" />
+                              <HijriDateDisplay date={user.last_login}>
+                                {formatDateTimeWithHijri(user.last_login)}
+                              </HijriDateDisplay>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">لم يسجل دخول بعد</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {isAdmin ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openEditModal(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                title="تعديل"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">عرض فقط</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p>لا توجد نتائج</p>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-3 p-4">
+              {filteredUsers.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p>لا توجد نتائج</p>
+                </div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
+                        <p className="text-xs text-gray-600">{user.email}</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {isAdmin && (
+                          <>
                             <button
                               onClick={() => openEditModal(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
                               title="تعديل"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => toggleUserStatus(user)}
-                              className={`p-2 rounded-lg transition ${
+                              className={`p-2 rounded transition ${
                                 user.is_active
                                   ? 'text-orange-600 hover:bg-orange-50'
                                   : 'text-green-600 hover:bg-green-50'
@@ -433,29 +478,56 @@ export default function Users() {
                                 setDeleteingUser(user)
                                 setShowDeleteModal(true)
                               }}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              className="p-2 text-red-600 hover:bg-red-50 rounded transition"
                               title="حذف"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">عرض فقط</span>
+                          </>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">الدور:</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                          user.role === 'admin'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          <Shield className="w-3 h-3" />
+                          {user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">الحالة:</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                          user.is_active
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}>
+                          {user.is_active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                          {user.is_active ? 'نشط' : 'غير نشط'}
+                        </span>
+                      </div>
+                      {user.last_login && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-600">آخر دخول:</span>
+                          <span className="text-gray-700">
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            {formatDateTimeWithHijri(user.last_login)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p>لا توجد نتائج</p>
-              </div>
-            )}
-          </div>
+          </>
         )}
+
 
         {showModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
