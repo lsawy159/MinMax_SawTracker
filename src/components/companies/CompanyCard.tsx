@@ -62,7 +62,7 @@ function CompanyCard({
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border-2 ${getBorderColor()} p-4 hover:shadow-md transition relative`}>
+    <div className={`bg-white rounded-xl shadow-sm border-2 ${getBorderColor()} p-3 sm:p-4 hover:shadow-md transition relative`}>
       {/* مؤشر حالة الأماكن الشاغرة */}
       {(getAvailableSlotsTextColor && getAvailableSlotsText) && (
         <div 

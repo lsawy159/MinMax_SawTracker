@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
 import { getEmployeeNotificationThresholdsPublic, type EmployeeNotificationThresholds } from '@/utils/employeeAlerts'
+import { useIsMobileView } from '@/hooks/useIsMobileView'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -65,7 +66,8 @@ export default function Employees() {
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
 
   // حالة نوع العرض
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
+  const isMobileView = useIsMobileView()
 
   // حالة التعديل السريع - تم إزالتها
   
@@ -1025,32 +1027,50 @@ export default function Employees() {
           </div>
           <div className="flex gap-2">
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 border border-gray-300">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
-                  viewMode === 'table'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="عرض الجدول"
-              >
-                <Table className="w-4 h-4" />
-                <span className="hidden sm:inline">جدول</span>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
-                  viewMode === 'grid'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="عرض الكروت"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span className="hidden sm:inline">كروت</span>
-              </button>
-            </div>
+            {!isMobileView && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 border border-gray-300">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
+                    viewMode === 'table'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="عرض الجدول"
+                >
+                  <Table className="w-4 h-4" />
+                  <span className="hidden sm:inline">جدول</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="عرض الكروت"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">كروت</span>
+                </button>
+              </div>
+            )}
+            {isMobileView && (
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 border border-gray-300">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="عرض الكروت"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">كروت</span>
+                </button>
+              </div>
+            )}
             
             {canCreate('employees') && (
               <>
@@ -1607,7 +1627,7 @@ export default function Employees() {
           </div>
         ) : viewMode === 'grid' ? (
           // Grid View
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             {sortedAndFilteredEmployees.map((employee) => {
               const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
               const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null

@@ -12,6 +12,7 @@ import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 import { usePermissions } from '@/utils/permissions'
 import { SearchIcon } from 'lucide-react'
+import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { 
   calculateCommercialRegistrationStatus,
   calculateSocialInsuranceStatus
@@ -82,6 +83,7 @@ const getCompanyName = (emp: EmployeeType & { companies?: CompanyType | CompanyT
 export default function AdvancedSearch() {
   const { user } = useAuth()
   const { canView } = usePermissions()
+  const isMobileView = useIsMobileView()
   const [activeTab, setActiveTab] = useState<TabType>('employees')
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState('')
   const [companySearchQuery, setCompanySearchQuery] = useState('')
@@ -1190,22 +1192,35 @@ export default function AdvancedSearch() {
             {/* View Mode and Items Per Page */}
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
-                  title="عرض شبكي"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
-                  title="عرض جدول"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
+              {!isMobileView && (
+                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض شبكي"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض جدول"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {isMobileView && (
+                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض شبكي"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Items per page */}
               <div className="flex items-center gap-2">
@@ -1821,7 +1836,7 @@ export default function AdvancedSearch() {
                 {activeTab === 'employees' && paginatedEmployees.length > 0 && (
                   <div className="mb-4">
                     {viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                         {paginatedEmployees.map(emp => (
                           <div 
                             key={emp.id} 
@@ -1904,7 +1919,7 @@ export default function AdvancedSearch() {
                 {activeTab === 'companies' && paginatedCompanies.length > 0 && (
                   <div className="mb-4">
                     {viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                         {paginatedCompanies.map(comp => (
                           <div 
                             key={comp.id} 
