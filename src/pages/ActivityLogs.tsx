@@ -920,18 +920,18 @@ export default function ActivityLogs() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
             {/* Search */}
-            <div>
+            <div className="sm:col-span-2 lg:col-span-1">
               <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
                 <input
                   type="text"
-                  placeholder="البحث في السجلات..."
+                  placeholder="البحث..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -941,13 +941,13 @@ export default function ActivityLogs() {
               <select
                 value={actionFilter}
                 onChange={(e) => setActionFilter(e.target.value as ActionFilter)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
               >
                 <option value="all">جميع العمليات</option>
-                <option value="create">إنشاء فقط</option>
-                <option value="update">تحديث فقط</option>
-                <option value="delete">حذف فقط</option>
-                <option value="login">تسجيل دخول/خروج</option>
+                <option value="create">إنشاء</option>
+                <option value="update">تحديث</option>
+                <option value="delete">حذف</option>
+                <option value="login">دخول/خروج</option>
               </select>
             </div>
 
@@ -956,7 +956,7 @@ export default function ActivityLogs() {
               <select
                 value={entityFilter}
                 onChange={(e) => setEntityFilter(e.target.value as EntityFilter)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
               >
                 <option value="all">جميع الأنواع</option>
                 <option value="employee">موظفين</option>
@@ -971,12 +971,12 @@ export default function ActivityLogs() {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
               >
                 <option value="all">جميع التواريخ</option>
                 <option value="today">اليوم</option>
-                <option value="week">آخر أسبوع</option>
-                <option value="month">آخر شهر</option>
+                <option value="week">أسبوع</option>
+                <option value="month">شهر</option>
               </select>
             </div>
           </div>
@@ -984,28 +984,28 @@ export default function ActivityLogs() {
 
         {/* Pagination Controls - Top */}
         {!loading && filteredLogs.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="text-xs sm:text-sm text-gray-600">
                 عرض {startIndex + 1}-{Math.min(endIndex, filteredLogs.length)} من {filteredLogs.length} سجل
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">عرض:</span>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">عرض:</span>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-2 py-1 border rounded text-sm"
+                    className="px-2 py-1 text-xs sm:text-sm border rounded"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
                   </select>
-                  <span className="text-sm text-gray-600">سجل</span>
+                  <span className="text-xs sm:text-sm text-gray-600">سجل</span>
                 </div>
               </div>
             </div>
@@ -1217,17 +1217,18 @@ export default function ActivityLogs() {
             
             {/* Pagination Controls - Bottom */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between bg-gray-50 border-t border-gray-200 px-6 py-4">
-                <div className="text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 border-t border-gray-200 px-3 sm:px-6 py-3 sm:py-4">
+                <div className="text-xs sm:text-sm text-gray-600">
                   صفحة {currentPage} من {totalPages}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-1 sm:p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="الصفحة السابقة"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4" />
                   </button>
                   
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1245,7 +1246,7 @@ export default function ActivityLogs() {
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-2 border rounded-md text-sm ${
+                        className={`px-2 sm:px-3 py-1 sm:py-2 border rounded-md text-xs sm:text-sm ${
                           currentPage === pageNum
                             ? 'bg-purple-600 text-white border-purple-600'
                             : 'hover:bg-gray-100'
@@ -1259,9 +1260,10 @@ export default function ActivityLogs() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-1 sm:p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="الصفحة التالية"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3 sm:w-4 h-3 sm:h-4" />
                   </button>
                 </div>
               </div>
