@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
 import { useLocation } from 'react-router-dom'
+import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { 
   calculateCommercialRegistrationStatus, 
   calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
@@ -34,6 +35,7 @@ type ViewMode = 'grid' | 'table'
 export default function Companies() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const location = useLocation()
+  const isMobileView = useIsMobileView()
   const [companies, setCompanies] = useState<(Company & { employee_count: number; available_slots?: number })[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -907,22 +909,35 @@ export default function Companies() {
             {/* View Mode and Items Per Page */}
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
-                  title="عرض شبكي"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
-                  title="عرض جدول"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
+              {!isMobileView && (
+                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض شبكي"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض جدول"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {isMobileView && (
+                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    title="عرض شبكي"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Items per page */}
               <div className="flex items-center gap-2">
@@ -1158,7 +1173,7 @@ export default function Companies() {
         ) : filteredCompanies.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 {paginatedCompanies.map((company) => (
                   <div
                     key={company.id}
