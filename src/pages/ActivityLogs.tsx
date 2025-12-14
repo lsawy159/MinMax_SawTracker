@@ -772,154 +772,151 @@ export default function ActivityLogs() {
     <Layout>
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
-              <Activity className="w-5 sm:w-6 h-5 sm:h-6 text-purple-600" />
+            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+              <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">سجل النشاطات</h1>
-              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">تتبع جميع الإجراءات</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">سجل النشاطات</h1>
+              <p className="text-xs text-gray-600 mt-0 sm:mt-0.5">تتبع الإجراءات</p>
             </div>
           </div>
-          <div className="flex gap-2 sm:gap-3 text-xs sm:text-sm">
+          <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
             {isAdmin && selectedLogIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 text-white rounded hover:bg-red-700 transition whitespace-nowrap text-xs"
               >
-                <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
-                <span className="hidden sm:inline">حذف المحدد ({selectedLogIds.size})</span>
-                <span className="sm:hidden">حذف ({selectedLogIds.size})</span>
+                <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
+                <span className="hidden sm:inline">حذف ({selectedLogIds.size})</span>
+                <span className="sm:hidden">حذف</span>
               </button>
             )}
             {isAdmin && (
               <button
                 onClick={handleDeleteAll}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 text-white rounded hover:bg-red-700 transition whitespace-nowrap text-xs"
               >
-                <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
+                <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
                 <span className="hidden sm:inline">حذف الكل</span>
                 <span className="sm:hidden">حذف</span>
-                حذف الكل
               </button>
             )}
             <button
               onClick={loadLogs}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-xs"
             >
-              <RefreshCw className="w-5 h-5" />
-              تحديث
+              <RefreshCw className="w-3 sm:w-4 h-3 sm:h-4" />
+              <span className="hidden sm:inline">تحديث</span>
             </button>
             <button
               onClick={exportToExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-xs"
             >
-              <Download className="w-5 h-5" />
-              تصدير Excel
+              <Download className="w-3 sm:w-4 h-3 sm:h-4" />
+              <span className="hidden sm:inline">Excel</span>
             </button>
           </div>
         </div>
 
         {/* Statistics */}
-        <div className="overflow-x-auto mb-6">
-          <div className="grid grid-cols-8 gap-2 min-w-max">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{filteredLogs.length}</div>
-                  <div className="text-xs text-gray-600 mt-0.5">إجمالي السجلات</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-6 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{filteredLogs.length}</div>
+                  <div className="text-xs text-gray-600 mt-0.5 line-clamp-1">السجلات</div>
                 </div>
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <Activity className="w-4 h-4 text-purple-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-green-50 rounded-lg shadow-sm border border-green-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-green-600">{createLogs.length}</div>
-                  <div className="text-xs text-green-700 mt-0.5">عمليات إنشاء</div>
-                </div>
-                <div className="bg-green-100 p-2 rounded-lg">
-                  <Plus className="w-4 h-4 text-green-600" />
+                <div className="bg-purple-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Activity className="w-3 sm:w-4 h-3 sm:h-4 text-purple-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-blue-600">{updateLogs.length}</div>
-                  <div className="text-xs text-blue-700 mt-0.5">عمليات تحديث</div>
+            <div className="bg-green-50 rounded-lg shadow-sm border border-green-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-green-600">{createLogs.length}</div>
+                  <div className="text-xs text-green-700 mt-0.5 line-clamp-1">إنشاء</div>
                 </div>
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Edit className="w-4 h-4 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-red-600">{deleteLogs.length}</div>
-                  <div className="text-xs text-red-700 mt-0.5">عمليات حذف</div>
-                </div>
-                <div className="bg-red-100 p-2 rounded-lg">
-                  <Trash2 className="w-4 h-4 text-red-600" />
+                <div className="bg-green-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Plus className="w-3 sm:w-4 h-3 sm:h-4 text-green-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-purple-600">{todayLogs.length}</div>
-                  <div className="text-xs text-purple-700 mt-0.5">نشاطات اليوم</div>
+            <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-blue-600">{updateLogs.length}</div>
+                  <div className="text-xs text-blue-700 mt-0.5 line-clamp-1">تحديث</div>
                 </div>
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <Calendar className="w-4 h-4 text-purple-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-orange-50 rounded-lg shadow-sm border border-orange-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-orange-600">{weekLogs.length}</div>
-                  <div className="text-xs text-orange-700 mt-0.5">نشاطات الأسبوع</div>
-                </div>
-                <div className="bg-orange-100 p-2 rounded-lg">
-                  <Clock className="w-4 h-4 text-orange-600" />
+                <div className="bg-blue-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Edit className="w-3 sm:w-4 h-3 sm:h-4 text-blue-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-indigo-50 rounded-lg shadow-sm border border-indigo-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-indigo-600">{employeeLogs.length}</div>
-                  <div className="text-xs text-indigo-700 mt-0.5">نشاطات الموظفين</div>
+            <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-red-600">{deleteLogs.length}</div>
+                  <div className="text-xs text-red-700 mt-0.5 line-clamp-1">حذف</div>
                 </div>
-                <div className="bg-indigo-100 p-2 rounded-lg">
-                  <UserIcon className="w-4 h-4 text-indigo-600" />
+                <div className="bg-red-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-red-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-teal-50 rounded-lg shadow-sm border border-teal-200 p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-xl font-bold text-teal-600">{companyLogs.length}</div>
-                  <div className="text-xs text-teal-700 mt-0.5">نشاطات المؤسسات</div>
+            <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-purple-600">{todayLogs.length}</div>
+                  <div className="text-xs text-purple-700 mt-0.5 line-clamp-1">اليوم</div>
                 </div>
-                <div className="bg-teal-100 p-2 rounded-lg">
-                  <Building2 className="w-4 h-4 text-teal-600" />
+                <div className="bg-purple-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Calendar className="w-3 sm:w-4 h-3 sm:h-4 text-purple-600" />
                 </div>
               </div>
             </div>
-          </div>
+            
+            <div className="bg-orange-50 rounded-lg shadow-sm border border-orange-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600">{weekLogs.length}</div>
+                  <div className="text-xs text-orange-700 mt-0.5 line-clamp-1">الأسبوع</div>
+                </div>
+                <div className="bg-orange-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Clock className="w-3 sm:w-4 h-3 sm:h-4 text-orange-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-indigo-50 rounded-lg shadow-sm border border-indigo-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-indigo-600">{employeeLogs.length}</div>
+                  <div className="text-xs text-indigo-700 mt-0.5 line-clamp-1">الموظفين</div>
+                </div>
+                <div className="bg-indigo-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-indigo-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-teal-50 rounded-lg shadow-sm border border-teal-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-teal-600">{companyLogs.length}</div>
+                  <div className="text-xs text-teal-700 mt-0.5 line-clamp-1">المؤسسات</div>
+                </div>
+                <div className="bg-teal-100 p-1.5 sm:p-2 rounded flex-shrink-0">
+                  <Building2 className="w-3 sm:w-4 h-3 sm:h-4 text-teal-600" />
+                </div>
+              </div>
+            </div>
         </div>
 
         {/* Filters */}
