@@ -38,20 +38,20 @@ export default function ImportExport() {
 
   return (
     <Layout>
-      <div className="p-4 sm:p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4 sm:mb-6 flex-col sm:flex-row sm:items-center">
+        <div className="flex items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
-            <Download className="w-5 h-5 text-purple-600" />
+            <Download className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
           </div>
-          <div className="text-center sm:text-right">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">مركز الاستيراد والتصدير</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">إدارة متقدمة لاستيراد وتصدير البيانات</p>
+          <div className="text-left sm:text-right">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">استيراد وتصدير</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">إدارة البيانات</p>
           </div>
         </div>
 
         {/* Tabs Navigation - Responsive */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4 sm:flex-row mb-4 sm:mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -63,31 +63,31 @@ export default function ImportExport() {
               purple: 'bg-purple-50 border-purple-500 text-purple-700 shadow-md'
             }
             
-            const inactiveStyles = 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-md'
+            const inactiveStyles = 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
             
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full sm:w-auto inline-flex flex-col sm:flex-col items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border-2 transition-all duration-200 ${
                   isActive 
                     ? activeStyles[colorClass]
-                    : `${inactiveStyles} hover:scale-105`
+                    : inactiveStyles
                 }`}
               >
-                <div className={`p-2 rounded-lg ${
+                <div className={`p-1.5 sm:p-2 rounded-lg ${
                   isActive
                     ? colorClass === 'blue' ? 'bg-blue-100' : colorClass === 'green' ? 'bg-green-100' : 'bg-purple-100'
                     : 'bg-gray-100'
                 }`}>
-                  <Icon className={`w-4 sm:w-5 h-4 sm:h-5 ${
+                  <Icon className={`w-3 sm:w-4 h-3 sm:h-4 ${
                     isActive
                       ? colorClass === 'blue' ? 'text-blue-600' : colorClass === 'green' ? 'text-green-600' : 'text-purple-600'
                       : 'text-gray-500'
                   }`} />
                 </div>
-                <span className="font-semibold text-xs sm:text-sm whitespace-normal sm:whitespace-nowrap text-center">{tab.label}</span>
-                <p className={`text-xs mt-1 text-center whitespace-normal sm:whitespace-nowrap ${
+                <span className="font-medium text-xs sm:text-sm text-center leading-tight">{tab.label}</span>
+                <p className={`text-[10px] sm:text-xs text-center leading-tight line-clamp-1 hidden sm:inline ${
                   isActive
                     ? colorClass === 'blue' ? 'text-blue-600' : colorClass === 'green' ? 'text-green-600' : 'text-purple-600'
                     : 'text-gray-500'
