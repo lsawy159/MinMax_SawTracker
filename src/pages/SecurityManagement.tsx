@@ -1671,7 +1671,7 @@ export default function SecurityManagement() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
@@ -1754,6 +1754,88 @@ export default function SecurityManagement() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile View - Cards */}
+                <div className="md:hidden space-y-3">
+                  {backups.map((backup) => (
+                    <div key={backup.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                      {/* Header: Type + Checkbox */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          backup.backup_type === 'manual' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {backup.backup_type === 'manual' ? 'يدوي' : 'تلقائي'}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={selectedBackups.has(backup.id)}
+                          onChange={() => toggleBackupSelection(backup.id)}
+                          className="w-4 h-4 text-blue-600 rounded"
+                        />
+                      </div>
+
+                      {/* File Name */}
+                      <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                        <div className="font-medium text-gray-600 mb-0.5">اسم الملف</div>
+                        <div className="font-mono text-gray-900 break-all">{backup.file_path}</div>
+                      </div>
+
+                      {/* Size & Compression */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                          <div className="font-medium text-gray-600">الحجم</div>
+                          <div className="text-gray-900">{formatFileSize(backup.file_size)}</div>
+                        </div>
+                        <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                          <div className="font-medium text-gray-600">الضغط</div>
+                          <div className="text-gray-900">{backup.compression_ratio?.toFixed(1)}%</div>
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="py-2 px-2 bg-blue-50 rounded text-xs">
+                        <div className="font-medium text-gray-600 mb-1">الحالة</div>
+                        <div className={`flex items-center gap-1 font-medium ${
+                          backup.status === 'completed' ? 'text-green-600' : 
+                          backup.status === 'failed' ? 'text-red-600' : 'text-yellow-600'
+                        }`}>
+                          {backup.status === 'completed' && <CheckCircle className="w-4 h-4" />}
+                          {backup.status === 'failed' && <AlertTriangle className="w-4 h-4" />}
+                          {backup.status === 'completed' ? 'مكتمل' : 
+                           backup.status === 'failed' ? 'فشل' : 'قيد التنفيذ'}
+                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                        <div className="font-medium text-gray-600 mb-0.5">تاريخ الإنشاء</div>
+                        <HijriDateDisplay date={backup.started_at}>
+                          {formatDate(backup.started_at)}
+                        </HijriDateDisplay>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-1 border-t border-gray-100">
+                        {backup.status === 'completed' && (
+                          <button
+                            onClick={() => downloadBackup(backup.file_path)}
+                            className="flex-1 px-2 py-2 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition font-medium"
+                          >
+                            <Download className="w-3 h-3 inline mr-1" />
+                            تحميل
+                          </button>
+                        )}
+                        <button
+                          onClick={() => openDeleteModal(backup.id, backup.file_path, backup.file_path)}
+                          className={`${backup.status === 'completed' ? 'flex-1' : 'flex-1'} px-2 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition font-medium`}
+                        >
+                          <Trash2 className="w-3 h-3 inline mr-1" />
+                          حذف
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Email Queue Section */}
@@ -2014,7 +2096,8 @@ export default function SecurityManagement() {
                     </div>
                   ) : (
                     <div className="bg-white border rounded-lg overflow-hidden">
-                      <div className="overflow-x-auto">
+                      {/* Desktop Table */}
+                      <div className="overflow-x-auto hidden md:block">
                         <table className="w-full">
                           <thead className="bg-gray-50">
                             <tr>
@@ -2089,6 +2172,70 @@ export default function SecurityManagement() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+
+                      {/* Mobile Cards */}
+                      <div className="md:hidden space-y-3 p-3">
+                        {sessionHistory.map((session) => (
+                          <div key={session.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                            {/* Header: Status + Checkbox */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                session.is_active 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {session.is_active ? 'نشطة' : 'منتهية'}
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={selectedSessions.has(session.id)}
+                                onChange={() => toggleSessionSelection(session.id)}
+                                className="w-4 h-4"
+                              />
+                            </div>
+
+                            {/* User Info */}
+                            <div className="py-2 px-2 bg-blue-50 rounded text-xs space-y-1">
+                              <div className="font-medium text-gray-600">المستخدم</div>
+                              <div className="font-medium text-gray-900">{session.users?.full_name || 'غير محدد'}</div>
+                              <div className="text-gray-600">{session.users?.email || 'غير محدد'}</div>
+                            </div>
+
+                            {/* Login Time */}
+                            <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                              <div className="font-medium text-gray-600 mb-0.5">وقت الدخول</div>
+                              <HijriDateDisplay date={session.created_at}>
+                                {formatDate(session.created_at)}
+                              </HijriDateDisplay>
+                            </div>
+
+                            {/* Logout Time */}
+                            <div className="py-2 px-2 bg-gray-50 rounded text-xs">
+                              <div className="font-medium text-gray-600 mb-0.5">وقت الخروج</div>
+                              {session.logged_out_at ? (
+                                <HijriDateDisplay date={session.logged_out_at}>
+                                  {formatDate(session.logged_out_at)}
+                                </HijriDateDisplay>
+                              ) : session.is_active ? (
+                                <span className="text-green-600 font-medium">جاري الآن</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </div>
+
+                            {/* Delete Button */}
+                            <div className="pt-1 border-t border-gray-100">
+                              <button
+                                onClick={() => deleteSession(session)}
+                                className="w-full px-2 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
+                              >
+                                <Trash2 className="w-3 h-3 inline mr-1" />
+                                حذف
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

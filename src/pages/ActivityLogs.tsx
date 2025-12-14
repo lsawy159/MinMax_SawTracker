@@ -1134,14 +1134,14 @@ export default function ActivityLogs() {
             </div>
 
             {/* Mobile View - Cards */}
-            <div className="md:hidden space-y-3 p-4">
+            <div className="md:hidden space-y-3 p-3 sm:p-4">
               {paginatedLogs.map((log) => (
-                <div key={log.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-                  {/* Header: Action Badge + Select Checkbox */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getActionColor(log.action)}`}>
+                <div key={log.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
+                  {/* Header Row: Action + Checkbox */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getActionColor(log.action)} flex-shrink-0`}>
                       {getActionIcon(log.action)}
-                      <span>{getActionLabel(log.action)}</span>
+                      <span className="hidden sm:inline">{getActionLabel(log.action)}</span>
                     </div>
                     {isAdmin && (
                       <button
@@ -1157,50 +1157,48 @@ export default function ActivityLogs() {
                     )}
                   </div>
 
-                  {/* Entity Type Badge */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600">النوع:</span>
-                    <span className="text-sm text-gray-900 font-medium">{log.entity_type ? getEntityLabel(log.entity_type) : '-'}</span>
+                  {/* Entity Type */}
+                  <div className="flex items-center gap-2 py-1 px-2 bg-gray-50 rounded text-xs">
+                    <span className="font-medium text-gray-600">النوع:</span>
+                    <span className="text-gray-900 font-medium">{log.entity_type ? getEntityLabel(log.entity_type) : '-'}</span>
                   </div>
 
                   {/* User Info */}
-                  <div className="flex items-start gap-2 py-2 border-t border-gray-100">
-                    <span className="text-xs font-medium text-gray-600 min-w-fit">المستخدم:</span>
-                    <div className="flex-1">
-                      {log.user_id ? (
-                        (() => {
-                          const user = usersMap.get(log.user_id)
-                          return user ? (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <UserIcon className="w-3 h-3 text-gray-400" />
-                                <span className="text-sm font-medium text-gray-900">{user.full_name}</span>
-                              </div>
-                              <span className="text-xs text-gray-500 mr-5">{user.email}</span>
+                  <div className="py-1 px-2 bg-blue-50 rounded">
+                    <div className="text-xs font-medium text-gray-600 mb-1">المستخدم</div>
+                    {log.user_id ? (
+                      (() => {
+                        const user = usersMap.get(log.user_id)
+                        return user ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1 text-xs">
+                              <UserIcon className="w-3 h-3 text-gray-400" />
+                              <span className="font-medium text-gray-900">{user.full_name}</span>
                             </div>
-                          ) : (
-                            <span className="text-xs text-gray-500">{String(log.user_id).slice(0, 8)}...</span>
-                          )
-                        })()
-                      ) : (
-                        <span className="text-xs text-gray-400">النظام</span>
-                      )}
-                    </div>
+                            <span className="text-xs text-gray-500">{user.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-500">{String(log.user_id).slice(0, 8)}...</span>
+                        )
+                      })()
+                    ) : (
+                      <span className="text-xs text-gray-500">النظام</span>
+                    )}
                   </div>
 
                   {/* IP Address */}
                   {log.ip_address && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-600">IP:</span>
-                      <span className="text-xs text-gray-600 font-mono">{log.ip_address}</span>
+                    <div className="py-1 px-2 bg-gray-50 rounded text-xs">
+                      <span className="font-medium text-gray-600">IP: </span>
+                      <span className="text-gray-600 font-mono text-xs">{log.ip_address}</span>
                     </div>
                   )}
 
-                  {/* Date and Details Button */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-600">
+                  {/* Footer: Date + Button */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                      <Calendar className="w-3 h-3" />
+                      <span>
                         <HijriDateDisplay date={log.created_at}>
                           {formatDateTimeWithHijri(log.created_at)}
                         </HijriDateDisplay>
@@ -1208,7 +1206,7 @@ export default function ActivityLogs() {
                     </div>
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="text-purple-600 hover:text-purple-700 text-xs font-medium px-3 py-1 rounded-lg hover:bg-purple-50 transition"
+                      className="text-purple-600 hover:text-purple-700 text-xs font-medium px-2 sm:px-3 py-1 rounded-lg hover:bg-purple-50 transition flex-shrink-0"
                     >
                       التفاصيل
                     </button>
