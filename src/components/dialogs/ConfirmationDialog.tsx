@@ -12,6 +12,7 @@ interface ConfirmationDialogProps {
   isDangerous?: boolean
   icon?: 'alert' | 'question' | 'success' | 'info'
   children?: React.ReactNode
+  dialogId?: string
 }
 
 export default function ConfirmationDialog({
@@ -24,7 +25,8 @@ export default function ConfirmationDialog({
   cancelText = 'إلغاء',
   isDangerous = false,
   icon = 'question',
-  children
+  children,
+  dialogId = 'confirmation-dialog'
 }: ConfirmationDialogProps) {
   // معالجة ESC لإغلاق المودال
   useEffect(() => {
@@ -97,16 +99,30 @@ export default function ConfirmationDialog({
     }
   }
 
+  const titleId = `${dialogId}-title`
+  const descriptionId = `${dialogId}-description`
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      role="presentation"
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300"
+        role="alertdialog"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+      >
         {/* Modal Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b-2 ${getBorderColor()} bg-gradient-to-r ${getHeaderColor()}`}>
           <div className="flex items-center gap-4 flex-1">
             <div className={`w-12 h-12 bg-gradient-to-br ${getIconColor()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
               {getIconComponent()}
             </div>
-            <h2 className="text-lg font-bold text-gray-900">
+            <h2 
+              id={titleId}
+              className="text-lg font-bold text-gray-900"
+            >
               {title}
             </h2>
           </div>
@@ -121,7 +137,10 @@ export default function ConfirmationDialog({
 
         {/* Modal Body */}
         <div className="p-6">
-          <p className="text-gray-700 text-center mb-6">
+          <p 
+            id={descriptionId}
+            className="text-gray-700 text-center mb-6"
+          >
             {message}
           </p>
 
@@ -132,7 +151,7 @@ export default function ConfirmationDialog({
           )}
 
           {isDangerous && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-6">
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-6" role="note">
               <p className="text-sm text-red-700 font-medium">
                 ⚠️ هذا الإجراء لا يمكن التراجع عنه
               </p>
@@ -145,6 +164,7 @@ export default function ConfirmationDialog({
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
+            aria-label={cancelText}
           >
             {cancelText}
           </button>
@@ -154,6 +174,7 @@ export default function ConfirmationDialog({
               onClose()
             }}
             className={`flex-1 px-4 py-2 ${getButtonColor()} text-white font-medium rounded-lg transition-colors`}
+            aria-label={confirmText}
           >
             {confirmText}
           </button>
