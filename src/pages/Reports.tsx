@@ -528,7 +528,8 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop View - Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -567,6 +568,45 @@ export default function Reports() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View - Cards */}
+          <div className="md:hidden space-y-3 p-4">
+            {filteredItems.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">لا توجد بيانات</div>
+            ) : (
+              filteredItems.map((item, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <p className="text-xs text-gray-600 font-semibold">النوع</p>
+                      <p className="text-sm font-medium text-gray-900">{item.type}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs border flex-shrink-0 ${getStatusBadgeColor(item.status)}`}>
+                      {getStatusText(item.status)}
+                    </span>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-600 font-semibold">الاسم/المؤسسة</p>
+                    <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-600 font-semibold">تاريخ الانتهاء</p>
+                      <p className="text-sm text-gray-900">{item.expiryDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 font-semibold">الأيام المتبقية</p>
+                      <p className={`text-sm font-semibold ${item.daysRemaining < 0 ? 'text-red-600' : item.daysRemaining <= 30 ? 'text-orange-600' : 'text-gray-900'}`}>
+                        {item.daysRemaining < 0 ? `منتهي منذ ${Math.abs(item.daysRemaining)}` : `${item.daysRemaining} يوم`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
         </div>

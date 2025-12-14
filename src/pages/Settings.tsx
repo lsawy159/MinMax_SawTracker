@@ -325,7 +325,8 @@ export default function Settings() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop View - Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
@@ -405,6 +406,58 @@ export default function Settings() {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile View - Cards */}
+                <div className="md:hidden space-y-3 p-4">
+                  {companyLimits.map((limit) => {
+                    const isOverLimit = limit.current_employees > limit.max_employees
+                    const percentage = limit.max_employees > 0 ? (limit.current_employees / limit.max_employees) * 100 : 0
+
+                    return (
+                      <div key={limit.company_id} className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{limit.company_name}</p>
+                              <p className="text-xs text-gray-600 font-mono">{limit.unified_number}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">الموظفين الحاليين:</span>
+                            <span className="text-sm font-semibold text-gray-900">{limit.current_employees}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs text-gray-600">الحد الأقصى:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={limit.max_employees}
+                              onChange={(e) => updateLimit(limit.company_id, parseInt(e.target.value) || 1)}
+                              className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-semibold"
+                            />
+                          </div>
+                          <div className={`px-3 py-1.5 rounded-lg border text-xs font-medium text-center ${getStatusColor(limit.current_employees, limit.max_employees)}`}>
+                            {isOverLimit ? (
+                              <span>تجاوز الحد ({limit.current_employees - limit.max_employees}+)</span>
+                            ) : percentage === 100 ? (
+                              <span>ممتلئ ({Math.round(percentage)}%)</span>
+                            ) : percentage >= 90 ? (
+                              <span>شبه ممتلئ ({Math.round(percentage)}%)</span>
+                            ) : percentage >= 70 ? (
+                              <span>جيد ({Math.round(percentage)}%)</span>
+                            ) : (
+                              <span>متاح ({limit.max_employees - limit.current_employees} مقعد)</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* ملخص الإحصائيات */}
