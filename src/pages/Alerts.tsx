@@ -653,7 +653,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   {filteredCompanyAlerts.length}
                 </span>
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredCompanyAlerts.map((alert) => (
                   <AlertCard
                     key={alert.id}
@@ -678,7 +678,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   {filteredEmployeeAlerts.length}
                 </span>
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredEmployeeAlerts.map((alert) => (
                   <EmployeeAlertCard
                     key={alert.id}
