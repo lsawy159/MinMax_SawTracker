@@ -88,6 +88,7 @@ function CompanyCard({
                 onClick={() => onEdit(company)}
                 className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
                 title="تعديل المؤسسة"
+                data-testid={`edit-company-btn-${company.id}`}
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -97,6 +98,7 @@ function CompanyCard({
                 onClick={() => onDelete(company)}
                 className="p-1 text-red-600 hover:bg-red-100 rounded-md transition"
                 title="حذف المؤسسة"
+                data-testid={`delete-company-btn-${company.id}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

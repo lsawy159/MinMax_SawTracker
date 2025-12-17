@@ -84,6 +84,7 @@ export function UserMenu() {
         <DropdownMenuItem
           onClick={handleSignOut}
           className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+          data-testid="logout-menu-item"
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>تسجيل خروج</span>
