@@ -289,6 +289,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       window.location.href = '/login'
                     }}
                     className="w-full group relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 ease-in-out"
+                    data-testid="logout-btn-mobile"
                   >
                     <LogOut className="w-4 h-4 flex-shrink-0" />
                     <span className="text-xs">تسجيل خروج</span>
@@ -343,6 +344,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                           window.location.href = '/login'
                         }}
                         className="p-2 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        data-testid="logout-btn"
                       >
                         <LogOut className="w-4 h-4" />
                       </button>

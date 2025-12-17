@@ -7,9 +7,8 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn, user, loading: authLoading } = useAuth()
+  const { signIn, user, loading: authLoading, error } = useAuth()
   const navigate = useNavigate()
 
   // إذا كان المستخدم مسجل دخول بالفعل، انتقل إلى Dashboard
@@ -29,14 +28,12 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
     try {
       await signIn(email, password)
       // لا ننتقل هنا مباشرة، بل ننتظر useEffect أعلاه
       // useEffect سينتقل تلقائياً عندما يكون user موجود و authLoading = false
     } catch {
-      setError('فشل تسجيل الدخول')
       setLoading(false)
     }
   }

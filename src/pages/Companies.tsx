@@ -540,30 +540,65 @@ export default function Companies() {
     if (!selectedCompany) return
 
     try {
-      const { error } = await supabase
+      // [FIX] المرحلة الأولى: فصل جميع الموظفين (بدون حذفهم)
+      logger.debug(`فصل الموظفين من المؤسسة ${selectedCompany.name}...`)
+      const { data: employees, error: fetchError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('company_id', selectedCompany.id)
+
+      if (fetchError) throw fetchError
+
+      if (employees && employees.length > 0) {
+        // تحديث جميع الموظفين: فصلهم من المؤسسة
+        const { error: updateError } = await supabase
+          .from('employees')
+          .update({ company_id: null })
+          .eq('company_id', selectedCompany.id)
+
+        if (updateError) throw updateError
+        logger.debug(`تم فصل ${employees.length} موظف بنجاح`)
+      }
+
+      // [FIX] المرحلة الثانية: حذف المؤسسة فقط
+      logger.debug(`حذف المؤسسة ${selectedCompany.name}...`)
+      const { error: deleteError } = await supabase
         .from('companies')
         .delete()
         .eq('id', selectedCompany.id)
 
-      if (error) throw error
+      if (deleteError) throw deleteError
 
-      // Log activity
+      // [FIX] المرحلة الثالثة: تسجيل النشاط
       await supabase.from('activity_log').insert({
-        action: 'حذف مؤسسة',
+        action: 'حذف مؤسسة مع فصل الموظفين',
         entity_type: 'company',
         entity_id: selectedCompany.id,
-        details: { company_name: selectedCompany.name }
+        details: { 
+          company_name: selectedCompany.name,
+          employees_unassigned_count: employees?.length || 0,
+          employees_unassigned: true
+        }
       })
 
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('companyUpdated'))
 
+      // إظهار رسالة نجاح مفصلة
+      const employeeCount = employees?.length || 0
+      if (employeeCount > 0) {
+        toast.success(`تم حذف المؤسسة وفصل ${employeeCount} موظف بنجاح. سيبقى الموظفون في النظام بدون تعيين`)
+      } else {
+        toast.success('تم حذف المؤسسة بنجاح')
+      }
+
       // Refresh companies list
-      loadCompanies()
+      await loadCompanies()
       setShowDeleteModal(false)
       setSelectedCompany(null)
     } catch (error) {
       logger.error('Error deleting company:', error)
+      toast.error('حدث خطأ أثناء حذف المؤسسة. يرجى المحاولة مرة أخرى')
     }
   }
 
@@ -1426,8 +1461,11 @@ export default function Companies() {
                 <p className="text-gray-700 mb-6">
                   هل أنت متأكد من حذف مؤسسة "<strong>{selectedCompany?.name}</strong>"؟
                   <br />
-                  <span className="text-sm text-red-600 mt-2 block">
-                    سيتم حذف جميع الموظفين المرتبطة بهذه المؤسسة أيضاً
+                  <span className="text-sm text-blue-600 mt-2 block">
+                    ✓ سيبقى الموظفون في النظام بدون تعيينهم على أي مؤسسة
+                  </span>
+                  <span className="text-sm text-blue-600 block">
+                    ✓ يمكن إعادة تعيينهم لاحقاً إن أردت
                   </span>
                 </p>
                 <div className="flex gap-3">
