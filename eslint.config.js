@@ -41,4 +41,12 @@ export default tseslint.config(
       'no-console': 'off', // Edge Functions و Scripts تحتاج console للتنقيح والمراقبة
     },
   },
-)
+  // قواعد خاصة بملفات الاختبارات - السماح بـ console و متغيرات غير مستخدمة
+  {
+    files: ['playwright-tests/**/*.ts', '**/*.spec.ts', '**/*.test.ts'],
+    rules: {
+      'no-console': 'off', // ملفات الاختبارات تستخدم console للمراقبة والتنقيح
+      '@typescript-eslint/no-unused-vars': 'off', // متغيرات الاختبارات قد تكون غير مستخدمة أحياناً
+      '@typescript-eslint/no-explicit-any': 'off', // الاختبارات قد تحتاج any
+    },
+  },)
