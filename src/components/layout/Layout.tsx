@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Bell, Menu, X, ChevronRight, User, LogOut, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Bell, Menu, X, ChevronRight, LogOut, BookOpen } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
@@ -267,22 +267,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                       </p>
                     </div>
                   </div>
-                  <Link
-                    to="/general-settings"
-                    className={`
-                      group relative flex items-center gap-2.5
-                      px-3 py-2 rounded-lg
-                      transition-all duration-200 ease-in-out
-                      ${
-                        location.pathname === '/general-settings'
-                          ? 'bg-primary/10 text-primary font-semibold shadow-sm'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                    `}
-                  >
-                    <User className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-xs">الملف الشخصي</span>
-                  </Link>
                   <button
                     onClick={async () => {
                       await signOut()
@@ -317,23 +301,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                         <span className="font-medium">{user?.full_name || user?.email || 'مستخدم'}</span>
                         <span className="text-xs text-gray-300">{user?.role === 'admin' ? 'مدير' : 'مستخدم'}</span>
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to="/general-settings"
-                        className={`p-2 rounded-lg transition-colors ${
-                          location.pathname === '/general-settings'
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <User className="w-4 h-4" />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 text-white">
-                      الملف الشخصي
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>

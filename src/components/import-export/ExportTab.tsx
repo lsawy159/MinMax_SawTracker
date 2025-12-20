@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
-import { supabase, Employee, Company } from '@/lib/supabase'
-import { FileDown, CheckSquare, Square, Filter, X, Calendar, Shield, FileText, Building2, RotateCcw } from 'lucide-react'
+import { useState, useEffect, useMemo, ReactNode } from 'react'
+import { supabase, Employee, Company, Project } from '@/lib/supabase'
+import { FileDown, CheckSquare, Square, Calendar, Shield, FileText, Building2, RotateCcw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
@@ -14,13 +14,18 @@ interface CompanyWithStats extends Company {
 
 export default function ExportTab() {
   const [exportType, setExportType] = useState<'employees' | 'companies'>('employees')
-  const [employees, setEmployees] = useState<(Employee & { company: Company })[]>([])
+  const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set())
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
-  const [showFiltersSidebar, setShowFiltersSidebar] = useState(true)
+  const [companiesFilterQuery, setCompaniesFilterQuery] = useState('')
+  const [companySearchQuery, setCompanySearchQuery] = useState('')
+  const [selectedProjectName, setSelectedProjectName] = useState<string>('')
+  const [projectFilterQuery, setProjectFilterQuery] = useState<string>('')
+  const [expandedFilterGroup, setExpandedFilterGroup] = useState<string | null>(null)
+  const [expandedCompanyFilterGroup, setExpandedCompanyFilterGroup] = useState<string | null>(null)
   
   // Multi-select for companies (replaces filterCompany)
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set())
@@ -54,6 +59,34 @@ export default function ExportTab() {
     expiringSocialInsurance30: false
   })
 
+  // UI chip component
+  const Chip = ({
+    active,
+    onClick,
+    children,
+    color = 'blue'
+  }: {
+    active: boolean
+    onClick: () => void
+    children: ReactNode
+    color?: 'blue' | 'green'
+  }) => (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] leading-4 font-medium transition border ${
+        active
+          ? (color === 'blue'
+              ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+              : 'bg-green-600 text-white border-green-600 hover:bg-green-700')
+          : (color === 'blue'
+              ? 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-green-50')
+      }`}
+    >
+      {children}
+    </button>
+  )
+
   useEffect(() => {
     loadData()
   }, [])
@@ -62,7 +95,7 @@ export default function ExportTab() {
     try {
       setLoading(true)
       const [employeesRes, companiesRes] = await Promise.all([
-        supabase.from('employees').select('*, company:companies(id, name, unified_number)').order('name'),
+        supabase.from('employees').select('*, company:companies(id, name, unified_number), project:projects(id, name)').order('name'),
         supabase.from('companies').select('*').order('name')
       ])
 
@@ -115,6 +148,35 @@ export default function ExportTab() {
     return daysRemaining >= 0 && daysRemaining <= 30
   }
 
+  // Date status helpers for colored indicators
+  const getDaysRemaining = (date?: string | null): number | null => {
+    if (!date) return null
+    return differenceInDays(new Date(date), new Date())
+  }
+
+  // Thresholds similar to main Employees page (fallback values)
+  const STATUS_THRESHOLDS = {
+    urgent: 7,
+    high: 15,
+    medium: 30
+  }
+
+  const getDateTextColor = (days: number | null): string => {
+    if (days === null) return 'text-gray-700'
+    if (days < 0) return 'text-red-700'
+    if (days <= STATUS_THRESHOLDS.urgent) return 'text-red-600'
+    if (days <= STATUS_THRESHOLDS.high) return 'text-orange-600'
+    if (days <= STATUS_THRESHOLDS.medium) return 'text-amber-600'
+    return 'text-gray-700'
+  }
+
+  const formatDateStatus = (days: number | null, expiredLabel: string): string => {
+    if (days === null) return ''
+    if (days < 0) return expiredLabel
+    if (days === 0) return 'اليوم'
+    return `بعد ${days} يوم`
+  }
+
   const calculateAvailableSlots = (company: CompanyWithStats): number => {
     const employeeCount = company.employee_count || 0
     const maxEmployees = company.max_employees || 4
@@ -127,13 +189,17 @@ export default function ExportTab() {
       // Search filter
       const matchesSearch = !searchQuery || 
         emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          emp.profession.toLowerCase().includes(searchQuery.toLowerCase())
+        emp.profession.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(emp.residence_number ?? '').toLowerCase().includes(searchQuery.toLowerCase())
       
       // Company filter - if no companies selected, show all; otherwise only selected companies
       const matchesCompany = selectedCompanyIds.size === 0 || 
         selectedCompanyIds.has(emp.company_id?.toString() || '')
       
-      if (!matchesSearch || !matchesCompany) return false
+      // Project filter
+      const matchesProject = !selectedProjectName || ((emp.project?.name || emp.project_name || '').toLowerCase() === selectedProjectName.toLowerCase())
+
+      if (!matchesSearch || !matchesCompany || !matchesProject) return false
       
       // Apply employee filters (all must match if enabled)
       if (employeeFilters.expiredResidence && !isExpired(emp.residence_expiry)) return false
@@ -147,11 +213,36 @@ export default function ExportTab() {
       
       return true
     })
-  }, [employees, searchQuery, selectedCompanyIds, employeeFilters])
+  }, [employees, searchQuery, selectedCompanyIds, selectedProjectName, employeeFilters])
+
+  // Filter companies list inside employee sidebar by query
+  const companiesForEmployeeFilter = useMemo(() => {
+    if (!companiesFilterQuery) return companies
+    const q = companiesFilterQuery.toLowerCase()
+    return companies.filter(c =>
+      (c.name || '').toLowerCase().includes(q) || String(c.unified_number ?? '').toLowerCase().includes(q)
+    )
+  }, [companies, companiesFilterQuery])
+
+  // Unique projects for filter
+  const projectsForEmployeeFilter = useMemo(() => {
+    const all = employees
+      .map(e => (e.project?.name || e.project_name || '').trim())
+      .filter(Boolean) as string[]
+    const unique = Array.from(new Set(all))
+    if (!projectFilterQuery) return unique.sort()
+    const q = projectFilterQuery.toLowerCase()
+    return unique.filter(name => name.toLowerCase().includes(q)).sort()
+  }, [employees, projectFilterQuery])
 
   // Filter companies based on filter options
   const filteredCompanies = useMemo(() => {
     return companies.filter(company => {
+      // Search filter by name or unified number
+      const matchesSearch = !companySearchQuery ||
+        (company.name || '').toLowerCase().includes(companySearchQuery.toLowerCase()) ||
+        String(company.unified_number ?? '').toLowerCase().includes(companySearchQuery.toLowerCase())
+      if (!matchesSearch) return false
       // Apply company filters (all must match if enabled)
       if (companyFilters.completed) {
         const availableSlots = calculateAvailableSlots(company)
@@ -184,7 +275,7 @@ export default function ExportTab() {
       
       return true
     })
-  }, [companies, companyFilters])
+  }, [companies, companyFilters, companySearchQuery])
 
   const toggleEmployeeSelection = (id: string) => {
     const newSet = new Set(selectedEmployees)
@@ -258,13 +349,23 @@ export default function ExportTab() {
     }))
   }
 
+  // Toggle filter groups
+  const toggleFilterGroup = (group: string) => {
+    setExpandedFilterGroup(expandedFilterGroup === group ? null : group)
+  }
+
+  const toggleCompanyFilterGroup = (group: string) => {
+    setExpandedCompanyFilterGroup(expandedCompanyFilterGroup === group ? null : group)
+  }
+
   // Calculate active filters count
   const getActiveEmployeeFiltersCount = useMemo(() => {
     let count = 0
     Object.values(employeeFilters).forEach(val => { if (val) count++ })
     if (selectedCompanyIds.size > 0) count++
+    if (selectedProjectName) count++
     return count
-  }, [employeeFilters, selectedCompanyIds])
+  }, [employeeFilters, selectedCompanyIds, selectedProjectName])
 
   const getActiveCompanyFiltersCount = useMemo(() => {
     let count = 0
@@ -448,11 +549,11 @@ export default function ExportTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 text-[13px] leading-5">
       {/* Export Type Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">نوع البيانات المراد تصديرها</label>
-        <div className="flex gap-4">
+        <label className="block text-[12px] font-medium text-gray-700 mb-1">نوع البيانات المراد تصديرها</label>
+        <div className="flex gap-2">
           <button
             onClick={() => {
               setExportType('employees')
@@ -460,9 +561,9 @@ export default function ExportTab() {
               setSelectedCompanyIds(new Set())
               setSearchQuery('')
             }}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+            className={`flex-1 px-3 py-2 rounded-md border font-medium transition ${
               exportType === 'employees'
-                ? 'border-blue-600 bg-blue-50 text-blue-600'
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
             }`}
           >
@@ -474,9 +575,9 @@ export default function ExportTab() {
               setSelectedCompanies(new Set())
               setSearchQuery('')
             }}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+            className={`flex-1 px-3 py-2 rounded-md border font-medium transition ${
               exportType === 'companies'
-                ? 'border-green-600 bg-green-50 text-green-600'
+                ? 'border-green-600 bg-green-50 text-green-700'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
             }`}
           >
@@ -488,12 +589,12 @@ export default function ExportTab() {
       {/* Export Employees Section */}
       {exportType === 'employees' && (
       <div className="relative">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">تصدير الموظفين</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[14px] font-bold text-gray-900">تصدير الموظفين</h3>
           <button
             onClick={exportEmployees}
             disabled={loading || selectedEmployees.size === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
           >
             <FileDown className="w-5 h-5" />
             تصدير المحدد ({selectedEmployees.size})
@@ -501,261 +602,357 @@ export default function ExportTab() {
         </div>
 
         {/* Search and Filter Toggle */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex gap-2 mb-2">
           <div className="flex-1">
             <input
               type="text"
-              placeholder="بحث بالاسم أو المهنة..."
+              placeholder="بحث بالاسم أو المهنة أو رقم الإقامة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button
-            onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-            className="relative px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
-          >
-            <Filter className="w-5 h-5" />
-            <span>الفلاتر</span>
-            {getActiveEmployeeFiltersCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
-                {getActiveEmployeeFiltersCount}
-              </span>
+        </div>
+
+        {/* Active Filters Bar */}
+        {(getActiveEmployeeFiltersCount > 0 || selectedCompanyIds.size > 0 || companiesFilterQuery) && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {employeeFilters.expiredResidence && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiredResidence')} color="blue">الإقامات المنتهية ✕</Chip>
             )}
+            {employeeFilters.expiringResidence30 && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiringResidence30')} color="blue">تنتهي خلال 30 يوم ✕</Chip>
+            )}
+            {employeeFilters.expiredHealthInsurance && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiredHealthInsurance')} color="blue">تأمين صحي منتهي ✕</Chip>
+            )}
+            {employeeFilters.expiringHealthInsurance30 && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiringHealthInsurance30')} color="blue">تأمين صحي ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {employeeFilters.expiredHiredContract && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiredHiredContract')} color="blue">أجير منتهي ✕</Chip>
+            )}
+            {employeeFilters.expiringHiredContract30 && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiringHiredContract30')} color="blue">أجير ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {employeeFilters.expiredContract && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiredContract')} color="blue">عقد منتهي ✕</Chip>
+            )}
+            {employeeFilters.expiringContract30 && (
+              <Chip active={true} onClick={() => toggleEmployeeFilter('expiringContract30')} color="blue">عقد ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {selectedCompanyIds.size > 0 && (
+              <Chip active={true} onClick={() => setSelectedCompanyIds(new Set())} color="blue">مؤسسات محددة ({selectedCompanyIds.size}) ✕</Chip>
+            )}
+            {companiesFilterQuery && (
+              <Chip active={true} onClick={() => setCompaniesFilterQuery('')} color="blue">تصفية المؤسسات ✕</Chip>
+            )}
+            {selectedProjectName && (
+              <Chip active={true} onClick={() => setSelectedProjectName('')} color="blue">المشروع: {selectedProjectName} ✕</Chip>
+            )}
+          </div>
+        )}
+
+        {/* Horizontal Collapsible Filter Groups */}
+        <div className="flex gap-1.5 mb-2 flex-wrap">
+          <button
+            onClick={() => toggleFilterGroup('companies')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'companies'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5 inline mr-1" />
+            المؤسسات
           </button>
-        </div>
-
-        {/* Main Content with Sidebar */}
-        <div className="relative flex flex-col lg:flex-row gap-3 lg:gap-4">
-          {/* Filters Sidebar */}
-          <div className={`transition-all duration-300 ease-in-out w-full lg:w-96 ${
-            showFiltersSidebar ? 'block opacity-100' : 'hidden lg:opacity-100'
-          }`}>
-            <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 md:p-6 max-h-96 md:max-h-[calc(100vh-300px)] overflow-y-auto lg:sticky lg:top-4">
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Filter className="w-4 md:w-5 h-4 md:h-5 text-blue-600 flex-shrink-0" />
-                  <h4 className="text-base md:text-lg font-bold text-gray-900">خيارات التصفية</h4>
-                  {getActiveEmployeeFiltersCount > 0 && (
-                    <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-full">
-                      {getActiveEmployeeFiltersCount} نشط
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowFiltersSidebar(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition lg:hidden flex-shrink-0"
-                >
-                  <X className="w-4 md:w-5 h-4 md:h-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Reset Button */}
-              {getActiveEmployeeFiltersCount > 0 && (
-                <button
-                  onClick={resetEmployeeFilters}
-                  className="w-full mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  إعادة تعيين الفلاتر
-                </button>
-              )}
-
-              {/* Company Multi-Select */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  اختيار المؤسسات:
-                </label>
-                <div className="border border-gray-200 rounded-lg bg-gray-50 max-h-48 overflow-y-auto p-3">
-                  <div className="mb-2 pb-2 border-b border-gray-200">
-                    <button
-                      onClick={toggleAllCompaniesForEmployees}
-                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      {selectedCompanyIds.size === companies.length ? (
-                        <CheckSquare className="w-4 h-4" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                      <span>تحديد الكل ({companies.length})</span>
-                    </button>
-                  </div>
-              {companies.map(company => (
-                    <div
-                      key={company.id}
-                      className="flex items-center gap-2 py-2 px-2 hover:bg-white rounded cursor-pointer transition"
-                      onClick={() => toggleCompanySelectionForEmployees(company.id)}
-                    >
-                      {selectedCompanyIds.has(company.id) ? (
-                        <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      ) : (
-                        <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      )}
-                      <span className="text-sm text-gray-700">
-                        {company.name} - {company.unified_number || 'بدون رقم موحد'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Employee Filter Options */}
-              <div className="space-y-6">
-                {/* Residence Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                    تصفية حسب الإقامة:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiredResidence}
-                        onChange={() => toggleEmployeeFilter('expiredResidence')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">الإقامات المنتهية</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiringResidence30}
-                        onChange={() => toggleEmployeeFilter('expiringResidence30')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">الإقامات التي تنتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Health Insurance Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Shield className="w-4 h-4 text-blue-600" />
-                    تصفية حسب التأمين الصحي:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiredHealthInsurance}
-                        onChange={() => toggleEmployeeFilter('expiredHealthInsurance')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">التأمين الصحي المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiringHealthInsurance30}
-                        onChange={() => toggleEmployeeFilter('expiringHealthInsurance30')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">التأمين الصحي الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Hired Contract Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    تصفية حسب عقد أجير:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiredHiredContract}
-                        onChange={() => toggleEmployeeFilter('expiredHiredContract')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">عقد أجير المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiringHiredContract30}
-                        onChange={() => toggleEmployeeFilter('expiringHiredContract30')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">عقد أجير الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Contract Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    تصفية حسب العقد:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiredContract}
-                        onChange={() => toggleEmployeeFilter('expiredContract')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">عقد منتهى</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={employeeFilters.expiringContract30}
-                        onChange={() => toggleEmployeeFilter('expiringContract30')}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">عقد ينتهى خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-          </div>
-        </div>
-
-        {/* Employees List */}
-          <div className="flex-1 min-w-0 border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-3 md:px-4 py-2 md:py-3 border-b border-gray-200 flex items-center gap-2 md:gap-3 text-xs md:text-sm overflow-x-auto">
+          <button
+            onClick={() => toggleFilterGroup('residence')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'residence'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 inline mr-1" />
+            الإقامة
+          </button>
+          <button
+            onClick={() => toggleFilterGroup('insurance')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'insurance'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 inline mr-1" />
+            التأمين الصحي
+          </button>
+          <button
+            onClick={() => toggleFilterGroup('project')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'project'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1" />
+            المشروع
+          </button>
+          <button
+            onClick={() => toggleFilterGroup('hiredContract')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'hiredContract'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1" />
+            عقد أجير
+          </button>
+          <button
+            onClick={() => toggleFilterGroup('employeeContract')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedFilterGroup === 'employeeContract'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1" />
+            العقد
+          </button>
+          {getActiveEmployeeFiltersCount > 0 && (
             <button
-              onClick={toggleAllEmployees}
-              className="text-blue-600 hover:text-blue-700 flex-shrink-0"
+              onClick={resetEmployeeFilters}
+              className="px-3 py-1.5 rounded-md text-[12px] font-medium bg-red-50 text-red-700 hover:bg-red-100 transition"
             >
-              {selectedEmployees.size === filteredEmployees.length ? (
-                <CheckSquare className="w-4 md:w-5 h-4 md:h-5" />
-              ) : (
-                <Square className="w-4 md:w-5 h-4 md:h-5" />
-              )}
+              <RotateCcw className="w-3.5 h-3.5 inline mr-1" />
+              إعادة تعيين
             </button>
-            <span className="font-medium text-gray-700 whitespace-nowrap">
-              تحديد الكل ({filteredEmployees.length})
-            </span>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {filteredEmployees.map(employee => (
-              <div
-                key={employee.id}
-                className="px-4 py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
-                onClick={() => toggleEmployeeSelection(employee.id)}
-              >
-                {selectedEmployees.has(employee.id) ? (
-                  <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                ) : (
-                  <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                )}
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{employee.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {employee.profession} | {employee.nationality} | {employee.company?.name}
-                  </div>
-                </div>
-              </div>
-            ))}
+          )}
+        </div>
+
+        {/* Expanded Filter Group Content */}
+        {expandedFilterGroup === 'companies' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 space-y-2">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-2.5" />
+              <input
+                type="text"
+                value={companiesFilterQuery}
+                onChange={(e) => setCompaniesFilterQuery(e.target.value)}
+                placeholder="فلترة المؤسسات بالاسم أو الرقم الموحد"
+                className="w-full pr-8 pl-3 py-1.5 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleAllCompaniesForEmployees}
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap"
+              >
+                {selectedCompanyIds.size === companies.length ? 'إلغاء تحديد الكل' : `تحديد الكل (${companies.length})`}
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md bg-white max-h-40 overflow-y-auto p-2 space-y-1">
+              {companiesForEmployeeFilter.map(company => (
+                <div
+                  key={company.id}
+                  className="flex items-center gap-2 py-1 px-2 hover:bg-blue-50 rounded cursor-pointer transition"
+                  onClick={() => toggleCompanySelectionForEmployees(company.id)}
+                >
+                  {selectedCompanyIds.has(company.id) ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  )}
+                  <span className="text-[12px] text-gray-700">
+                    {company.name} - {company.unified_number || 'بدون رقم موحد'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {expandedFilterGroup === 'residence' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={employeeFilters.expiredResidence} onClick={() => toggleEmployeeFilter('expiredResidence')} color="blue">الإقامات المنتهية</Chip>
+            <Chip active={employeeFilters.expiringResidence30} onClick={() => toggleEmployeeFilter('expiringResidence30')} color="blue">تنتهي خلال 30 يوم</Chip>
+          </div>
+        )}
+
+        {expandedFilterGroup === 'insurance' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={employeeFilters.expiredHealthInsurance} onClick={() => toggleEmployeeFilter('expiredHealthInsurance')} color="blue">منتهي</Chip>
+            <Chip active={employeeFilters.expiringHealthInsurance30} onClick={() => toggleEmployeeFilter('expiringHealthInsurance30')} color="blue">ينتهي خلال 30 يوم</Chip>
+          </div>
+        )}
+
+        {expandedFilterGroup === 'project' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 space-y-2">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-2.5" />
+              <input
+                type="text"
+                value={projectFilterQuery}
+                onChange={(e) => setProjectFilterQuery(e.target.value)}
+                placeholder="بحث باسم المشروع"
+                className="w-full pr-8 pl-3 py-1.5 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="border border-gray-200 rounded-md bg-white max-h-40 overflow-y-auto p-2 space-y-1">
+              <div
+                className={`flex items-center gap-2 py-1 px-2 rounded cursor-pointer transition ${selectedProjectName === '' ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+                onClick={() => setSelectedProjectName('')}
+              >
+                <span className="text-[12px] text-gray-700">الكل (بدون تحديد مشروع)</span>
+              </div>
+              {projectsForEmployeeFilter.map(name => (
+                <div
+                  key={name}
+                  className={`flex items-center gap-2 py-1 px-2 rounded cursor-pointer transition ${selectedProjectName === name ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+                  onClick={() => setSelectedProjectName(name)}
+                >
+                  <span className="text-[12px] text-gray-700">{name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {expandedFilterGroup === 'hiredContract' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={employeeFilters.expiredHiredContract} onClick={() => toggleEmployeeFilter('expiredHiredContract')} color="blue">منتهي</Chip>
+            <Chip active={employeeFilters.expiringHiredContract30} onClick={() => toggleEmployeeFilter('expiringHiredContract30')} color="blue">ينتهي خلال 30 يوم</Chip>
+          </div>
+        )}
+
+        {expandedFilterGroup === 'employeeContract' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={employeeFilters.expiredContract} onClick={() => toggleEmployeeFilter('expiredContract')} color="blue">منتهي</Chip>
+            <Chip active={employeeFilters.expiringContract30} onClick={() => toggleEmployeeFilter('expiringContract30')} color="blue">ينتهي خلال 30 يوم</Chip>
+          </div>
+        )}
+
+        {/* Employees List - Compact Table */}
+        <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-3 py-1.5 text-center text-[11px] font-medium text-gray-700 uppercase w-10">
+                    <button onClick={toggleAllEmployees} className="flex items-center justify-center w-4 h-4">
+                      {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
+                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Square className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">الاسم</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">المهنة</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">الجنسية</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">الشركة</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">المشروع</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">رقم الإقامة</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">انتهاء العقد</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">عقد أجير</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">انتهاء الإقامة</th>
+                  <th className="px-3 py-1.5 text-right text-[11px] font-medium text-gray-700 uppercase">التأمين الصحي</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredEmployees.map(emp => (
+                  <tr key={emp.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleEmployeeSelection(emp.id)}>
+                    <td className="px-3 py-1.5 text-center">
+                      {selectedEmployees.has(emp.id) ? (
+                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Square className="w-4 h-4 text-gray-400" />
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-[12px] font-medium text-gray-900">{emp.name}</td>
+                    <td className="px-3 py-1.5 text-[12px] text-gray-700">{emp.profession}</td>
+                    <td className="px-3 py-1.5 text-[12px] text-gray-700">{emp.nationality}</td>
+                    <td className="px-3 py-1.5 text-[12px] text-gray-700">{(() => {
+                      const companyName = emp.company?.name || ''
+                      const unifiedNumber = emp.company?.unified_number
+                      return unifiedNumber ? `${companyName} (${unifiedNumber})` : companyName
+                    })()}</td>
+                    <td className="px-3 py-1.5 text-[12px] text-gray-700">{emp.project?.name || emp.project_name || '-'}</td>
+                    <td className="px-3 py-1.5 text-[12px] font-mono text-gray-900">{emp.residence_number || '-'}</td>
+                    <td className="px-3 py-1.5 text-[12px]">
+                      {(() => {
+                        const d = getDaysRemaining(emp.contract_expiry)
+                        return (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className={getDateTextColor(d)}>
+                              {emp.contract_expiry ? formatDateShortWithHijri(emp.contract_expiry) : '-'}
+                            </span>
+                            {emp.contract_expiry && (
+                              <span className="text-[11px] text-gray-500">
+                                {formatDateStatus(d, 'منتهي')}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-3 py-1.5 text-[12px]">
+                      {(() => {
+                        const d = getDaysRemaining(emp.hired_worker_contract_expiry)
+                        return (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className={getDateTextColor(d)}>
+                              {emp.hired_worker_contract_expiry ? formatDateShortWithHijri(emp.hired_worker_contract_expiry) : '-'}
+                            </span>
+                            {emp.hired_worker_contract_expiry && (
+                              <span className="text-[11px] text-gray-500">
+                                {formatDateStatus(d, 'منتهي')}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-3 py-1.5 text-[12px]">
+                      {(() => {
+                        const d = getDaysRemaining(emp.residence_expiry)
+                        return (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className={getDateTextColor(d)}>
+                              {emp.residence_expiry ? formatDateShortWithHijri(emp.residence_expiry) : '-'}
+                            </span>
+                            {emp.residence_expiry && (
+                              <span className="text-[11px] text-gray-500">
+                                {formatDateStatus(d, 'منتهية')}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-3 py-1.5 text-[12px]">
+                      {(() => {
+                        const d = getDaysRemaining(emp.health_insurance_expiry)
+                        return (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className={getDateTextColor(d)}>
+                              {emp.health_insurance_expiry ? formatDateShortWithHijri(emp.health_insurance_expiry) : '-'}
+                            </span>
+                            {emp.health_insurance_expiry && (
+                              <span className="text-[11px] text-gray-500">
+                                {formatDateStatus(d, 'منتهي')}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -764,276 +961,205 @@ export default function ExportTab() {
       {/* Export Companies Section */}
       {exportType === 'companies' && (
       <div className="relative">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">تصدير المؤسسات</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[14px] font-bold text-gray-900">تصدير المؤسسات</h3>
           <button
             onClick={exportCompanies}
             disabled={loading || selectedCompanies.size === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
           >
             <FileDown className="w-5 h-5" />
             تصدير المحدد ({selectedCompanies.size})
           </button>
         </div>
 
-        {/* Search and Filter Toggle */}
-        <div className="flex gap-3 mb-4">
-          <button
-            onClick={() => setShowFiltersSidebar(!showFiltersSidebar)}
-            className="relative px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
-          >
-            <Filter className="w-5 h-5" />
-            <span>الفلاتر</span>
-            {getActiveCompanyFiltersCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
-                {getActiveCompanyFiltersCount}
-              </span>
+        {/* Company Search */}
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="بحث باسم المؤسسة أو الرقم الموحد..."
+              value={companySearchQuery}
+              onChange={(e) => setCompanySearchQuery(e.target.value)}
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+        </div>
+
+        {/* Active Filters Bar */}
+        {getActiveCompanyFiltersCount > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {companyFilters.completed && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('completed')} color="green">مكتملة ✕</Chip>
             )}
+            {companyFilters.vacant1 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('vacant1')} color="green">مكان شاغر ✕</Chip>
+            )}
+            {companyFilters.vacant2 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('vacant2')} color="green">مكانين شاغرين ✕</Chip>
+            )}
+            {companyFilters.vacant3 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('vacant3')} color="green">3 أماكن ✕</Chip>
+            )}
+            {companyFilters.vacant4 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('vacant4')} color="green">4 أماكن ✕</Chip>
+            )}
+            {companyFilters.expiredCommercialReg && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiredCommercialReg')} color="green">سجل تجاري منتهي ✕</Chip>
+            )}
+            {companyFilters.expiringCommercialReg30 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiringCommercialReg30')} color="green">سجل ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {companyFilters.expiredPowerSub && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiredPowerSub')} color="green">اشتراك قوى منتهي ✕</Chip>
+            )}
+            {companyFilters.expiringPowerSub30 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiringPowerSub30')} color="green">قوى ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {companyFilters.expiredMoqeemSub && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiredMoqeemSub')} color="green">اشتراك مقيم منتهي ✕</Chip>
+            )}
+            {companyFilters.expiringMoqeemSub30 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiringMoqeemSub30')} color="green">مقيم ينتهي خلال 30 يوم ✕</Chip>
+            )}
+            {companyFilters.expiredSocialInsurance && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiredSocialInsurance')} color="green">تأمينات منتهية ✕</Chip>
+            )}
+            {companyFilters.expiringSocialInsurance30 && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('expiringSocialInsurance30')} color="green">تأمينات تنتهي خلال 30 يوم ✕</Chip>
+            )}
+          </div>
+        )}
+
+        {/* Horizontal Collapsible Filter Groups */}
+        <div className="flex gap-1.5 mb-2 flex-wrap">
+          <button
+            onClick={() => toggleCompanyFilterGroup('slots')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedCompanyFilterGroup === 'slots'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5 inline mr-1" />
+            الأماكن الشاغرة
           </button>
+          <button
+            onClick={() => toggleCompanyFilterGroup('commercial')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedCompanyFilterGroup === 'commercial'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1" />
+            السجل التجاري
+          </button>
+          <button
+            onClick={() => toggleCompanyFilterGroup('subscriptions')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedCompanyFilterGroup === 'subscriptions'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 inline mr-1" />
+            الاشتراكات
+          </button>
+          <button
+            onClick={() => toggleCompanyFilterGroup('insurance')}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
+              expandedCompanyFilterGroup === 'insurance'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 inline mr-1" />
+            التأمينات الاجتماعية
+          </button>
+          {getActiveCompanyFiltersCount > 0 && (
+            <button
+              onClick={resetCompanyFilters}
+              className="px-3 py-1.5 rounded-md text-[12px] font-medium bg-red-50 text-red-700 hover:bg-red-100 transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5 inline mr-1" />
+              إعادة تعيين
+            </button>
+          )}
         </div>
 
-        {/* Main Content with Sidebar */}
-        <div className="relative flex flex-col lg:flex-row gap-3 lg:gap-4">
-          {/* Filters Sidebar */}
-          <div className={`transition-all duration-300 ease-in-out w-full lg:w-96 ${
-            showFiltersSidebar ? 'block opacity-100' : 'hidden lg:opacity-100'
-          }`}>
-            <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 md:p-6 max-h-96 md:max-h-[calc(100vh-300px)] overflow-y-auto lg:sticky lg:top-4">
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Filter className="w-4 md:w-5 h-4 md:h-5 text-green-600 flex-shrink-0" />
-                  <h4 className="text-base md:text-lg font-bold text-gray-900">خيارات التصفية</h4>
-                  {getActiveCompanyFiltersCount > 0 && (
-                    <span className="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded-full">
-                      {getActiveCompanyFiltersCount} نشط
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowFiltersSidebar(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition lg:hidden flex-shrink-0"
-                >
-                  <X className="w-4 md:w-5 h-4 md:h-5 text-gray-500" />
-                </button>
-              </div>
+        {/* Expanded Filter Group Content */}
+        {expandedCompanyFilterGroup === 'slots' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={companyFilters.completed} onClick={() => toggleCompanyFilter('completed')} color="green">مكتملة</Chip>
+            <Chip active={companyFilters.vacant1} onClick={() => toggleCompanyFilter('vacant1')} color="green">مكان شاغر</Chip>
+            <Chip active={companyFilters.vacant2} onClick={() => toggleCompanyFilter('vacant2')} color="green">مكانين شاغرين</Chip>
+            <Chip active={companyFilters.vacant3} onClick={() => toggleCompanyFilter('vacant3')} color="green">3 أماكن</Chip>
+            <Chip active={companyFilters.vacant4} onClick={() => toggleCompanyFilter('vacant4')} color="green">4 أماكن</Chip>
+          </div>
+        )}
 
-              {/* Reset Button */}
-              {getActiveCompanyFiltersCount > 0 && (
-                <button
-                  onClick={resetCompanyFilters}
-                  className="w-full mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  إعادة تعيين الفلاتر
-                </button>
-              )}
+        {expandedCompanyFilterGroup === 'commercial' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={companyFilters.expiredCommercialReg} onClick={() => toggleCompanyFilter('expiredCommercialReg')} color="green">سجل منتهي</Chip>
+            <Chip active={companyFilters.expiringCommercialReg30} onClick={() => toggleCompanyFilter('expiringCommercialReg30')} color="green">ينتهي خلال 30 يوم</Chip>
+          </div>
+        )}
 
-              {/* Company Filter Options */}
-              <div className="space-y-4">
-          
-                {/* Vacant Slots Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Building2 className="w-4 h-4 text-green-600" />
-                    تصفية حسب الأماكن الشاغرة:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.completed}
-                        onChange={() => toggleCompanyFilter('completed')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">المؤسسات المكتملة</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.vacant1}
-                        onChange={() => toggleCompanyFilter('vacant1')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">المؤسسات ذات مكان شاغر</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.vacant2}
-                        onChange={() => toggleCompanyFilter('vacant2')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">المؤسسات ذات مكانين شاغرين</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.vacant3}
-                        onChange={() => toggleCompanyFilter('vacant3')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">المؤسسات ذات 3 أماكن شاغرة</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.vacant4}
-                        onChange={() => toggleCompanyFilter('vacant4')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">المؤسسات ذات 4 أماكن شاغرة</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Commercial Registration Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <FileText className="w-4 h-4 text-green-600" />
-                    تصفية حسب السجل التجاري:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiredCommercialReg}
-                        onChange={() => toggleCompanyFilter('expiredCommercialReg')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">السجل التجاري المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiringCommercialReg30}
-                        onChange={() => toggleCompanyFilter('expiringCommercialReg30')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">السجل التجاري الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Power Subscription Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Calendar className="w-4 h-4 text-green-600" />
-                    تصفية حسب اشتراك قوى:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiredPowerSub}
-                        onChange={() => toggleCompanyFilter('expiredPowerSub')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك قوى المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiringPowerSub30}
-                        onChange={() => toggleCompanyFilter('expiringPowerSub30')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك قوى الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Moqeem Subscription Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Calendar className="w-4 h-4 text-green-600" />
-                    تصفية حسب اشتراك مقيم:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiredMoqeemSub}
-                        onChange={() => toggleCompanyFilter('expiredMoqeemSub')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك مقيم المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiringMoqeemSub30}
-                        onChange={() => toggleCompanyFilter('expiringMoqeemSub30')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك مقيم الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Social Insurance Filters */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                    <Shield className="w-4 h-4 text-green-600" />
-                    تصفية حسب التأمينات الاجتماعية:
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiredSocialInsurance}
-                        onChange={() => toggleCompanyFilter('expiredSocialInsurance')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك التأمينات الاجتماعية المنتهي</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group hover:bg-white p-2 rounded transition">
-                      <input
-                        type="checkbox"
-                        checked={companyFilters.expiringSocialInsurance30}
-                        onChange={() => toggleCompanyFilter('expiringSocialInsurance30')}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700 group-hover:text-gray-900">اشتراك التأمينات الاجتماعية الذي ينتهي خلال 30 يوم</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
+        {expandedCompanyFilterGroup === 'subscriptions' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-[11px] font-semibold text-gray-600">اشتراك قوى:</span>
+              <Chip active={companyFilters.expiredPowerSub} onClick={() => toggleCompanyFilter('expiredPowerSub')} color="green">منتهي</Chip>
+              <Chip active={companyFilters.expiringPowerSub30} onClick={() => toggleCompanyFilter('expiringPowerSub30')} color="green">ينتهي خلال 30 يوم</Chip>
             </div>
-        </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="text-[11px] font-semibold text-gray-600">اشتراك مقيم:</span>
+              <Chip active={companyFilters.expiredMoqeemSub} onClick={() => toggleCompanyFilter('expiredMoqeemSub')} color="green">منتهي</Chip>
+              <Chip active={companyFilters.expiringMoqeemSub30} onClick={() => toggleCompanyFilter('expiringMoqeemSub30')} color="green">ينتهي خلال 30 يوم</Chip>
+            </div>
+          </div>
+        )}
+
+        {expandedCompanyFilterGroup === 'insurance' && (
+          <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
+            <Chip active={companyFilters.expiredSocialInsurance} onClick={() => toggleCompanyFilter('expiredSocialInsurance')} color="green">منتهي</Chip>
+            <Chip active={companyFilters.expiringSocialInsurance30} onClick={() => toggleCompanyFilter('expiringSocialInsurance30')} color="green">ينتهي خلال 30 يوم</Chip>
+          </div>
+        )}
 
         {/* Companies List */}
-          <div className="flex-1 min-w-0 border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-3 md:px-4 py-2 md:py-3 border-b border-gray-200 flex items-center gap-2 md:gap-3 text-xs md:text-sm overflow-x-auto">
+        <div className="border border-gray-200 rounded-md overflow-hidden">
+          <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center gap-2 text-[13px] overflow-x-auto">
             <button
               onClick={toggleAllCompanies}
               className="text-green-600 hover:text-green-700 flex-shrink-0"
             >
               {selectedCompanies.size === filteredCompanies.length ? (
-                <CheckSquare className="w-4 md:w-5 h-4 md:h-5" />
+                <CheckSquare className="w-4 h-4" />
               ) : (
-                <Square className="w-4 md:w-5 h-4 md:h-5" />
+                <Square className="w-4 h-4" />
               )}
             </button>
             <span className="font-medium text-gray-700 whitespace-nowrap">
               تحديد الكل ({filteredCompanies.length})
             </span>
             </div>
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto">
             {filteredCompanies.map(company => (
               <div
                 key={company.id}
-                className="px-3 md:px-4 py-2 md:py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-2 md:gap-3 cursor-pointer text-xs md:text-sm"
+                className="px-3 py-2 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
                 onClick={() => toggleCompanySelection(company.id)}
               >
                 {selectedCompanies.has(company.id) ? (
-                  <CheckSquare className="w-4 md:w-5 h-4 md:h-5 text-green-600 flex-shrink-0" />
+                  <CheckSquare className="w-4 h-4 text-green-600 flex-shrink-0" />
                 ) : (
-                  <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 )}
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">{company.name}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="font-medium text-gray-900">{company.unified_number ? `${company.name} (${company.unified_number})` : company.name}</div>
+                  <div className="text-gray-600">
                     {company.social_insurance_expiry && `انتهاء التأمينات الاجتماعية: ${company.social_insurance_expiry}`}
                     {company.max_employees && ` | الحد: ${company.max_employees} موظف`}
                     {company.available_slots !== undefined && ` | أماكن شاغرة: ${company.available_slots}`}
@@ -1043,7 +1169,6 @@ export default function ExportTab() {
             ))}
             </div>
           </div>
-        </div>
       </div>
       )}
     </div>

@@ -19,6 +19,7 @@ export interface EmployeeAlert {
     id: string
     name: string
     commercial_registration_number?: string
+    unified_number?: number
   }
   expiry_date?: string
   days_remaining?: number
@@ -491,7 +492,8 @@ export function enrichEmployeeAlertsWithCompanyData(alerts: EmployeeAlert[], com
         company: {
           id: company.id,
           name: company.name,
-          commercial_registration_number: company.commercial_registration_expiry
+          commercial_registration_number: company.commercial_registration_expiry,
+          unified_number: company.unified_number
         }
       }
     }

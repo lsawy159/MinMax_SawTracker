@@ -182,7 +182,9 @@ export default function Projects() {
         action: 'حذف مشروع',
         entity_type: 'project',
         entity_id: selectedProject.id,
-        details: { project_name: selectedProject.name }
+        details: { 
+          project_name: selectedProject.name 
+        }
       })
 
       toast.success('تم حذف المشروع بنجاح')
