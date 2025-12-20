@@ -71,7 +71,6 @@ export default function ActivityLogs() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && selectedLog) {
         setSelectedLog(null)
-        setShowRawData(false)
       }
     }
     document.addEventListener('keydown', handleEscape)
@@ -365,8 +364,8 @@ export default function ActivityLogs() {
         // فقط أضف إذا كانت القيم مختلفة فعلاً
         if (oldValue !== newValue) {
           const fieldLabel = getFieldLabel(key)
-          const displayedOldValue = formatDisplayValue(oldValue, key, details)
-          const displayedNewValue = formatDisplayValue(newValue, key, details)
+          const displayedOldValue = formatDisplayValue(oldValue)
+          const displayedNewValue = formatDisplayValue(newValue)
           
           // تحديد ما إذا كان هناك تغيير فعلي
           const oldEmpty = !oldValue || oldValue === '' || displayedOldValue === null
@@ -1758,7 +1757,6 @@ export default function ActivityLogs() {
                 <button
                   onClick={() => {
                     setSelectedLog(null)
-                    setShowRawData(false)
                   }}
                   className="p-2 hover:bg-white/20 rounded-lg transition"
                 >
@@ -1841,7 +1839,6 @@ export default function ActivityLogs() {
                 <button
                   onClick={() => {
                     setSelectedLog(null)
-                    setShowRawData(false)
                   }}
                   className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                 >

@@ -199,15 +199,12 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('read_alerts')
         .select('alert_id')
         .eq('user_id', user.id)
 
       if (error) throw error
-
-      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
-      setReadAlerts(readAlertIds)
     } catch (error) {
       console.error('خطأ في جلب التنبيهات المقروءة:', error)
     }
