@@ -14,6 +14,7 @@ export interface Alert {
     id: string
     name: string
     commercial_registration_number?: string
+    unified_number?: number
   }
   expiry_date?: string
   days_remaining?: number
@@ -145,7 +146,7 @@ export function AlertCard({
             
             <div className="space-y-1">
               <p className="text-gray-600 text-sm font-medium">
-                {alert.company.name}
+                {alert.company.name} {alert.company.unified_number && `(${alert.company.unified_number})`}
               </p>
               <div className="flex items-center gap-4 text-xs text-gray-500">
                 {alert.company.commercial_registration_number && (

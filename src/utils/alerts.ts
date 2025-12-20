@@ -79,6 +79,7 @@ export async function getNotificationThresholds() {
 export interface Company {
   id: string
   name: string
+  unified_number?: number
   commercial_registration_number?: string
   commercial_registration_expiry?: string
   social_insurance_expiry?: string  // بدلاً من insurance_subscription_expiry
@@ -167,7 +168,8 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
             company: {
               id: company.id,
               name: company.name,
-              commercial_registration_number: company.commercial_registration_number
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
             },
             expiry_date: company.commercial_registration_expiry,
             days_remaining: daysRemaining,
@@ -205,7 +207,8 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
             company: {
               id: company.id,
               name: company.name,
-              commercial_registration_number: company.commercial_registration_number
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
             },
             expiry_date: company.social_insurance_expiry,
             days_remaining: daysRemaining,
@@ -260,7 +263,8 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
             company: {
               id: company.id,
               name: company.name,
-              commercial_registration_number: company.commercial_registration_number
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
             },
             expiry_date: company.ending_subscription_power_date,
             days_remaining: daysRemaining,
@@ -315,7 +319,8 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
             company: {
               id: company.id,
               name: company.name,
-              commercial_registration_number: company.commercial_registration_number
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
             },
             expiry_date: company.ending_subscription_moqeem_date,
             days_remaining: daysRemaining,
@@ -400,7 +405,8 @@ export async function checkCommercialRegistrationExpiry(company: Company): Promi
     company: {
       id: company.id,
       name: company.name,
-      commercial_registration_number: company.commercial_registration_number
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
     },
     expiry_date: company.commercial_registration_expiry,
     days_remaining: daysRemaining,
@@ -478,7 +484,8 @@ export async function checkSocialInsuranceExpiry(company: Company): Promise<Aler
     company: {
       id: company.id,
       name: company.name,
-      commercial_registration_number: company.commercial_registration_number
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
     },
     expiry_date: expiryDate.toISOString().split('T')[0],
     days_remaining: daysRemaining,
@@ -556,7 +563,8 @@ export async function checkPowerSubscriptionExpiry(company: Company): Promise<Al
     company: {
       id: company.id,
       name: company.name,
-      commercial_registration_number: company.commercial_registration_number
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
     },
     expiry_date: company.ending_subscription_power_date,
     days_remaining: daysRemaining,
@@ -634,7 +642,8 @@ export async function checkMoqeemSubscriptionExpiry(company: Company): Promise<A
     company: {
       id: company.id,
       name: company.name,
-      commercial_registration_number: company.commercial_registration_number
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
     },
     expiry_date: company.ending_subscription_moqeem_date,
     days_remaining: daysRemaining,

@@ -491,20 +491,64 @@ export default function Employees() {
     await loadEmployees()
   }
 
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'name': 'الاسم',
+      'phone': 'رقم الهاتف',
+      'profession': 'المهنة',
+      'nationality': 'الجنسية',
+      'residence_number': 'رقم الإقامة',
+      'passport_number': 'رقم الجواز',
+      'bank_account': 'الحساب البنكي',
+      'salary': 'الراتب',
+      'project_id': 'المشروع',
+      'company_id': 'المؤسسة',
+      'birth_date': 'تاريخ الميلاد',
+      'joining_date': 'تاريخ الالتحاق',
+      'residence_expiry': 'تاريخ انتهاء الإقامة',
+      'contract_expiry': 'تاريخ انتهاء العقد',
+      'hired_worker_contract_expiry': 'تاريخ انتهاء عقد أجير',
+      'health_insurance_expiry': 'تاريخ انتهاء التأمين الصحي',
+      'notes': 'الملاحظات',
+      'employee_name': 'اسم الموظف',
+      'company': 'المؤسسة'
+    }
+    return fieldLabels[key] || key
+  }
+
   // تم إزالة دوال التعديل السريع
   
   const logActivity = async (employeeId: string, action: string, changes: Record<string, unknown>) => {
     try {
       const employee = employees.find(e => e.id === employeeId)
+      
+      // تحويل مفاتيح التغييرات إلى أسماء مترجمة
+      const translatedChanges: Record<string, unknown> = {}
+      const changedFields: string[] = []
+      
+      Object.keys(changes).forEach(key => {
+        const label = getFieldLabel(key)
+        translatedChanges[label] = changes[key]
+        changedFields.push(label)
+      })
+      
+      // تحديد اسم العملية الفعلي بناءً على عدد التغييرات
+      let actionName = action
+      if (changedFields.length === 1 && !action.includes('حذف')) {
+        actionName = `تحديث ${changedFields[0]}`
+      } else if (changedFields.length > 1 && !action.includes('حذف')) {
+        actionName = `تحديث متعدد (${changedFields.length} حقول)`
+      }
+      
       await supabase
         .from('activity_log')
         .insert({
           entity_type: 'employee',
           entity_id: employeeId,
-          action: action,
+          action: actionName,
           details: {
             employee_name: employee?.name,
-            changes: changes,
+            changes: translatedChanges,
             timestamp: new Date().toISOString()
           }
         })

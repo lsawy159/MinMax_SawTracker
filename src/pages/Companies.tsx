@@ -571,13 +571,12 @@ export default function Companies() {
 
       // [FIX] المرحلة الثالثة: تسجيل النشاط
       await supabase.from('activity_log').insert({
-        action: 'حذف مؤسسة مع فصل الموظفين',
+        action: 'حذف مؤسسة',
         entity_type: 'company',
         entity_id: selectedCompany.id,
         details: { 
           company_name: selectedCompany.name,
-          employees_unassigned_count: employees?.length || 0,
-          employees_unassigned: true
+          unified_number: selectedCompany.unified_number
         }
       })
 

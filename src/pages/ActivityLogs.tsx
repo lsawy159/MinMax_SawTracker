@@ -19,7 +19,11 @@ import {
   Building2,
   Clock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogIn,
+  LogOut,
+  AlertCircle,
+  X
 } from 'lucide-react'
 import { formatDateTimeWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -45,7 +49,6 @@ export default function ActivityLogs() {
   const [entityFilter, setEntityFilter] = useState<EntityFilter>('all')
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null)
-  const [showRawData, setShowRawData] = useState(false)
   const [selectedLogIds, setSelectedLogIds] = useState<Set<number>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteAllMode, setDeleteAllMode] = useState(false)
@@ -62,6 +65,20 @@ export default function ActivityLogs() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, actionFilter, entityFilter, dateFilter])
+
+  // إغلاق بطاقة التفاصيل عند الضغط على Escape
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && selectedLog) {
+        setSelectedLog(null)
+        setShowRawData(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [selectedLog])
 
   // التحقق من صلاحية العرض - بعد جميع الـ hooks
   if (!canView('activityLogs')) {
@@ -131,20 +148,76 @@ export default function ActivityLogs() {
   }
 
   const getActionIcon = (action: string) => {
-    if (action.includes('create') || action.includes('add')) return <Plus className="w-4 h-4" />
-    if (action.includes('update') || action.includes('edit')) return <Edit className="w-4 h-4" />
-    if (action.includes('delete') || action.includes('remove')) return <Trash2 className="w-4 h-4" />
-    if (action.includes('view') || action.includes('read')) return <Eye className="w-4 h-4" />
-    if (action.includes('login')) return <UserIcon className="w-4 h-4" />
-    return <Activity className="w-4 h-4" />
+    const actionLower = action.toLowerCase()
+    if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('إنشاء') || actionLower.includes('إضافة')) 
+      return <Plus className="w-5 h-5" />
+    if (actionLower.includes('update') || actionLower.includes('edit') || actionLower.includes('تحديث') || actionLower.includes('تعديل')) 
+      return <Edit className="w-5 h-5" />
+    if (actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('حذف')) 
+      return <Trash2 className="w-5 h-5" />
+    if (actionLower.includes('view') || actionLower.includes('read') || actionLower.includes('عرض')) 
+      return <Eye className="w-5 h-5" />
+    if (actionLower.includes('login') || actionLower.includes('دخول')) 
+      return <LogIn className="w-5 h-5" />
+    if (actionLower.includes('logout') || actionLower.includes('خروج')) 
+      return <LogOut className="w-5 h-5" />
+    return <Activity className="w-5 h-5" />
   }
 
   const getActionColor = (action: string) => {
-    if (action.includes('create') || action.includes('add')) return 'text-green-600 bg-green-50 border-green-200'
-    if (action.includes('update') || action.includes('edit')) return 'text-blue-600 bg-blue-50 border-blue-200'
-    if (action.includes('delete') || action.includes('remove')) return 'text-red-600 bg-red-50 border-red-200'
-    if (action.includes('login')) return 'text-purple-600 bg-purple-50 border-purple-200'
-    return 'text-gray-600 bg-gray-50 border-gray-200'
+    const actionLower = action.toLowerCase()
+    if (actionLower.includes('create') || actionLower.includes('add') || actionLower.includes('إنشاء') || actionLower.includes('إضافة')) 
+      return {
+        bg: 'bg-gradient-to-br from-green-50 to-emerald-50',
+        border: 'border-l-4 border-green-500',
+        text: 'text-green-700',
+        badge: 'bg-green-100 text-green-800',
+        icon: 'bg-green-100 text-green-600'
+      }
+    if (actionLower.includes('update') || actionLower.includes('edit') || actionLower.includes('تحديث') || actionLower.includes('تعديل')) 
+      return {
+        bg: 'bg-gradient-to-br from-blue-50 to-cyan-50',
+        border: 'border-l-4 border-blue-500',
+        text: 'text-blue-700',
+        badge: 'bg-blue-100 text-blue-800',
+        icon: 'bg-blue-100 text-blue-600'
+      }
+    if (actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('حذف')) 
+      return {
+        bg: 'bg-gradient-to-br from-red-50 to-rose-50',
+        border: 'border-l-4 border-red-500',
+        text: 'text-red-700',
+        badge: 'bg-red-100 text-red-800',
+        icon: 'bg-red-100 text-red-600'
+      }
+    if (actionLower.includes('login') || actionLower.includes('دخول')) 
+      return {
+        bg: 'bg-gradient-to-br from-purple-50 to-violet-50',
+        border: 'border-l-4 border-purple-500',
+        text: 'text-purple-700',
+        badge: 'bg-purple-100 text-purple-800',
+        icon: 'bg-purple-100 text-purple-600'
+      }
+    if (actionLower.includes('logout') || actionLower.includes('خروج')) 
+      return {
+        bg: 'bg-gradient-to-br from-orange-50 to-amber-50',
+        border: 'border-l-4 border-orange-500',
+        text: 'text-orange-700',
+        badge: 'bg-orange-100 text-orange-800',
+        icon: 'bg-orange-100 text-orange-600'
+      }
+    return {
+      bg: 'bg-gray-50',
+      border: 'border-l-4 border-gray-300',
+      text: 'text-gray-700',
+      badge: 'bg-gray-100 text-gray-800',
+      icon: 'bg-gray-100 text-gray-600'
+    }
+  }
+
+  const isImportantAction = (action: string) => {
+    const actionLower = action.toLowerCase()
+    return actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('حذف')
   }
 
   const getActionLabel = (action: string) => {
@@ -183,20 +256,61 @@ export default function ActivityLogs() {
       'passport_number': 'رقم الجواز',
       'bank_account': 'الحساب البنكي',
       'salary': 'الراتب',
-      'project_name': 'المشروع',
+      'project_id': 'المشروع',
       'company_id': 'المؤسسة',
       'birth_date': 'تاريخ الميلاد',
       'joining_date': 'تاريخ الالتحاق',
       'residence_expiry': 'تاريخ انتهاء الإقامة',
       'contract_expiry': 'تاريخ انتهاء العقد',
+      'hired_worker_contract_expiry': 'تاريخ انتهاء عقد أجير',
       'ending_subscription_insurance_date': 'تاريخ انتهاء اشتراك التأمين',
+      'health_insurance_expiry': 'تاريخ انتهاء التأمين الصحي',
       'notes': 'الملاحظات',
       'unified_number': 'الرقم الموحد',
       'tax_number': 'الرقم الضريبي',
       'commercial_registration_number': 'رقم السجل التجاري',
-      'exemptions': 'الاعفاءات'
+      'exemptions': 'الاعفاءات',
+      'additional_fields': 'حقول إضافية',
+      'residence_image_url': 'صورة الإقامة'
     }
     return fieldLabels[key] || key
+  }
+
+  const isUselessSystemId = (value: unknown): boolean => {
+    if (value === null || value === undefined || value === '') return true
+    const strValue = String(value).trim()
+    // UUID أو معرفات طويلة بدون معنى للمستخدم
+    if (strValue.length > 20 && /^[a-f0-9-]{20,}$/.test(strValue)) return true
+    if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}/.test(strValue)) return true
+    return false
+  }
+
+  const formatDisplayValue = (value: unknown): string | null => {
+    // إذا كانت القيمة معرف نظام بدون فائدة
+    if (isUselessSystemId(value)) {
+      return null
+    }
+
+    // تحويل إلى string
+    const strValue = String(value).trim()
+
+    // حالات خاصة:
+    // 1. تاريخ ISO (YYYY-MM-DD أو مشابه)
+    if (/^\d{4}-\d{2}-\d{2}/.test(strValue)) {
+      return strValue
+    }
+
+    // 2. قيمة عادية وواضحة - عرضها كما هي
+    if (strValue && strValue.length < 200) {
+      return strValue
+    }
+
+    // 3. JSON أو بيانات معقدة - لا نعرضها
+    if (strValue.startsWith('{') || strValue.startsWith('[')) {
+      return null
+    }
+
+    return strValue
   }
 
   const renderUpdateDetails = (log: ActivityLog): JSX.Element => {
@@ -205,11 +319,11 @@ export default function ActivityLogs() {
     const details = log.details || {}
     const employeeName = details.employee_name || details.name
     const companyName = details.company_name || details.company
-    const changes = details.changes || {}
     
     // محاولة استخراج old_data و new_data
     let oldData: Record<string, unknown> | null = null
     let newData: Record<string, unknown> | null = null
+    let hasValidData = false
     
     try {
       if (typeof log.old_data === 'string') {
@@ -223,52 +337,67 @@ export default function ActivityLogs() {
       } else if (log.new_data && typeof log.new_data === 'object') {
         newData = log.new_data as Record<string, unknown>
       }
+      
+      // التحقق من أن البيانات صحيحة وليست فارغة
+      hasValidData = (oldData && Object.keys(oldData).length > 0) || 
+                     (newData && Object.keys(newData).length > 0)
     } catch {
       // تجاهل أخطاء التحليل
     }
     
     // جمع التغييرات
-    const changeList: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
+    const changeList: Array<{ field: string; fieldKey: string; oldValue: string | null; newValue: string | null; hasActualChange: boolean }> = []
     
-    // استخراج التغييرات من changes
-    if (typeof changes === 'object' && Object.keys(changes).length > 0) {
-      Object.entries(changes).forEach(([key, value]) => {
-        // الحالة 1: كائن يحتوي على old_value و new_value
-        if (value && typeof value === 'object' && 'old_value' in value && 'new_value' in value) {
-          changeList.push({
-            field: getFieldLabel(key),
-            oldValue: value.old_value,
-            newValue: value.new_value
-          })
-        }
-        // الحالة 2: قيمة مباشرة (للتوافق مع البيانات القديمة)
-        else if (value !== null && value !== undefined) {
-          // إذا كانت القيمة مختلفة عن null/undefined، نعتبرها قيمة جديدة
-          // لكن لا نعرف القيمة القديمة، لذا نعرضها كقيمة جديدة فقط
-          // (هذه حالة للبيانات القديمة التي لم تكن تحتوي على old_value)
-        }
-      })
-    }
-    
-    // استخراج التغييرات من old_data و new_data
+    // استخراج التغييرات من old_data و new_data - الأكثر موثوقية
     if (oldData && newData) {
-      Object.keys(newData).forEach(key => {
-        if (oldData[key] !== newData[key]) {
+      // أحصل على جميع المفاتيح من oldData و newData
+      const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)])
+      
+      allKeys.forEach(key => {
+        const oldValue = oldData?.[key]
+        const newValue = newData?.[key]
+        
+        // تخطي معرفات النظام
+        if (isUselessSystemId(oldValue) && isUselessSystemId(newValue)) {
+          return
+        }
+        
+        // فقط أضف إذا كانت القيم مختلفة فعلاً
+        if (oldValue !== newValue) {
           const fieldLabel = getFieldLabel(key)
+          const displayedOldValue = formatDisplayValue(oldValue, key, details)
+          const displayedNewValue = formatDisplayValue(newValue, key, details)
+          
+          // تحديد ما إذا كان هناك تغيير فعلي
+          const oldEmpty = !oldValue || oldValue === '' || displayedOldValue === null
+          const newEmpty = !newValue || newValue === '' || displayedNewValue === null
+          
           // تجنب التكرار
           if (!changeList.some(c => c.field === fieldLabel)) {
             changeList.push({
               field: fieldLabel,
-              oldValue: oldData[key] || 'فارغ',
-              newValue: newData[key] || 'فارغ'
+              fieldKey: key,
+              oldValue: displayedOldValue,
+              newValue: displayedNewValue,
+              hasActualChange: !oldEmpty || !newEmpty // هناك تغيير إذا لم تكن كلاهما فارغة
             })
           }
         }
       })
     }
+    
+    // تصفية التغييرات الفعلية فقط
+    const actualChanges = changeList.filter(c => c.hasActualChange)
 
-    // تحديد اسم الكيان
+    // تحديد اسم الكيان وعنوان محسّن
     let entityName = ''
+    let changedFieldsText = ''
+    
+    if (actualChanges.length > 0) {
+      const fieldNames = actualChanges.map(c => c.field).join(' و ')
+      changedFieldsText = ` (تحديث ${fieldNames})`
+    }
+    
     if (entityType === 'employee' && employeeName) {
       entityName = String(employeeName)
     } else if (entityType === 'company' && companyName) {
@@ -280,41 +409,94 @@ export default function ActivityLogs() {
         <div>
           <h4 className="text-lg font-semibold text-gray-900 mb-2">
             {entityName 
-              ? `تم تحديث ${entityLabel} "${entityName}"`
-              : `تم تحديث ${entityLabel}`
+              ? `تم تحديث ${entityLabel} "${entityName}"${changedFieldsText}`
+              : `تم تحديث ${entityLabel}${changedFieldsText}`
             }
           </h4>
         </div>
         
-        {changeList.length > 0 ? (
-          <div>
-            <h5 className="text-sm font-medium text-gray-700 mb-3">الحقول المحدثة:</h5>
+        {actualChanges.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-800 font-medium">التفاصيل ({actualChanges.length})</p>
+            </div>
             <div className="space-y-3">
-              {changeList.map((change, index) => (
-                <div key={index} className="border-r-4 border-purple-300 pr-3">
-                  <div className="font-medium text-gray-800 mb-2">
-                    • {change.field}:
+              {actualChanges.map((change, index) => (
+                <div key={index} className="border-r-4 border-purple-400 bg-purple-50 p-4 rounded-lg">
+                  <div className="font-semibold text-gray-900 mb-3 text-base">
+                    ✏️ {change.field}
                   </div>
-                  <div className="space-y-2 mr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">قبل:</span>
-                      <span className="px-3 py-1 bg-red-50 text-red-700 rounded-md text-sm font-medium border border-red-200">
-                        {String(change.oldValue || 'فارغ')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">بعد:</span>
-                      <span className="px-3 py-1 bg-green-50 text-green-700 rounded-md text-sm font-medium border border-green-200">
-                        {String(change.newValue || 'فارغ')}
-                      </span>
-                    </div>
+                  <div className="space-y-3 ml-4">
+                    {/* حالة: تم تغيير القيمة من قيمة قديمة إلى جديدة */}
+                    {change.oldValue && change.newValue && (
+                      <>
+                        <div>
+                          <span className="text-xs font-medium text-gray-600 block mb-2">كان:</span>
+                          <div className="px-3 py-2 bg-red-50 text-red-700 rounded-md text-sm border border-red-200 font-medium break-words">
+                            {change.oldValue}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="inline-block text-gray-400 text-lg">↓</div>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-600 block mb-2">أصبح:</span>
+                          <div className="px-3 py-2 bg-green-50 text-green-700 rounded-md text-sm border border-green-200 font-medium break-words">
+                            {change.newValue}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* حالة: تم إضافة قيمة جديدة (لم تكن موجودة من قبل) */}
+                    {!change.oldValue && change.newValue && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 block mb-2">تم الإضافة (لم يكن هناك قيمة من قبل)</span>
+                        <div className="px-3 py-2 bg-green-50 text-green-700 rounded-md text-sm border border-green-200 font-medium break-words">
+                          {change.newValue}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* حالة: تم حذف القيمة (كانت موجودة وتم حذفها) */}
+                    {change.oldValue && !change.newValue && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 block mb-2">تم الحذف</span>
+                        <div className="px-3 py-2 bg-orange-50 text-orange-700 rounded-md text-sm border border-orange-200 font-medium">
+                          (تم مسح القيمة: {change.oldValue})
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        ) : !hasValidData ? (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-yellow-900 text-sm mb-1">⚠️ لم يتم حفظ تفاصيل التغييرات</p>
+                <p className="text-yellow-800 text-xs leading-relaxed">
+                  تم تسجيل عملية التحديث لكن لم يتم حفظ البيانات القديمة والجديدة. تأكد من أن النظام يحفظ old_data و new_data بشكل صحيح.
+                </p>
+              </div>
+            </div>
+          </div>
         ) : (
-          <p className="text-gray-600">لا توجد تفاصيل تغييرات متاحة.</p>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-gray-700 text-sm mb-1">تم التحديث</p>
+                <p className="text-gray-600 text-xs leading-relaxed">
+                  لم يتم العثور على حقول محددة تم تغييرها، لكن تم تسجيل العملية بنجاح.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     )
@@ -329,13 +511,63 @@ export default function ActivityLogs() {
     const details = log.details || {}
     const employeeName = details.employee_name || details.name
     const companyName = details.company_name || details.company
+    const unifiedNumber = details.unified_number
+    
+    // استخراج التغييرات المحددة من details.changes إذا كانت موجودة
+    let changedFieldLabels: string[] = []
+    
+    try {
+      // حاول الحصول على الأسماء المترجمة من details.changes أولاً
+      if (details.changes && typeof details.changes === 'object') {
+        const detailsChanges = details.changes as Record<string, unknown>
+        // إذا كانت لدينا التغييرات المترجمة من details، استخدمها مباشرة
+        changedFieldLabels = Object.keys(detailsChanges)
+      } else {
+        // إذا لم نجد التغييرات المترجمة، حاول قراءة old_data و new_data
+        let oldData: Record<string, unknown> | null = null
+        let newData: Record<string, unknown> | null = null
+        
+        if (typeof log.old_data === 'string') {
+          oldData = JSON.parse(log.old_data) as Record<string, unknown>
+        } else if (log.old_data && typeof log.old_data === 'object') {
+          oldData = log.old_data as Record<string, unknown>
+        }
+        
+        if (typeof log.new_data === 'string') {
+          newData = JSON.parse(log.new_data) as Record<string, unknown>
+        } else if (log.new_data && typeof log.new_data === 'object') {
+          newData = log.new_data as Record<string, unknown>
+        }
+        
+        // استخراج الحقول المتغيرة
+        if (oldData && newData) {
+          const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)])
+          allKeys.forEach(key => {
+            const oldValue = oldData?.[key]
+            const newValue = newData?.[key]
+            
+            // تخطي معرفات النظام
+            if (isUselessSystemId(oldValue) && isUselessSystemId(newValue)) {
+              return
+            }
+            
+            if (oldValue !== newValue) {
+              changedFieldLabels.push(getFieldLabel(key))
+            }
+          })
+        }
+      }
+    } catch {
+      // تجاهل الأخطاء
+    }
     
     // بناء النص حسب نوع العملية
     if (action.includes('create') || action.includes('add') || action.includes('إنشاء') || action.includes('إضافة')) {
       if (entityType === 'employee' && employeeName) {
         return `تم إنشاء موظف جديد باسم "${employeeName}"${companyName ? ` في المؤسسة "${companyName}"` : ''}.`
       } else if (entityType === 'company' && companyName) {
-        return `تم إنشاء مؤسسة جديدة باسم "${companyName}".`
+        const companyDisplay = unifiedNumber ? `${companyName} (${unifiedNumber})` : companyName
+        return `تم إنشاء مؤسسة جديدة باسم "${companyDisplay}".`
       } else if (entityType === 'user') {
         return `تم إنشاء مستخدم جديد.`
       } else {
@@ -344,6 +576,17 @@ export default function ActivityLogs() {
     }
     
     if (action.includes('update') || action.includes('edit') || action.includes('تحديث') || action.includes('تعديل')) {
+      // إذا كان لدينا حقول محددة، استخدمها في الوصف
+      if (changedFieldLabels.length > 0) {
+        const fieldNames = changedFieldLabels.join(' و ')
+        if (entityType === 'employee' && employeeName) {
+          return `تم تحديث موظف "${employeeName}" - تحديث ${fieldNames}${companyName ? ` من ${companyName}` : ''}.`
+        } else if (entityType === 'company' && companyName) {
+          const companyDisplay = unifiedNumber ? `${companyName} (${unifiedNumber})` : companyName
+          return `تم تحديث مؤسسة "${companyDisplay}" - تحديث ${fieldNames}.`
+        }
+      }
+      // إرجع الدالة الكاملة للتفاصيل
       return renderUpdateDetails(log)
     }
     
@@ -351,7 +594,8 @@ export default function ActivityLogs() {
       if (entityType === 'employee' && employeeName) {
         return `تم حذف الموظف "${employeeName}"${companyName ? ` من المؤسسة "${companyName}"` : ''}.`
       } else if (entityType === 'company' && companyName) {
-        return `تم حذف المؤسسة "${companyName}".`
+        const companyDisplay = unifiedNumber ? `${companyName} (${unifiedNumber})` : companyName
+        return `تم حذف المؤسسة "${companyDisplay}".`
       } else if (entityType === 'user') {
         return `تم حذف مستخدم.`
       } else {
@@ -395,21 +639,42 @@ export default function ActivityLogs() {
       if (!matchesAction && !matchesEntity && !matchesDetails) return false
     }
 
-    // فلتر العملية
-    if (actionFilter !== 'all' && !log.action.toLowerCase().includes(actionFilter)) return false
+    // فلتر العملية - تحسين المطابقة
+    if (actionFilter !== 'all') {
+      const actionLower = log.action.toLowerCase()
+      const filterLower = actionFilter.toLowerCase()
+      
+      // مطابقة دقيقة بدلاً من includes
+      const isMatch = 
+        actionLower === filterLower || // مطابقة دقيقة
+        actionLower.includes(filterLower) || // احتواء
+        // معالجة حالات خاصة للعربية والإنجليزية
+        (filterLower === 'create' && (actionLower.includes('create') || actionLower.includes('إنشاء') || actionLower.includes('add') || actionLower.includes('إضافة'))) ||
+        (filterLower === 'update' && (actionLower.includes('update') || actionLower.includes('edit') || actionLower.includes('تحديث') || actionLower.includes('تعديل'))) ||
+        (filterLower === 'delete' && (actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('حذف'))) ||
+        (filterLower === 'login' && (actionLower.includes('login') || actionLower.includes('logout') || actionLower.includes('دخول') || actionLower.includes('خروج')))
+      
+      if (!isMatch) return false
+    }
 
-    // فلتر نوع الكيان
-    if (entityFilter !== 'all' && log.entity_type !== entityFilter) return false
+    // فلتر نوع الكيان - تصحيح حساسية الأحرف
+    if (entityFilter !== 'all') {
+      const entityTypeLower = log.entity_type?.toLowerCase() || ''
+      const entityFilterLower = entityFilter.toLowerCase()
+      
+      if (entityTypeLower !== entityFilterLower) return false
+    }
 
-    // فلتر التاريخ
+    // فلتر التاريخ - تحسين المنطق
     if (dateFilter !== 'all') {
       const logDate = new Date(log.created_at)
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
       const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
       
-      if (dateFilter === 'today' && logDate < today) return false
+      if (dateFilter === 'today' && (logDate < today || logDate >= tomorrow)) return false
       if (dateFilter === 'week' && logDate < weekAgo) return false
       if (dateFilter === 'month' && logDate < monthAgo) return false
     }
@@ -921,63 +1186,83 @@ export default function ActivityLogs() {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-            {/* Search */}
-            <div className="sm:col-span-2 lg:col-span-1">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
-                <input
-                  type="text"
-                  placeholder="البحث..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900">الفلاتر</h3>
+              {(searchTerm || actionFilter !== 'all' || entityFilter !== 'all' || dateFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('')
+                    setActionFilter('all')
+                    setEntityFilter('all')
+                    setDateFilter('all')
+                    setCurrentPage(1)
+                  }}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1 px-2 py-1 rounded hover:bg-purple-50 transition"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  إعادة تعيين
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+              {/* Search */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
+                  <input
+                    type="text"
+                    placeholder="البحث..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Action Filter */}
-            <div>
-              <select
-                value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value as ActionFilter)}
-                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-              >
-                <option value="all">جميع العمليات</option>
-                <option value="create">إنشاء</option>
-                <option value="update">تحديث</option>
-                <option value="delete">حذف</option>
-                <option value="login">دخول/خروج</option>
-              </select>
-            </div>
+              {/* Action Filter */}
+              <div>
+                <select
+                  value={actionFilter}
+                  onChange={(e) => setActionFilter(e.target.value as ActionFilter)}
+                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                >
+                  <option value="all">جميع العمليات</option>
+                  <option value="create">إنشاء</option>
+                  <option value="update">تحديث</option>
+                  <option value="delete">حذف</option>
+                  <option value="login">دخول/خروج</option>
+                </select>
+              </div>
 
-            {/* Entity Filter */}
-            <div>
-              <select
-                value={entityFilter}
-                onChange={(e) => setEntityFilter(e.target.value as EntityFilter)}
-                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-              >
-                <option value="all">جميع الأنواع</option>
-                <option value="employee">موظفين</option>
-                <option value="company">مؤسسات</option>
-                <option value="user">مستخدمين</option>
-                <option value="settings">إعدادات</option>
-              </select>
-            </div>
+              {/* Entity Filter */}
+              <div>
+                <select
+                  value={entityFilter}
+                  onChange={(e) => setEntityFilter(e.target.value as EntityFilter)}
+                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                >
+                  <option value="all">جميع الأنواع</option>
+                  <option value="employee">موظفين</option>
+                  <option value="company">مؤسسات</option>
+                  <option value="user">مستخدمين</option>
+                  <option value="settings">إعدادات</option>
+                </select>
+              </div>
 
-            {/* Date Filter */}
-            <div>
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-              >
-                <option value="all">جميع التواريخ</option>
-                <option value="today">اليوم</option>
-                <option value="week">أسبوع</option>
-                <option value="month">شهر</option>
-              </select>
+              {/* Date Filter */}
+              <div>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                >
+                  <option value="all">جميع التواريخ</option>
+                  <option value="today">اليوم</option>
+                  <option value="week">أسبوع</option>
+                  <option value="month">شهر</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1060,10 +1345,12 @@ export default function ActivityLogs() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {paginatedLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 transition">
+                  {paginatedLogs.map((log) => {
+                    const colors = getActionColor(log.action)
+                    return (
+                    <tr key={log.id} className={`${colors.bg} hover:shadow-md hover:cursor-pointer transition-all duration-300 border-l ${colors.border}`} onClick={() => setSelectedLog(log)}>
                       {isAdmin && (
-                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleSelectLog(log.id)}
                             className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5"
@@ -1077,13 +1364,24 @@ export default function ActivityLogs() {
                         </td>
                       )}
                       <td className="px-3 sm:px-6 py-3 sm:py-4">
-                        <div className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border whitespace-nowrap ${getActionColor(log.action)}`}>
-                          {getActionIcon(log.action)}
-                          {getActionLabel(log.action)}
+                        <div className="flex items-center gap-2">
+                          <div className={`${colors.icon} p-2 rounded-lg flex-shrink-0`}>
+                            {getActionIcon(log.action)}
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`${colors.text} text-xs sm:text-sm font-semibold`}>
+                              {getActionLabel(log.action)}
+                            </span>
+                            {isImportantAction(log.action) && (
+                              <span className="text-xs text-red-600 font-medium">⚠️ عملية حساسة</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                        {log.entity_type ? getEntityLabel(log.entity_type) : '-'}
+                        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium">
+                          {log.entity_type ? getEntityLabel(log.entity_type) : '-'}
+                        </span>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
                         {log.user_id ? (
@@ -1109,95 +1407,115 @@ export default function ActivityLogs() {
                         )}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 font-mono">
-                        {log.ip_address || '-'}
+                        <span className="px-2 py-1 bg-gray-100 rounded text-gray-700 text-xs">
+                          {log.ip_address?.split('.').slice(0, 2).join('.')}...
+                        </span>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
                         <div className="flex items-center gap-1 sm:gap-2">
-                          <Calendar className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
+                          <Clock className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
                           <HijriDateDisplay date={log.created_at}>
                             <span className="truncate">{formatDateTimeWithHijri(log.created_at)}</span>
                           </HijriDateDisplay>
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-lg hover:bg-purple-50 transition"
+                          className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-purple-100 transition duration-200 hover:shadow-sm"
                         >
-                          التفاصيل
+                          عرض ←
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile View - Cards */}
             <div className="md:hidden space-y-3 p-3 sm:p-4">
-              {paginatedLogs.map((log) => (
-                <div key={log.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
-                  {/* Header Row: Action + Checkbox */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getActionColor(log.action)} flex-shrink-0`}>
-                      {getActionIcon(log.action)}
-                      <span className="hidden sm:inline">{getActionLabel(log.action)}</span>
+              {paginatedLogs.map((log) => {
+                const colors = getActionColor(log.action)
+                return (
+                <div key={log.id} className={`
+                  ${colors.bg} 
+                  border-l-4 ${colors.border}
+                  rounded-xl p-4 space-y-3
+                  transition-all duration-300
+                  hover:shadow-md hover:cursor-pointer
+                `} onClick={() => setSelectedLog(log)}>
+                  {/* Header: Action + Checkbox */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1" onClick={(e) => e.stopPropagation()}>
+                      <div className={`${colors.icon} p-2.5 rounded-lg flex-shrink-0`}>
+                        {getActionIcon(log.action)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`${colors.text} font-semibold text-sm`}>
+                          {getActionLabel(log.action)}
+                        </h4>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {log.entity_type ? getEntityLabel(log.entity_type) : 'عملية عامة'}
+                        </p>
+                      </div>
                     </div>
                     {isAdmin && (
                       <button
-                        onClick={() => handleSelectLog(log.id)}
-                        className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSelectLog(log.id)
+                        }}
+                        className="flex-shrink-0 mt-1"
                       >
                         {selectedLogIds.has(log.id) ? (
-                          <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
+                          <CheckSquare className="w-5 h-5 text-purple-600" />
                         ) : (
-                          <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                          <Square className="w-5 h-5 text-gray-400" />
                         )}
                       </button>
                     )}
                   </div>
 
-                  {/* Entity Type */}
-                  <div className="flex items-center gap-2 py-1 px-2 bg-gray-50 rounded text-xs">
-                    <span className="font-medium text-gray-600">النوع:</span>
-                    <span className="text-gray-900 font-medium">{log.entity_type ? getEntityLabel(log.entity_type) : '-'}</span>
-                  </div>
+                  {/* Important Badge */}
+                  {isImportantAction(log.action) && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-200 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <span className="text-xs font-semibold text-red-700">عملية حساسة - احذر</span>
+                    </div>
+                  )}
 
                   {/* User Info */}
-                  <div className="py-1 px-2 bg-blue-50 rounded">
-                    <div className="text-xs font-medium text-gray-600 mb-1">المستخدم</div>
-                    {log.user_id ? (
-                      (() => {
+                  {log.user_id && (
+                    <div className="py-2 px-3 bg-white/60 rounded-lg border border-gray-200">
+                      <div className="text-xs font-medium text-gray-600 mb-1">تم بواسطة</div>
+                      {(() => {
                         const user = usersMap.get(log.user_id)
                         return user ? (
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1 text-xs">
-                              <UserIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                              <span className="font-medium text-gray-900 truncate">{user.full_name}</span>
-                            </div>
-                            <span className="text-xs text-gray-500 truncate">{user.email}</span>
+                          <div>
+                            <div className="text-xs font-semibold text-gray-900">{user.full_name}</div>
+                            <div className="text-xs text-gray-500">{user.email}</div>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-500">{String(log.user_id).slice(0, 8)}...</span>
                         )
-                      })()
-                    ) : (
-                      <span className="text-xs text-gray-500">النظام</span>
-                    )}
-                  </div>
+                      })()}
+                    </div>
+                  )}
 
                   {/* IP Address */}
                   {log.ip_address && (
-                    <div className="py-1 px-2 bg-gray-50 rounded text-xs">
-                      <span className="font-medium text-gray-600">IP: </span>
-                      <span className="text-gray-600 font-mono text-xs truncate">{log.ip_address}</span>
+                    <div className="text-xs text-gray-600 px-3 py-1.5 bg-white/50 rounded border border-gray-100">
+                      <span className="font-medium">IP:</span> 
+                      <span className="font-mono ml-1 text-gray-700">{log.ip_address?.split('.').slice(0, 2).join('.')}...</span>
                     </div>
                   )}
 
                   {/* Footer: Date + Button */}
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
-                    <div className="flex items-center gap-1 text-xs text-gray-600 flex-wrap">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="truncate">
                         <HijriDateDisplay date={log.created_at}>
                           <span>{formatDateTimeWithHijri(log.created_at)}</span>
@@ -1206,13 +1524,14 @@ export default function ActivityLogs() {
                     </div>
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="text-purple-600 hover:text-purple-700 text-xs font-medium px-2 sm:px-3 py-1 rounded-lg hover:bg-purple-50 transition flex-shrink-0"
+                      className={`${colors.text} font-semibold text-xs px-3 py-1.5 rounded-lg ${colors.badge} transition duration-200 hover:shadow-sm flex-shrink-0`}
                     >
                       التفاصيل
                     </button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
             
             {/* Pagination Controls - Bottom */}
@@ -1443,7 +1762,7 @@ export default function ActivityLogs() {
                   }}
                   className="p-2 hover:bg-white/20 rounded-lg transition"
                 >
-                  <Search className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -1460,13 +1779,6 @@ export default function ActivityLogs() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">نوع الكيان</label>
                   <p className="text-gray-900">{selectedLog.entity_type ? getEntityLabel(selectedLog.entity_type) : '-'}</p>
                 </div>
-
-                {selectedLog.entity_id && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">معرف الكيان</label>
-                    <p className="text-gray-900 font-mono text-sm">{selectedLog.entity_id}</p>
-                  </div>
-                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">التاريخ والوقت</label>
@@ -1518,24 +1830,11 @@ export default function ActivityLogs() {
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">البيانات الخام (JSON)</label>
-                    <button
-                      onClick={() => setShowRawData(!showRawData)}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      {showRawData ? 'إخفاء' : 'عرض'}
-                    </button>
+                {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                    <p>💡 <span className="font-medium">ملاحظة:</span> تم تسجيل هذا النشاط بنجاح مع البيانات أعلاه</p>
                   </div>
-                  {showRawData && (
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono overflow-x-auto">
-                        {JSON.stringify(selectedLog.details, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
               <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6">
@@ -1552,6 +1851,8 @@ export default function ActivityLogs() {
             </div>
           </div>
         )}
+
+        {/* End of main container */}
       </div>
     </Layout>
   )

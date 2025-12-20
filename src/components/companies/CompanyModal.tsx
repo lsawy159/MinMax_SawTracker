@@ -20,6 +20,7 @@ interface CompanyModalProps {
 
 export default function CompanyModal({ isOpen, company, onClose, onSuccess }: CompanyModalProps) {
   const [loading, setLoading] = useState(false)
+  const [originalData, setOriginalData] = useState<Partial<Company> | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     unified_number: '',
@@ -48,6 +49,9 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           hasMaxEmployees: !!company.max_employees
         })
         
+        // حفظ البيانات الأصلية للمقارنة لاحقاً
+        setOriginalData(company)
+        
         setFormData({
           name: company.name || '',
           unified_number: company.unified_number?.toString() || '',
@@ -64,6 +68,8 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         })
       } else {
         logger.debug('🆕 إعادة تعيين النموذج للإضافة الجديدة')
+        setOriginalData(null)
+        
         setFormData({
           name: '',
           unified_number: '',
@@ -214,6 +220,82 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     return true
   }
 
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'name': 'اسم المؤسسة',
+      'unified_number': 'الرقم الموحد',
+      'social_insurance_number': 'رقم التأمينات الاجتماعية',
+      'labor_subscription_number': 'رقم اشتراك التأمينات',
+      'commercial_registration_expiry': 'تاريخ انتهاء السجل التجاري',
+      'social_insurance_expiry': 'تاريخ انتهاء التأمينات الاجتماعية',
+      'ending_subscription_power_date': 'تاريخ انتهاء اشتراك قوى',
+      'ending_subscription_moqeem_date': 'تاريخ انتهاء اشتراك المقيم',
+      'max_employees': 'الحد الأقصى للموظفين',
+      'exemptions': 'الإعفاءات',
+      'company_type': 'نوع المؤسسة',
+      'notes': 'الملاحظات'
+    }
+    return fieldLabels[key] || key
+  }
+
+  const logActivity = async (
+    action: string,
+    changes: Record<string, { old_value: unknown; new_value: unknown }>,
+    oldDataFull: Record<string, unknown>,
+    newDataFull: Record<string, unknown>,
+    companyId: string,
+    companyName: string,
+    unifiedNumber?: number | string
+  ) => {
+    try {
+      let actionName = action
+      const changedFields = Object.keys(changes)
+      
+      // تحويل مفاتيح التغييرات إلى أسماء مترجمة
+      const translatedChanges: Record<string, { old_value: unknown; new_value: unknown }> = {}
+      changedFields.forEach(field => {
+        const label = getFieldLabel(field)
+        translatedChanges[label] = changes[field]
+      })
+      
+      // إذا كان هناك حقل واحد فقط، استخدم اسمه في العملية
+      if (changedFields.length === 1) {
+        const fieldName = changedFields[0]
+        const fieldLabel = getFieldLabel(fieldName)
+        actionName = `تحديث ${fieldLabel}`
+      } else if (changedFields.length > 1) {
+        actionName = `تحديث متعدد (${changedFields.length} حقول)`
+      }
+
+      // حفظ البيانات القديمة والجديدة فقط للحقول المتغيرة
+      const oldDataFiltered: Record<string, unknown> = {}
+      const newDataFiltered: Record<string, unknown> = {}
+      
+      changedFields.forEach(field => {
+        oldDataFiltered[field] = oldDataFull[field]
+        newDataFiltered[field] = newDataFull[field]
+      })
+
+      await supabase
+        .from('activity_log')
+        .insert({
+          entity_type: 'company',
+          entity_id: companyId,
+          action: actionName,
+          details: {
+            company_name: companyName,
+            unified_number: unifiedNumber,
+            changes: translatedChanges,
+            timestamp: new Date().toISOString()
+          },
+          old_data: JSON.stringify(oldDataFiltered),
+          new_data: JSON.stringify(newDataFiltered)
+        })
+    } catch (error) {
+      console.error('Error logging activity:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -277,6 +359,44 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
       // إزالة الحقول null فقط (وليس الحقول المطلوبة) من البيانات المرسلة
       // الحقول المطلوبة: name, unified_number, labor_subscription_number
+      const actualUpdateData: Record<string, unknown> = {}
+      const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
+      
+      // فقط في حالة التعديل: تحديد الحقول المتغيرة فقط
+      if (isEditing && originalData) {
+        const fieldsToCheck = [
+          'name', 'unified_number', 'social_insurance_number', 'labor_subscription_number',
+          'commercial_registration_expiry', 'social_insurance_expiry',
+          'ending_subscription_power_date', 'ending_subscription_moqeem_date',
+          'max_employees', 'exemptions', 'company_type', 'notes'
+        ]
+        
+        fieldsToCheck.forEach(field => {
+          const oldValue = originalData[field as keyof typeof originalData]
+          const newValue: unknown = companyData[field]
+          
+          // معاملة null و undefined بنفس الطريقة
+          const oldVal = oldValue === null || oldValue === undefined ? null : oldValue
+          const newVal = newValue === null || newValue === undefined ? null : newValue
+          
+          // فقط أضف إلى actualUpdateData إذا تغيرت القيمة
+          if (oldVal !== newVal) {
+            actualUpdateData[field] = newValue
+            changes[field] = {
+              old_value: oldVal,
+              new_value: newVal
+            }
+          }
+        })
+      } else {
+        // في حالة الإضافة الجديدة: استخدم جميع البيانات
+        Object.keys(companyData).forEach(key => {
+          actualUpdateData[key] = companyData[key]
+        })
+      }
+
+      // إزالة الحقول null فقط (وليس الحقول المطلوبة) من البيانات المرسلة
+      // الحقول المطلوبة: name, unified_number, labor_subscription_number
       Object.keys(companyData).forEach(key => {
         // لا نحذف الحقول المطلوبة حتى لو كانت null
         if (key === 'name' || key === 'unified_number' || key === 'labor_subscription_number') {
@@ -295,20 +415,23 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
 
       if (isEditing && company) {
         logger.debug('🔄 تحديث مؤسسة موجودة:', company.id)
+        
+        // إذا لم تكن هناك أي تغييرات في التعديل، لا تحفظ شيء
+        if (Object.keys(actualUpdateData).length === 0) {
+          toast.info('لم يتم تغيير أي بيانات')
+          setLoading(false)
+          return
+        }
+        
         result = await supabase
           .from('companies')
-          .update(companyData)
+          .update(actualUpdateData)
           .eq('id', company.id)
         error = result.error
 
         if (!error) {
           logger.debug('✅ تم تحديث المؤسسة بنجاح')
-          await supabase.from('activity_log').insert({
-            action: 'تعديل مؤسسة',
-            entity_type: 'company',
-            entity_id: company.id,
-            details: { company_name: formData.name, updated_fields: Object.keys(companyData) }
-          })
+          await logActivity('full_edit', changes, originalData as unknown as Record<string, unknown>, actualUpdateData, company.id, formData.name, unifiedNumber)
         }
       } else {
         logger.debug('➕ إضافة مؤسسة جديدة')
@@ -316,13 +439,32 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           .from('companies')
           .insert([companyData])
         error = result.error
-
         if (!error) {
           logger.debug('✅ تم إضافة المؤسسة بنجاح')
+          // تسجيل نشاط الإضافة
+          const newCompanyData = companyData as Record<string, unknown>
+          const createdChanges: Record<string, { old_value: unknown; new_value: unknown }> = {}
+          
+          Object.keys(newCompanyData).forEach(field => {
+            const label = getFieldLabel(field)
+            createdChanges[label] = {
+              old_value: null,
+              new_value: newCompanyData[field]
+            }
+          })
+          
+          // نستخدم unified_number كمعرف المؤسسة
+          const unifiedNumberValue = newCompanyData.unified_number
           await supabase.from('activity_log').insert({
-            action: 'إضافة مؤسسة جديدة',
             entity_type: 'company',
-            details: { company_name: formData.name, created_fields: Object.keys(companyData) }
+            action: `إضافة مؤسسة جديدة`,
+            details: { 
+              company_name: formData.name, 
+              unified_number: unifiedNumberValue,
+              created_fields: Object.keys(companyData) 
+            },
+            old_data: JSON.stringify({}),
+            new_data: JSON.stringify(newCompanyData)
           })
         }
       }

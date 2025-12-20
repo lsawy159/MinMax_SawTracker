@@ -20,6 +20,7 @@ export interface EmployeeAlert {
     id: string
     name: string
     commercial_registration_number?: string
+    unified_number?: number
   }
   expiry_date?: string
   days_remaining?: number
@@ -163,7 +164,7 @@ export function EmployeeAlertCard({
               {alert.employee.name} - {alert.employee.profession}
             </p>
             <p className="text-gray-500 text-xs">
-              {alert.company.name}
+              {alert.company.name} {alert.company.unified_number && `(${alert.company.unified_number})`}
               {alert.company.commercial_registration_number && (
                 <span className="mr-2">
                   | رقم السجل: {alert.company.commercial_registration_number}

@@ -5,17 +5,11 @@ import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { 
-  generateCompanyAlertsSync,
-  getAlertsStats,
-  getUrgentAlerts,
-  filterAlertsByType
+  generateCompanyAlertsSync
 } from '@/utils/alerts'
 import { 
   generateEmployeeAlerts, 
   enrichEmployeeAlertsWithCompanyData,
-  getEmployeeAlertsStats,
-  getUrgentEmployeeAlerts,
-  filterEmployeeAlertsByType,
   getEmployeeNotificationThresholdsPublic,
   DEFAULT_EMPLOYEE_THRESHOLDS,
   type EmployeeAlert
@@ -92,7 +86,6 @@ export default function Dashboard() {
   const [employeeThresholds, setEmployeeThresholds] = useState(DEFAULT_EMPLOYEE_THRESHOLDS)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
-  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
   const navigate = useNavigate()
   const [stats, setStats] = useState<Stats>({
@@ -533,100 +526,7 @@ export default function Dashboard() {
     }
   }
 
-  // دوال التنبيهات - محفوظة للاستخدام المستقبلي
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleViewCompany = (companyId: string) => {
-    navigate(`/companies?id=${companyId}`)
-  }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleMarkAsRead = async (alertId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        console.error('المستخدم غير مسجل دخول')
-        return
-      }
-
-      // حفظ التنبيه كمقروء في قاعدة البيانات
-      const { error } = await supabase
-        .from('read_alerts')
-        .upsert({
-          user_id: user.id,
-          alert_id: alertId,
-          read_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,alert_id'
-        })
-
-      if (error) throw error
-
-      // تحديث حالة التنبيه محلياً
-      setReadAlerts(prev => new Set([...prev, alertId]))
-      
-      // إعادة تحميل الإحصائيات لتحديث العدد في شريط التنقل
-      window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
-    } catch (error) {
-      console.error('خطأ في حفظ التنبيه كمقروء:', error)
-    }
-  }
-
-  // Memoize filtered alerts to avoid recalculation
-  const unreadCompanyAlerts = useMemo(() => 
-    companyAlerts.filter(alert => !readAlerts.has(alert.id)),
-    [companyAlerts, readAlerts]
-  )
-  
-  const unreadEmployeeAlerts = useMemo(() => 
-    employeeAlerts.filter(alert => !readAlerts.has(alert.id)),
-    [employeeAlerts, readAlerts]
-  )
-
-  // Memoize alert statistics to avoid recalculation
-  const companyAlertsStats = useMemo(() => getAlertsStats(unreadCompanyAlerts), [unreadCompanyAlerts])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const companyUrgentAlerts = useMemo(() => getUrgentAlerts(unreadCompanyAlerts), [unreadCompanyAlerts])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const commercialRegAlerts = useMemo(() => 
-    filterAlertsByType(unreadCompanyAlerts, 'commercial_registration_expiry'),
-    [unreadCompanyAlerts]
-  )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const insuranceAlerts = useMemo(() => 
-    filterAlertsByType(unreadCompanyAlerts, 'social_insurance_expiry'),
-    [unreadCompanyAlerts]
-  )
-
-  // Memoize employee alert statistics
-  const employeeAlertsStats = useMemo(() => 
-    getEmployeeAlertsStats(unreadEmployeeAlerts),
-    [unreadEmployeeAlerts]
-  )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const employeeUrgentAlerts = useMemo(() => 
-    getUrgentEmployeeAlerts(unreadEmployeeAlerts),
-    [unreadEmployeeAlerts]
-  )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const contractAlerts = useMemo(() => 
-    filterEmployeeAlertsByType(unreadEmployeeAlerts, 'contract_expiry'),
-    [unreadEmployeeAlerts]
-  )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const residenceAlerts = useMemo(() => 
-    filterEmployeeAlertsByType(unreadEmployeeAlerts, 'residence_expiry'),
-    [unreadEmployeeAlerts]
-  )  // Memoize total alerts
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const totalAlerts = useMemo(() => 
-    companyAlertsStats.total + employeeAlertsStats.total,
-    [companyAlertsStats.total, employeeAlertsStats.total]
-  )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const totalUrgentAlerts = useMemo(() => 
-    companyAlertsStats.urgent + employeeAlertsStats.urgent,
-    [companyAlertsStats.urgent, employeeAlertsStats.urgent]
-  )
 
   // حساب التنبيهات الطارئة والعاجلة للمؤسسات (urgent + high)
   const companyUrgentAndHighAlerts = useMemo(() => 

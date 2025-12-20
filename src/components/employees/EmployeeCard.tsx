@@ -97,6 +97,9 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     contract_expiry: employee.contract_expiry || '',
     residence_number: employee.residence_number || 0
   })
+  
+  // حفظ البيانات الأصلية من employee مباشرة (بدون معالجة) لاستخدامها في المقارنة
+  const [originalData] = useState(employee)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'basic' | 'custom'>('basic')
   const [isEditMode, setIsEditMode] = useState(false)
@@ -344,19 +347,73 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     return 'text-green-600 bg-green-50 border-green-200'
   }
 
-  const logActivity = async (action: string, changes: Record<string, unknown>) => {
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'name': 'الاسم',
+      'phone': 'رقم الهاتف',
+      'profession': 'المهنة',
+      'nationality': 'الجنسية',
+      'residence_number': 'رقم الإقامة',
+      'passport_number': 'رقم الجواز',
+      'bank_account': 'الحساب البنكي',
+      'salary': 'الراتب',
+      'project_id': 'المشروع',
+      'birth_date': 'تاريخ الميلاد',
+      'joining_date': 'تاريخ الالتحاق',
+      'residence_expiry': 'تاريخ انتهاء الإقامة',
+      'contract_expiry': 'تاريخ انتهاء العقد',
+      'hired_worker_contract_expiry': 'تاريخ انتهاء عقد أجير',
+      'health_insurance_expiry': 'تاريخ انتهاء التأمين الصحي',
+      'notes': 'الملاحظات',
+      'company_id': 'المؤسسة'
+    }
+    return fieldLabels[key] || key
+  }
+
+  const logActivity = async (action: string, changes: Record<string, unknown>, oldDataFull: Record<string, unknown>, newDataFull: Record<string, unknown>) => {
     try {
+      // تحديد اسم العملية الفعلي بناءً على التغييرات
+      let actionName = action
+      const changedFields = Object.keys(changes)
+      
+      // تحويل مفاتيح التغييرات إلى أسماء مترجمة
+      const translatedChanges: Record<string, unknown> = {}
+      changedFields.forEach(field => {
+        const label = getFieldLabel(field)
+        translatedChanges[label] = changes[field]
+      })
+      
+      // إذا كان هناك حقل واحد فقط، استخدم اسمه في العملية
+      if (changedFields.length === 1) {
+        const fieldName = changedFields[0]
+        const fieldLabel = getFieldLabel(fieldName)
+        actionName = `تحديث ${fieldLabel}`
+      } else if (changedFields.length > 1) {
+        actionName = `تحديث متعدد (${changedFields.length} حقول)`
+      }
+
+      // حفظ البيانات القديمة والجديدة فقط للحقول المتغيرة
+      const oldDataFiltered: Record<string, unknown> = {}
+      const newDataFiltered: Record<string, unknown> = {}
+      
+      changedFields.forEach(field => {
+        oldDataFiltered[field] = oldDataFull[field]
+        newDataFiltered[field] = newDataFull[field]
+      })
+
       await supabase
         .from('activity_log')
         .insert({
           entity_type: 'employee',
           entity_id: employee.id,
-          action: action,
+          action: actionName,
           details: {
             employee_name: employee.name,
-            changes: changes,
+            changes: translatedChanges,
             timestamp: new Date().toISOString()
-          }
+          },
+          old_data: JSON.stringify(oldDataFiltered),
+          new_data: JSON.stringify(newDataFiltered)
         })
     } catch (error) {
       console.error('Error logging activity:', error)
@@ -371,82 +428,45 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         return trimmed ? trimmed : null
       }
 
-      // تحضير البيانات للحفظ
-      const updateData: Partial<Employee> = {
-        name: formData.name,
-        profession: formData.profession,
-        nationality: formData.nationality,
-        phone: formData.phone,
-        passport_number: formData.passport_number,
-        project_id: formData.project_id || null,
-        bank_account: formData.bank_account,
-        birth_date: normalizeDate(formData.birth_date),
-        residence_number: Number(formData.residence_number),
-        joining_date: normalizeDate(formData.joining_date),
-        contract_expiry: normalizeDate(formData.contract_expiry),
-        hired_worker_contract_expiry: formData.hired_worker_contract_expiry || null,
-        residence_expiry: normalizeDate(formData.residence_expiry),
-        residence_image_url: formData.residence_image_url || null,
-        salary: Number(formData.salary) || 0,
-        health_insurance_expiry: normalizeDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-        notes: formData.notes || null,
-        additional_fields: formData.additional_fields
-      }
-
-      // تحديث project_name بناءً على project_id المختار
-      if (formData.project_id) {
-        const selectedProject = projects.find(p => p.id === formData.project_id)
-        if (selectedProject) {
-          updateData.project_name = selectedProject.name
-        }
-      } else {
-        updateData.project_name = null
-      }
-
-      // تحديد نوع التعديل
-      let actionType = 'full_edit'
-      if (formData.company_id && formData.company_id !== employee.company_id) {
-        actionType = 'company_transfer'
-        updateData.company_id = formData.company_id
-      }
-
-      const { error } = await supabase
-        .from('employees')
-        .update(updateData)
-        .eq('id', employee.id)
-
-      if (error) throw error
-
-      // إنشاء قائمة التغييرات بمقارنة البيانات القديمة والجديدة
-      const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
-      
-      // الحقول التي يجب تتبعها
-      const fieldsToTrack = [
-        'name', 'profession', 'nationality', 'phone', 'passport_number',
-        'project_id', 'bank_account', 'birth_date', 'residence_number',
-        'joining_date', 'contract_expiry', 'hired_worker_contract_expiry', 'residence_expiry', 'residence_image_url', 'salary',
-        'health_insurance_expiry', 'notes', 'company_id'  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+      // بناء actualUpdateData بناءً على الحقول التي تغيرت فقط (بدون تحضير جميع الحقول)
+      const fieldsToCheck = [
+        'name', 'phone', 'profession', 'nationality', 'residence_number',
+        'passport_number', 'bank_account', 'salary', 'project_id',
+        'birth_date', 'joining_date', 'residence_expiry', 'contract_expiry',
+        'hired_worker_contract_expiry', 'health_insurance_expiry', 'notes', 'company_id'
       ]
-      
-      fieldsToTrack.forEach(field => {
-        const oldValue = employee[field as keyof typeof employee]
-        const newValue = updateData[field]
-        
-        // مقارنة القيم (معالجة null و undefined)
+
+      const actualUpdateData: Record<string, unknown> = {}
+      const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
+
+
+
+      // فحص كل حقل للتأكد من تغييره فقط
+      fieldsToCheck.forEach(field => {
+        const oldValue = originalData[field as keyof typeof originalData]
+        let newValue: unknown = formData[field as keyof typeof formData]
+
+        // تطبيق نفس التحويلات على القيمة الجديدة مثل updateData
+        if (field === 'birth_date' || field === 'joining_date' || field === 'residence_expiry' || 
+            field === 'contract_expiry' || field === 'health_insurance_expiry') {
+          newValue = normalizeDate(formData[field] as string | null | undefined)
+        } else if (field === 'residence_number' || field === 'salary') {
+          newValue = Number(formData[field]) || (field === 'salary' ? 0 : 0)
+        } else if (field === 'residence_image_url' || field === 'hired_worker_contract_expiry' || field === 'notes') {
+          newValue = formData[field] || null
+        } else if (field === 'project_id') {
+          newValue = formData.project_id || null
+        }
+
+        // معاملة null و undefined بنفس الطريقة
         const oldVal = oldValue === null || oldValue === undefined ? null : oldValue
         const newVal = newValue === null || newValue === undefined ? null : newValue
-        
-        // التحقق من التغيير (مع مراعاة التحويلات الرقمية)
-        if (field === 'residence_number' || field === 'salary') {
-          const oldNum = oldVal ? Number(oldVal) : null
-          const newNum = newVal ? Number(newVal) : null
-          if (oldNum !== newNum) {
-            changes[field] = {
-              old_value: oldNum,
-              new_value: newNum
-            }
-          }
-        } else if (oldVal !== newVal) {
+
+
+
+        // مقارنة القيمتين: إذا اختلفتا، أضفهما إلى actualUpdateData
+        if (oldVal !== newVal) {
+          actualUpdateData[field] = newValue
           changes[field] = {
             old_value: oldVal,
             new_value: newVal
@@ -454,11 +474,45 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         }
       })
 
-      // تسجيل النشاط
-      await logActivity(actionType, changes)
+      // إذا لم تكن هناك أي تغييرات، لا تحفظ شيء
+      if (Object.keys(actualUpdateData).length === 0) {
+        toast.info('لم يتم تغيير أي بيانات')
+        setSaving(false)
+        return
+      }
+
+
+
+      // تحديث project_name إذا تم تعديل project_id
+      if (actualUpdateData.project_id !== undefined) {
+        if (actualUpdateData.project_id) {
+          const selectedProject = projects.find(p => p.id === actualUpdateData.project_id)
+          if (selectedProject) {
+            actualUpdateData.project_name = selectedProject.name
+          }
+        } else {
+          actualUpdateData.project_name = null
+        }
+      }
+
+      // حفظ في قاعدة البيانات
+      const { error } = await supabase
+        .from('employees')
+        .update(actualUpdateData)
+        .eq('id', employee.id)
+
+      if (error) throw error
+
+      // تسجيل النشاط مع التغييرات الفعلية فقط
+      let actionType = 'full_edit'
+      if (actualUpdateData.company_id !== undefined && actualUpdateData.company_id !== originalData.company_id) {
+        actionType = 'company_transfer'
+      }
+
+      await logActivity(actionType, changes, originalData as unknown as Record<string, unknown>, actualUpdateData)
 
       toast.success('تم حفظ التعديلات بنجاح')
-      setIsEditMode(false) // العودة إلى وضع القراءة فقط
+      setIsEditMode(false)
       
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
