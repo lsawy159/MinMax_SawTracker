@@ -834,8 +834,8 @@ export default function ExportTab() {
           </div>
         )}
 
-        {/* Employees List - Compact Table */}
-        <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
+        {/* Employees List - Desktop Table (hidden on mobile) */}
+        <div className="hidden lg:block bg-white rounded-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -954,6 +954,153 @@ export default function ExportTab() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Employees Grid - Mobile View (visible on small screens) */}
+        <div className="lg:hidden space-y-3">
+          {/* Select All Button */}
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <button
+              onClick={toggleAllEmployees}
+              className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
+                <CheckSquare className="w-5 h-5" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+              <span>تحديد الكل ({filteredEmployees.length})</span>
+            </button>
+          </div>
+
+          {/* Employees Grid */}
+          {filteredEmployees.map(emp => {
+            const contractDays = getDaysRemaining(emp.contract_expiry)
+            const hiredDays = getDaysRemaining(emp.hired_worker_contract_expiry)
+            const residenceDays = getDaysRemaining(emp.residence_expiry)
+            const insuranceDays = getDaysRemaining(emp.health_insurance_expiry)
+
+            return (
+              <div
+                key={emp.id}
+                onClick={() => toggleEmployeeSelection(emp.id)}
+                className={`bg-white border-2 rounded-lg p-4 cursor-pointer transition-all shadow-sm ${
+                  selectedEmployees.has(emp.id)
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:shadow'
+                }`}
+              >
+                {/* Header with checkbox and name */}
+                <div className="flex items-start gap-3 mb-3 pb-3 border-b border-gray-200">
+                  <div className="pt-0.5">
+                    {selectedEmployees.has(emp.id) ? (
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <Square className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 text-base leading-tight">{emp.name}</h4>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs text-gray-600">{emp.profession}</span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-600">{emp.nationality}</span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">{emp.company?.name || 'غير محدد'}</p>
+                    {emp.project?.name && (
+                      <p className="text-xs text-green-600 mt-0.5">📁 {emp.project.name}</p>
+                    )}
+                    {emp.residence_number && (
+                      <p className="text-xs text-gray-500 mt-0.5 font-mono">🆔 {emp.residence_number}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Information Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* العقد */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                      <FileText className="w-3 h-3" />
+                      العقد
+                    </p>
+                    {emp.contract_expiry ? (
+                      <>
+                        <p className={`text-xs font-medium ${getDateTextColor(contractDays)}`}>
+                          {formatDateShortWithHijri(emp.contract_expiry)}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {formatDateStatus(contractDays, 'منتهي')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">غير محدد</p>
+                    )}
+                  </div>
+
+                  {/* عقد الأجير */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                      <FileText className="w-3 h-3" />
+                      عقد الأجير
+                    </p>
+                    {emp.hired_worker_contract_expiry ? (
+                      <>
+                        <p className={`text-xs font-medium ${getDateTextColor(hiredDays)}`}>
+                          {formatDateShortWithHijri(emp.hired_worker_contract_expiry)}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {formatDateStatus(hiredDays, 'منتهي')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">غير محدد</p>
+                    )}
+                  </div>
+
+                  {/* الإقامة */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      الإقامة
+                    </p>
+                    {emp.residence_expiry ? (
+                      <>
+                        <p className={`text-xs font-medium ${getDateTextColor(residenceDays)}`}>
+                          {formatDateShortWithHijri(emp.residence_expiry)}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {formatDateStatus(residenceDays, 'منتهية')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">غير محدد</p>
+                    )}
+                  </div>
+
+                  {/* التأمين الصحي */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      التأمين
+                    </p>
+                    {emp.health_insurance_expiry ? (
+                      <>
+                        <p className={`text-xs font-medium ${getDateTextColor(insuranceDays)}`}>
+                          {formatDateShortWithHijri(emp.health_insurance_expiry)}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {formatDateStatus(insuranceDays, 'منتهي')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">غير محدد</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
       )}
@@ -1128,8 +1275,8 @@ export default function ExportTab() {
           </div>
         )}
 
-        {/* Companies List */}
-        <div className="border border-gray-200 rounded-md overflow-hidden">
+        {/* Companies List - Desktop View (hidden on mobile) */}
+        <div className="hidden md:block border border-gray-200 rounded-md overflow-hidden">
           <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center gap-2 text-[13px] overflow-x-auto">
             <button
               onClick={toggleAllCompanies}
@@ -1169,6 +1316,105 @@ export default function ExportTab() {
             ))}
             </div>
           </div>
+
+        {/* Companies Grid - Mobile View (visible on small screens) */}
+        <div className="md:hidden space-y-3">
+          {/* Select All Button */}
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <button
+              onClick={toggleAllCompanies}
+              className="flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700"
+            >
+              {selectedCompanies.size === filteredCompanies.length ? (
+                <CheckSquare className="w-5 h-5" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+              <span>تحديد الكل ({filteredCompanies.length})</span>
+            </button>
+          </div>
+
+          {/* Companies Grid */}
+          {filteredCompanies.map(company => (
+            <div
+              key={company.id}
+              onClick={() => toggleCompanySelection(company.id)}
+              className={`bg-white border-2 rounded-lg p-4 cursor-pointer transition-all shadow-sm ${
+                selectedCompanies.has(company.id)
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200 hover:border-green-300 hover:shadow'
+              }`}
+            >
+              {/* Header with checkbox and company name */}
+              <div className="flex items-start gap-3 mb-3 pb-3 border-b border-gray-200">
+                <div className="pt-0.5">
+                  {selectedCompanies.has(company.id) ? (
+                    <CheckSquare className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <Square className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-900 text-base leading-tight">{company.name}</h4>
+                  {company.unified_number && (
+                    <p className="text-xs text-gray-600 mt-1 font-mono">🏢 {company.unified_number}</p>
+                  )}
+                  {company.company_type && (
+                    <p className="text-xs text-blue-600 mt-0.5">{company.company_type}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Company Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-blue-50 p-2 rounded">
+                  <p className="text-xs text-gray-600">عدد الموظفين</p>
+                  <p className="text-lg font-bold text-blue-700">{company.employee_count || 0}</p>
+                </div>
+                {company.max_employees && (
+                  <div className="bg-purple-50 p-2 rounded">
+                    <p className="text-xs text-gray-600">الحد الأقصى</p>
+                    <p className="text-lg font-bold text-purple-700">{company.max_employees}</p>
+                  </div>
+                )}
+                {company.available_slots !== undefined && (
+                  <div className="bg-green-50 p-2 rounded">
+                    <p className="text-xs text-gray-600">أماكن شاغرة</p>
+                    <p className="text-lg font-bold text-green-700">{company.available_slots}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Expiry Dates */}
+              <div className="space-y-2">
+                {company.commercial_registration_expiry && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">السجل التجاري</span>
+                    <span className="font-medium">{company.commercial_registration_expiry}</span>
+                  </div>
+                )}
+                {company.social_insurance_expiry && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">التأمينات</span>
+                    <span className="font-medium">{company.social_insurance_expiry}</span>
+                  </div>
+                )}
+                {company.ending_subscription_power_date && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">اشتراك قوى</span>
+                    <span className="font-medium">{company.ending_subscription_power_date}</span>
+                  </div>
+                )}
+                {company.ending_subscription_moqeem_date && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">اشتراك مقيم</span>
+                    <span className="font-medium">{company.ending_subscription_moqeem_date}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       )}
     </div>
