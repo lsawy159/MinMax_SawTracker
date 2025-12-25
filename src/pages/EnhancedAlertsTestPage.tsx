@@ -162,7 +162,7 @@ export default function EnhancedAlertsTestPage() {
           <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-red-100 text-sm">تنبيهات حرجة</p>
+                <p className="text-red-100 text-sm">تنبيهات طارئة</p>
                 <p className="text-3xl font-bold">{criticalAlerts.length}</p>
               </div>
               <Shield className="h-10 w-10 text-red-200" />

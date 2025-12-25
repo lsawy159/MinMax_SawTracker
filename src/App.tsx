@@ -23,7 +23,6 @@ const Reports = lazy(() => import('./pages/Reports'))
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
-const SecurityManagement = lazy(() => import('./pages/SecurityManagement'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const UserGuide = lazy(() => import('./pages/UserGuide'))
 const AdminGuide = lazy(() => import('./pages/AdminGuide'))
@@ -188,7 +187,7 @@ function AppRoutes() {
         <Route path="/security-management" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <SecurityManagement />
+              <Navigate to="/admin-settings" replace />
             </Suspense>
           </ProtectedRoute>
         } />

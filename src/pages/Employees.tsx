@@ -1697,7 +1697,7 @@ export default function Employees() {
               const getDateStatus = (days: number | null, expiredText: string = 'منتهي') => {
                 if (days === null) return { status: 'غير محدد', description: '', emoji: '❌', color: 'bg-gray-100 text-gray-600 border-gray-200' }
                 if (days < 0) return { status: expiredText, description: 'منتهي', emoji: '🚨', color: 'bg-red-50 text-red-700 border-red-300' }
-                if (days <= 7) return { status: 'حرج', description: `${days} يوم`, emoji: '🚨', color: 'bg-red-50 text-red-700 border-red-300' }
+                if (days <= 7) return { status: 'طارئ', description: `${days} يوم`, emoji: '🚨', color: 'bg-red-50 text-red-700 border-red-300' }
                 if (days <= 15) return { status: 'عاجل', description: `${days} يوم`, emoji: '🔥', color: 'bg-orange-50 text-orange-700 border-orange-300' }
                 if (days <= 30) return { status: 'متوسط', description: `${days} يوم`, emoji: '⚠️', color: 'bg-yellow-50 text-yellow-700 border-yellow-300' }
                 return { status: 'ساري', description: `${days} يوم`, emoji: '✅', color: 'bg-green-50 text-green-700 border-green-300' }

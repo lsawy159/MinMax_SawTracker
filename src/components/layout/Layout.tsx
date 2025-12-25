@@ -58,7 +58,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/import-export', icon: ArrowDownUp, label: 'استيراد/تصدير', permission: { section: 'importExport' as const, action: 'view' }, badge: null },
     { path: '/user-guide', icon: BookOpen, label: 'دليل المستخدم', permission: { section: 'employees' as const, action: 'view' }, badge: null },
     { path: '/admin-guide', icon: Shield, label: 'دليل مدير النظام', adminOnly: true, badge: null },
-    { path: '/security-management', icon: Shield, label: 'إدارة الأمان', permission: null, adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
     { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
     { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },

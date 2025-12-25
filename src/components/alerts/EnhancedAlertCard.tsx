@@ -118,7 +118,7 @@ export function EnhancedAlertCard({
         icon: <XCircle className="h-4 w-4" />,
         color: 'text-red-600',
         bgColor: 'bg-red-100',
-        label: 'حرج'
+        label: 'طارئ'
       },
       high: { 
         icon: <AlertTriangle className="h-4 w-4" />,
@@ -148,7 +148,7 @@ export function EnhancedAlertCard({
         icon: <TrendingUp className="h-4 w-4" />,
         color: 'text-red-600',
         bgColor: 'bg-red-100',
-        label: 'حرج'
+        label: 'طارئ'
       },
       significant: { 
         icon: <TrendingUp className="h-4 w-4" />,

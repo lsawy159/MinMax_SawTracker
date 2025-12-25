@@ -1,36 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase, ActivityLog, User } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { logger } from '@/utils/logger'
-import { 
-  Activity, 
-  User as UserIcon, 
-  Calendar, 
-  Search,
-  Eye,
-  Edit,
-  Trash2,
-  Plus,
-  RefreshCw,
-  Download,
-  CheckSquare,
-  Square,
-  Building2,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  LogIn,
-  LogOut,
-  AlertCircle,
-  X
-} from 'lucide-react'
+import { Activity, RefreshCw, Download, Trash2 } from 'lucide-react'
 import { formatDateTimeWithHijri } from '@/utils/dateFormatter'
-import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
+// import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { usePermissions } from '@/utils/permissions'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { StatsCards } from '@/components/activity/StatsCards'
+import { LogsFilters } from '@/components/activity/LogsFilters'
+import { DeleteConfirmModal } from '@/components/activity/DeleteConfirmModal'
+import { LogDetailsModal } from '@/components/activity/LogDetailsModal'
+import { LogsTable } from '@/components/activity/LogsTable'
 
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
@@ -61,10 +46,13 @@ export default function ActivityLogs() {
     loadLogs()
   }, [])
 
+  // Debounce search term to reduce re-computation
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300)
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, actionFilter, entityFilter, dateFilter])
+  }, [debouncedSearchTerm, actionFilter, entityFilter, dateFilter])
 
   // إغلاق بطاقة التفاصيل عند الضغط على Escape
   useEffect(() => {
@@ -628,10 +616,10 @@ export default function ActivityLogs() {
     }
   }
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = useMemo(() => logs.filter(log => {
     // فلتر البحث
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase()
+    if (debouncedSearchTerm) {
+      const search = debouncedSearchTerm.toLowerCase()
       const matchesAction = log.action.toLowerCase().includes(search)
       const matchesEntity = log.entity_type?.toLowerCase().includes(search)
       const matchesDetails = JSON.stringify(log.details).toLowerCase().includes(search)
@@ -679,52 +667,62 @@ export default function ActivityLogs() {
     }
 
     return true
-  })
+  }), [logs, debouncedSearchTerm, actionFilter, entityFilter, dateFilter])
 
   // حساب الإحصائيات (باستخدام filteredLogs)
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-  const todayLogs = filteredLogs.filter(log => {
+  const todayLogs = useMemo(() => filteredLogs.filter(log => {
     const logDate = new Date(log.created_at)
     return logDate >= today
-  })
-  const weekLogs = filteredLogs.filter(log => {
+  }), [filteredLogs])
+  const weekLogs = useMemo(() => filteredLogs.filter(log => {
     const logDate = new Date(log.created_at)
     return logDate >= weekAgo
-  })
-  const employeeLogs = filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'employee')
-  const companyLogs = filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'company')
-  const createLogs = filteredLogs.filter(l => {
+  }), [filteredLogs, weekAgo])
+  const employeeLogs = useMemo(() => filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'employee'), [filteredLogs])
+  const companyLogs = useMemo(() => filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'company'), [filteredLogs])
+  const createLogs = useMemo(() => filteredLogs.filter(l => {
     const action = l.action.toLowerCase()
     return action.includes('create') || action.includes('add') || action.includes('إنشاء') || action.includes('إضافة')
-  })
-  const updateLogs = filteredLogs.filter(l => {
+  }), [filteredLogs])
+  const updateLogs = useMemo(() => filteredLogs.filter(l => {
     const action = l.action.toLowerCase()
     return action.includes('update') || action.includes('edit') || action.includes('تحديث') || action.includes('تعديل')
-  })
-  const deleteLogs = filteredLogs.filter(l => {
+  }), [filteredLogs])
+  const deleteLogs = useMemo(() => filteredLogs.filter(l => {
     const action = l.action.toLowerCase()
     return action.includes('delete') || action.includes('remove') || action.includes('حذف')
-  })
+  }), [filteredLogs])
+
+  // Pagination calculations
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredLogs.length)
+  const totalPages = useMemo(() => Math.ceil(filteredLogs.length / itemsPerPage), [filteredLogs, itemsPerPage])
+  const paginatedLogs = useMemo(() => filteredLogs.slice(startIndex, endIndex), [filteredLogs, startIndex, endIndex])
+
+  const allSelected = paginatedLogs.length > 0 && paginatedLogs.every(log => selectedLogIds.has(log.id))
+  const someSelected = paginatedLogs.some(log => selectedLogIds.has(log.id)) && !allSelected
 
   // دوال التحديد والحذف
-  const handleSelectAll = () => {
-    if (selectedLogIds.size === paginatedLogs.length && paginatedLogs.every(log => selectedLogIds.has(log.id))) {
+  const handleSelectAll = useCallback(() => {
+    const pageSlice = filteredLogs.slice(startIndex, endIndex)
+    if (selectedLogIds.size === pageSlice.length && pageSlice.every(log => selectedLogIds.has(log.id))) {
       // إلغاء تحديد جميع العناصر في الصفحة الحالية
       const newSelected = new Set(selectedLogIds)
-      paginatedLogs.forEach(log => newSelected.delete(log.id))
+      pageSlice.forEach(log => newSelected.delete(log.id))
       setSelectedLogIds(newSelected)
     } else {
       // تحديد جميع العناصر في الصفحة الحالية
       const newSelected = new Set(selectedLogIds)
-      paginatedLogs.forEach(log => newSelected.add(log.id))
+      pageSlice.forEach(log => newSelected.add(log.id))
       setSelectedLogIds(newSelected)
     }
-  }
+  }, [selectedLogIds, filteredLogs, startIndex, endIndex])
 
-  const handleSelectLog = (logId: number) => {
+  const handleSelectLog = useCallback((logId: number) => {
     const newSelected = new Set(selectedLogIds)
     if (newSelected.has(logId)) {
       newSelected.delete(logId)
@@ -732,9 +730,9 @@ export default function ActivityLogs() {
       newSelected.add(logId)
     }
     setSelectedLogIds(newSelected)
-  }
+  }, [selectedLogIds])
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (selectedLogIds.size === 0) {
       toast.error('لم يتم تحديد أي نشاطات للحذف')
       return
@@ -742,9 +740,9 @@ export default function ActivityLogs() {
     setDeleteAllMode(false)
     setDeleteFromDatabase(false) // افتراضي: حذف من العرض فقط
     setShowDeleteModal(true)
-  }
+  }, [selectedLogIds])
 
-  const handleDeleteAll = () => {
+  const handleDeleteAll = useCallback(() => {
     if (filteredLogs.length === 0) {
       toast.error('لا توجد نشاطات للحذف')
       return
@@ -752,7 +750,7 @@ export default function ActivityLogs() {
     setDeleteAllMode(true)
     setDeleteFromDatabase(false) // افتراضي: حذف المعروض فقط
     setShowDeleteModal(true)
-  }
+  }, [filteredLogs])
 
   // دالة لحذف جميع السجلات من قاعدة البيانات
   const deleteAllFromDatabase = async (): Promise<number> => {
@@ -991,17 +989,8 @@ export default function ActivityLogs() {
     }
   }
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedLogs = filteredLogs.slice(startIndex, endIndex)
-
-  const allSelected = paginatedLogs.length > 0 && paginatedLogs.every(log => selectedLogIds.has(log.id))
-  const someSelected = paginatedLogs.some(log => selectedLogIds.has(log.id)) && !allSelected
-
   // Export to Excel
-  const exportToExcel = () => {
+  const exportToExcel = useCallback(() => {
     const data = filteredLogs.map(log => {
       let userDisplay = 'النظام'
       if (log.user_id) {
@@ -1030,7 +1019,7 @@ export default function ActivityLogs() {
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     saveAs(blob, `سجل_النشاطات_${new Date().toISOString().split('T')[0]}.xlsx`)
     toast.success('تم تصدير البيانات بنجاح')
-  }
+  }, [filteredLogs, usersMap])
 
   return (
     <Layout>
@@ -1085,769 +1074,82 @@ export default function ActivityLogs() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-6 overflow-hidden">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{filteredLogs.length}</div>
-                  <div className="text-xs text-gray-600 mt-0.5 line-clamp-1">السجلات</div>
-                </div>
-                <div className="bg-purple-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Activity className="w-3 sm:w-4 h-3 sm:h-4 text-purple-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-green-50 rounded-lg shadow-sm border border-green-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-green-600">{createLogs.length}</div>
-                  <div className="text-xs text-green-700 mt-0.5 line-clamp-1">إنشاء</div>
-                </div>
-                <div className="bg-green-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Plus className="w-3 sm:w-4 h-3 sm:h-4 text-green-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-blue-600">{updateLogs.length}</div>
-                  <div className="text-xs text-blue-700 mt-0.5 line-clamp-1">تحديث</div>
-                </div>
-                <div className="bg-blue-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Edit className="w-3 sm:w-4 h-3 sm:h-4 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-red-600">{deleteLogs.length}</div>
-                  <div className="text-xs text-red-700 mt-0.5 line-clamp-1">حذف</div>
-                </div>
-                <div className="bg-red-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Trash2 className="w-3 sm:w-4 h-3 sm:h-4 text-red-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-purple-50 rounded-lg shadow-sm border border-purple-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-purple-600">{todayLogs.length}</div>
-                  <div className="text-xs text-purple-700 mt-0.5 line-clamp-1">اليوم</div>
-                </div>
-                <div className="bg-purple-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Calendar className="w-3 sm:w-4 h-3 sm:h-4 text-purple-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-orange-50 rounded-lg shadow-sm border border-orange-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600">{weekLogs.length}</div>
-                  <div className="text-xs text-orange-700 mt-0.5 line-clamp-1">الأسبوع</div>
-                </div>
-                <div className="bg-orange-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Clock className="w-3 sm:w-4 h-3 sm:h-4 text-orange-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-indigo-50 rounded-lg shadow-sm border border-indigo-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-indigo-600">{employeeLogs.length}</div>
-                  <div className="text-xs text-indigo-700 mt-0.5 line-clamp-1">الموظفين</div>
-                </div>
-                <div className="bg-indigo-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-indigo-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-teal-50 rounded-lg shadow-sm border border-teal-200 p-2 sm:p-3 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-teal-600">{companyLogs.length}</div>
-                  <div className="text-xs text-teal-700 mt-0.5 line-clamp-1">المؤسسات</div>
-                </div>
-                <div className="bg-teal-100 p-1.5 sm:p-2 rounded flex-shrink-0">
-                  <Building2 className="w-3 sm:w-4 h-3 sm:h-4 text-teal-600" />
-                </div>
-              </div>
-            </div>
-        </div>
+        <StatsCards
+          total={filteredLogs.length}
+          createCount={createLogs.length}
+          updateCount={updateLogs.length}
+          deleteCount={deleteLogs.length}
+          todayCount={todayLogs.length}
+          weekCount={weekLogs.length}
+          employeeCount={employeeLogs.length}
+          companyCount={companyLogs.length}
+        />
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">الفلاتر</h3>
-              {(searchTerm || actionFilter !== 'all' || entityFilter !== 'all' || dateFilter !== 'all') && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setActionFilter('all')
-                    setEntityFilter('all')
-                    setDateFilter('all')
-                    setCurrentPage(1)
-                  }}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1 px-2 py-1 rounded hover:bg-purple-50 transition"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  إعادة تعيين
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-              {/* Search */}
-              <div className="sm:col-span-2 lg:col-span-1">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
-                  <input
-                    type="text"
-                    placeholder="البحث..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
+        <LogsFilters
+          searchTerm={searchTerm}
+          onSearchTermChange={(v) => setSearchTerm(v)}
+          actionFilter={actionFilter}
+          onActionFilterChange={(v) => setActionFilter(v as ActionFilter)}
+          entityFilter={entityFilter}
+          onEntityFilterChange={(v) => setEntityFilter(v as EntityFilter)}
+          dateFilter={dateFilter}
+          onDateFilterChange={(v) => setDateFilter(v as DateFilter)}
+          hasActiveFilters={Boolean(searchTerm || actionFilter !== 'all' || entityFilter !== 'all' || dateFilter !== 'all')}
+          onReset={() => { setSearchTerm(''); setActionFilter('all'); setEntityFilter('all'); setDateFilter('all'); setCurrentPage(1) }}
+        />
 
-              {/* Action Filter */}
-              <div>
-                <select
-                  value={actionFilter}
-                  onChange={(e) => setActionFilter(e.target.value as ActionFilter)}
-                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-                >
-                  <option value="all">جميع العمليات</option>
-                  <option value="create">إنشاء</option>
-                  <option value="update">تحديث</option>
-                  <option value="delete">حذف</option>
-                  <option value="login">دخول/خروج</option>
-                </select>
-              </div>
+        <LogsTable
+          loading={loading}
+          isAdmin={isAdmin}
+          paginatedLogs={paginatedLogs}
+          filteredTotal={filteredLogs.length}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={(n) => { setItemsPerPage(n); setCurrentPage(1) }}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={(n) => setCurrentPage(n)}
+          usersMap={usersMap}
+          getActionColor={getActionColor}
+          getActionIcon={getActionIcon}
+          getActionLabel={getActionLabel}
+          getEntityLabel={getEntityLabel}
+          isImportantAction={isImportantAction}
+          formatDateTimeWithHijri={formatDateTimeWithHijri}
+          onRowClick={(log) => setSelectedLog(log)}
+          selectedLogIds={selectedLogIds}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          handleSelectAll={handleSelectAll}
+          handleSelectLog={handleSelectLog}
+        />
 
-              {/* Entity Filter */}
-              <div>
-                <select
-                  value={entityFilter}
-                  onChange={(e) => setEntityFilter(e.target.value as EntityFilter)}
-                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-                >
-                  <option value="all">جميع الأنواع</option>
-                  <option value="employee">موظفين</option>
-                  <option value="company">مؤسسات</option>
-                  <option value="user">مستخدمين</option>
-                  <option value="settings">إعدادات</option>
-                </select>
-              </div>
+        <DeleteConfirmModal
+          open={showDeleteModal}
+          deleteAllMode={deleteAllMode}
+          deleteFromDatabase={deleteFromDatabase}
+          setDeleteFromDatabase={setDeleteFromDatabase}
+          deleting={deleting}
+          confirmDelete={confirmDelete}
+          onClose={() => { setShowDeleteModal(false); setDeleteAllMode(false); setDeleteFromDatabase(false) }}
+          selectedCount={selectedLogIds.size}
+          visibleCount={filteredLogs.length}
+        />
 
-              {/* Date Filter */}
-              <div>
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
-                >
-                  <option value="all">جميع التواريخ</option>
-                  <option value="today">اليوم</option>
-                  <option value="week">أسبوع</option>
-                  <option value="month">شهر</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pagination Controls - Top */}
-        {!loading && filteredLogs.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="text-xs sm:text-sm text-gray-600">
-                عرض {startIndex + 1}-{Math.min(endIndex, filteredLogs.length)} من {filteredLogs.length} سجل
-              </div>
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <span className="text-xs sm:text-sm text-gray-600">عرض:</span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value))
-                      setCurrentPage(1)
-                    }}
-                    className="px-2 py-1 text-xs sm:text-sm border rounded"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span className="text-xs sm:text-sm text-gray-600">سجل</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Logs Table */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-          </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <Activity className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد سجلات</h3>
-            <p className="text-gray-600">
-              {logs.length === 0 
-                ? 'لم يتم تسجيل أي نشاطات بعد'
-                : 'لا توجد نتائج تطابق الفلاتر المحددة'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Desktop View - Table */}
-            <div className="hidden md:block w-full overflow-x-auto">
-              <table className="w-full min-w-max">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    {isAdmin && (
-                      <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase w-10 sm:w-12">
-                        <button
-                          onClick={handleSelectAll}
-                          className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5"
-                        >
-                          {allSelected ? (
-                            <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
-                          ) : someSelected ? (
-                            <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-purple-600 rounded bg-purple-100" />
-                          ) : (
-                            <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
-                          )}
-                        </button>
-                      </th>
-                    )}
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">العملية</th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">نوع الكيان</th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">المستخدم</th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">عنوان IP</th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التاريخ والوقت</th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">التفاصيل</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {paginatedLogs.map((log) => {
-                    const colors = getActionColor(log.action)
-                    return (
-                    <tr key={log.id} className={`${colors.bg} hover:shadow-md hover:cursor-pointer transition-all duration-300 border-l ${colors.border}`} onClick={() => setSelectedLog(log)}>
-                      {isAdmin && (
-                        <td className="px-3 sm:px-6 py-3 sm:py-4" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleSelectLog(log.id)}
-                            className="flex items-center justify-center w-4 sm:w-5 h-4 sm:h-5"
-                          >
-                            {selectedLogIds.has(log.id) ? (
-                              <CheckSquare className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
-                            ) : (
-                              <Square className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
-                            )}
-                          </button>
-                        </td>
-                      )}
-                      <td className="px-3 sm:px-6 py-3 sm:py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`${colors.icon} p-2 rounded-lg flex-shrink-0`}>
-                            {getActionIcon(log.action)}
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className={`${colors.text} text-xs sm:text-sm font-semibold`}>
-                              {getActionLabel(log.action)}
-                            </span>
-                            {isImportantAction(log.action) && (
-                              <span className="text-xs text-red-600 font-medium">⚠️ عملية حساسة</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium">
-                          {log.entity_type ? getEntityLabel(log.entity_type) : '-'}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
-                        {log.user_id ? (
-                          (() => {
-                            const user = usersMap.get(log.user_id)
-                            return user ? (
-                              <div className="flex flex-col gap-0.5 sm:gap-1">
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                  <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
-                                  <span className="font-medium text-gray-900 truncate">{user.full_name}</span>
-                                </div>
-                                <span className="text-xs text-gray-500 truncate">{user.email}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <UserIcon className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                                <span className="font-mono text-xs">{String(log.user_id).slice(0, 8)}...</span>
-                              </div>
-                            )
-                          })()
-                        ) : (
-                          <span className="text-gray-400 text-xs">النظام</span>
-                        )}
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 font-mono">
-                        <span className="px-2 py-1 bg-gray-100 rounded text-gray-700 text-xs">
-                          {log.ip_address?.split('.').slice(0, 2).join('.')}...
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <Clock className="w-3 sm:w-4 h-3 sm:h-4 text-gray-400 flex-shrink-0" />
-                          <HijriDateDisplay date={log.created_at}>
-                            <span className="truncate">{formatDateTimeWithHijri(log.created_at)}</span>
-                          </HijriDateDisplay>
-                        </div>
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-purple-100 transition duration-200 hover:shadow-sm"
-                        >
-                          عرض ←
-                        </button>
-                      </td>
-                    </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View - Cards */}
-            <div className="md:hidden space-y-3 p-3 sm:p-4">
-              {paginatedLogs.map((log) => {
-                const colors = getActionColor(log.action)
-                return (
-                <div key={log.id} className={`
-                  ${colors.bg} 
-                  border-l-4 ${colors.border}
-                  rounded-xl p-4 space-y-3
-                  transition-all duration-300
-                  hover:shadow-md hover:cursor-pointer
-                `} onClick={() => setSelectedLog(log)}>
-                  {/* Header: Action + Checkbox */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1" onClick={(e) => e.stopPropagation()}>
-                      <div className={`${colors.icon} p-2.5 rounded-lg flex-shrink-0`}>
-                        {getActionIcon(log.action)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`${colors.text} font-semibold text-sm`}>
-                          {getActionLabel(log.action)}
-                        </h4>
-                        <p className="text-xs text-gray-600 mt-0.5">
-                          {log.entity_type ? getEntityLabel(log.entity_type) : 'عملية عامة'}
-                        </p>
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSelectLog(log.id)
-                        }}
-                        className="flex-shrink-0 mt-1"
-                      >
-                        {selectedLogIds.has(log.id) ? (
-                          <CheckSquare className="w-5 h-5 text-purple-600" />
-                        ) : (
-                          <Square className="w-5 h-5 text-gray-400" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Important Badge */}
-                  {isImportantAction(log.action) && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-red-100 border border-red-200 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                      <span className="text-xs font-semibold text-red-700">عملية حساسة - احذر</span>
-                    </div>
-                  )}
-
-                  {/* User Info */}
-                  {log.user_id && (
-                    <div className="py-2 px-3 bg-white/60 rounded-lg border border-gray-200">
-                      <div className="text-xs font-medium text-gray-600 mb-1">تم بواسطة</div>
-                      {(() => {
-                        const user = usersMap.get(log.user_id)
-                        return user ? (
-                          <div>
-                            <div className="text-xs font-semibold text-gray-900">{user.full_name}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-500">{String(log.user_id).slice(0, 8)}...</span>
-                        )
-                      })()}
-                    </div>
-                  )}
-
-                  {/* IP Address */}
-                  {log.ip_address && (
-                    <div className="text-xs text-gray-600 px-3 py-1.5 bg-white/50 rounded border border-gray-100">
-                      <span className="font-medium">IP:</span> 
-                      <span className="font-mono ml-1 text-gray-700">{log.ip_address?.split('.').slice(0, 2).join('.')}...</span>
-                    </div>
-                  )}
-
-                  {/* Footer: Date + Button */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">
-                        <HijriDateDisplay date={log.created_at}>
-                          <span>{formatDateTimeWithHijri(log.created_at)}</span>
-                        </HijriDateDisplay>
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setSelectedLog(log)}
-                      className={`${colors.text} font-semibold text-xs px-3 py-1.5 rounded-lg ${colors.badge} transition duration-200 hover:shadow-sm flex-shrink-0`}
-                    >
-                      التفاصيل
-                    </button>
-                  </div>
-                </div>
-                )
-              })}
-            </div>
-            
-            {/* Pagination Controls - Bottom */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 border-t border-gray-200 px-3 sm:px-6 py-3 sm:py-4">
-                <div className="text-xs sm:text-sm text-gray-600">
-                  صفحة {currentPage} من {totalPages}
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1 sm:p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="الصفحة السابقة"
-                  >
-                    <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4" />
-                  </button>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-2 sm:px-3 py-1 sm:py-2 border rounded-md text-xs sm:text-sm ${
-                          currentPage === pageNum
-                            ? 'bg-purple-600 text-white border-purple-600'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-1 sm:p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="الصفحة التالية"
-                  >
-                    <ChevronLeft className="w-3 sm:w-4 h-3 sm:h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-red-100 rounded-full">
-                    <Trash2 className="w-6 h-6 text-red-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">تأكيد الحذف</h3>
-                </div>
-                
-                {deleteAllMode ? (
-                  <div className="space-y-4 mb-6">
-                    <p className="text-gray-700">
-                      اختر نوع الحذف:
-                    </p>
-                    
-                    {/* خيار حذف المعروض فقط */}
-                    <button
-                      onClick={() => setDeleteFromDatabase(false)}
-                      disabled={deleting}
-                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
-                        !deleteFromDatabase
-                          ? 'border-red-500 bg-red-50'
-                          : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-bold text-gray-900 mb-1">حذف السجلات المعروضة فقط</div>
-                          <div className="text-sm text-gray-600">
-                            سيتم حذف {logs.length} سجل المعروض حالياً في الصفحة
-                          </div>
-                        </div>
-                        {!deleteFromDatabase && (
-                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
-                        )}
-                      </div>
-                    </button>
-                    
-                    {/* خيار حذف من قاعدة البيانات */}
-                    <button
-                      onClick={() => setDeleteFromDatabase(true)}
-                      disabled={deleting}
-                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
-                        deleteFromDatabase
-                          ? 'border-red-500 bg-red-50'
-                          : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-bold text-gray-900 mb-1">حذف جميع السجلات من قاعدة البيانات</div>
-                          <div className="text-sm text-gray-600">
-                            سيتم حذف <span className="font-bold text-red-600">جميع</span> السجلات من قاعدة البيانات بشكل نهائي
-                          </div>
-                          <div className="text-xs text-red-600 mt-2 font-medium">
-                            ⚠️ تحذير: هذه العملية لا يمكن التراجع عنها!
-                          </div>
-                        </div>
-                        {deleteFromDatabase && (
-                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4 mb-6">
-                    <p className="text-gray-700">
-                      اختر نوع الحذف للسجلات المحددة ({selectedLogIds.size} نشاط):
-                    </p>
-                    
-                    {/* خيار حذف من العرض فقط */}
-                    <button
-                      onClick={() => setDeleteFromDatabase(false)}
-                      disabled={deleting}
-                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
-                        !deleteFromDatabase
-                          ? 'border-red-500 bg-red-50'
-                          : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-bold text-gray-900 mb-1">حذف من العرض فقط</div>
-                          <div className="text-sm text-gray-600">
-                            سيتم إزالة {selectedLogIds.size} سجل من العرض فقط، لكنها ستبقى في قاعدة البيانات
-                          </div>
-                        </div>
-                        {!deleteFromDatabase && (
-                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
-                        )}
-                      </div>
-                    </button>
-                    
-                    {/* خيار حذف من قاعدة البيانات */}
-                    <button
-                      onClick={() => setDeleteFromDatabase(true)}
-                      disabled={deleting}
-                      className={`w-full p-4 rounded-lg border-2 transition text-right ${
-                        deleteFromDatabase
-                          ? 'border-red-500 bg-red-50'
-                          : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-bold text-gray-900 mb-1">حذف من قاعدة البيانات</div>
-                          <div className="text-sm text-gray-600">
-                            سيتم حذف {selectedLogIds.size} سجل من قاعدة البيانات بشكل نهائي
-                          </div>
-                          <div className="text-xs text-red-600 mt-2 font-medium">
-                            ⚠️ تحذير: هذه العملية لا يمكن التراجع عنها!
-                          </div>
-                        </div>
-                        {deleteFromDatabase && (
-                          <div className="w-5 h-5 rounded-full bg-red-500 border-4 border-white shadow"></div>
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteModal(false)
-                      setDeleteAllMode(false)
-                      setDeleteFromDatabase(false)
-                    }}
-                    disabled={deleting}
-                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    disabled={deleting}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {deleting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        جاري الحذف...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4" />
-                        تأكيد الحذف
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Details Modal */}
-        {selectedLog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-              <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
-                <h3 className="text-xl font-bold">تفاصيل النشاط</h3>
-                <button
-                  onClick={() => {
-                    setSelectedLog(null)
-                  }}
-                  className="p-2 hover:bg-white/20 rounded-lg transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">العملية</label>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getActionColor(selectedLog.action)}`}>
-                    {getActionIcon(selectedLog.action)}
-                    {getActionLabel(selectedLog.action)}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">نوع الكيان</label>
-                  <p className="text-gray-900">{selectedLog.entity_type ? getEntityLabel(selectedLog.entity_type) : '-'}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">التاريخ والوقت</label>
-                  <HijriDateDisplay date={selectedLog.created_at}>
-                    <p className="text-gray-900">
-                      {formatDateTimeWithHijri(selectedLog.created_at)}
-                    </p>
-                  </HijriDateDisplay>
-                </div>
-
-                {selectedLog.user_id && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">المستخدم</label>
-                    {(() => {
-                      const user = usersMap.get(selectedLog.user_id)
-                      return user ? (
-                        <div>
-                          <p className="text-gray-900 font-medium">{user.full_name}</p>
-                          <p className="text-gray-600 text-sm">{user.email}</p>
-                          <p className="text-gray-400 text-xs font-mono mt-1">ID: {selectedLog.user_id}</p>
-                        </div>
-                      ) : (
-                        <p className="text-gray-900 font-mono text-sm">{selectedLog.user_id}</p>
-                      )
-                    })()}
-                  </div>
-                )}
-
-                {selectedLog.ip_address && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">عنوان IP</label>
-                    <p className="text-gray-900 font-mono">{selectedLog.ip_address}</p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">وصف النشاط</label>
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    {(() => {
-                      const description = generateActivityDescription(selectedLog)
-                      return typeof description === 'string' ? (
-                        <p className="text-gray-900 text-base leading-relaxed">
-                          {description}
-                        </p>
-                      ) : (
-                        description
-                      )
-                    })()}
-                  </div>
-                </div>
-
-                {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                    <p>💡 <span className="font-medium">ملاحظة:</span> تم تسجيل هذا النشاط بنجاح مع البيانات أعلاه</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6">
-                <button
-                  onClick={() => {
-                    setSelectedLog(null)
-                  }}
-                  className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                >
-                  إغلاق
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <LogDetailsModal
+          open={Boolean(selectedLog)}
+          log={selectedLog}
+          usersMap={usersMap}
+          onClose={() => setSelectedLog(null)}
+          getActionColor={getActionColor}
+          getActionIcon={getActionIcon}
+          getActionLabel={getActionLabel}
+          getEntityLabel={getEntityLabel}
+          formatDateTimeWithHijri={formatDateTimeWithHijri}
+          generateActivityDescription={generateActivityDescription}
+        />
 
         {/* End of main container */}
       </div>

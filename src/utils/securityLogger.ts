@@ -273,3 +273,4 @@ class SecurityLogger {
 }
 
 export const logger = new SecurityLogger()
+export const securityLogger = new SecurityLogger()
