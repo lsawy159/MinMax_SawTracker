@@ -723,7 +723,7 @@ export const calculateCompanyStatusStats = (companies: Array<{
   const powerStats = calculatePowerStats(powerCompanies)
   const moqeemStats = calculateMoqeemStats(moqeemCompanies)
 
-  // حساب إجمالي التنبيهات الحرجة والمتوسطة (يشمل جميع الحالات)
+  // حساب إجمالي التنبيهات الطارئة والمتوسطة (يشمل جميع الحالات)
   let totalCriticalAlerts = 0
   let totalMediumAlerts = 0
 
@@ -750,8 +750,8 @@ export const calculateCompanyStatusStats = (companies: Array<{
 
   // حساب إحصائيات موحدة (تشمل جميع الحالات الأربع)
   // المؤسسة تعتبر "ساري" إذا كانت جميع حالاتها سارية
-  // المؤسسة تعتبر "متوسط" إذا كان لديها حالة واحدة على الأقل متوسطة وليست حرجة
-  // المؤسسة تعتبر "حرج" إذا كان لديها حالة واحدة على الأقل حرجة
+  // المؤسسة تعتبر "متوسط" إذا كان لديها حالة واحدة على الأقل متوسطة وليست طارئة
+  // المؤسسة تعتبر "طارئ" إذا كان لديها حالة واحدة على الأقل طارئة
   // المؤسسة تعتبر "منتهي" إذا كان لديها حالة واحدة على الأقل منتهية
   
   let totalValid = 0
@@ -773,15 +773,15 @@ export const calculateCompanyStatusStats = (companies: Array<{
     if (statuses.includes('منتهي')) {
       totalExpired++
     }
-    // إذا كان هناك حالة حرجة (وليس منتهية)، المؤسسة حرجة
+    // إذا كان هناك حالة طارئة (وليس منتهية)، المؤسسة طارئة
     else if (priorities.includes('urgent')) {
       totalCritical++
     }
-    // إذا كان هناك حالة عاجلة (وليس حرجة أو منتهية)، المؤسسة حرجة أيضاً
+    // إذا كان هناك حالة عاجلة (وليس طارئة أو منتهية)، المؤسسة طارئة أيضاً
     else if (priorities.includes('high')) {
       totalCritical++
     }
-    // إذا كان هناك حالة متوسطة (وليس حرجة أو منتهية)، المؤسسة متوسطة
+    // إذا كان هناك حالة متوسطة (وليس طارئة أو منتهية)، المؤسسة متوسطة
     else if (priorities.includes('medium')) {
       totalMedium++
     }

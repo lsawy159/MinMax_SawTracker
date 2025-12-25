@@ -180,7 +180,7 @@ describe('autoCompanyStatus utils', () => {
       expect(result.description).toContain('انتهى')
     })
 
-    it('should return "حرج" status for 0 days remaining', () => {
+    it('should return "طارئ" status for 0 days remaining', () => {
       const result = calculateSocialInsuranceStatus(today.toISOString())
       
       expect(result.status).toBe('طارئ')
@@ -232,7 +232,7 @@ describe('autoCompanyStatus utils', () => {
     it('should calculate correct stats for mixed companies', () => {
       const companies = [
         { commercial_registration_expiry: yesterday.toISOString().split('T')[0] }, // منتهي
-        { commercial_registration_expiry: in5Days.toISOString().split('T')[0] },   // حرج
+        { commercial_registration_expiry: in5Days.toISOString().split('T')[0] },   // طارئ
         { commercial_registration_expiry: in15Days.toISOString().split('T')[0] },  // متوسط
         { commercial_registration_expiry: in45Days.toISOString().split('T')[0] },  // ساري
         { commercial_registration_expiry: null },                                    // غير محدد
@@ -307,7 +307,7 @@ describe('autoCompanyStatus utils', () => {
     it('should calculate correct stats for mixed companies', () => {
       const companies = [
         { social_insurance_expiry: yesterday.toISOString().split('T')[0] }, // منتهي
-        { social_insurance_expiry: in5Days.toISOString().split('T')[0] },   // حرج
+        { social_insurance_expiry: in5Days.toISOString().split('T')[0] },   // طارئ
         { social_insurance_expiry: in15Days.toISOString().split('T')[0] },  // متوسط
         { social_insurance_expiry: in45Days.toISOString().split('T')[0] },  // ساري
       ]
@@ -369,8 +369,8 @@ describe('autoCompanyStatus utils', () => {
       const companies = [
         {
           id: '1',
-          name: 'شركة حرجة',
-          commercial_registration_expiry: in5Days.toISOString().split('T')[0], // حرج
+          name: 'شركة طارئة',
+          commercial_registration_expiry: in5Days.toISOString().split('T')[0], // طارئ
           social_insurance_expiry: in45Days.toISOString().split('T')[0], // ساري
         },
         {
@@ -383,7 +383,7 @@ describe('autoCompanyStatus utils', () => {
       
       const stats = calculateCompanyStatusStats(companies)
       
-      // شركة واحدة لديها تنبيه حرج
+      // شركة واحدة لديها تنبيه طارئ
       expect(stats.totalCriticalAlerts).toBe(1)
     })
 

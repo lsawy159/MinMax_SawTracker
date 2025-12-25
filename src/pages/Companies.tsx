@@ -569,14 +569,15 @@ export default function Companies() {
 
       if (deleteError) throw deleteError
 
-      // [FIX] المرحلة الثالثة: تسجيل النشاط
+      // [FIX] المرحلة الثالثة: تسجيل النشاط في activity_log (عام)
       await supabase.from('activity_log').insert({
         action: 'حذف مؤسسة',
         entity_type: 'company',
         entity_id: selectedCompany.id,
         details: { 
           company_name: selectedCompany.name,
-          unified_number: selectedCompany.unified_number
+          unified_number: selectedCompany.unified_number,
+          employees_detached: employees?.length || 0
         }
       })
 
@@ -851,10 +852,10 @@ export default function Companies() {
                   <div className="text-sm text-yellow-600">متوسط ({stats.totalMediumPercentage}%)</div>
                 </div>
                 
-                {/* حرج/منتهي - حالة واحدة على الأقل حرجة أو منتهية */}
+                {/* طارئ/منتهي - حالة واحدة على الأقل طارئة أو منتهية */}
                 <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
                   <div className="text-2xl font-bold text-red-700">{stats.totalCritical + stats.totalExpired}</div>
-                  <div className="text-sm text-red-600">حرج/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)</div>
+                  <div className="text-sm text-red-600">طارئ/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)</div>
                 </div>
               </div>
             )

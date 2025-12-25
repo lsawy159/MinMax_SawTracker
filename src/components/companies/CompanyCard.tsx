@@ -45,7 +45,7 @@ function CompanyCard({
     return `${days} يوم`
   }
 
-  // تحديد لون الحدود حسب أعلى أولوية (حرج > متوسط > ساري)
+  // تحديد لون الحدود حسب أعلى أولوية (طارئ > عاجل > متوسط > ساري)
   const getBorderColor = () => {
     const priorities = [
       commercialRegStatus.priority,

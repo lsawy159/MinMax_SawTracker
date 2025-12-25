@@ -376,11 +376,23 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       let actionName = action
       const changedFields = Object.keys(changes)
       
-      // تحويل مفاتيح التغييرات إلى أسماء مترجمة
+      // بناء تفاصيل التغييرات بصيغة {old, new} لكل حقل
+      const detailedChanges: Record<string, { old: unknown; new: unknown }> = {}
       const translatedChanges: Record<string, unknown> = {}
+      
       changedFields.forEach(field => {
         const label = getFieldLabel(field)
-        translatedChanges[label] = changes[field]
+        const oldVal = oldDataFull[field]
+        const newVal = newDataFull[field]
+        
+        // حفظ التغيير بصيغة مفصلة {old, new}
+        detailedChanges[label] = {
+          old: oldVal,
+          new: newVal
+        }
+        
+        // حفظ القيمة الجديدة فقط (للتوافق مع النسخ القديمة)
+        translatedChanges[label] = newVal
       })
       
       // إذا كان هناك حقل واحد فقط، استخدم اسمه في العملية
@@ -392,15 +404,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         actionName = `تحديث متعدد (${changedFields.length} حقول)`
       }
 
-      // حفظ البيانات القديمة والجديدة فقط للحقول المتغيرة
-      const oldDataFiltered: Record<string, unknown> = {}
-      const newDataFiltered: Record<string, unknown> = {}
-      
-      changedFields.forEach(field => {
-        oldDataFiltered[field] = oldDataFull[field]
-        newDataFiltered[field] = newDataFull[field]
-      })
-
       await supabase
         .from('activity_log')
         .insert({
@@ -409,11 +412,12 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
           action: actionName,
           details: {
             employee_name: employee.name,
-            changes: translatedChanges,
+            changes: detailedChanges,
+            changes_simple: translatedChanges,
             timestamp: new Date().toISOString()
           },
-          old_data: JSON.stringify(oldDataFiltered),
-          new_data: JSON.stringify(newDataFiltered)
+          old_data: oldDataFull,
+          new_data: newDataFull
         })
     } catch (error) {
       console.error('Error logging activity:', error)
@@ -427,6 +431,19 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         const trimmed = value?.trim()
         return trimmed ? trimmed : null
       }
+
+      // جلب البيانات الحالية قبل التحديث لضمان وجود old_data موثوق
+      const { data: existingEmployee, error: fetchError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', employee.id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      const baselineData: Record<string, unknown> = existingEmployee
+        ? (existingEmployee as Record<string, unknown>)
+        : (originalData as unknown as Record<string, unknown>)
 
       // بناء actualUpdateData بناءً على الحقول التي تغيرت فقط (بدون تحضير جميع الحقول)
       const fieldsToCheck = [
@@ -443,7 +460,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
       // فحص كل حقل للتأكد من تغييره فقط
       fieldsToCheck.forEach(field => {
-        const oldValue = originalData[field as keyof typeof originalData]
+        const oldValue = baselineData[field]
         let newValue: unknown = formData[field as keyof typeof formData]
 
         // تطبيق نفس التحويلات على القيمة الجديدة مثل updateData
@@ -496,12 +513,18 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       }
 
       // حفظ في قاعدة البيانات
-      const { error } = await supabase
+      const { data: updatedEmployee, error } = await supabase
         .from('employees')
         .update(actualUpdateData)
         .eq('id', employee.id)
+        .select()
+        .single()
 
       if (error) throw error
+
+      const newDataFull: Record<string, unknown> = updatedEmployee
+        ? (updatedEmployee as Record<string, unknown>)
+        : { ...baselineData, ...actualUpdateData }
 
       // تسجيل النشاط مع التغييرات الفعلية فقط
       let actionType = 'full_edit'
@@ -509,7 +532,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         actionType = 'company_transfer'
       }
 
-      await logActivity(actionType, changes, originalData as unknown as Record<string, unknown>, actualUpdateData)
+      await logActivity(actionType, changes, baselineData, newDataFull)
 
       toast.success('تم حفظ التعديلات بنجاح')
       setIsEditMode(false)

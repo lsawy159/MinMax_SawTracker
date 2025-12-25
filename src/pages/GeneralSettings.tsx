@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '@/components/layout/Layout'
-import { Settings, Globe, Shield, FileText, Clock, Database, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell } from 'lucide-react'
+import { Settings, Globe, Shield, FileText, Clock, Database, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, BarChart3, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,9 @@ import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import BackupManagement from '@/components/settings/BackupManagement'
+import SecuritySettingsManager from '@/components/settings/SecuritySettingsManager'
+import SessionsManager from '@/components/settings/SessionsManager'
+import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
 interface GeneralSetting {
@@ -29,7 +32,7 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
-type TabType = 'system' | 'fields' | 'backup' | 'security' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
+type TabType = 'system' | 'fields' | 'backup' | 'security-settings' | 'sessions' | 'audit' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -170,60 +173,22 @@ export default function GeneralSettings() {
       component: BackupManagement
     },
     {
-      key: 'security',
-      label: 'إعدادات الأمان المتقدمة',
+      key: 'security-settings',
+      label: 'إعدادات الأمان والنسخ الاحتياطية',
       icon: Shield,
-      settings: [
-        {
-          setting_key: 'password_min_length',
-          setting_value: 8,
-          category: 'security',
-          description: 'الحد الأدنى لطول كلمة المرور',
-          setting_type: 'number'
-        },
-        {
-          setting_key: 'password_require_uppercase',
-          setting_value: true,
-          category: 'security',
-          description: 'اشتراط أحرف كبيرة في كلمة المرور',
-          setting_type: 'boolean'
-        },
-        {
-          setting_key: 'password_require_numbers',
-          setting_value: true,
-          category: 'security',
-          description: 'اشتراط أرقام في كلمة المرور',
-          setting_type: 'boolean'
-        },
-        {
-          setting_key: 'session_timeout_hours',
-          setting_value: 8,
-          category: 'security',
-          description: 'مدة انتهاء الجلسة (بالساعات)',
-          setting_type: 'number'
-        },
-        {
-          setting_key: 'max_login_attempts',
-          setting_value: 5,
-          category: 'security',
-          description: 'عدد محاولات تسجيل الدخول المسموحة',
-          setting_type: 'number'
-        },
-        {
-          setting_key: 'lockout_duration_minutes',
-          setting_value: 30,
-          category: 'security',
-          description: 'مدة القفل بعد فشل تسجيل الدخول (بالدقائق)',
-          setting_type: 'number'
-        },
-        {
-          setting_key: 'enable_two_factor',
-          setting_value: false,
-          category: 'security',
-          description: 'تفعيل المصادقة الثنائية',
-          setting_type: 'boolean'
-        }
-      ]
+      component: SecuritySettingsManager
+    },
+    {
+      key: 'sessions',
+      label: 'إدارة الجلسات النشطة',
+      icon: Users,
+      component: SessionsManager
+    },
+    {
+      key: 'audit',
+      label: 'لوحة المراجعة والتدقيق',
+      icon: BarChart3,
+      component: AuditDashboard
     },
     {
       key: 'ui',

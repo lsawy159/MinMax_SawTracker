@@ -85,7 +85,7 @@ export function EnhancedAlertsSection({
           <div>
             <h2 className="text-2xl font-bold text-gray-900">تنبيهات المؤسسات المحسنة</h2>
             <p className="text-gray-600 mt-1">
-              {alerts.length > 0 ? `${alerts.length} تنبيه نشط - ${criticalAlerts.length} حرج` : 'لا توجد تنبيهات حالياً'}
+              {alerts.length > 0 ? `${alerts.length} تنبيه نشط - ${criticalAlerts.length} طارئ` : 'لا توجد تنبيهات حالياً'}
             </p>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function EnhancedAlertsSection({
               >
                 <option value="all">جميع التنبيهات</option>
                 <option value="urgent">عاجل فقط</option>
-                <option value="critical">حرج فقط</option>
+                <option value="critical">طارئ فقط</option>
               </select>
             </div>
             
@@ -209,7 +209,7 @@ export function EnhancedAlertsSection({
         <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm">تنبيهات حرجة</p>
+              <p className="text-red-100 text-sm">تنبيهات طارئة</p>
               <p className="text-2xl font-bold">{criticalAlerts.length}</p>
             </div>
             <XCircle className="h-8 w-8 text-red-200" />
@@ -378,7 +378,7 @@ export function EnhancedAlertsSection({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <XCircle className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-gray-600">حرج</span>
+                    <span className="text-sm text-gray-600">طارئ</span>
                   </div>
                   <span className="font-medium text-red-600">{stats.byRisk.critical}</span>
                 </div>
@@ -414,7 +414,7 @@ export function EnhancedAlertsSection({
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">حرج</span>
+                  <span className="text-sm text-gray-600">طارئ</span>
                   <span className="font-medium text-red-600">{stats.byBusinessImpact.critical}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -442,7 +442,7 @@ export function EnhancedAlertsSection({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                 <RefreshCw className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">تجديد جميع التنبيهات الحرجة</span>
+                <span className="text-sm font-medium">تجديد جميع التنبيهات الطارئة</span>
               </button>
               <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                 <Download className="h-4 w-4 text-green-600" />

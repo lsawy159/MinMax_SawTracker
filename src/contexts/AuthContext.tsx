@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef, useC
 import { supabase, User } from '../lib/supabase'
 import { Session, AuthError } from '@supabase/supabase-js'
 import { logger } from '../utils/logger'
+import { securityLogger, AuditActionType } from '../utils/securityLogger'
 
 // واجهة موسعة للمصادقة
 export interface AuthContextType {
@@ -62,9 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * إنشاء جلسة في جدول user_sessions
    * يتم استدعاؤها فقط من دالة signIn عند تسجيل الدخول اليدوي
-   * تسجل نشاط الدخول في activity_log عند إنشاء جلسة جديدة
+   * تسجل تسجيل الدخول في audit_log (جدول الأمان) فقط
    */
-  const createUserSession = useCallback(async (userId: string, session: Session) => {
+  const createUserSession = useCallback(async (userId: string) => {
     // منع الاستدعاءات المتزامنة
     if (creatingSessionRef.current) {
       logger.debug('[Auth] Session creation already in progress, skipping duplicate call')
@@ -144,37 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // لا نرمي الخطأ هنا لأن إنشاء الجلسة ليس حرجاً لعملية تسجيل الدخول
       } else {
         logger.debug('[Auth] User session created successfully')
-        
-        // تسجيل نشاط الدخول في activity_log فقط عند إنشاء جلسة جديدة
-        void Promise.resolve(supabase
-          .from('activity_log')
-          .insert({
-            user_id: userId,
-            action: 'login',
-            entity_type: 'user',
-            entity_id: userId,
-            operation: 'login',
-            details: {
-              email: session.user.email,
-              timestamp: new Date().toISOString(),
-              session_created: true
-            },
-            ip_address: null, // سيتم ملؤه من Edge Function إذا كان متاحاً
-            user_agent: userAgent,
-            operation_status: 'success',
-            affected_rows: 1,
-            created_at: new Date().toISOString()
-          }))
-          .then(({ error }) => {
-            if (error) {
-              logger.warn('[Auth] Failed to log login activity:', error)
-            } else {
-              logger.debug('[Auth] Login activity logged successfully')
-            }
-          })
-          .catch(err => {
-            logger.warn('[Auth] Error logging login activity:', err)
-          })
+        // ملاحظة: تسجيل الدخول يتم فقط في audit_log (الأمني) وليس في activity_log (العام)
       }
     } catch (error: unknown) {
       // تجاهل الأخطاء بهدوء - إنشاء الجلسة ليس حرجاً
@@ -465,6 +436,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (signInError) {
         logger.error('[Auth] Sign in error:', signInError)
+        // تسجيل محاولة دخول فاشلة
+        await securityLogger.logFailedLogin(email, signInError.message).catch(err => {
+          logger.warn('[Auth] Failed to log failed login attempt:', err)
+        })
         throw signInError
       }
       
@@ -489,10 +464,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             logger.warn('[Auth] Error updating last_login:', err)
           })
         
-        // إنشاء الجلسة وتسجيل نشاط الدخول
-        // ملاحظة: createUserSession تسجل نشاط الدخول داخلياً عند إنشاء جلسة جديدة
-        await createUserSession(signInData.session.user.id, signInData.session).catch(err => {
+        // إنشاء الجلسة في user_sessions
+        // ملاحظة: تسجيل الدخول الأمني يتم في audit_log من خلال securityLogger
+        await createUserSession(signInData.session.user.id).catch(err => {
           logger.warn('[Auth] Failed to create session (non-critical):', err)
+        })
+        
+        // تسجيل أمني: نجاح تسجيل الدخول
+        await securityLogger.logAudit({
+          user_id: signInData.session.user.id,
+          action_type: AuditActionType.LOGIN,
+          resource_type: 'auth',
+          resource_id: signInData.session.user.id,
+          status: 'success',
+          new_values: { email, timestamp: new Date().toISOString() }
+        }).catch(err => {
+          logger.warn('[Auth] Failed to log successful login:', err)
         })
       }
       
@@ -545,6 +532,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     
+    const currentUserId = user?.id
+    const currentUserEmail = user?.email
+    
     // إنهاء جميع الجلسات النشطة قبل تسجيل الخروج
     if (user) {
       await terminateUserSessions(user.id)
@@ -553,6 +543,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error: signOutError } = await supabase.auth.signOut()
       if (signOutError) throw signOutError
+      
+      // تسجيل أمني: تسجيل الخروج
+      if (currentUserId) {
+        await securityLogger.logAudit({
+          user_id: currentUserId,
+          action_type: AuditActionType.LOGOUT,
+          resource_type: 'auth',
+          resource_id: currentUserId,
+          status: 'success',
+          new_values: { email: currentUserEmail, timestamp: new Date().toISOString() }
+        }).catch(err => {
+          logger.warn('[Auth] Failed to log logout:', err)
+        })
+      }
       
       // onAuthStateChange سيتولى الباقي
       setUser(null)
