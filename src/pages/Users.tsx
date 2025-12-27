@@ -149,11 +149,19 @@ export default function Users() {
 
         // إذا تم إدخال كلمة مرور جديدة، قم بتحديثها
         if (formData.new_password && formData.new_password.length >= 6) {
+          // احصل على رمز وصول المستخدم الحالي لضمان تمرير الـ Authorization
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+          if (sessionError) throw sessionError
+
+          const accessToken = sessionData?.session?.access_token
+
           const { data: passwordData, error: passwordError } = await supabase.functions.invoke('update-user-password', {
             body: {
               user_id: editingUser.id,
               new_password: formData.new_password
-            }
+            },
+            // نُمرر رأس Authorization صراحةً لتجنب أي مشاكل محتملة في الإرسال التلقائي
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
           })
 
           if (passwordError) throw passwordError
