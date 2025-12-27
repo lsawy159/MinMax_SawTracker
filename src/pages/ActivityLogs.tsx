@@ -67,20 +67,8 @@ export default function ActivityLogs() {
     }
   }, [selectedLog])
 
-  // التحقق من صلاحية العرض - بعد جميع الـ hooks
-  if (!canView('activityLogs')) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Activity className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
+  // التحقق من صلاحية العرض بدون إرجاع مبكر لتعزيز ترتيب الـ Hooks
+  const unauthorized = !canView('activityLogs')
 
   const loadLogs = async () => {
     setLoading(true)
@@ -669,19 +657,18 @@ export default function ActivityLogs() {
     return true
   }), [logs, debouncedSearchTerm, actionFilter, entityFilter, dateFilter])
 
-  // حساب الإحصائيات (باستخدام filteredLogs)
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-
-  const todayLogs = useMemo(() => filteredLogs.filter(log => {
-    const logDate = new Date(log.created_at)
-    return logDate >= today
-  }), [filteredLogs])
-  const weekLogs = useMemo(() => filteredLogs.filter(log => {
-    const logDate = new Date(log.created_at)
-    return logDate >= weekAgo
-  }), [filteredLogs, weekAgo])
+  // حساب الإحصائيات (باستخدام filteredLogs) مع حساب التواريخ داخل useMemo
+  const todayLogs = useMemo(() => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return filteredLogs.filter(log => new Date(log.created_at) >= today)
+  }, [filteredLogs])
+  const weekLogs = useMemo(() => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+    return filteredLogs.filter(log => new Date(log.created_at) >= weekAgo)
+  }, [filteredLogs])
   const employeeLogs = useMemo(() => filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'employee'), [filteredLogs])
   const companyLogs = useMemo(() => filteredLogs.filter(log => log.entity_type?.toLowerCase() === 'company'), [filteredLogs])
   const createLogs = useMemo(() => filteredLogs.filter(l => {
@@ -1023,6 +1010,15 @@ export default function ActivityLogs() {
 
   return (
     <Layout>
+      {unauthorized ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Activity className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      ) : (
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-col gap-3 mb-4 sm:mb-6">
@@ -1153,6 +1149,7 @@ export default function ActivityLogs() {
 
         {/* End of main container */}
       </div>
+      )}
     </Layout>
   )
 }
