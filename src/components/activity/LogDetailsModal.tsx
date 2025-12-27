@@ -1,22 +1,17 @@
 import { X, AlertCircle } from 'lucide-react'
 import { ActivityLog, User } from '@/lib/supabase'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
-import { ReactNode } from 'react'
+// Removed unused ReactNode import
 
-interface ColorDef {
-  bg: string
-  border: string
-  text: string
-  badge: string
-  icon: string
-}
+// Removed unused ColorDef type
 
 interface LogDetailsModalProps {
   open: boolean
   log: ActivityLog | null
   usersMap: Map<string, User>
   onClose: () => void
-  getActionColor: (action: string) => ColorDef | any
+  // getActionColor returns a class string used in UI
+  getActionColor: (action: string) => string
   getActionIcon: (action: string) => JSX.Element
   getActionLabel: (action: string) => string
   getEntityLabel: (entity: string) => string
@@ -132,11 +127,11 @@ export function LogDetailsModal(props: LogDetailsModalProps) {
       return null
     }
 
-    const entityType = log.entity_type?.toLowerCase() || ''
-    const entityLabel = getEntityLabel(entityType)
-    const details = log.details || {}
-    const employeeName = details.employee_name || details.name
-    const companyName = details.company_name || details.company
+    // Extract details for potential future use
+    // const entityType = log.entity_type?.toLowerCase() || ''
+    // const details = log.details || {}
+    // const employeeName = details.employee_name || details.name
+    // const companyName = details.company_name || details.company
     
     // محاولة استخراج old_data و new_data
     let oldData: Record<string, unknown> | null = null
@@ -207,19 +202,9 @@ export function LogDetailsModal(props: LogDetailsModalProps) {
     const actualChanges = changeList.filter(c => c.hasActualChange)
 
     // تحديد اسم الكيان
-    let entityName = ''
-    let changedFieldsText = ''
+    // removed unused variables
     
-    if (actualChanges.length > 0) {
-      const fieldNames = actualChanges.map(c => c.field).join(' و ')
-      changedFieldsText = ` (تحديث ${fieldNames})`
-    }
-    
-    if (entityType === 'employee' && employeeName) {
-      entityName = String(employeeName)
-    } else if (entityType === 'company' && companyName) {
-      entityName = String(companyName)
-    }
+    // display changes below; no need to precompute entity name here
 
     return (
       <div className="space-y-4 mt-4">
