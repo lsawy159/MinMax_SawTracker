@@ -201,7 +201,7 @@ const COMPANY_SECTIONS = [
   }
 ]
 
-export default function UnifiedSettings() {
+export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: boolean }) {
   const [settings, setSettings] = useState<UnifiedSettingsData>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -459,7 +459,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.urgent]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.urgent]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-red-200 rounded-lg text-center text-sm font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-3 py-2 border border-red-200 rounded-lg text-center text-sm font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                       <input
                         type="number"
@@ -467,7 +470,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.high]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.high]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-orange-200 rounded-lg text-center text-sm font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-3 py-2 border border-orange-200 rounded-lg text-center text-sm font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                       <input
                         type="number"
@@ -475,7 +481,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.medium]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.medium]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-yellow-200 rounded-lg text-center text-sm font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-3 py-2 border border-yellow-200 rounded-lg text-center text-sm font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                     </div>
 
@@ -591,7 +600,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.urgent]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.urgent]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-2.5 py-1.5 border border-red-200 rounded-md text-center text-[13px] font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-2.5 py-1.5 border border-red-200 rounded-md text-center text-[13px] font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                       <input
                         type="number"
@@ -599,7 +611,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.high]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.high]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-2.5 py-1.5 border border-orange-200 rounded-md text-center text-[13px] font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-2.5 py-1.5 border border-orange-200 rounded-md text-center text-[13px] font-bold text-orange-700 bg-white focus:ring-2 focus:ring-orange-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                       <input
                         type="number"
@@ -607,7 +622,10 @@ export default function UnifiedSettings() {
                         max={365}
                         value={settings[section.fields.medium]}
                         onChange={(e) => setSettings({ ...settings, [section.fields.medium]: parseInt(e.target.value) || 0 })}
-                        className="w-full px-2.5 py-1.5 border border-yellow-200 rounded-md text-center text-[13px] font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500"
+                        disabled={isReadOnly}
+                        className={`w-full px-2.5 py-1.5 border border-yellow-200 rounded-md text-center text-[13px] font-bold text-yellow-700 bg-white focus:ring-2 focus:ring-yellow-500 ${
+                          isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''
+                        }`}
                       />
                     </div>
 
@@ -675,23 +693,37 @@ export default function UnifiedSettings() {
       )}
 
       {/* أزرار الحفظ */}
-      <div className="flex items-center justify-end gap-2.5 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <button
-          onClick={() => setSettings(DEFAULT_SETTINGS)}
-          className="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition font-semibold"
-          disabled={saving}
-        >
-          استعادة الافتراضي
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-1.5 shadow-md disabled:opacity-60 font-semibold"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? 'جاري الحفظ...' : 'حفظ جميع التغييرات'}
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex items-center justify-end gap-2.5 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <button
+            onClick={() => setSettings(DEFAULT_SETTINGS)}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition font-semibold"
+            disabled={saving}
+          >
+            استعادة الافتراضي
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-1.5 shadow-md disabled:opacity-60 font-semibold"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'جاري الحفظ...' : 'حفظ جميع التغييرات'}
+          </button>
+        </div>
+      )}
+
+      {isReadOnly && (
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-start gap-2.5">
+            <Eye className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900">وضع العرض فقط</p>
+              <p className="text-xs text-blue-700 mt-0.5">ليس لديك صلاحية تعديل الإعدادات. اطلب من المدير إعطاء الصلاحية اللازمة.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ملاحظة توضيحية */}
       <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-3">

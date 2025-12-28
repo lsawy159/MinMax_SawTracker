@@ -9,7 +9,7 @@ import { usePermissions } from '@/utils/permissions'
 export default function CentralizedSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { canView } = usePermissions()
+  const { canView, canEdit } = usePermissions()
 
   useEffect(() => {
     // التحقق من صلاحيات المستخدم
@@ -45,7 +45,7 @@ export default function CentralizedSettings() {
         </div>
 
         {/* Content */}
-        <UnifiedSettings />
+        <UnifiedSettings isReadOnly={!canEdit('centralizedSettings')} />
       </div>
     </Layout>
   )
