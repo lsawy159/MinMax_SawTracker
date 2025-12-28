@@ -29,7 +29,7 @@ import {
 
 export default function Users() {
   const { user: currentUser } = useAuth()
-  const { canView } = usePermissions()
+  const { canView, canDelete } = usePermissions()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -52,6 +52,7 @@ export default function Users() {
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('users')
   const isAdmin = currentUser?.role === 'admin'
+  const canDeleteUsers = isAdmin || canDelete('users')
 
   // ← [تم النقل] useEffect يجب أن يكون قبل return الشرطي
   useEffect(() => {
@@ -434,15 +435,42 @@ export default function Users() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          {isAdmin ? (
+                          {canDeleteUsers ? (
                             <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => openEditModal(user)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                title="تعديل"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => openEditModal(user)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                  title="تعديل"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              )}
+                              {isAdmin && (
+                                <button
+                                  onClick={() => toggleUserStatus(user)}
+                                  className={`p-2 rounded-lg transition ${
+                                    user.is_active
+                                      ? 'text-orange-600 hover:bg-orange-50'
+                                      : 'text-green-600 hover:bg-green-50'
+                                  }`}
+                                  title={user.is_active ? 'إيقاف' : 'تفعيل'}
+                                >
+                                  {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                </button>
+                              )}
+                              {canDeleteUsers && (
+                                <button
+                                  onClick={() => {
+                                    setDeleteingUser(user)
+                                    setShowDeleteModal(true)
+                                  }}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                  title="حذف"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="text-gray-400 text-xs">عرض فقط</span>
@@ -477,36 +505,42 @@ export default function Users() {
                         <p className="text-xs text-gray-600">{user.email}</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {isAdmin && (
+                        {(isAdmin || canDeleteUsers) && (
                           <>
-                            <button
-                              onClick={() => openEditModal(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
-                              title="تعديل"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => toggleUserStatus(user)}
-                              className={`p-2 rounded transition ${
-                                user.is_active
-                                  ? 'text-orange-600 hover:bg-orange-50'
-                                  : 'text-green-600 hover:bg-green-50'
-                              }`}
-                              title={user.is_active ? 'إيقاف' : 'تفعيل'}
-                            >
-                              {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleteingUser(user)
-                                setShowDeleteModal(true)
-                              }}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded transition"
-                              title="حذف"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => openEditModal(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                                title="تعديل"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => toggleUserStatus(user)}
+                                className={`p-2 rounded transition ${
+                                  user.is_active
+                                    ? 'text-orange-600 hover:bg-orange-50'
+                                    : 'text-green-600 hover:bg-green-50'
+                                }`}
+                                title={user.is_active ? 'إيقاف' : 'تفعيل'}
+                              >
+                                {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                              </button>
+                            )}
+                            {canDeleteUsers && (
+                              <button
+                                onClick={() => {
+                                  setDeleteingUser(user)
+                                  setShowDeleteModal(true)
+                                }}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded transition"
+                                title="حذف"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

@@ -21,7 +21,7 @@ interface GuideSection {
 export default function UserGuide() {
   const { canView } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSection, setSelectedSection] = useState<string>('intro')
+  const [selectedSection, setSelectedSection] = useState<string>('')
 
   // Check permissions
   if (!canView('employees')) {
