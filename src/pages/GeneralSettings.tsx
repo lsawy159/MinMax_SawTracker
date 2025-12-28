@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import BackupManagement from '@/components/settings/BackupManagement'
 import SecuritySettingsManager from '@/components/settings/SecuritySettingsManager'
 import SessionsManager from '@/components/settings/SessionsManager'
@@ -101,12 +100,6 @@ export default function GeneralSettings() {
   }
 
   const settingsCategories: SettingsCategory[] = [
-    {
-      key: 'unified',
-      label: 'الإعدادات المركزية (موحدة)',
-      icon: Settings,
-      component: UnifiedSettings
-    },
     {
       key: 'system',
       label: 'إعدادات النظام الأساسية',

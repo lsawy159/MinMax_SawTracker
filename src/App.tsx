@@ -24,6 +24,7 @@ const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
+const CentralizedSettings = lazy(() => import('./pages/CentralizedSettings'))
 const UserGuide = lazy(() => import('./pages/UserGuide'))
 const AdminGuide = lazy(() => import('./pages/AdminGuide'))
 
@@ -146,6 +147,13 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <GeneralSettings />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/centralized-settings" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <CentralizedSettings />
             </Suspense>
           </ProtectedRoute>
         } />

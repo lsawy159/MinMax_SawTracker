@@ -7,6 +7,7 @@ export interface PermissionMatrix {
   users: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   settings: { view: boolean; edit: boolean }
   adminSettings: { view: boolean; edit: boolean }
+  centralizedSettings: { view: boolean; edit: boolean }
   projects: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   reports: { view: boolean; export: boolean }
   alerts: { view: boolean }
@@ -23,6 +24,7 @@ export const defaultPermissions: PermissionMatrix = {
   users: { view: false, create: false, edit: false, delete: false },
   settings: { view: false, edit: false },
   adminSettings: { view: false, edit: false },
+  centralizedSettings: { view: false, edit: false },
   projects: { view: true, create: false, edit: false, delete: false },
   reports: { view: true, export: false },
   alerts: { view: true },
@@ -39,6 +41,7 @@ export const adminPermissions: PermissionMatrix = {
   users: { view: true, create: true, edit: true, delete: true },
   settings: { view: true, edit: true },
   adminSettings: { view: true, edit: true },
+  centralizedSettings: { view: true, edit: true },
   projects: { view: true, create: true, edit: true, delete: true },
   reports: { view: true, export: true },
   alerts: { view: true },
@@ -94,6 +97,10 @@ export const normalizePermissions = (
     adminSettings: {
       view: (perms.adminSettings as Record<string, boolean>)?.view ?? defaultPermissions.adminSettings.view,
       edit: (perms.adminSettings as Record<string, boolean>)?.edit ?? defaultPermissions.adminSettings.edit
+    },
+    centralizedSettings: {
+      view: (perms.centralizedSettings as Record<string, boolean>)?.view ?? defaultPermissions.centralizedSettings.view,
+      edit: (perms.centralizedSettings as Record<string, boolean>)?.edit ?? defaultPermissions.centralizedSettings.edit
     },
     projects: {
       view: (perms.projects as Record<string, boolean>)?.view ?? defaultPermissions.projects.view,

@@ -3,13 +3,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import { Settings, Database, Shield, Sparkles } from 'lucide-react'
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'unified' | 'fields' | 'general'>('unified')
+  const [activeTab, setActiveTab] = useState<'fields' | 'general'>('fields')
 
   useEffect(() => {
     // التحقق من صلاحيات المدير
@@ -33,7 +32,7 @@ export default function AdminSettings() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
-              <p className="text-gray-600 mt-1">إدارة جميع إعدادات النظام: الحالات، التنبيهات، الألوان، والحقول المخصصة</p>
+              <p className="text-gray-600 mt-1">إدارة الحقول المخصصة والإعدادات العامة</p>
             </div>
           </div>
         </div>
@@ -41,17 +40,6 @@ export default function AdminSettings() {
         {/* Tabs Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="flex border-b border-gray-200 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('unified')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
-                activeTab === 'unified'
-                  ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Sparkles className="w-5 h-5" />
-              الإعدادات المركزية
-            </button>
             <button
               onClick={() => setActiveTab('fields')}
               className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
@@ -79,7 +67,6 @@ export default function AdminSettings() {
 
         {/* Tab Content */}
         <div>
-          {activeTab === 'unified' && <UnifiedSettings />}
           {activeTab === 'fields' && <CustomFieldManager />}
           {activeTab === 'general' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

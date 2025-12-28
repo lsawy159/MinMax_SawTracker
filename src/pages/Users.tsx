@@ -946,6 +946,26 @@ export default function Users() {
                             ))}
                           </div>
                         </div>
+
+                        {/* الإعدادات المركزية الموحدة */}
+                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الإعدادات المركزية</h4>
+                          <div className="space-y-1">
+                            {['view', 'edit'].map(action => (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.permissions.centralizedSettings[action as keyof typeof formData.permissions.centralizedSettings]}
+                                  onChange={(e) => updatePermission('centralizedSettings', action, e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-700">
+                                  {action === 'view' ? 'عرض' : 'تعديل'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
