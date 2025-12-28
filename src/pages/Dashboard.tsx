@@ -537,10 +537,12 @@ export default function Dashboard() {
     [employeeAlerts]
   )
 
-  // التحقق من صلاحية العرض - بعد جميع الـ hooks
-  if (!canView('dashboard')) {
-    return (
-      <Layout>
+  // التحقق من الصلاحية دون إرجاع مبكر للحفاظ على ترتيب الـ Hooks
+  const unauthorized = !canView('dashboard')
+
+  return (
+    <Layout>
+      {unauthorized ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-red-500" />
@@ -548,12 +550,7 @@ export default function Dashboard() {
             <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
-    )
-  }
-
-  return (
-    <Layout>
+      ) : (
       <div className="p-2.5">
         {loading ? (
           <div className="flex justify-center items-center h-48">
@@ -1208,6 +1205,7 @@ export default function Dashboard() {
           </>
         )}
       </div>
+      )}
     </Layout>
   )
 }
