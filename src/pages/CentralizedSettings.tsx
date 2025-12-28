@@ -4,10 +4,12 @@ import Layout from '@/components/layout/Layout'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import { Settings } from 'lucide-react'
 import { useEffect } from 'react'
+import { usePermissions } from '@/utils/permissions'
 
 export default function CentralizedSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { canView } = usePermissions()
 
   useEffect(() => {
     // التحقق من صلاحيات المستخدم
@@ -16,13 +18,13 @@ export default function CentralizedSettings() {
       return
     }
 
-    // السماح للمديرين فقط
-    if (user.role !== 'admin') {
+    // السماح فقط للمستخدمين الذين يملكون صلاحية العرض
+    if (!canView('centralizedSettings')) {
       navigate('/dashboard')
     }
-  }, [user, navigate])
+  }, [user, navigate, canView])
 
-  if (user?.role !== 'admin') {
+  if (!canView('centralizedSettings')) {
     return null
   }
 

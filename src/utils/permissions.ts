@@ -24,7 +24,7 @@ export const defaultPermissions: PermissionMatrix = {
   users: { view: false, create: false, edit: false, delete: false },
   settings: { view: false, edit: false },
   adminSettings: { view: false, edit: false },
-  centralizedSettings: { view: false, edit: false },
+  centralizedSettings: { view: true, edit: false },
   projects: { view: true, create: false, edit: false, delete: false },
   reports: { view: true, export: false },
   alerts: { view: true },
