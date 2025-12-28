@@ -221,12 +221,12 @@ export default function Projects() {
     )
   }
 
-  // التحقق من صلاحية العرض
+  // التحقق من الصلاحية بدون إرجاع مبكر للحفاظ على ترتيب الـ Hooks
   const hasViewPermission = canView('projects')
-  
-  if (!hasViewPermission) {
-    return (
-      <Layout>
+
+  return (
+    <Layout>
+      {!hasViewPermission ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
@@ -234,12 +234,7 @@ export default function Projects() {
             <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
-    )
-  }
-
-  return (
-    <Layout>
+      ) : (
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -435,6 +430,7 @@ export default function Projects() {
           </div>
         )}
       </div>
+      )}
     </Layout>
   )
 }
