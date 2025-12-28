@@ -10,8 +10,7 @@ interface LogDetailsModalProps {
   log: ActivityLog | null
   usersMap: Map<string, User>
   onClose: () => void
-  // getActionColor returns a class string used in UI
-  getActionColor: (action: string) => string
+  getActionColor: (action: string) => { bg: string; border: string; text: string; badge: string; icon: string }
   getActionIcon: (action: string) => JSX.Element
   getActionLabel: (action: string) => string
   getEntityLabel: (entity: string) => string
