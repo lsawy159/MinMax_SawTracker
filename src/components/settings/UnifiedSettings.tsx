@@ -292,22 +292,31 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
         moqeem_subscription_medium_days: settings.moqeem_subscription_medium_days
       }
 
-      // حفظ كلا الإعدادين
+      // حفظ البيانات باستخدام INSERT OR UPDATE
+      // محاولة الحفظ مع إعادة محاولة في حالة الفشل
       const { error: notificationError } = await supabase
         .from('system_settings')
-        .upsert({
-          setting_key: 'notification_thresholds',
-          setting_value: notificationSettings,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(
+          {
+            setting_key: 'notification_thresholds',
+            setting_value: notificationSettings,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'setting_key' }
+        )
+        .select()
 
       const { error: statusError } = await supabase
         .from('system_settings')
-        .upsert({
-          setting_key: 'status_thresholds',
-          setting_value: statusSettings,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(
+          {
+            setting_key: 'status_thresholds',
+            setting_value: statusSettings,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'setting_key' }
+        )
+        .select()
 
       if (notificationError || statusError) {
         throw notificationError || statusError
@@ -322,7 +331,19 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
       toast.success('تم حفظ جميع الإعدادات بنجاح')
     } catch (error) {
       logger.error('Error saving unified settings:', error)
-      toast.error('فشل حفظ الإعدادات')
+      
+      // معالجة رسالة الخطأ
+      let errorMessage = 'فشل حفظ الإعدادات'
+      if (error instanceof Object && 'message' in error) {
+        const errorMsg = (error as Record<string, unknown>).message as string
+        if (errorMsg.includes('row-level security') || errorMsg.includes('RLS')) {
+          errorMessage = 'ليس لديك صلاحية كافية لحفظ الإعدادات. اطلب من المدير إعطاء صلاحية التعديل.'
+        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
+          errorMessage = 'خطأ في الصلاحيات. تأكد من أن لديك صلاحية التعديل.'
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }

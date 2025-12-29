@@ -630,6 +630,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // --- Session Validation (Remote Termination Detection) ---
+  useEffect(() => {
+    if (!user?.id || !session) {
+      return
+    }
+
+    // Check every 30 seconds if the session is still valid
+    const sessionCheckInterval = setInterval(async () => {
+      try {
+        const now = new Date().toISOString()
+        const { data: activeSessions, error } = await supabase
+          .from('user_sessions')
+          .select('is_active, logged_out_at, id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .gt('expires_at', now)
+
+        // If table doesn't exist, skip validation
+        if (error) {
+          if (error.message?.includes('not found') || error.message?.includes('schema cache')) {
+            return
+          }
+          logger.warn('[Auth] Error checking session validity:', error)
+          return
+        }
+
+        // If no active session found, user was logged out remotely
+        if (!activeSessions || activeSessions.length === 0) {
+          logger.warn('[Auth] No active session found - session was terminated remotely')
+          // Sign out the user
+          await supabase.auth.signOut()
+          setUser(null)
+          setSession(null)
+          setError('تم إنهاء جلستك من قبل المسؤول')
+        }
+      } catch (error) {
+        logger.error('[Auth] Error in session validation:', error)
+      }
+    }, 30 * 1000) // Check every 30 seconds
+
+    return () => clearInterval(sessionCheckInterval)
+  }, [user, session])
+
 
 
   return (

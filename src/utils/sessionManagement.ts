@@ -67,8 +67,10 @@ export class SessionManager {
   private static refreshInterval: ReturnType<typeof setInterval> | null = null
   private static activityCheckInterval: ReturnType<typeof setInterval> | null = null
   private static inactivityWarningTimer: ReturnType<typeof setTimeout> | null = null
+  private static sessionValidationInterval: ReturnType<typeof setInterval> | null = null
   private static listeners: Map<string, Set<(data: SessionData) => void>> = new Map()
   private static lastActivityTime: number = Date.now()
+  private static currentSessionId: string | null = null
 
   /**
    * Initialize session management
@@ -88,6 +90,7 @@ export class SessionManager {
     this.startTokenRefresh()
     this.startActivityTracking()
     this.startInactivityWarning()
+    this.startSessionValidation()
     this.setupActivityListeners()
 
     logger.info('[SessionManager] Session initialized', {
@@ -166,6 +169,65 @@ export class SessionManager {
     }, SessionConfig.ACTIVITY_CHECK_INTERVAL_MS)
 
     logger.debug('[SessionManager] Activity tracking started')
+  }
+
+  /**
+   * Start session validation (check if session was terminated remotely)
+   */
+  private static startSessionValidation(): void {
+    if (this.sessionValidationInterval) {
+      clearInterval(this.sessionValidationInterval)
+    }
+
+    // Check every 30 seconds if the session is still valid in the database
+    this.sessionValidationInterval = setInterval(() => {
+      this.validateSessionInDatabase()
+    }, 30 * 1000) // 30 seconds
+
+    logger.debug('[SessionManager] Session validation started')
+  }
+
+  /**
+   * Validate if session is still active in database
+   * This allows remote session termination to take effect
+   */
+  private static async validateSessionInDatabase(): Promise<void> {
+    if (!this.sessionState) {
+      return
+    }
+
+    try {
+      const now = new Date().toISOString()
+      
+      // Check if the session is still active in the database
+      const { data: sessions, error } = await supabase
+        .from('user_sessions')
+        .select('is_active, logged_out_at, id')
+        .eq('user_id', this.sessionState.userId)
+        .eq('is_active', true)
+        .gt('expires_at', now)
+
+      if (error) {
+        // If table doesn't exist, skip validation
+        if (error.message?.includes('not found') || error.message?.includes('schema cache')) {
+          return
+        }
+        logger.warn('[SessionManager] Error validating session:', error)
+        return
+      }
+
+      // If no active session found, user was logged out remotely
+      if (!sessions || sessions.length === 0) {
+        logger.warn('[SessionManager] No active session found - session was terminated remotely')
+        this.emit('session_revoked_immediately', {
+          reason: 'session_terminated_remotely',
+          revokedAt: new Date().toISOString()
+        })
+        await this.endSession('disabled')
+      }
+    } catch (error) {
+      logger.error('[SessionManager] Error in session validation:', error)
+    }
   }
 
   /**
@@ -377,7 +439,13 @@ export class SessionManager {
       this.inactivityWarningTimer = null
     }
 
+    if (this.sessionValidationInterval) {
+      clearInterval(this.sessionValidationInterval)
+      this.sessionValidationInterval = null
+    }
+
     this.sessionState = null
+    this.currentSessionId = null
     logger.debug('[SessionManager] Cleanup complete')
   }
 
