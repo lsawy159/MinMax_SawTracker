@@ -44,8 +44,10 @@ export default function Companies() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showCompanyDetailModal, setShowCompanyDetailModal] = useState(false)
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false) // New state for bulk delete modal
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [selectedCompanyForDetail, setSelectedCompanyForDetail] = useState<(Company & { employee_count: number; available_slots?: number }) | null>(null)
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]) // New state for selected company IDs
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
@@ -503,6 +505,49 @@ export default function Companies() {
       setSortDirection('asc')
     }
   }, [sortField, sortDirection])
+
+  // Handle individual company selection
+  const handleSelectCompany = (companyId: string, isSelected: boolean) => {
+    setSelectedCompanyIds(prev =>
+      isSelected ? [...prev, companyId] : prev.filter(id => id !== companyId)
+    )
+  }
+
+  // Handle select all companies
+  const handleSelectAllCompanies = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedCompanyIds(paginatedCompanies.map(company => company.id))
+    } else {
+      setSelectedCompanyIds([])
+    }
+  }
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedCompanyIds.length === 0) return
+
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .in('id', selectedCompanyIds)
+
+      if (error) {
+        throw error
+      }
+
+      toast.success(`${selectedCompanyIds.length} شركات تم حذفها بنجاح`)
+      setSelectedCompanyIds([]) // Clear selection after deletion
+      setShowBulkDeleteModal(false)
+      loadCompanies() // Reload companies after deletion
+    } catch (error) {
+      logger.error('Error deleting companies in bulk:', error)
+      toast.error('فشل حذف الشركات. يرجى المحاولة مرة أخرى.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />
@@ -1232,10 +1277,44 @@ export default function Companies() {
               </div>
             ) : (
               <div className="bg-white border rounded-lg overflow-hidden">
+                {/* Bulk Action Toolbar */}
+                {selectedCompanyIds.length > 0 && (
+                  <div className="bg-blue-50 border-b border-blue-200 px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-medium text-gray-700">
+                        تم تحديد {selectedCompanyIds.length} مؤسسة
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedCompanyIds([])}
+                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition text-sm border border-gray-300"
+                      >
+                        إلغاء التحديد
+                      </button>
+                      {canDelete('companies') && (
+                        <button
+                          onClick={() => setShowBulkDeleteModal(true)}
+                          className="px-4 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm"
+                        >
+                          حذف المحدد
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
                   <table className="w-full text-sm" ref={tableRef}>
                     <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                       <tr>
+                        <th className="px-4 py-3 text-right font-semibold text-gray-700 w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedCompanyIds.length > 0 && selectedCompanyIds.length === paginatedCompanies.length}
+                            onChange={(e) => handleSelectAllCompanies(e.target.checked)}
+                            className="w-4 h-4 rounded cursor-pointer"
+                          />
+                        </th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">اسم المؤسسة</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">رقم موحد</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">رقم اشتراك التأمينات الاجتماعية</th>
@@ -1256,6 +1335,7 @@ export default function Companies() {
                         const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
                         const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
                         const isSelected = selectedRowIndex === index
+                        const isCompanySelected = selectedCompanyIds.includes(company.id)
                         return (
                           <tr 
                             key={company.id} 
@@ -1263,6 +1343,14 @@ export default function Companies() {
                             className={`border-t hover:bg-gray-50 transition cursor-pointer ${isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''}`}
                             onClick={() => handleCompanyCardClick(company)}
                           >
+                            <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isCompanySelected}
+                                onChange={(e) => handleSelectCompany(company.id, e.target.checked)}
+                                className="w-4 h-4 rounded cursor-pointer"
+                              />
+                            </td>
                             <td className="px-4 py-3 font-medium text-gray-900">{company.name}</td>
                             <td className="px-4 py-3 text-gray-700">{company.unified_number || '-'}</td>
                             <td className="px-4 py-3 text-gray-700">{company.social_insurance_number || '-'}</td>
@@ -1478,6 +1566,51 @@ export default function Companies() {
                   <button
                     onClick={handleModalClose}
                     className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Delete Confirmation Modal */}
+        {showBulkDeleteModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-100 p-3 rounded-lg">
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">تأكيد حذف المحدد</h3>
+                    <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+                  </div>
+                </div>
+                <p className="text-gray-700 mb-6">
+                  هل أنت متأكد من حذف <strong>{selectedCompanyIds.length} مؤسسة</strong>؟
+                  <br />
+                  <span className="text-sm text-blue-600 mt-2 block">
+                    ✓ سيبقى الموظفون في النظام بدون تعيينهم على أي مؤسسة
+                  </span>
+                  <span className="text-sm text-blue-600 block">
+                    ✓ يمكن إعادة تعيينهم لاحقاً إن أردت
+                  </span>
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={loading}
+                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'جاري الحذف...' : 'نعم، احذف الكل'}
+                  </button>
+                  <button
+                    onClick={() => setShowBulkDeleteModal(false)}
+                    disabled={loading}
+                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     إلغاء
                   </button>

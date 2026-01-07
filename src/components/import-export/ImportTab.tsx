@@ -95,6 +95,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [validationFilter, setValidationFilter] = useState<'all' | 'errors' | 'warnings'>('all')
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +113,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       setColumnValidationError(null)
       setSelectedRows(new Set())
       setShouldDeleteBeforeImport(false)
+      setValidationFilter('all')
     }
   }
 
@@ -124,6 +126,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     setColumnValidationError(null)
     setSelectedRows(new Set())
     setShouldDeleteBeforeImport(false)
+    setValidationFilter('all')
     // إعادة تعيين input file
     const fileInput = document.getElementById('file-upload') as HTMLInputElement
     if (fileInput) {
@@ -143,6 +146,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       setColumnValidationError(null)
       setSelectedRows(new Set())
       setShouldDeleteBeforeImport(false)
+      setValidationFilter('all')
     } else {
       toast.error('يرجى إسقاط ملف Excel فقط (.xlsx, .xls)')
     }
@@ -168,7 +172,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     )
   }
 
-  // Helper functions for row selection
+  // Helper functions for row selection and visibility
   const toggleRowSelection = (rowIndex: number) => {
     setSelectedRows(prev => {
       const newSet = new Set(prev)
@@ -181,16 +185,42 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     })
   }
 
-  const toggleSelectAll = () => {
-    if (selectedRows.size === previewData.length) {
-      setSelectedRows(new Set())
-    } else {
-      setSelectedRows(new Set(Array.from({ length: previewData.length }, (_, i) => i)))
-    }
+  const getRowIssues = (rowIndex: number) => {
+    const excelRowNumber = rowIndex + 2
+    const rowValidation = validationResults.filter(error => error.row === excelRowNumber)
+    const hasError = rowValidation.some(error => error.severity === 'error')
+    const hasWarning = rowValidation.some(error => error.severity === 'warning')
+    return { hasError, hasWarning, rowValidation }
   }
 
-  const isAllSelected = selectedRows.size === previewData.length && previewData.length > 0
-  const isSomeSelected = selectedRows.size > 0 && selectedRows.size < previewData.length
+  const getVisibleRowIndices = () => {
+    return previewData
+      .map((_, index) => index)
+      .filter(index => {
+        const { hasError, hasWarning } = getRowIssues(index)
+        if (validationFilter === 'errors') return hasError
+        if (validationFilter === 'warnings') return !hasError && hasWarning
+        return true
+      })
+  }
+
+  const toggleSelectAll = () => {
+    const visibleIndices = getVisibleRowIndices()
+    setSelectedRows(prev => {
+      const newSet = new Set(prev)
+      const allVisibleSelected = visibleIndices.length > 0 && visibleIndices.every(index => newSet.has(index))
+      if (allVisibleSelected) {
+        visibleIndices.forEach(index => newSet.delete(index))
+      } else {
+        visibleIndices.forEach(index => newSet.add(index))
+      }
+      return newSet
+    })
+  }
+
+  const visibleRowIndices = getVisibleRowIndices()
+  const isAllSelected = visibleRowIndices.length > 0 && visibleRowIndices.every(index => selectedRows.has(index))
+  const isSomeSelected = visibleRowIndices.some(index => selectedRows.has(index)) && !isAllSelected
 
   // Helper function to normalize column names (remove extra spaces and invisible characters)
   const normalizeColumnName = (col: string): string => {
@@ -537,26 +567,26 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               if (dateValue) {
                 // استبدال القيمة في jsonData بالقيمة الصحيحة من الخلية
                 row[colName] = dateValue
-                // Debug: طباعة التواريخ التي تم قراءتها بنجاح
-                if (rowIndex < 3) {
-                  logger.debug(`  ✅ Row ${rowIndex + 2}, Column "${colName}": Successfully read "${dateValue}" from cell ${cellAddress}`)
-                }
+                // Debug: طباعة التواريخ التي تم قراءتها بنجاح (معطل لتقليل الضوضاء)
+                // if (rowIndex < 3) {
+                //   logger.debug(`  ✅ Row ${rowIndex + 2}, Column "${colName}": Successfully read "${dateValue}" from cell ${cellAddress}`)
+                // }
               } else {
                 // إذا فشلت قراءة الخلية، احتفظ بالقيمة من jsonData بعد تنظيفها
                 const fallbackValue = row[colName] ? String(row[colName] || '').trim() : ''
                 row[colName] = fallbackValue
-                // Debug: طباعة التواريخ التي فشلت قراءتها
-                if (rowIndex < 3 && fallbackValue) {
-                  logger.debug(`  ⚠️ Row ${rowIndex + 2}, Column "${colName}": Using fallback value "${fallbackValue}" (readDateFromCell returned empty)`)
-                }
+                // Debug: طباعة التواريخ التي فشلت قراءتها (معطل لتقليل الضوضاء)
+                // if (rowIndex < 3 && fallbackValue) {
+                //   logger.debug(`  ⚠️ Row ${rowIndex + 2}, Column "${colName}": Using fallback value "${fallbackValue}" (readDateFromCell returned empty)`)
+                // }
               }
             } else if (row[colName]) {
               // إذا لم تكن هناك خلية، احتفظ بالقيمة من jsonData
               row[colName] = String(row[colName] || '').trim()
-              // Debug: طباعة التواريخ التي لم تكن هناك خلية لها
-              if (rowIndex < 3) {
-                logger.debug(`  📝 Row ${rowIndex + 2}, Column "${colName}": No cell found, using jsonData value "${row[colName]}"`)
-              }
+              // Debug: طباعة التواريخ التي لم تكن هناك خلية لها (معطل لتقليل الضوضاء)
+              // if (rowIndex < 3) {
+              //   logger.debug(`  📝 Row ${rowIndex + 2}, Column "${colName}": No cell found, using jsonData value "${row[colName]}"`)
+              // }
             } else {
               row[colName] = ''
             }
@@ -564,33 +594,33 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         })
       })
       
-      // Debug: طباعة عينة من التواريخ للتحقق
-      if (jsonData.length > 0) {
-        logger.debug('🔍 Sample dates from first 3 rows after readDateFromCell:')
-        for (let i = 0; i < Math.min(3, jsonData.length); i++) {
-          logger.debug(`  Row ${i + 1}:`)
-          dateColumns.forEach(col => {
-            const value = jsonData[i][col]
-            if (value) {
-              logger.debug(`    ${col}: "${value}" (type: ${typeof value})`)
-            } else {
-              logger.debug(`    ${col}: (empty)`)
-            }
-          })
-        }
-      }
+      // Debug: طباعة عينة من التواريخ للتحقق (معطل لتقليل الضوضاء)
+      // if (jsonData.length > 0) {
+      //   logger.debug('🔍 Sample dates from first 3 rows after readDateFromCell:')
+      //   for (let i = 0; i < Math.min(3, jsonData.length); i++) {
+      //     logger.debug(`  Row ${i + 1}:`)
+      //     dateColumns.forEach(col => {
+      //       const value = jsonData[i][col]
+      //       if (value) {
+      //         logger.debug(`    ${col}: "${value}" (type: ${typeof value})`)
+      //       } else {
+      //         logger.debug(`    ${col}: (empty)`)
+      //       }
+      //     })
+      //   }
+      // }
 
-      // Debug: طباعة الأعمدة للتحقق
-      logger.debug('🔍 Excel Columns (from header):', excelColumns)
-      logger.debug('🔍 Excel Columns (from jsonData):', jsonData.length > 0 ? Object.keys(jsonData[0]) : [])
-      logger.debug('🔍 Required Columns:', importType === 'companies' ? COMPANY_COLUMNS_ORDER : EMPLOYEE_COLUMNS_ORDER)
+      // Debug: طباعة الأعمدة للتحقق (معطل لتقليل الضوضاء)
+      // logger.debug('🔍 Excel Columns (from header):', excelColumns)
+      // logger.debug('🔍 Excel Columns (from jsonData):', jsonData.length > 0 ? Object.keys(jsonData[0]) : [])
+      // logger.debug('🔍 Required Columns:', importType === 'companies' ? COMPANY_COLUMNS_ORDER : EMPLOYEE_COLUMNS_ORDER)
       
       // التحقق من تطابق الأعمدة
       if (excelColumns.length > 0) {
         const columnValidation = validateExcelColumns(excelColumns)
         
-        // Debug: طباعة نتائج التحقق
-        logger.debug('🔍 Validation Result:', columnValidation)
+        // Debug: طباعة نتائج التحقق (معطل لتقليل الضوضاء)
+        // logger.debug('🔍 Validation Result:', columnValidation)
 
         if (!columnValidation.isValid) {
           // إضافة خطأ عام يمنع الاستيراد
@@ -2051,9 +2081,41 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     toast.info('جاري إلغاء الاستيراد وحذف السجلات المضافة...')
   }
 
+  const handleFilterChange = (filter: 'all' | 'errors' | 'warnings') => {
+    setValidationFilter(filter)
+    setCurrentPage(1)
+  }
+
+  const exportValidationReport = () => {
+    if (previewData.length === 0) return
+
+    const dataColumns = getOrderedColumns(Object.keys(previewData[0]), previewData)
+    const header = ['Status', 'Excel Row', ...dataColumns, 'Issue Details']
+
+    const rows = previewData.map((row, index) => {
+      const excelRowNumber = index + 2
+      const rowIssues = validationResults.filter(error => error.row === excelRowNumber)
+      const hasError = rowIssues.some(error => error.severity === 'error')
+      const hasWarning = rowIssues.some(error => error.severity === 'warning')
+      const status = hasError ? 'ERROR' : hasWarning ? 'WARNING' : 'OK'
+      const issueDetails = rowIssues.map(issue => `[${issue.field}] ${issue.message}`).join(' | ')
+      const rowValues = dataColumns.map(column => row[column] ?? '')
+      return [status, excelRowNumber, ...rowValues, issueDetails || '']
+    })
+
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Validation Report')
+    const fileName = `import-validation-${importType}-${new Date().toISOString().slice(0, 10)}.xlsx`
+    XLSX.writeFile(workbook, fileName)
+    toast.success('تم تصدير تقرير التحقق إلى Excel')
+  }
+
   // حساب الأخطاء في جميع الصفوف
   const totalErrorCount = validationResults.filter(e => e.severity === 'error').length
   const warningCount = validationResults.filter(e => e.severity === 'warning').length
+  const errorRowCount = new Set(validationResults.filter(e => e.severity === 'error').map(e => e.row)).size
+  const warningRowCount = new Set(validationResults.filter(e => e.severity === 'warning').map(e => e.row)).size
   
   // حساب الأخطاء في الصفوف المحددة فقط
   const getSelectedRowsErrors = (): number => {
@@ -2077,8 +2139,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   }
   
   const selectedRowsErrorCount = getSelectedRowsErrors()
-  // إذا كانت هناك صفوف محددة، استخدم أخطاء الصفوف المحددة، وإلا استخدم جميع الأخطاء
-  const errorCount = selectedRows.size > 0 ? selectedRowsErrorCount : totalErrorCount
+  // استخدام إجمالي الأخطاء لمنع الاستيراد دائماً
+  const blockingErrorCount = totalErrorCount
+  const errorCount = blockingErrorCount
 
   return (
     <div className="space-y-6">
@@ -2273,6 +2336,11 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   <span className="font-bold text-green-700">جاهز للاستيراد</span>
                 </div>
               )}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-gray-700 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+              <span className="font-semibold text-gray-900">إجمالي الصفوف: {previewData.length}</span>
+              <span className="text-red-600 font-semibold">صفوف بها أخطاء: {errorRowCount}</span>
+              <span className="text-yellow-600 font-semibold">صفوف بها تحذيرات: {warningRowCount}</span>
             </div>
           </div>
           <div className="px-5 py-4 bg-white">
@@ -2959,10 +3027,22 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
       {/* Preview Modal */}
       {showPreviewModal && previewData.length > 0 && !columnValidationError && (() => {
-        const totalPages = Math.ceil(previewData.length / rowsPerPage)
-        const startIndex = (currentPage - 1) * rowsPerPage
+        const filteredRows = previewData
+          .map((row, index) => ({ row, index, status: getRowIssues(index) }))
+          .filter(({ status }) => {
+            if (validationFilter === 'errors') return status.hasError
+            if (validationFilter === 'warnings') return !status.hasError && status.hasWarning
+            return true
+          })
+
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
+        const safeCurrentPage = Math.min(currentPage, totalPages)
+        const startIndex = (safeCurrentPage - 1) * rowsPerPage
         const endIndex = startIndex + rowsPerPage
-        const paginatedData = previewData.slice(startIndex, endIndex)
+        const visibleRowCount = filteredRows.length
+        const displayStart = visibleRowCount === 0 ? 0 : startIndex + 1
+        const displayEnd = visibleRowCount === 0 ? 0 : Math.min(endIndex, visibleRowCount)
+        const paginatedData = filteredRows.slice(startIndex, endIndex)
         const dataColumns = Object.keys(previewData[0])
         const columns = getOrderedColumns(dataColumns, previewData)
 
@@ -2983,6 +3063,20 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       تحقق من البيانات قبل الاستيراد
                     </p>
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                    <span className="font-semibold text-gray-800">إجمالي الصفوف: {previewData.length}</span>
+                    <span className="text-red-600 font-semibold">صفوف بها أخطاء: {errorRowCount}</span>
+                    <span className="text-yellow-600 font-semibold">صفوف بها تحذيرات: {warningRowCount}</span>
+                  </div>
+                  <button
+                    onClick={exportValidationReport}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold shadow-md hover:bg-black/80 transition"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>تصدير تقرير الأخطاء</span>
+                  </button>
                 </div>
                 <button
                   onClick={() => {
@@ -3034,6 +3128,11 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           </div>
                         )}
                       </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-700 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                        <span className="font-semibold text-gray-900">إجمالي الصفوف: {previewData.length}</span>
+                        <span className="text-red-600 font-semibold">صفوف بها أخطاء: {errorRowCount}</span>
+                        <span className="text-yellow-600 font-semibold">صفوف بها تحذيرات: {warningRowCount}</span>
+                      </div>
                     </div>
                     <div className="px-5 py-4 bg-white">
                       <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
@@ -3062,9 +3161,36 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           {selectedRows.size} صف محدد
                         </span>
                       )}
+                      {selectedRows.size > 0 && (
+                        <span className="px-3 py-1 text-xs text-red-700 bg-red-100 rounded-full font-semibold">
+                          أخطاء في الصفوف المحددة: {selectedRowsErrorCount}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-sm text-gray-700 font-medium bg-white px-3 py-1 rounded-lg border border-gray-200">
-                      الصفحة {currentPage} من {totalPages}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-sm text-gray-700 font-medium bg-white px-3 py-1 rounded-lg border border-gray-200">
+                        الصفحة {safeCurrentPage} من {totalPages}
+                      </div>
+                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
+                        <button
+                          onClick={() => handleFilterChange('all')}
+                          className={`px-2 py-1 text-xs rounded-md border font-semibold transition ${validationFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                        >
+                          عرض الكل
+                        </button>
+                        <button
+                          onClick={() => handleFilterChange('errors')}
+                          className={`px-2 py-1 text-xs rounded-md border font-semibold transition ${validationFilter === 'errors' ? 'bg-red-600 text-white border-red-600' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                        >
+                          الأخطاء فقط ({errorRowCount})
+                        </button>
+                        <button
+                          onClick={() => handleFilterChange('warnings')}
+                          className={`px-2 py-1 text-xs rounded-md border font-semibold transition ${validationFilter === 'warnings' ? 'bg-yellow-500 text-white border-yellow-500' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                        >
+                          التحذيرات فقط ({warningRowCount})
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="relative w-full bg-gray-50" style={{ maxWidth: '100%', overflow: 'hidden' }}>
@@ -3092,6 +3218,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           </th>
                           <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '3%' }}>
                             رقم الصف
+                          </th>
+                          <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '6%' }}>
+                            الحالة
                           </th>
                           {columns.map((key, index) => {
                             // تحديد عرض أصغر لكل عمود بناءً على نوعه لتتناسب مع الشاشة
@@ -3131,20 +3260,19 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedData.map((row, localRowIndex) => {
-                          const actualRowIndex = startIndex + localRowIndex
-                          const excelRowNumber = actualRowIndex + 2
+                        {paginatedData.map(({ row, index: originalIndex, status }, localRowIndex) => {
+                          const excelRowNumber = originalIndex + 2
                           const isEven = localRowIndex % 2 === 0
                           return (
-                            <tr key={actualRowIndex} className={`border-b border-gray-200 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100`}>
+                            <tr key={originalIndex} className={`border-b border-gray-200 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100`}>
                               <td 
                                 className="px-0.5 py-0.5 text-center text-[11px]" 
                                 style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}
                               >
                                 <input
                                   type="checkbox"
-                                  checked={selectedRows.has(actualRowIndex)}
-                                  onChange={() => toggleRowSelection(actualRowIndex)}
+                                  checked={selectedRows.has(originalIndex)}
+                                  onChange={() => toggleRowSelection(originalIndex)}
                                   className="w-3 h-3 cursor-pointer"
                                 />
                               </td>
@@ -3154,10 +3282,24 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                               >
                                 {excelRowNumber}
                               </td>
+                              <td className="px-0.5 py-0.5 text-center text-[11px]" style={{ backgroundColor: isEven ? '#ffffff' : '#f9fafb' }}>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
+                                    status.hasError
+                                      ? 'bg-red-50 text-red-700 border-red-200'
+                                      : status.hasWarning
+                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                        : 'bg-green-50 text-green-700 border-green-200'
+                                  }`}
+                                  title={status.rowValidation.map(issue => issue.message).join(' • ')}
+                                >
+                                  {status.hasError ? 'خطأ' : status.hasWarning ? 'تحذير' : 'سليم'}
+                                </span>
+                              </td>
                               {columns.map((key, colIndex) => {
                                 const value = row[key]
                                 const isEmpty = isCellEmpty(value)
-                                const cellErrors = getCellErrors(actualRowIndex, key)
+                                const cellErrors = getCellErrors(originalIndex, key)
                                 const hasError = cellErrors.some(e => e.severity === 'error')
                                 const hasWarning = cellErrors.some(e => e.severity === 'warning')
                                 
@@ -3325,22 +3467,22 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   {totalPages > 1 && (
                     <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t-2 border-gray-300 flex items-center justify-between">
                       <div className="text-sm text-gray-700 font-medium">
-                        عرض <span className="font-bold text-blue-600">{startIndex + 1}</span> - <span className="font-bold text-blue-600">{Math.min(endIndex, previewData.length)}</span> من <span className="font-bold text-gray-900">{previewData.length}</span>
+                        عرض <span className="font-bold text-blue-600">{displayStart}</span> - <span className="font-bold text-blue-600">{displayEnd}</span> من <span className="font-bold text-gray-900">{visibleRowCount}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
+                          disabled={safeCurrentPage === 1}
                           className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
                         >
                           ← السابق
                         </button>
                         <span className="px-4 py-2 text-sm text-gray-800 font-semibold bg-white border-2 border-gray-300 rounded-lg">
-                          {currentPage} / {totalPages}
+                          {safeCurrentPage} / {totalPages}
                         </span>
                         <button
                           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
+                          disabled={safeCurrentPage === totalPages}
                           className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors disabled:border-gray-200"
                         >
                           التالي →
@@ -3440,41 +3582,31 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
                       : 'bg-red-50 border-red-300'
                   }`}>
-                    {errorCount > 0 && selectedRows.size > 0 && (
-                    <div className="flex flex-col items-center gap-2 mb-2">
-                      <div className="flex items-center gap-2 text-orange-700">
-                        <AlertCircle className="w-5 h-5" />
-                        <span className="font-bold text-base">تنبيه</span>
+                    {blockingErrorCount > 0 ? (
+                      <div className="flex flex-col items-center gap-2 mb-2 text-center">
+                        <div className="flex items-center gap-2 text-red-700">
+                          <XCircle className="w-5 h-5" />
+                          <span className="font-bold text-base">لا يمكن الاستيراد</span>
+                        </div>
+                        <p className="text-sm text-red-700">
+                          يوجد {blockingErrorCount} خطأ في الملف. يجب إصلاح جميع الأخطاء قبل المتابعة. التحذيرات لا تمنع الاستيراد.
+                        </p>
                       </div>
-                      <p className="text-sm text-orange-600 text-center">
-                        الصفوف المحددة تحتوي على {errorCount} خطأ. سيتم استيراد الصفوف المحددة التي لا تحتوي على أخطاء فقط.
-                      </p>
-                    </div>
-                  )}
-                  {errorCount > 0 && selectedRows.size === 0 && (
-                    <div className="flex flex-col items-center gap-2 mb-2">
-                      <div className="flex items-center gap-2 text-red-700">
-                        <XCircle className="w-5 h-5" />
-                        <span className="font-bold text-base">لا يمكن الاستيراد</span>
+                    ) : (
+                      <div className="text-base text-gray-700 font-medium text-center">
+                        {selectedRows.size > 0 
+                          ? (
+                            <>
+                              سيتم استيراد <span className="font-bold text-green-700">{selectedRows.size}</span> صف محدد (التحذيرات ستُستورد)
+                            </>
+                          ) : (
+                            <>
+                              سيتم استيراد جميع الصفوف (<span className="font-bold text-green-700">{previewData.length}</span> صف) (التحذيرات ستُستورد)
+                            </>
+                          )
+                        }
                       </div>
-                      <p className="text-sm text-red-600 text-center">
-                        يرجى إصلاح جميع الأخطاء ({errorCount} خطأ) أو إلغاء تحديد الصفوف التي تحتوي على أخطاء قبل إمكانية الاستيراد
-                      </p>
-                    </div>
-                  )}
-                  <div className="text-base text-gray-700 font-medium text-center">
-                    {selectedRows.size > 0 
-                      ? (
-                        <>
-                          سيتم استيراد <span className="font-bold text-green-700">{selectedRows.size}</span> صف محدد {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
-                        </>
-                      ) : (
-                        <>
-                          سيتم استيراد جميع الصفوف (<span className="font-bold text-green-700">{previewData.length}</span> صف) {errorCount > 0 && <span className="text-orange-600">(بعد استبعاد الصفوف التي تحتوي على أخطاء)</span>}
-                        </>
-                      )
-                    }
-                  </div>
+                    )}
                   {/* شريط التقدم أثناء الحذف */}
                   {isDeleting && (
                     <div className="w-full mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
