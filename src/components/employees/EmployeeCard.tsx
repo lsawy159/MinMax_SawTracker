@@ -1,11 +1,30 @@
 import { useState, useEffect, useRef } from 'react'
 import { Employee, Company, Project, CustomField, supabase } from '@/lib/supabase'
-import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, Edit2, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
-import { differenceInDays } from 'date-fns'
+import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
+import { logger } from '@/utils/logger'
+
+// Helper: توحيد معالجة التواريخ - الميلادي هو المصدر الأساسي
+const toValidDate = (value: string | Date | null | undefined): Date | null => {
+  if (!value) return null
+  const parsed = value instanceof Date ? value : new Date(value)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
+const calculateDaysRemaining = (date: string | Date | null | undefined): number | null => {
+  const validDate = toValidDate(date)
+  if (!validDate) return null
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  validDate.setHours(0, 0, 0, 0)
+  
+  const diffTime = validDate.getTime() - today.getTime()
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+}
 
 interface EmployeeCardProps {
   employee: Employee & { company: Company }
@@ -81,21 +100,19 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   
   const [formData, setFormData] = useState<EmployeeFormData>({
     ...employee,
-    company_id: employee.company_id,
-    project_id: employee.project_id || employee.project?.id || null,
-    additional_fields: (employee.additional_fields || {}) as Record<string, string | number | boolean | null>,
-    // التأمين الصحي للموظف
-    health_insurance_expiry: employee.health_insurance_expiry || '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-    hired_worker_contract_expiry: employee.hired_worker_contract_expiry || '',
-    salary: employee.salary || 0,
-    notes: employee.notes || '',
-    residence_image_url: employee.residence_image_url || '',
-    // التأكد من أن جميع التواريخ موجودة في formData
-    birth_date: employee.birth_date || '',
-    joining_date: employee.joining_date || '',
-    residence_expiry: employee.residence_expiry || '',
-    contract_expiry: employee.contract_expiry || '',
-    residence_number: employee.residence_number || 0
+    company_id: employee?.company_id ?? '',
+    project_id: employee?.project_id ?? employee?.project?.id ?? null,
+    additional_fields: (employee?.additional_fields ?? {}) as Record<string, string | number | boolean | null>,
+    health_insurance_expiry: employee?.health_insurance_expiry ?? '',
+    hired_worker_contract_expiry: employee?.hired_worker_contract_expiry ?? '',
+    salary: employee?.salary ?? 0,
+    notes: employee?.notes ?? '',
+    residence_image_url: employee?.residence_image_url ?? '',
+    birth_date: employee?.birth_date ?? '',
+    joining_date: employee?.joining_date ?? '',
+    residence_expiry: employee?.residence_expiry ?? '',
+    contract_expiry: employee?.contract_expiry ?? '',
+    residence_number: employee?.residence_number ?? 0
   })
   
   // حفظ البيانات الأصلية من employee مباشرة (بدون معالجة) لاستخدامها في المقارنة
@@ -114,9 +131,9 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [creatingProject, setCreatingProject] = useState(false)
 
   useEffect(() => {
-    loadCustomFields()
-    loadCompanies()
-    loadProjects()
+    void loadCustomFields()
+    void loadCompanies()
+    void loadProjects()
   }, [])
 
   // إغلاق القوائم عند النقر خارجها
@@ -202,7 +219,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       if (error) throw error
       setCustomFields(data || [])
     } catch (error) {
-      console.error('Error loading custom fields:', error)
+      logger.error('Error loading custom fields:', error)
     }
   }
 
@@ -216,7 +233,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       if (error) throw error
       setCompanies(data || [])
     } catch (error) {
-      console.error('Error loading companies:', error)
+      logger.error('Error loading companies:', error)
     }
   }
 
@@ -231,7 +248,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       if (error) throw error
       setProjects(data || [])
     } catch (error) {
-      console.error('Error loading projects:', error)
+      logger.error('Error loading projects:', error)
     }
   }
 
@@ -315,23 +332,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
 
       toast.success('تم إنشاء المشروع بنجاح')
     } catch (error) {
-      console.error('Error creating project:', error)
-      toast.error(error?.message || 'فشل إنشاء المشروع')
+      logger.error('Error creating project:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل إنشاء المشروع'
+      toast.error(errorMessage)
     } finally {
       setCreatingProject(false)
     }
   }
 
-  const getDaysRemaining = (date: string | null | undefined): number | null => {
-    if (!date) return null
-    try {
-      const dateObj = new Date(date)
-      if (isNaN(dateObj.getTime())) return null
-      return differenceInDays(dateObj, new Date())
-    } catch {
-      return null
-    }
-  }
+  // تم نقل calculateDaysRemaining إلى أعلى الملف كـ helper موحد
 
   const getStatusColor = (days: number | null) => {
     // إذا كان null (لا يوجد تاريخ انتهاء)، يعتبر ساري
@@ -420,7 +429,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
           new_data: newDataFull
         })
     } catch (error) {
-      console.error('Error logging activity:', error)
+      logger.error('Error logging activity:', error)
     }
   }
 
@@ -542,7 +551,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       
       onUpdate()
     } catch (error) {
-      console.error('Error saving employee:', error)
+      logger.error('Error saving employee:', error)
       toast.error('فشل حفظ التعديلات')
     } finally {
       setSaving(false)
@@ -577,10 +586,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
     }
   }
 
-  const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
-  const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
-  const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
-  const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null  // تحديث: ending_subscription_insurance_date → health_insurance_expiry, insuranceDays → healthInsuranceDays
+  const residenceDays = calculateDaysRemaining(employee?.residence_expiry)
+  const contractDays = calculateDaysRemaining(employee?.contract_expiry)
+  const hiredWorkerContractDays = calculateDaysRemaining(employee?.hired_worker_contract_expiry)
+  const healthInsuranceDays = calculateDaysRemaining(employee?.health_insurance_expiry)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -594,7 +603,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
           <div>
             <h2 className="text-2xl font-bold">{employee.name}</h2>
             <p className={`mt-1 ${isEditMode ? 'text-orange-100' : 'text-blue-100'}`}>
-              {employee.profession} - {employee.company.name}
+              {employee.profession} - {employee?.company?.name ?? 'غير محدد'}
             </p>
             {isEditMode && (
               <p className="text-sm mt-1 text-orange-100">
@@ -617,7 +626,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   onClick={handleEdit}
                   className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <FileText className="w-4 h-4" />
                   تعديل
                 </button>
               )
@@ -638,7 +647,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
             <div className="flex-1">
               <div className="font-medium">انتهاء الإقامة</div>
               <div className="text-sm">
-                {employee.residence_expiry ? (
+                {employee?.residence_expiry ? (
                   <>
                     <HijriDateDisplay date={employee.residence_expiry}>
                       {formatDateShortWithHijri(employee.residence_expiry)}
@@ -658,10 +667,12 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
               <div className="flex-1">
                 <div className="font-medium">انتهاء العقد</div>
                 <div className="text-sm">
-                  <HijriDateDisplay date={employee.contract_expiry!}>
-                    {formatDateShortWithHijri(employee.contract_expiry!)}
-                  </HijriDateDisplay>
-                  {contractDays < 0 ? ' (منتهي)' : ` (بعد ${contractDays} يوم)`}
+                  {employee?.contract_expiry && (
+                    <HijriDateDisplay date={employee.contract_expiry}>
+                      {formatDateShortWithHijri(employee.contract_expiry)}
+                    </HijriDateDisplay>
+                  )}
+                  {contractDays !== null && (contractDays < 0 ? ' (منتهي)' : ` (بعد ${contractDays} يوم)`)}
                 </div>
               </div>
             </div>
@@ -673,10 +684,12 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
               <div className="flex-1">
                 <div className="font-medium">انتهاء عقد أجير</div>
                 <div className="text-sm">
-                  <HijriDateDisplay date={employee.hired_worker_contract_expiry!}>
-                    {formatDateShortWithHijri(employee.hired_worker_contract_expiry!)}
-                  </HijriDateDisplay>
-                  {hiredWorkerContractDays < 0 ? ' (منتهي)' : ` (بعد ${hiredWorkerContractDays} يوم)`}
+                  {employee?.hired_worker_contract_expiry && (
+                    <HijriDateDisplay date={employee.hired_worker_contract_expiry}>
+                      {formatDateShortWithHijri(employee.hired_worker_contract_expiry)}
+                    </HijriDateDisplay>
+                  )}
+                  {hiredWorkerContractDays !== null && (hiredWorkerContractDays < 0 ? ' (منتهي)' : ` (بعد ${hiredWorkerContractDays} يوم)`)}
                 </div>
               </div>
             </div>
@@ -693,9 +706,11 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 ) : (
                   <>
                     {healthInsuranceDays < 0 ? 'منتهي (' : 'ساري حتى '}
-                    <HijriDateDisplay date={employee.health_insurance_expiry!}>
-                      {formatDateShortWithHijri(employee.health_insurance_expiry!)}
-                    </HijriDateDisplay>
+                    {employee?.health_insurance_expiry && (
+                      <HijriDateDisplay date={employee.health_insurance_expiry}>
+                        {formatDateShortWithHijri(employee.health_insurance_expiry)}
+                      </HijriDateDisplay>
+                    )}
                     {healthInsuranceDays < 0 ? ')' : ` (بعد ${healthInsuranceDays} يوم)`}
                   </>
                 )}
@@ -739,7 +754,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
                 <input
                   type="text"
-                  value={formData.name || ''}
+                  value={formData.name ?? ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -756,7 +771,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </label>
                 <input
                   type="text"
-                  value={formData.profession || ''}
+                  value={formData.profession ?? ''}
                   onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -773,7 +788,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </label>
                 <input
                   type="text"
-                  value={formData.nationality || ''}
+                  value={formData.nationality ?? ''}
                   onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -804,7 +819,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <label className="block text-sm font-medium text-gray-700 mb-2">رقم جواز السفر</label>
                 <input
                   type="text"
-                  value={formData.passport_number || ''}
+                  value={formData.passport_number ?? ''}
                   onChange={(e) => setFormData({ ...formData, passport_number: e.target.value })}
                   disabled={!isEditMode}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${

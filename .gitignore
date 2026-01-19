@@ -20,6 +20,7 @@ coverage/  # <-- ✨ هذا هو الإضافة الرئيسية لمنع أخط
 .env       # <-- ✨ إضافة هامة جداً للأمان
 .env.local
 .env.*.local
+.env.local.email  # Email system secrets
 # *.local  # (تم استبداله بالأسطر الأكثر تحديداً في الأعلى)
 
 # Files containing sensitive information (API keys, passwords, tokens)

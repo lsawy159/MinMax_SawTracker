@@ -23,6 +23,13 @@ interface EmailQueueItem {
 export default function EmailQueueMonitor() {
   const [emailQueue, setEmailQueue] = useState<EmailQueueItem[]>([])
   const [isLoadingEmailQueue, setIsLoadingEmailQueue] = useState(false)
+  const [stats, setStats] = useState<{
+    pending: number
+    processing: number
+    completed: number
+    failed: number
+    total: number
+  }>({ pending: 0, processing: 0, completed: 0, failed: 0, total: 0 })
 
   const loadEmailQueue = useCallback(async () => {
     setIsLoadingEmailQueue(true)
@@ -44,6 +51,13 @@ export default function EmailQueueMonitor() {
 
       setEmailQueue(data || [])
       logger.debug('[Email Queue] Queue loaded successfully, count:', data?.length || 0)
+      
+      // Calculate statistics
+      const pending = data?.filter(item => item.status === 'pending').length || 0
+      const processing = data?.filter(item => item.status === 'processing').length || 0
+      const completed = data?.filter(item => item.status === 'completed' || item.status === 'sent').length || 0
+      const failed = data?.filter(item => item.status === 'failed').length || 0
+      setStats({ pending, processing, completed, failed, total: data?.length || 0 })
     } catch (error) {
       console.error('[Email Queue] Error loading queue:', error)
       setEmailQueue([])
@@ -106,6 +120,38 @@ export default function EmailQueueMonitor() {
         </button>
       </div>
 
+      {/* Statistics Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <div className="bg-gray-50 p-3 rounded-lg border">
+          <div className="text-xs text-gray-500 mb-1">الإجمالي</div>
+          <div className="text-2xl font-bold text-gray-700">{stats.total}</div>
+        </div>
+        <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+          <div className="text-xs text-yellow-700 mb-1 flex items-center gap-1">
+            <span>🟡</span> قيد الانتظار
+          </div>
+          <div className="text-2xl font-bold text-yellow-700">{stats.pending}</div>
+        </div>
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <div className="text-xs text-blue-700 mb-1 flex items-center gap-1">
+            <span>🔵</span> قيد المعالجة
+          </div>
+          <div className="text-2xl font-bold text-blue-700">{stats.processing}</div>
+        </div>
+        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+          <div className="text-xs text-green-700 mb-1 flex items-center gap-1">
+            <span>🟢</span> نجحت
+          </div>
+          <div className="text-2xl font-bold text-green-700">{stats.completed}</div>
+        </div>
+        <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+          <div className="text-xs text-red-700 mb-1 flex items-center gap-1">
+            <span>🔴</span> فشلت
+          </div>
+          <div className="text-2xl font-bold text-red-700">{stats.failed}</div>
+        </div>
+      </div>
+
       {emailQueue.length === 0 ? (
         <div className="text-center py-6 text-gray-500 text-sm">لا توجد بريد في قائمة الانتظار</div>
       ) : (
@@ -131,6 +177,7 @@ export default function EmailQueueMonitor() {
                     case 'processing':
                       return 'text-blue-600 bg-blue-50'
                     case 'completed':
+                    case 'sent':
                       return 'text-green-600 bg-green-50'
                     case 'failed':
                       return 'text-red-600 bg-red-50'
@@ -146,6 +193,7 @@ export default function EmailQueueMonitor() {
                     case 'processing':
                       return '🔵'
                     case 'completed':
+                    case 'sent':
                       return '🟢'
                     case 'failed':
                       return '🔴'
@@ -161,6 +209,7 @@ export default function EmailQueueMonitor() {
                     case 'processing':
                       return 'قيد المعالجة'
                     case 'completed':
+                    case 'sent':
                       return 'نجح'
                     case 'failed':
                       return 'فشل'

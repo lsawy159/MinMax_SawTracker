@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Bell, Menu, X, ChevronRight, LogOut, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Shield, Bell, Menu, X, ChevronRight, LogOut, BookOpen, Mail } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
@@ -60,6 +60,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/admin-guide', icon: Shield, label: 'دليل مدير النظام', adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
     { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
+    { path: '/system-correspondence', icon: Mail, label: 'إدارة مراسلات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
     { path: '/centralized-settings', icon: Database, label: 'الإعدادات المركزية', permission: { section: 'centralizedSettings' as const, action: 'view' }, badge: null },
     { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
   ]

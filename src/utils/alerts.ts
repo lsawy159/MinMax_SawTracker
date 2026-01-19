@@ -1,6 +1,7 @@
 import { Alert } from '../components/alerts/AlertCard'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
+import { enqueueEmail } from '../lib/emailQueueService'
 
 // Default thresholds for alerts
 const DEFAULT_THRESHOLDS = {
@@ -40,6 +41,11 @@ export function invalidateNotificationThresholdsCache() {
 
 // Get notification thresholds from database settings with caching
 export async function getNotificationThresholds() {
+  // In test environment, avoid network calls and use defaults
+  if (import.meta.env.MODE === 'test') {
+    return DEFAULT_THRESHOLDS
+  }
+
   // Check if cache is valid
   const now = Date.now()
   if (thresholdsCache && (now - cacheTimestamp) < CACHE_TTL) {
@@ -121,6 +127,42 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
       alerts.push(moqeemAlert)
     }
   }
+  
+  // Enqueue emails for urgent/high priority alerts asynchronously
+  const emailPromises = alerts
+    .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
+    .map(async alert => {
+      // Fetch admin email from environment variable or use fallback
+      const adminEmails = [import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com'];
+      
+      try {
+        const emailContent = `تنبيه للمؤسسة: ${alert.company?.name}\n${alert.message}\nالإجراء المطلوب: ${alert.action_required}`;
+        await enqueueEmail({
+          toEmails: adminEmails,
+          subject: `⚠️ تنبيه ${alert.priority === 'urgent' ? 'عاجل' : 'هام'}: ${alert.title}`,
+          textContent: emailContent,
+          htmlContent: `
+            <div dir="rtl" style="font-family: Arial, sans-serif;">
+              <h2 style="color: ${alert.priority === 'urgent' ? '#dc2626' : '#ea580c'};">⚠️ ${alert.title}</h2>
+              <p><strong>المؤسسة:</strong> ${alert.company?.name}</p>
+              <p><strong>الرسالة:</strong> ${alert.message}</p>
+              <p><strong>الإجراء المطلوب:</strong> ${alert.action_required}</p>
+              <p style="color: #666;"><small>تاريخ الانتهاء: ${alert.expiry_date}</small></p>
+            </div>
+          `,
+          priority: alert.priority,
+        });
+        logger.debug(`Email enqueued for alert ${alert.id}`);
+      } catch (emailError) {
+        logger.error(`Failed to enqueue email for alert ${alert.id}:`, emailError);
+        // Continue processing alerts even if email fails (non-blocking)
+      }
+    });
+  
+  // Wait for all email promises to settle, but don't block the alert return
+  Promise.allSettled(emailPromises).catch(err => {
+    logger.error('Error settling email promises:', err);
+  });
   
   return alerts.sort((a, b) => {
     // ترتيب حسب الأولوية (عاجل أولاً)

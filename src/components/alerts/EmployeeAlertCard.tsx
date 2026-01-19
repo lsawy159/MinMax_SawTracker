@@ -1,4 +1,3 @@
-import React from 'react'
 import { AlertTriangle, Calendar, User, Shield, Clock, Eye, Mail } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'

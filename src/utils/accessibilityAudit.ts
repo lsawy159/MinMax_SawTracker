@@ -359,13 +359,15 @@ export class ScreenReaderTester {
 
     let node = walker.nextNode() as Node | null
     while (node) {
-      const parent = (node.parentElement as HTMLElement)
-      const isVisible = parent && window.getComputedStyle(parent).display !== 'none'
+      const parent = node.parentElement as HTMLElement | null
+      const isVisible = Boolean(parent && window.getComputedStyle(parent).display !== 'none')
 
-      if (isVisible && node.textContent?.trim()) {
-      node = walker.nextNode() as Node | null
-        text.push(node.textContent.trim())
+      const content = node.textContent?.trim()
+      if (isVisible && content) {
+        text.push(content)
       }
+
+      node = walker.nextNode() as Node | null
     }
 
     return text.join(' ')

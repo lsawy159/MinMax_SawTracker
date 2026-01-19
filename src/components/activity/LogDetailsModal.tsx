@@ -151,8 +151,8 @@ export function LogDetailsModal(props: LogDetailsModalProps) {
       }
       
       // التحقق من أن البيانات صحيحة وليست فارغة
-      hasValidData = (oldData && Object.keys(oldData).length > 0) || 
-                     (newData && Object.keys(newData).length > 0)
+      hasValidData = Boolean((oldData && Object.keys(oldData).length > 0) || 
+             (newData && Object.keys(newData).length > 0))
     } catch {
       // تجاهل أخطاء التحليل
     }

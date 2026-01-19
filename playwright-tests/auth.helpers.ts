@@ -13,7 +13,7 @@ export async function loginAsAdmin(page: Page) {
   // Wait for email input to be ready
   await page.waitForSelector('input[type="email"]', { timeout: 10000 });
   
-  await page.fill('input[type="email"]', 'admin@sawtracker.com');
+  await page.fill('input[type="email"]', 'ahmad.alsawy159@gmail.com');
   console.log('📧 [Auth Helper] Email filled')
   
   await page.fill('input[type="password"]', 'password123');

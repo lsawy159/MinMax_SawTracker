@@ -89,9 +89,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
   const [isDeleting, setIsDeleting] = useState(false)
   const [isImportCancelled, setIsImportCancelled] = useState(false)
-  // Reserved for future use: importedIds state (currently using importedIdsRef instead)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [importedIds, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
@@ -543,7 +540,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       }
       
       // قراءة البيانات
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { 
         defval: '', // قيمة افتراضية للأعمدة الفارغة
         raw: false // تحويل القيم إلى strings
       })
@@ -733,12 +730,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           } else {
             // Check for duplicates within the sheet
             const duplicateIndices = residenceNumberMap.get(residenceNumber) || []
-            if (duplicateIndices.length > 1 && duplicateIndices.indexOf(index) !== duplicateIndices[0]) {
+            const [firstOccurrence] = duplicateIndices
+
+            if (duplicateIndices.length > 1 && firstOccurrence !== undefined && duplicateIndices.indexOf(index) !== firstOccurrence) {
               // This is a duplicate in the sheet (not the first occurrence)
               errors.push({
                 row: rowNum,
                 field: 'رقم الإقامة',
-                message: `رقم الإقامة مكرر في الصف ${duplicateIndices[0] + 2}. سيتم استيراد الصف الأول فقط.`,
+                message: `رقم الإقامة مكرر في الصف ${firstOccurrence + 2}. سيتم استيراد الصف الأول فقط.`,
                 severity: 'error'
               })
             } else if (existingResidenceNumbers.has(residenceNumber)) {

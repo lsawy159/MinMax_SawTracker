@@ -1,6 +1,5 @@
-// Import React wrapper to ensure React is initialized before any JSX is processed
-// This prevents TDZ (Temporal Dead Zone) errors in production builds
-import React, { ReactNode, Suspense, lazy } from 'react'
+// Import specific React types and helpers only
+import { ReactNode, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -25,6 +24,7 @@ const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const CentralizedSettings = lazy(() => import('./pages/CentralizedSettings'))
+const SystemCorrespondenceManagement = lazy(() => import('./pages/EmailManagement'))
 const UserGuide = lazy(() => import('./pages/UserGuide'))
 const AdminGuide = lazy(() => import('./pages/AdminGuide'))
 
@@ -150,6 +150,14 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/system-correspondence" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <SystemCorrespondenceManagement />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/email-management" element={<Navigate to="/system-correspondence" replace />} />
         <Route path="/centralized-settings" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>

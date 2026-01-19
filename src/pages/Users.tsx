@@ -27,6 +27,13 @@ import {
   usePermissions
 } from '@/utils/permissions'
 
+type SupabaseError = {
+  message?: string
+  details?: string
+  hint?: string
+  code?: string
+}
+
 export default function Users() {
   const { user: currentUser } = useAuth()
   const { canView, canDelete } = usePermissions()
@@ -86,7 +93,7 @@ export default function Users() {
       
       // Normalize permissions for all users to ensure they have the correct structure
       // Apply admin permissions automatically for admin users
-      const normalizedUsers = (data || []).map(user => ({
+      const normalizedUsers = (data || []).map((user: User) => ({
         ...user,
         permissions: normalizePermissions(user.permissions, user.role as 'admin' | 'user')
       }))
@@ -158,8 +165,7 @@ export default function Users() {
         }
 
         // تحديث مستخدم موجود باستخدام RPC function
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { data, error } = await supabase
+        const { error } = await supabase
           .rpc('update_user_as_admin', {
             user_id: editingUser.id,
             new_email: formData.email,
@@ -270,21 +276,22 @@ export default function Users() {
       setShowDeleteModal(false)
       setDeleteingUser(null)
       loadUsers()
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = (error as SupabaseError) || {}
       logger.error('[Users] Error deleting user:', {
         error,
-        message: error?.message,
-        details: error?.details,
-        hint: error?.hint,
-        code: error?.code,
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code,
         user: deletingUser
       })
 
       // عرض رسالة خطأ واضحة بالعربية
       let errorMessage = 'حدث خطأ أثناء حذف المستخدم'
       
-      if (error?.message) {
-        const message = error.message.toLowerCase()
+      if (err.message) {
+        const message = err.message.toLowerCase()
         if (message.includes('access denied') || message.includes('admin privileges')) {
           errorMessage = 'ليس لديك صلاحية لحذف المستخدمين'
         } else if (message.includes('cannot delete your own account')) {
@@ -294,7 +301,7 @@ export default function Users() {
         } else if (message.includes('last admin') || message.includes('admin must exist')) {
           errorMessage = 'لا يمكن حذف آخر مدير نشط في النظام'
         } else {
-          errorMessage = error.message
+          errorMessage = err.message
         }
       }
 
@@ -691,7 +698,7 @@ export default function Users() {
                         <input
                           type="checkbox"
                           id="is_active"
-                          checked={formData.is_active}
+                          checked={!!formData.is_active}
                           onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                           className="w-4 h-4 text-blue-600 border-gray-200 rounded focus:ring-blue-500"
                         />

@@ -407,18 +407,18 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         profession: formData.profession.trim(),
         nationality: formData.nationality.trim(),
         birth_date: normalizeDate(formData.birth_date),
-        phone: formData.phone.trim() || null,
+        phone: formData.phone.trim() || undefined,
         passport_number: formData.passport_number.trim(),
         residence_number: Number(formData.residence_number.trim()) || 0,
         joining_date: normalizeDate(formData.joining_date),
         contract_expiry: normalizeDate(formData.contract_expiry),
         hired_worker_contract_expiry: normalizeDate(formData.hired_worker_contract_expiry),
         residence_expiry: normalizeDate(formData.residence_expiry),
-        bank_account: formData.bank_account.trim() || null,
+        bank_account: formData.bank_account.trim() || undefined,
         salary: Number(formData.salary) || 0,
         health_insurance_expiry: normalizeDate(formData.health_insurance_expiry),  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-        residence_image_url: formData.residence_image_url.trim() || null,
-        notes: formData.notes.trim() || null,
+        residence_image_url: formData.residence_image_url.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
         company_id: formData.company_id
       }
 
@@ -432,7 +432,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         }
       } else {
         // إذا لم يكن هناك project_id، نستخدم project_name القديم للتوافق
-        employeeData.project_name = formData.project_name.trim() || null
+        employeeData.project_name = formData.project_name.trim() || undefined
       }
 
       // Check for duplicate residence number before inserting

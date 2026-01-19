@@ -42,9 +42,17 @@ export default function SecuritySettingsManager() {
       if (error) throw error
 
       if (data) {
-        setSecuritySettings(data)
+        const disallowedKeys = new Set([
+          'admin_email',
+          'backup_email_notifications',
+          'backup_notifications_enabled',
+          'backup_email_recipients'
+        ])
+
+        const filtered = data.filter(s => !disallowedKeys.has(s.setting_key))
+        setSecuritySettings(filtered)
         const initialValues: Record<string, string | number | boolean | Record<string, unknown> | null> = {}
-        data.forEach(setting => {
+        filtered.forEach(setting => {
           if (typeof setting.setting_value === 'object' && setting.setting_value !== null) {
             initialValues[setting.setting_key] = JSON.stringify(setting.setting_value, null, 2)
           } else {
@@ -358,7 +366,7 @@ export default function SecuritySettingsManager() {
                   type="text"
                   value={newSetting.setting_key}
                   onChange={(e) => setNewSetting(prev => ({ ...prev, setting_key: e.target.value }))}
-                  placeholder="مثال: backup_email_notifications"
+                  placeholder="مثال: session_timeout_minutes"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>

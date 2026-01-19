@@ -1,15 +1,21 @@
 import { differenceInDays } from 'date-fns'
 
+// Helper to normalize date inputs and guard against invalid values
+const toValidDate = (value: string | Date | null | undefined): Date | null => {
+  if (!value) return null
+  const parsed = value instanceof Date ? value : new Date(value)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
 /**
  * حساب عدد الأيام المتبقية على انتهاء اشتراك التأمين
  */
-export const calculateInsuranceDaysRemaining = (date: string): number => {
-  if (!date) return 0
+export const calculateInsuranceDaysRemaining = (date: string | Date | null | undefined): number => {
+  const expiryDate = toValidDate(date)
+  if (!expiryDate) return 0
   
-  const expiryDate = new Date(date)
   const today = new Date()
-  
-  // إعادة تعيين الوقت لضمان المقارنة الصحيحة
+  // إعادة تعيين الوقت لضمان المقارنة الصحيحة (الميلادي هو المصدر الرئيسي)
   today.setHours(0, 0, 0, 0)
   expiryDate.setHours(0, 0, 0, 0)
   

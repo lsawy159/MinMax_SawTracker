@@ -19,6 +19,20 @@ class Logger {
   private logs: LogEntry[] = []
   private maxLogs = 100
 
+  private recordLog(level: LogLevel, formattedMessage: string, context?: Record<string, unknown>): void {
+    const entry: LogEntry = {
+      level,
+      message: formattedMessage,
+      timestamp: new Date().toISOString(),
+      context
+    }
+
+    this.logs.push(entry)
+    if (this.logs.length > this.maxLogs) {
+      this.logs.shift()
+    }
+  }
+
   private shouldLog(level: LogLevel): boolean {
     if (isTest) return false
     if (level === LogLevel.ERROR) return true
@@ -40,25 +54,33 @@ class Logger {
   debug(...args: unknown[]): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
       // Use console.warn for debug messages as console.log is not allowed
-      console.warn(this.formatMessage(LogLevel.DEBUG, ...args))
+      const formatted = this.formatMessage(LogLevel.DEBUG, ...args)
+      this.recordLog(LogLevel.DEBUG, formatted)
+      console.warn(formatted)
     }
   }
 
   info(...args: unknown[]): void {
     if (this.shouldLog(LogLevel.INFO)) {
       // Use console.warn for info messages as console.info is not allowed
-      console.warn(this.formatMessage(LogLevel.INFO, ...args))
+      const formatted = this.formatMessage(LogLevel.INFO, ...args)
+      this.recordLog(LogLevel.INFO, formatted)
+      console.warn(formatted)
     }
   }
 
   warn(...args: unknown[]): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(this.formatMessage(LogLevel.WARN, ...args))
+      const formatted = this.formatMessage(LogLevel.WARN, ...args)
+      this.recordLog(LogLevel.WARN, formatted)
+      console.warn(formatted)
     }
   }
 
   error(...args: unknown[]): void {
-    console.error(this.formatMessage(LogLevel.ERROR, ...args))
+    const formatted = this.formatMessage(LogLevel.ERROR, ...args)
+    this.recordLog(LogLevel.ERROR, formatted)
+    console.error(formatted)
     // في الإنتاج، يمكن إرسال الأخطاء لخدمة tracking
   }
 }

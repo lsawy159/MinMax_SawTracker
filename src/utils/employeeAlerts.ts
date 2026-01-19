@@ -1,6 +1,7 @@
 import { Employee, Company } from '../lib/supabase'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
+import { enqueueEmail } from '../lib/emailQueueService'
 
 export interface EmployeeAlert {
   id: string
@@ -64,6 +65,48 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
       alerts.push(hiredWorkerContractAlert)
     }
   }
+  
+  // Enqueue emails for urgent/high priority alerts asynchronously
+  const emailPromises = alerts
+    .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
+    .map(async alert => {
+      // Fetch admin email from environment variable or use fallback
+      const adminEmails = [import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com'];
+      
+      try {
+        const priorityColor = alert.priority === 'urgent' ? '#dc2626' : '#ea580c'
+        const priorityEmoji = alert.priority === 'urgent' ? '🚨' : '⚠️'
+        const priorityText = alert.priority === 'urgent' ? 'عاجل' : 'هام'
+        
+        const emailContent = `تنبيه للموظف: ${alert.employee.name}\n${alert.message}\nالإجراء المطلوب: ${alert.action_required}`;
+        await enqueueEmail({
+          toEmails: adminEmails,
+          subject: `${priorityEmoji} تنبيه ${priorityText}: ${alert.title} - ${alert.employee.name}`,
+          textContent: emailContent,
+          htmlContent: `
+            <div dir="rtl" style="font-family: Arial, sans-serif;">
+              <h2 style="color: ${priorityColor};">${priorityEmoji} ${alert.title}</h2>
+              <p><strong>الموظف:</strong> ${alert.employee.name}</p>
+              <p><strong>المهنة:</strong> ${alert.employee.profession}</p>
+              <p><strong>الجنسية:</strong> ${alert.employee.nationality}</p>
+              <p><strong>الرسالة:</strong> ${alert.message}</p>
+              <p><strong>الإجراء المطلوب:</strong> ${alert.action_required}</p>
+              <p style="color: #666;"><small>تاريخ الانتهاء: ${alert.expiry_date}</small></p>
+            </div>
+          `,
+          priority: alert.priority,
+        });
+        logger.debug(`Email enqueued for employee alert ${alert.id}`);
+      } catch (emailError) {
+        logger.error(`Failed to enqueue email for employee alert ${alert.id}:`, emailError);
+        // Continue processing alerts even if email fails (non-blocking)
+      }
+    });
+  
+  // Wait for all email promises to settle, but don't block the alert return
+  Promise.allSettled(emailPromises).catch(err => {
+    logger.error('Error settling employee email promises:', err);
+  });
   
   return alerts.sort((a, b) => {
     // Sort by priority (urgent first)
@@ -514,6 +557,34 @@ export function filterEmployeeAlertsByPriority(alerts: EmployeeAlert[], priority
 export function filterEmployeeAlertsByType(alerts: EmployeeAlert[], type: EmployeeAlert['type']): EmployeeAlert[] {
   return alerts.filter(alert => alert.type === type)
 }
+
+
+/**
+ * TODO: دالة فحص انتهاء صلاحية جواز السفر للموظف
+ * 
+ * ملاحظة: حاليًا، قاعدة البيانات تحتوي فقط على حقل passport_number
+ * إذا تمت إضافة حقل passport_expiry في المستقبل، يمكن استخدام هذه الدالة:
+ * 
+ * export async function checkPassportExpiry(employee: Employee): Promise<EmployeeAlert | null> {
+ *   if (!employee.passport_expiry) {
+ *     return null
+ *   }
+ *   
+ *   const today = new Date()
+ *   const expiryDate = new Date(employee.passport_expiry)
+ *   const timeDiff = expiryDate.getTime() - today.getTime()
+ *   const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+ *   
+ *   const thresholds = await getEmployeeNotificationThresholds()
+ *   
+ *   // استخدام نفس عتبات الإقامة أو إنشاء عتبات منفصلة
+ *   if (daysRemaining > thresholds.residence_medium_days) {
+ *     return null
+ *   }
+ *   
+ *   // ... بقية منطق التنبيه مشابه لـ checkResidenceExpiry
+ * }
+ */
 
 /**
  * Get employee alerts statistics

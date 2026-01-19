@@ -1,4 +1,3 @@
-import React from 'react'
 import { 
   AlertTriangle, 
   Calendar, 
@@ -187,6 +186,7 @@ export function EnhancedAlertCard({
 
   const getTypeLabel = (type: EnhancedAlert['alert_type']) => {
     const labels = {
+      commercial_registration_expiry: 'السجل التجاري',
       commercial_registration: 'السجل التجاري',
       social_insurance_expiry: 'التأمينات الاجتماعية',  // تحديث: insurance_subscription → social_insurance_expiry
       government_docs_renewal: 'الوثائق الحكومية'

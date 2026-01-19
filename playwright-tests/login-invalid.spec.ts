@@ -5,7 +5,7 @@ test('رفض تسجيل الدخول عند إدخال كلمة مرور خاط�
   await page.goto('http://localhost:5174/login');
 
   // اكتب الإيميل الصحيح
-  await page.fill('input[type="email"]', 'admin@sawtracker.com');
+  await page.fill('input[type="email"]', 'ahmad.alsawy159@gmail.com');
 
   // اكتب كلمة مرور خاطئة
   await page.fill('input[type="password"]', 'wrongpassword123');

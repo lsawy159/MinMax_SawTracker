@@ -78,6 +78,8 @@ export class SessionManager {
   static initialize(userId: string, email: string, tokenExpiryTime: number): void {
     logger.info('[SessionManager] Initializing session management')
 
+    this.currentSessionId = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)
+
     this.sessionState = {
       userId,
       email,
@@ -95,7 +97,8 @@ export class SessionManager {
 
     logger.info('[SessionManager] Session initialized', {
       userId,
-      expiryIn: tokenExpiryTime - Date.now()
+      expiryIn: tokenExpiryTime - Date.now(),
+      sessionId: this.currentSessionId
     })
   }
 

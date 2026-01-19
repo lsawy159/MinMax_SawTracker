@@ -22,7 +22,6 @@ export interface SimpleEnhancedAlert {
   
   // Enhanced fields for compatibility
   alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
-  document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
   related_documents: string[]
@@ -114,7 +113,7 @@ export interface EnhancedAlert {
 export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAlert[] {
   const alerts: EnhancedAlert[] = []
   
-  companies.forEach(company => {
+  for (const company of companies) {
     // Commercial Registration Alerts
     if (company.commercial_registration_expiry) {
       const expiryDate = new Date(company.commercial_registration_expiry)
@@ -144,7 +143,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
           risk_level: daysRemaining < 0 ? 'critical' : 
                      daysRemaining <= 30 ? 'high' : 
                      daysRemaining <= 60 ? 'medium' : 'low',
-          estimated_cost: '500 - 2000 ريال',
+          estimated_cost: 'SAR 200 - 800',
           
           // Enhanced fields
           alert_type: 'commercial_registration_expiry',
@@ -226,7 +225,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
         })
       }
     }
-  })
+  }
   
   return alerts.sort((a, b) => {
     const priorityOrder = { urgent: 3, medium: 2, low: 1 }

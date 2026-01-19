@@ -89,7 +89,8 @@ async function readSMTPResponse(conn: Deno.Conn, decoder: TextDecoder, timeoutMs
   return response
 }
 
-// دالة لإرسال بريد عبر SMTP مباشرة
+// دالة SMTP الموروثة - معطلة ولا تُستخدم (استخدم Resend بدلاً منها)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function sendEmailViaSMTP(
   hostname: string,
   port: number,
@@ -303,15 +304,15 @@ Deno.serve(async (req) => {
   try {
     console.log('[Email Queue] Starting queue processing...')
     
-    // قراءة إعدادات Gmail من Environment Variables
-    const gmailUser = Deno.env.get('GMAIL_USER')
-    const gmailPassword = Deno.env.get('GMAIL_APP_PASSWORD')
+    // قراءة إعدادات Resend من Environment Variables
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    const resendFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@sawtracker.com'
 
-    if (!gmailUser || !gmailPassword) {
-      console.error('[Email Queue] Email configuration missing')
+    if (!resendKey) {
+      console.error('[Email Queue] Resend configuration missing')
       return new Response(
-        JSON.stringify({ success: false, error: 'Email configuration not found' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'Resend configuration not found' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
       )
     }
 
@@ -323,7 +324,7 @@ Deno.serve(async (req) => {
       console.error('[Email Queue] Supabase configuration missing')
       return new Response(
         JSON.stringify({ success: false, error: 'Supabase configuration not found' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
       )
     }
 
@@ -347,7 +348,7 @@ Deno.serve(async (req) => {
       console.error('[Email Queue] Error fetching queue items:', fetchError)
       return new Response(
         JSON.stringify({ success: false, error: fetchError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
       )
     }
 
@@ -355,7 +356,7 @@ Deno.serve(async (req) => {
       console.log('[Email Queue] No pending emails to process')
       return new Response(
         JSON.stringify({ success: true, message: 'No pending emails', processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
       )
     }
 
@@ -384,25 +385,35 @@ Deno.serve(async (req) => {
 
         console.log(`[Email Queue] Processing email ${item.id} to ${item.to_emails.join(', ')}`)
 
-        // إرسال البريد إلى جميع المستلمين
+        // إرسال البريد عبر Resend API لكل مستلم
         const sendPromises = item.to_emails.map(async (recipient: string) => {
           try {
-            await sendEmailViaSMTP(
-              'smtp.gmail.com',
-              587,
-              gmailUser,
-              gmailPassword,
-              gmailUser,
-              recipient,
-              item.subject,
-              item.html_content,
-              item.text_content || '',
-              [] // لا نرسل مرفقات في Queue system
-            )
+            const resp = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${resendKey}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                from: resendFrom,
+                to: recipient,
+                subject: item.subject,
+                html: item.html_content,
+                text: item.text_content || undefined
+              })
+            })
+
+            if (!resp.ok) {
+              const errorText = await resp.text()
+              throw new Error(`Resend failed (${resp.status}): ${errorText}`)
+            }
+
             return { recipient, success: true }
           } catch (error) {
             console.error(`[Email Queue] Failed to send to ${recipient}:`, error)
-            return { recipient, success: false, error: error?.message }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const msg = (error as any)?.message ?? 'Unknown error'
+            return { recipient, success: false, error: msg }
           }
         })
 
@@ -464,7 +475,7 @@ Deno.serve(async (req) => {
         succeeded: successCount,
         failed: failedCount
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
     )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -475,7 +486,7 @@ Deno.serve(async (req) => {
         success: false,
         error: error?.message || 'Failed to process email queue'
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
     )
   }
 })

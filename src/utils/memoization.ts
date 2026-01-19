@@ -324,7 +324,7 @@ export function withHeavyComponentMemo<P extends object>(
     }
 
     return React.createElement(Component, props)
-  }) as React.ComponentType<P>
+  }) as unknown as React.ComponentType<P>
 
   Monitored.displayName = `withHeavyComponentMemo(${displayName || Component.name})`
   return Monitored

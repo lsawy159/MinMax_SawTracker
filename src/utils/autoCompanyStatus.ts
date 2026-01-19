@@ -2,6 +2,13 @@ import { differenceInDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { logger } from './logger'
 
+// Helper to normalize date inputs and guard against invalid values
+const toValidDate = (value: string | Date | null | undefined): Date | null => {
+  if (!value) return null
+  const parsed = value instanceof Date ? value : new Date(value)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
 /**
  * القيم الافتراضية لإعدادات الحالات (موحد مع الموظفين)
  * طارئ - عاجل - متوسط - ساري
@@ -78,13 +85,12 @@ function getStatusThresholdsSync(): typeof DEFAULT_STATUS_THRESHOLDS {
 /**
  * حساب عدد الأيام المتبقية على انتهاء تاريخ معين
  */
-export const calculateDaysRemaining = (date: string | null | undefined): number => {
-  if (!date) return 0
+export const calculateDaysRemaining = (date: string | Date | null | undefined): number => {
+  const expiryDate = toValidDate(date)
+  if (!expiryDate) return 0
   
-  const expiryDate = new Date(date)
   const today = new Date()
-  
-  // إعادة تعيين الوقت لضمان المقارنة الصحيحة
+  // إعادة تعيين الوقت لضمان المقارنة الصحيحة (الميلادي هو المصدر الرئيسي)
   today.setHours(0, 0, 0, 0)
   expiryDate.setHours(0, 0, 0, 0)
   
@@ -711,11 +717,11 @@ export const calculateCompanyStatusStats = (companies: Array<{
   }))
   
   const powerCompanies = companies.map(c => ({
-    ending_subscription_power_date: c.ending_subscription_power_date
+    ending_subscription_power_date: c.ending_subscription_power_date ?? null
   }))
   
   const moqeemCompanies = companies.map(c => ({
-    ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
+    ending_subscription_moqeem_date: c.ending_subscription_moqeem_date ?? null
   }))
 
   const commercialRegStats = calculateCommercialRegStats(commercialRegCompanies)

@@ -6,7 +6,7 @@ import { logger } from '@/utils/logger'
 import { getErrorMessage, getErrorStatus } from '@/utils/errorHandling'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
-import EmailQueueMonitor from './EmailQueueMonitor'
+import { maybeNotifyBackup } from '@/lib/backupService'
 
 interface BackupRecord {
   id: string
@@ -162,6 +162,11 @@ export default function BackupManagement() {
                 if (completedBackup) {
                   toast.success('تم إنشاء النسخة الاحتياطية بنجاح')
                   await loadBackups()
+                  try {
+                    await maybeNotifyBackup(completedBackup)
+                  } catch (notifyErr) {
+                    console.warn('[Backup] Notification failed:', notifyErr)
+                  }
                 } else {
                   toast.warning('استغرق إنشاء النسخة الاحتياطية وقتاً طويلاً. يرجى التحقق من قائمة النسخ الاحتياطية.')
                   await loadBackups()
@@ -219,13 +224,18 @@ export default function BackupManagement() {
             await new Promise(resolve => setTimeout(resolve, 300))
             const { data: latestBackups } = await supabase
               .from('backup_history')
-              .select('id')
+              .select('*')
               .order('started_at', { ascending: false })
               .limit(1)
 
             if (latestBackups && latestBackups.length > 0) {
               logger.debug('[Backup] Latest backup found:', latestBackups[0].id)
               await loadBackups()
+              try {
+                await maybeNotifyBackup(latestBackups[0])
+              } catch (notifyErr) {
+                console.warn('[Backup] Notification failed:', notifyErr)
+              }
               loaded = true
             } else {
               logger.debug('[Backup] Backup not found yet, retrying...')
@@ -247,6 +257,14 @@ export default function BackupManagement() {
           console.warn('[Backup] Could not load backup list after retries, but backup was created successfully')
           try {
             await loadBackups()
+            const { data: latest } = await supabase
+              .from('backup_history')
+              .select('*')
+              .order('started_at', { ascending: false })
+              .limit(1)
+            if (latest && latest[0]) {
+              try { await maybeNotifyBackup(latest[0]) } catch (e) { console.warn('[Backup] Notification failed:', e) }
+            }
           } catch (finalError) {
             console.error('[Backup] Final load attempt failed:', finalError)
           }
@@ -710,10 +728,6 @@ export default function BackupManagement() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-6 border-t pt-4">
-        <EmailQueueMonitor />
       </div>
 
       {showDeleteModal && backupToDelete && (
