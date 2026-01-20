@@ -27,7 +27,7 @@ export interface PermissionMatrix {
  * بناءً على PERMISSION_SCHEMA - كل فعل يكون false (Deny by Default)
  */
 function createEmptyPermissions(): PermissionMatrix {
-  const empty: Record<string, Record<string, boolean>> = {}
+  const empty = {} as Record<keyof PermissionMatrix, Record<string, boolean>>
   for (const section of VALID_PERMISSION_SECTIONS) {
     empty[section] = {}
     const actions = PERMISSION_SECTIONS[section].actions
@@ -35,14 +35,14 @@ function createEmptyPermissions(): PermissionMatrix {
       empty[section][action] = false // ← Deny by Default
     }
   }
-  return empty as PermissionMatrix
+  return empty as unknown as PermissionMatrix
 }
 
 /**
  * إنشاء صلاحيات كاملة للمديرين (جميع الأفعال = true)
  */
 function createFullAdminPermissions(): PermissionMatrix {
-  const admin: Record<string, Record<string, boolean>> = {}
+  const admin = {} as Record<keyof PermissionMatrix, Record<string, boolean>>
   for (const section of VALID_PERMISSION_SECTIONS) {
     admin[section] = {}
     const actions = getActionsForSection(section)
@@ -50,7 +50,7 @@ function createFullAdminPermissions(): PermissionMatrix {
       admin[section][action] = true // ← Master Key
     }
   }
-  return admin as PermissionMatrix
+  return admin as unknown as PermissionMatrix
 }
 
 // احتفظ بها للتوافق للخلف مع المكونات الموجودة
@@ -102,9 +102,9 @@ export const normalizePermissions = (
         
         // تطبيع إلى boolean مع دعم القيم القديمة (strings من قاعدة البيانات)
         if (value === true || value === 'true') {
-          (normalized as Record<string, Record<string, boolean>>)[section][action] = true
+          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] = true
         } else {
-          (normalized as Record<string, Record<string, boolean>>)[section][action] = false // ← Deny by Default
+          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] = false // ← Deny by Default
         }
       }
     }
