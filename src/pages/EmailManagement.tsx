@@ -34,6 +34,7 @@ export default function SystemCorrespondenceManagement() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [, setStatsLoading] = useState(false)
   const [stats, setStats] = useState({
     sentToday: 0,
     pending: 0,

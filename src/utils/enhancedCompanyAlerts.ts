@@ -333,7 +333,7 @@ function determineRenewalComplexity(company: Company): EnhancedAlert['renewal_co
 
 // Reserved for future use: Determine complexity level of insurance renewal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function determineInsuranceComplexity(company: Company): EnhancedAlert['renewal_complexity'] {
+function _determineInsuranceComplexity(_company: Company): EnhancedAlert['renewal_complexity'] {
   // Insurance renewal is typically moderate complexity
   return 'moderate'
 }
@@ -352,123 +352,20 @@ function estimateRenewalTime(days: number, complexity: EnhancedAlert['renewal_co
 
 // Reserved for future use: Get enhanced title for alert based on type and days
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getEnhancedTitle(type: string, days: number): string {
-  if (type === 'commercial_registration_expiry') {
-    if (days < 0) return 'السجل التجاري منتهي'
-    if (days <= 7) return 'السجل التجاري عاجل'
-    if (days <= 30) return 'تجديد السجل التجاري مطلوب'
+function _getEnhancedTitle(_type: string, _days: number): string {
+  if (_type === 'commercial_registration_expiry') {
+    if (_days < 0) return 'السجل التجاري منتهي'
+    if (_days <= 7) return 'السجل التجاري عاجل'
+    if (_days <= 30) return 'تجديد السجل التجاري مطلوب'
     return 'متابعة تجديد السجل التجاري'
-  } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    if (days < 0) return 'التأمينات الاجتماعية منتهي'
-    if (days <= 7) return 'التأمينات الاجتماعية عاجل'
-    if (days <= 30) return 'تجديد التأمينات الاجتماعية مطلوب'
+  } else if (_type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
+    if (_days < 0) return 'التأمينات الاجتماعية منتهي'
+    if (_days <= 7) return 'التأمينات الاجتماعية عاجل'
+    if (_days <= 30) return 'تجديد التأمينات الاجتماعية مطلوب'
     return 'متابعة تجديد التأمينات الاجتماعية'
   }
   
   return 'تنبيه تجديد الوثائق'
-}
-
-// Reserved for future use: Get enhanced message for alert based on type, days, and company
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getEnhancedMessage(type: string, days: number, company: Company): string {
-  const companyName = company.name
-  
-  if (type === 'commercial_registration_expiry') {
-    if (days < 0) {
-      return `انتهت صلاحية السجل التجاري للمؤسسة "${companyName}" منذ ${Math.abs(days)} يوم. هذا يؤثر على الوضع القانوني للمؤسسة ويعرضها للمخاطر القانونية والمالية.`
-    } else if (days <= 7) {
-      return `ينتهي السجل التجاري للمؤسسة "${companyName}" خلال ${days} يوم. يجب تجديده فوراً لضمان استمرار النشاط القانوني.`
-    } else if (days <= 30) {
-      return `ينتهي السجل التجاري للمؤسسة "${companyName}" خلال ${days} يوم. يُفضل تجديده خلال الأسبوع القادم.`
-    } else {
-      return `السجل التجاري للمؤسسة "${companyName}" سينتهي خلال ${days} يوم. يمكن البدء في إجراءات التجديد.`
-    }
-  } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    if (days < 0) {
-      return `انتهت صلاحية التأمينات الاجتماعية للمؤسسة "${companyName}" منذ ${Math.abs(days)} يوم. هذا يعرض المؤسسة لمخاطر مالية كبيرة في حالة وقوع أي حوادث.`
-    } else if (days <= 7) {
-      return `تنتهي التأمينات الاجتماعية للمؤسسة "${companyName}" خلال ${days} يوم. يجب تجديدها فوراً لضمان الحماية المالية.`
-    } else if (days <= 30) {
-      return `تنتهي التأمينات الاجتماعية للمؤسسة "${companyName}" خلال ${days} يوم. يُفضل تجديدها خلال الأسبوع القادم.`
-    } else {
-      return `التأمينات الاجتماعية للمؤسسة "${companyName}" ستنتهي خلال ${days} يوم. يمكن البدء في إجراءات التجديد.`
-    }
-  }
-  
-  return `تنبيه تجديد الوثائق للمؤسسة "${companyName}"`
-}
-
-// Reserved for future use: Get enhanced action required message
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getEnhancedActionRequired(type: string, days: number, company: Company): string {
-  const companyName = company.name
-  
-  if (type === 'commercial_registration_expiry') {
-    if (days < 0) {
-      return `قم بترتيب تجديد السجل التجاري للمؤسسة "${companyName}" في أقرب وقت ممكن. تأكد من تجميع جميع الوثائق المطلوبة والحصول على موعد عاجل.`
-    } else if (days <= 7) {
-      return `قم بترتيب تجديد السجل التجاري للمؤسسة "${companyName}" خلال ${days} يوم القادمة. احجز موعد فوري وأعد جميع الوثائق المطلوبة.`
-    } else if (days <= 30) {
-      return `قم ببدء إجراءات تجديد السجل التجاري للمؤسسة "${companyName}". احجز موعد خلال الأسبوع القادم.`
-    } else {
-      return `قم بالتخطيط لتجديد السجل التجاري للمؤسسة "${companyName}" قبل انتهاء المدة.`
-    }
-  } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    if (days < 0) {
-      return `قم بتجديد التأمينات الاجتماعية للمؤسسة "${companyName}" فوراً. اتصل بمؤسسة التأمينات الاجتماعية وأعد الوثائق المطلوبة.`
-    } else if (days <= 7) {
-      return `قم بترتيب تجديد التأمينات الاجتماعية للمؤسسة "${companyName}" خلال ${days} يوم القادمة.`
-    } else if (days <= 30) {
-      return `ابدأ إجراءات تجديد التأمينات الاجتماعية للمؤسسة "${companyName}".`
-    } else {
-      return `راجع شروط التأمينات الاجتماعية الحالية للمؤسسة "${companyName}" وخطط للتجديد.`
-    }
-  }
-  
-  return `قم بترتيب تجديد الوثائق للمؤسسة "${companyName}"`
-}
-
-// Reserved for future use: Get list of related documents needed for renewal
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getRelatedDocuments(type: string): string[] {
-  if (type === 'commercial_registration_expiry') {
-    return [
-      'السجل التجاري الحالي',
-      'بطاقة الهوية للمالك',
-      'عقد الإيجار أو سند الملكية',
-      'شهادة الزكاة والضريبة',
-      'كشف حساب بنكي'
-    ]
-  } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    return [
-      'السجل التجاري',
-      'بطاقة الهوية للمالك',
-      'شهادة تقدير المخاطر',
-      'الفواتير الضريبية الأخيرة',
-      'كشف حساب بنكي',
-      'وثيقة التأمينات الاجتماعية'
-    ]
-  } else {
-    return [
-      'السجل التجاري',
-      'بطاقة الهوية',
-      'الوثائق الحكومية المطلوبة',
-      'الشهادات المهنية',
-      'الفاتورة الضريبية'
-    ]
-  }
-}
-
-// Reserved for future use: Get cost estimate for renewal process
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getRenewalCostEstimate(type: string): { min: number; max: number; currency: string } {
-  if (type === 'commercial_registration_expiry') {
-    return { min: 500, max: 2000, currency: 'SAR' }
-  } else if (type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    return { min: 2000, max: 10000, currency: 'SAR' }
-  } else {
-    return { min: 300, max: 1500, currency: 'SAR' }
-  }
 }
 
 /**

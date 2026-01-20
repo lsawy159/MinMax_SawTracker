@@ -89,6 +89,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
   const [isDeleting, setIsDeleting] = useState(false)
   const [isImportCancelled, setIsImportCancelled] = useState(false)
+  const [, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)

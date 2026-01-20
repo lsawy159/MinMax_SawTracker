@@ -37,9 +37,9 @@ export default function AuthLoading({
       }, 1000)
 
       return () => clearInterval(timer)
-    } else {
-      setIsWaiting(false)
     }
+    setIsWaiting(false)
+    return
   }, [loading, maxWaitTime])
 
   // حالة التحميل العادي

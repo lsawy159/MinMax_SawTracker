@@ -212,7 +212,7 @@ export default function NotificationDropdown() {
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getPriorityColor(notification.priority)}`}>
                               {getPriorityLabel(notification.priority)}
                             </span>
-                            {notification.days_remaining !== null && (
+                            {notification.days_remaining !== null && notification.days_remaining !== undefined && (
                               <span className="text-xs text-gray-500">
                                 {notification.days_remaining < 0 
                                   ? `منتهي منذ ${String(Math.abs(notification.days_remaining))} يوم`
