@@ -1,4 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext'
+import {
+  PERMISSION_SECTIONS,
+  VALID_PERMISSION_SECTIONS,
+  getActionsForSection
+} from './PERMISSIONS_SCHEMA'
 
 // واجهة الصلاحيات الموسعة لجميع الصفحات
 export interface PermissionMatrix {
@@ -17,120 +22,98 @@ export interface PermissionMatrix {
   dashboard: { view: boolean }
 }
 
-// الصلاحيات الافتراضية للمستخدمين العاديين
-export const defaultPermissions: PermissionMatrix = {
-  employees: { view: true, create: false, edit: false, delete: false },
-  companies: { view: true, create: false, edit: false, delete: false },
-  users: { view: false, create: false, edit: false, delete: false },
-  settings: { view: false, edit: false },
-  adminSettings: { view: false, edit: false },
-  centralizedSettings: { view: true, edit: false },
-  projects: { view: true, create: false, edit: false, delete: false },
-  reports: { view: true, export: false },
-  alerts: { view: true },
-  advancedSearch: { view: true },
-  importExport: { view: false, import: false, export: false },
-  activityLogs: { view: false },
-  dashboard: { view: true }
-}
-
-// الصلاحيات الكاملة للمديرين
-export const adminPermissions: PermissionMatrix = {
-  employees: { view: true, create: true, edit: true, delete: true },
-  companies: { view: true, create: true, edit: true, delete: true },
-  users: { view: true, create: true, edit: true, delete: true },
-  settings: { view: true, edit: true },
-  adminSettings: { view: true, edit: true },
-  centralizedSettings: { view: true, edit: true },
-  projects: { view: true, create: true, edit: true, delete: true },
-  reports: { view: true, export: true },
-  alerts: { view: true },
-  advancedSearch: { view: true },
-  importExport: { view: true, import: true, export: true },
-  activityLogs: { view: true },
-  dashboard: { view: true }
+/**
+ * الصلاحيات الافتراضية للمستخدمين الجدد
+ * بناءً على PERMISSION_SCHEMA - كل فعل يكون false (Deny by Default)
+ */
+function createEmptyPermissions(): PermissionMatrix {
+  const empty: Record<string, Record<string, boolean>> = {}
+  for (const section of VALID_PERMISSION_SECTIONS) {
+    empty[section] = {}
+    const actions = PERMISSION_SECTIONS[section].actions
+    for (const action of actions) {
+      empty[section][action] = false // ← Deny by Default
+    }
+  }
+  return empty as PermissionMatrix
 }
 
 /**
- * تطبيع الصلاحيات وتأكد من وجود جميع الخصائص المطلوبة
- * إذا كان المستخدم مدير، يتم إرجاع صلاحيات المدير الكاملة تلقائياً
+ * إنشاء صلاحيات كاملة للمديرين (جميع الأفعال = true)
+ */
+function createFullAdminPermissions(): PermissionMatrix {
+  const admin: Record<string, Record<string, boolean>> = {}
+  for (const section of VALID_PERMISSION_SECTIONS) {
+    admin[section] = {}
+    const actions = getActionsForSection(section)
+    for (const action of actions) {
+      admin[section][action] = true // ← Master Key
+    }
+  }
+  return admin as PermissionMatrix
+}
+
+// احتفظ بها للتوافق للخلف مع المكونات الموجودة
+export const defaultPermissions = createEmptyPermissions()
+export const adminPermissions = createFullAdminPermissions()
+
+/**
+ * تطبيع الصلاحيات مع سياسة "المنع افتراضاً" (Deny by Default)
+ * 
+ * السلوك:
+ * 1. إذا كان المستخدم مدير: يحصل على جميع الصلاحيات (Master Key)
+ * 2. إذا كانت البيانات فارغة/غير صحيحة: إرجاع صلاحيات فارغة (كل فعل = false)
+ * 3. إذا كان القسم مفقوداً: القسم كامل = false
+ * 4. إذا كان الفعل مفقوداً: هذا الفعل = false
+ * 
+ * ملاحظة: لا نملأ البيانات الناقصة بقيم افتراضية متساهلة
  */
 export const normalizePermissions = (
   permissions: unknown,
   role?: 'admin' | 'user'
 ): PermissionMatrix => {
-  // إذا كان المستخدم مدير، إرجاع صلاحيات المدير الكاملة تلقائيًا
+  // إذا كان المستخدم مدير، إرجاع صلاحيات المدير الكاملة فوراً
   if (role === 'admin') {
-    return adminPermissions
+    return createFullAdminPermissions()
   }
 
-  // إذا كانت الصلاحيات فارغة أو غير صحيحة، إرجاع الصلاحيات الافتراضية
+  // بدء بصلاحيات فارغة (كل شيء = false)
+  const normalized = createEmptyPermissions()
+
+  // إذا كانت البيانات فارغة أو غير صحيحة، أرجع الصلاحيات الفارغة (Deny by Default)
   if (!permissions || typeof permissions !== 'object') {
-    return defaultPermissions
+    return normalized
   }
 
   const perms = permissions as Record<string, unknown>
 
-  return {
-    employees: {
-      view: (perms.employees as Record<string, boolean>)?.view ?? defaultPermissions.employees.view,
-      create: (perms.employees as Record<string, boolean>)?.create ?? defaultPermissions.employees.create,
-      edit: (perms.employees as Record<string, boolean>)?.edit ?? defaultPermissions.employees.edit,
-      delete: (perms.employees as Record<string, boolean>)?.delete ?? defaultPermissions.employees.delete
-    },
-    companies: {
-      view: (perms.companies as Record<string, boolean>)?.view ?? defaultPermissions.companies.view,
-      create: (perms.companies as Record<string, boolean>)?.create ?? defaultPermissions.companies.create,
-      edit: (perms.companies as Record<string, boolean>)?.edit ?? defaultPermissions.companies.edit,
-      delete: (perms.companies as Record<string, boolean>)?.delete ?? defaultPermissions.companies.delete
-    },
-    users: {
-      view: (perms.users as Record<string, boolean>)?.view ?? defaultPermissions.users.view,
-      create: (perms.users as Record<string, boolean>)?.create ?? defaultPermissions.users.create,
-      edit: (perms.users as Record<string, boolean>)?.edit ?? defaultPermissions.users.edit,
-      delete: (perms.users as Record<string, boolean>)?.delete ?? defaultPermissions.users.delete
-    },
-    settings: {
-      view: (perms.settings as Record<string, boolean>)?.view ?? defaultPermissions.settings.view,
-      edit: (perms.settings as Record<string, boolean>)?.edit ?? defaultPermissions.settings.edit
-    },
-    adminSettings: {
-      view: (perms.adminSettings as Record<string, boolean>)?.view ?? defaultPermissions.adminSettings.view,
-      edit: (perms.adminSettings as Record<string, boolean>)?.edit ?? defaultPermissions.adminSettings.edit
-    },
-    centralizedSettings: {
-      view: (perms.centralizedSettings as Record<string, boolean>)?.view ?? defaultPermissions.centralizedSettings.view,
-      edit: (perms.centralizedSettings as Record<string, boolean>)?.edit ?? defaultPermissions.centralizedSettings.edit
-    },
-    projects: {
-      view: (perms.projects as Record<string, boolean>)?.view ?? defaultPermissions.projects.view,
-      create: (perms.projects as Record<string, boolean>)?.create ?? defaultPermissions.projects.create,
-      edit: (perms.projects as Record<string, boolean>)?.edit ?? defaultPermissions.projects.edit,
-      delete: (perms.projects as Record<string, boolean>)?.delete ?? defaultPermissions.projects.delete
-    },
-    reports: {
-      view: (perms.reports as Record<string, boolean>)?.view ?? defaultPermissions.reports.view,
-      export: (perms.reports as Record<string, boolean>)?.export ?? defaultPermissions.reports.export
-    },
-    alerts: {
-      view: (perms.alerts as Record<string, boolean>)?.view ?? defaultPermissions.alerts.view
-    },
-    advancedSearch: {
-      view: (perms.advancedSearch as Record<string, boolean>)?.view ?? defaultPermissions.advancedSearch.view
-    },
-    importExport: {
-      view: (perms.importExport as Record<string, boolean>)?.view ?? defaultPermissions.importExport.view,
-      import: (perms.importExport as Record<string, boolean>)?.import ?? defaultPermissions.importExport.import,
-      export: (perms.importExport as Record<string, boolean>)?.export ?? defaultPermissions.importExport.export
-    },
-    activityLogs: {
-      view: (perms.activityLogs as Record<string, boolean>)?.view ?? defaultPermissions.activityLogs.view
-    },
-    dashboard: {
-      view: (perms.dashboard as Record<string, boolean>)?.view ?? defaultPermissions.dashboard.view
+  // مرّ على كل قسم مسموح فقط (من المخطط المركزي)
+  for (const section of VALID_PERMISSION_SECTIONS) {
+    const sectionData = perms[section]
+
+    // إذا كان القسم موجوداً وهو object، معالجة أفعاله
+    if (sectionData && typeof sectionData === 'object') {
+      const sectionObj = sectionData as Record<string, unknown>
+      const actions = getActionsForSection(section)
+
+      // مرّ على الأفعال المسموح بها للقسم
+      for (const action of actions) {
+        const value = sectionObj[action]
+        
+        // تطبيع إلى boolean مع دعم القيم القديمة (strings من قاعدة البيانات)
+        if (value === true || value === 'true') {
+          (normalized as Record<string, Record<string, boolean>>)[section][action] = true
+        } else {
+          (normalized as Record<string, Record<string, boolean>>)[section][action] = false // ← Deny by Default
+        }
+      }
     }
+    // ملاحظة: إذا كان القسم غائباً أو ليس object، يبقى كل أفعاله false (من createEmptyPermissions)
   }
+
+  return normalized
 }
+
 
 /**
  * Hook للتحقق من الصلاحيات

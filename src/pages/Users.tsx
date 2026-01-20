@@ -26,6 +26,11 @@ import {
   normalizePermissions,
   usePermissions
 } from '@/utils/permissions'
+import {
+  PERMISSION_SECTIONS,
+  VALID_PERMISSION_SECTIONS,
+  ACTION_LABELS
+} from '@/utils/PERMISSIONS_SCHEMA'
 
 type SupabaseError = {
   message?: string
@@ -709,7 +714,7 @@ export default function Users() {
                     </div>
                   </div>
 
-                  {/* القسم الأيمن - الصلاحيات */}
+                  {/* القسم الأيمن - الصلاحيات (ديناميكية من PERMISSIONS_SCHEMA) */}
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                       <Shield className="w-4 h-4 text-blue-600" />
@@ -717,262 +722,42 @@ export default function Users() {
                     </h3>
 
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-3 space-y-2.5 border border-gray-200">
-                      {/* Grid للصلاحيات - تصميم compact - مرتبة حسب ترتيب الصفحات في القائمة الجانبية */}
+                      {/* Grid للصلاحيات - مولد ديناميكياً من PERMISSIONS_SCHEMA */}
                       <div className="grid grid-cols-2 gap-2">
-                        {/* الرئيسية */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الرئيسية</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.dashboard.view}
-                                onChange={(e) => updatePermission('dashboard', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
+                        {VALID_PERMISSION_SECTIONS.map((section) => (
+                          <div
+                            key={section}
+                            className="bg-white/60 rounded-lg p-2 border border-gray-200/50"
+                          >
+                            <h4 className="text-xs font-semibold text-gray-800 mb-1.5">
+                              {PERMISSION_SECTIONS[section].label}
+                            </h4>
+                            <div className="space-y-1">
+                              {PERMISSION_SECTIONS[section].actions.map((action) => (
+                                <label
+                                  key={action}
+                                  className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      (
+                                        formData.permissions[section] as Record<string, boolean>
+                                      )?.[action] ?? false
+                                    }
+                                    onChange={(e) =>
+                                      updatePermission(section, action, e.target.checked)
+                                    }
+                                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                  <span className="text-xs text-gray-700">
+                                    {ACTION_LABELS[action]}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-
-                        {/* الموظفين */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الموظفين</h4>
-                          <div className="space-y-1">
-                            {['view', 'create', 'edit', 'delete'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.employees[action as keyof typeof formData.permissions.employees]}
-                                  onChange={(e) => updatePermission('employees', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* المؤسسات */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المؤسسات</h4>
-                          <div className="space-y-1">
-                            {['view', 'create', 'edit', 'delete'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.companies[action as keyof typeof formData.permissions.companies]}
-                                  onChange={(e) => updatePermission('companies', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* المشاريع */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المشاريع</h4>
-                          <div className="space-y-1">
-                            {['view', 'create', 'edit', 'delete'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.projects[action as keyof typeof formData.permissions.projects]}
-                                  onChange={(e) => updatePermission('projects', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : action === 'create' ? 'إضافة' : action === 'edit' ? 'تعديل' : 'حذف'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* التنبيهات */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">التنبيهات</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.alerts.view}
-                                onChange={(e) => updatePermission('alerts', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* البحث المتقدم */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">البحث المتقدم</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.advancedSearch.view}
-                                onChange={(e) => updatePermission('advancedSearch', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* التقارير */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">التقارير</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.reports.view}
-                                onChange={(e) => updatePermission('reports', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.reports.export}
-                                onChange={(e) => updatePermission('reports', 'export', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">تصدير</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* سجل النشاطات */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">سجل النشاطات</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.activityLogs.view}
-                                onChange={(e) => updatePermission('activityLogs', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* استيراد/تصدير */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">استيراد/تصدير</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.importExport.view}
-                                onChange={(e) => updatePermission('importExport', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.importExport.import}
-                                onChange={(e) => updatePermission('importExport', 'import', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">استيراد</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.importExport.export}
-                                onChange={(e) => updatePermission('importExport', 'export', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">تصدير</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* المستخدمين */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">المستخدمين</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.users.view}
-                                onChange={(e) => updatePermission('users', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* حدود الشركات */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">حدود الشركات</h4>
-                          <div className="space-y-1">
-                            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                              <input
-                                type="checkbox"
-                                checked={formData.permissions.settings.view}
-                                onChange={(e) => updatePermission('settings', 'view', e.target.checked)}
-                                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-700">عرض</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* إعدادات النظام */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">إعدادات النظام</h4>
-                          <div className="space-y-1">
-                            {['view', 'edit'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.adminSettings[action as keyof typeof formData.permissions.adminSettings]}
-                                  onChange={(e) => updatePermission('adminSettings', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : 'تعديل'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* الإعدادات المركزية الموحدة */}
-                        <div className="bg-white/60 rounded-lg p-2 border border-gray-200/50">
-                          <h4 className="text-xs font-semibold text-gray-800 mb-1.5">الإعدادات المركزية</h4>
-                          <div className="space-y-1">
-                            {['view', 'edit'].map(action => (
-                              <label key={action} className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50/50 rounded px-1 py-0.5 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.centralizedSettings[action as keyof typeof formData.permissions.centralizedSettings]}
-                                  onChange={(e) => updatePermission('centralizedSettings', action, e.target.checked)}
-                                  className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {action === 'view' ? 'عرض' : 'تعديل'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </div>
