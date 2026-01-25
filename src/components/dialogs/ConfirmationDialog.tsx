@@ -105,13 +105,13 @@ export default function ConfirmationDialog({
   return (
     <div 
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      role="presentation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
     >
       <div 
         className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300"
-        role="alertdialog"
-        aria-labelledby={titleId}
-        aria-describedby={descriptionId}
       >
         {/* Modal Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b-2 ${getBorderColor()} bg-gradient-to-r ${getHeaderColor()}`}>

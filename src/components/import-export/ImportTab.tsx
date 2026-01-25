@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { FileUp, AlertCircle, CheckCircle, XCircle, Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -89,6 +89,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
   const [isDeleting, setIsDeleting] = useState(false)
   const [isImportCancelled, setIsImportCancelled] = useState(false)
+  const [conflictResolution, setConflictResolution] = useState<Map<number, 'keep' | 'replace'>>(new Map())
+  const [dbConflicts, setDbConflicts] = useState<Set<number>>(new Set())
   const [, setImportedIds] = useState<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const importedIdsRef = useRef<{ employees: string[], companies: string[] }>({ employees: [], companies: [] })
   const cancelImportRef = useRef(false)
@@ -112,6 +114,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       setSelectedRows(new Set())
       setShouldDeleteBeforeImport(false)
       setValidationFilter('all')
+      setConflictResolution(new Map())
+      setDbConflicts(new Set())
     }
   }
 
@@ -125,6 +129,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     setSelectedRows(new Set())
     setShouldDeleteBeforeImport(false)
     setValidationFilter('all')
+    setConflictResolution(new Map())
+    setDbConflicts(new Set())
     // إعادة تعيين input file
     const fileInput = document.getElementById('file-upload') as HTMLInputElement
     if (fileInput) {
@@ -145,6 +151,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       setSelectedRows(new Set())
       setShouldDeleteBeforeImport(false)
       setValidationFilter('all')
+      setConflictResolution(new Map())
+      setDbConflicts(new Set())
     } else {
       toast.error('يرجى إسقاط ملف Excel فقط (.xlsx, .xls)')
     }
@@ -202,8 +210,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
   }
 
-  const toggleSelectAll = () => {
-    const visibleIndices = getVisibleRowIndices()
+  const toggleSelectAll = useCallback(() => {
+    const visibleIndices = previewData
+      .map((_, index) => index)
+      .filter(index => {
+        const { hasError, hasWarning } = getRowIssues(index)
+        if (validationFilter === 'errors') return hasError
+        if (validationFilter === 'warnings') return !hasError && hasWarning
+        return true
+      })
     setSelectedRows(prev => {
       const newSet = new Set(prev)
       const allVisibleSelected = visibleIndices.length > 0 && visibleIndices.every(index => newSet.has(index))
@@ -214,7 +229,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       }
       return newSet
     })
-  }
+  }, [previewData, validationFilter, validationResults])
+
+  const updateConflictChoice = useCallback((rowIndex: number, choice: 'keep' | 'replace') => {
+    setConflictResolution(prev => {
+      const next = new Map(prev)
+      next.set(rowIndex, choice)
+      return next
+    })
+  }, [])
 
   const visibleRowIndices = getVisibleRowIndices()
   const isAllSelected = visibleRowIndices.length > 0 && visibleRowIndices.every(index => selectedRows.has(index))
@@ -648,15 +671,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
       setPreviewData(jsonData as Record<string, unknown>[]) // Store all data for preview
 
+      const newDbConflicts = new Set<number>()
+
       if (importType === 'employees') {
         // Load companies for validation
         const { data: companies } = await supabase.from('companies').select('id, name, unified_number')
-        const companyMapByName = new Map<string, Array<{ id: string; name: string; unified_number?: number }>>()
+        const companyMapByUnifiedNumber = new Map<number, { id: string; name: string; unified_number?: number }>()
         companies?.forEach(c => {
-          if (c.name) {
-            const existing = companyMapByName.get(c.name) || []
-            existing.push({ id: c.id, name: c.name, unified_number: c.unified_number ? Number(c.unified_number) : undefined })
-            companyMapByName.set(c.name, existing)
+          if (c.unified_number) {
+            companyMapByUnifiedNumber.set(Number(c.unified_number), { id: c.id, name: c.name, unified_number: c.unified_number ? Number(c.unified_number) : undefined })
           }
         })
 
@@ -685,28 +708,40 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         jsonData.forEach((row: Record<string, unknown>, index: number) => {
           const rowNum = index + 2 // Excel row number (1 is header)
           
-          // Check for company matching issues
-          const companyName = row['الشركة أو المؤسسة'] || row['المؤسسة'] || ''
+          // Check for company matching issues - search by unified number
+          const unifiedNumber = row['الرقم الموحد'] || row['unified_number'] || ''
+          const unifiedNumberStr = String(unifiedNumber).trim()
           
-          if (companyName) {
-            const matchingCompanies = companyMapByName.get(String(companyName)) || []
-            if (matchingCompanies.length > 1) {
-              // Multiple companies with same name
+          if (unifiedNumberStr) {
+            const unifiedNum = Number(unifiedNumberStr)
+            if (!isNaN(unifiedNum)) {
+              const company = companyMapByUnifiedNumber.get(unifiedNum)
+              if (!company) {
+                // Company not found by unified number
+                errors.push({
+                  row: rowNum,
+                  field: 'الرقم الموحد',
+                  message: `المؤسسة برقم موحد ${unifiedNum} غير موجودة في النظام`,
+                  severity: 'error'
+                })
+              }
+            } else {
+              // Invalid unified number format
               errors.push({
                 row: rowNum,
-                field: 'الشركة أو المؤسسة',
-                message: `يوجد ${matchingCompanies.length} مؤسسات بنفس الاسم. يرجى استخدام الرقم الموحد للتمييز.`,
-                severity: 'warning'
-              })
-            } else if (matchingCompanies.length === 0) {
-              // Company not found
-              errors.push({
-                row: rowNum,
-                field: 'الشركة أو المؤسسة',
-                message: 'المؤسسة غير موجودة في النظام',
+                field: 'الرقم الموحد',
+                message: 'الرقم الموحد يجب أن يكون رقماً صحيحاً',
                 severity: 'error'
               })
             }
+          } else {
+            // No unified number provided
+            errors.push({
+              row: rowNum,
+              field: 'الرقم الموحد',
+              message: 'الرقم الموحد للمؤسسة مطلوب للبحث عن المؤسسة',
+              severity: 'error'
+            })
           }
 
           // Required fields validation
@@ -742,14 +777,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 severity: 'error'
               })
             } else if (existingResidenceNumbers.has(residenceNumber)) {
-              // Check if already exists in database - this is a warning, not an error
-              // The import will proceed and update the existing employee
+              // Conflict with existing employee in DB - let user decide Keep/Replace
               errors.push({
                 row: rowNum,
                 field: 'رقم الإقامة',
-                message: 'رقم الإقامة موجود بالفعل في النظام. سيتم تحديث بيانات الموظف الحالي.',
+                message: 'يوجد سجل بنفس رقم الإقامة في النظام. اختر الاحتفاظ بالسجل الحالي أو استبداله.',
                 severity: 'warning'
               })
+              newDbConflicts.add(index)
             }
           }
 
@@ -791,6 +826,18 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           }
         })
       } else if (importType === 'companies') {
+        const { data: existingCompanies } = await supabase
+          .from('companies')
+          .select('unified_number')
+
+        const existingUnifiedNumbers = new Set<number>()
+        existingCompanies?.forEach(c => {
+          if (c.unified_number) {
+            const n = Number(c.unified_number)
+            if (!isNaN(n)) existingUnifiedNumbers.add(n)
+          }
+        })
+
         jsonData.forEach((row: Record<string, unknown>, index: number) => {
           const rowNum = index + 2
 
@@ -819,10 +866,24 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               severity: 'error'
             })
           }
+
+          // تعارض مع سجل موجود في النظام باستخدام الرقم الموحد فقط
+          const unifiedNumber = row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null
+          if (unifiedNumber !== null && !isNaN(unifiedNumber) && existingUnifiedNumbers.has(unifiedNumber)) {
+            errors.push({
+              row: rowNum,
+              field: 'الرقم الموحد',
+              message: 'يوجد سجل بنفس الرقم الموحد في النظام. اختر الاحتفاظ بالسجل الحالي أو استبداله.',
+              severity: 'warning'
+            })
+            newDbConflicts.add(index)
+          }
         })
       }
 
       setValidationResults(errors)
+      setDbConflicts(newDbConflicts)
+      setConflictResolution(new Map())
 
       if (errors.filter(e => e.severity === 'error').length === 0) {
         toast.success(`✓ تم التحقق من ${jsonData.length} سجل بنجاح`)
@@ -1085,26 +1146,13 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       return
     }
     
-    // التحقق من الأخطاء في الصفوف المحددة فقط
-    let errorsInSelectedRows = 0
-    if (selectedRows.size > 0) {
-      selectedRows.forEach(rowIndex => {
-        const excelRowNumber = rowIndex + 2
-        const rowErrors = validationResults.filter(
-          e => e.row === excelRowNumber && e.severity === 'error'
-        )
-        errorsInSelectedRows += rowErrors.length
-      })
-    } else {
-      // إذا لم تكن هناك صفوف محددة، تحقق من جميع الأخطاء
-      errorsInSelectedRows = validationResults.filter(e => e.severity === 'error').length
-    }
-    
-    if (errorsInSelectedRows > 0 && selectedRows.size > 0) {
-      toast.warning(`يوجد ${errorsInSelectedRows} خطأ في الصفوف المحددة. سيتم استيراد الصفوف التي لا تحتوي على أخطاء فقط.`)
-    } else if (errorsInSelectedRows > 0) {
-      toast.error('يرجى إصلاح الأخطاء أولاً أو إلغاء تحديد الصفوف التي تحتوي على أخطاء')
+    const blockingErrors = getBlockingErrorCount
+    if (selectedRows.size > 0 && blockingErrors > 0) {
+      toast.error('الصفوف المحددة تحتوي على أخطاء. يرجى إصلاحها أو إلغاء تحديدها قبل الاستيراد.')
       return
+    }
+    if (selectedRows.size === 0 && blockingErrors > 0) {
+      toast.warning('ستتم متابعة الاستيراد مع تجاهل الصفوف التي تحتوي على أخطاء غير محددة.')
     }
 
     // التحقق من الحذف قبل الاستيراد
@@ -1332,31 +1380,61 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
       // ===== نهاية معالجة التواريخ =====
 
-      // تصفية البيانات حسب الصفوف المحددة واستبعاد الصفوف التي تحتوي على أخطاء
-      if (selectedRows.size > 0) {
-        jsonData = jsonData.filter((_, index) => {
-          // التحقق من أن الصف محدد
-          if (!selectedRows.has(index)) return false
-          
-          // التحقق من أن الصف لا يحتوي على أخطاء
-          const excelRowNumber = index + 2 // Excel row number (1 is header, +1 for index)
-          const rowErrors = validationResults.filter(
-            e => e.row === excelRowNumber && e.severity === 'error'
-          )
-          
-          // استبعاد الصفوف التي تحتوي على أخطاء
-          return rowErrors.length === 0
-        })
-      } else {
-        // إذا لم تكن هناك صفوف محددة، استبعد الصفوف التي تحتوي على أخطاء
-        jsonData = jsonData.filter((_, index) => {
-          const excelRowNumber = index + 2
-          const rowErrors = validationResults.filter(
-            e => e.row === excelRowNumber && e.severity === 'error'
-          )
-          return rowErrors.length === 0
-        })
+      // تصفية البيانات حسب التحديد مع احترام التعارضات والتكرارات
+      const targetIndices = selectedRows.size > 0
+        ? new Set(Array.from(selectedRows))
+        : new Set(jsonData.map((_, idx) => idx))
+
+      const missingConflictChoices: number[] = []
+
+      let rowsWithIndex = (jsonData as Record<string, unknown>[]).map((row, index) => ({ row, index }))
+
+      const hasErrorSeverity = (idx: number) => {
+        const excelRowNumber = idx + 2
+        const rowErrors = validationResults.filter(
+          e => e.row === excelRowNumber && e.severity === 'error'
+        )
+        return rowErrors.length > 0
       }
+
+      // تطبيق التحديد واستبعاد أخطاء التحقق
+      rowsWithIndex = rowsWithIndex.filter(({ row, index }) => {
+        if (!targetIndices.has(index)) return false
+
+        // استبعاد الصفوف ذات الأخطاء غير المحددة (أو المحددة لكن المفروض أن الزر لن يُفعّل حينها)
+        if (hasErrorSeverity(index)) return false
+
+        // معالجة التعارض مع بيانات DB
+        if (dbConflicts.has(index)) {
+          const choice = conflictResolution.get(index)
+          if (choice === 'keep') return false // تجاهل الصف
+          if (!choice) {
+            // لا يوجد اختيار بعد: نتجاهل الصف بشكل آمن ونبلغ المستخدم
+            missingConflictChoices.push(index)
+            return false
+          }
+        }
+
+        return true
+      })
+
+      if (missingConflictChoices.length > 0) {
+        toast.warning('تم تجاهل بعض الصفوف المتعارضة بدون اختيار (إبقاء/استبدال). يرجى تحديد القرار إذا رغبت بتحديثها.')
+      }
+
+      // إزالة التكرارات ديناميكياً بناءً على الصفوف المستهدفة
+      const seenKeys = new Set<string>()
+      rowsWithIndex = rowsWithIndex.filter(({ row }) => {
+        const keyRaw = importType === 'employees'
+          ? row['رقم الإقامة']?.toString().trim()
+          : row['الرقم الموحد']?.toString().trim()
+        if (!keyRaw) return true
+        if (seenKeys.has(keyRaw)) return false
+        seenKeys.add(keyRaw)
+        return true
+      })
+
+      jsonData = rowsWithIndex.map(r => r.row)
 
       let duplicatesRemoved = 0
       let uniqueJsonData = jsonData
@@ -1397,20 +1475,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         })
         
         // Create maps for lookup
-        const companyMapByName = new Map<string, string[]>() // name -> array of ids (for duplicates)
         const companyMapByUnifiedNumber = new Map<number, string>() // unified_number -> id
         const projectMapByName = new Map<string, string>() // name -> id (projects should be unique by name)
         const newProjectsCreated = new Map<string, string>() // Track newly created projects to avoid duplicates
         
         companies?.forEach(c => {
-          // Map by name (support multiple companies with same name)
-          if (c.name) {
-            const existing = companyMapByName.get(c.name) || []
-            existing.push(c.id)
-            companyMapByName.set(c.name, existing)
-          }
-          
-          // Map by unified_number (should be unique)
+          // Map by unified_number (should be unique - primary lookup method)
           if (c.unified_number) {
             companyMapByUnifiedNumber.set(Number(c.unified_number), c.id)
           }
@@ -1446,28 +1516,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           try {
             let companyId: string | null = null
             
-            // 1. Try to find by unified_number first (most accurate)
+            // Find company by unified_number (primary key for company lookup)
             const unifiedNumber = row['الرقم الموحد']
             if (unifiedNumber) {
               const unifiedNum = Number(unifiedNumber)
               if (!isNaN(unifiedNum)) {
                 companyId = companyMapByUnifiedNumber.get(unifiedNum) || null
-              }
-            }
-            
-            // 2. If not found by unified_number, try by name
-            if (!companyId) {
-            const companyName = String(row['الشركة أو المؤسسة'] || row['المؤسسة'] || '')
-            if (companyName) {
-              const matchingIds = companyMapByName.get(companyName)
-                if (matchingIds && matchingIds.length === 1) {
-                  // Single match - use it
-                  companyId = matchingIds[0]
-                } else if (matchingIds && matchingIds.length > 1) {
-                  // Multiple matches - use first one and log warning
-                  companyId = matchingIds[0]
-                  console.warn(`Multiple companies found with name "${companyName}". Using first match. Consider using unified_number for accuracy.`)
-                }
               }
             }
 
@@ -1751,22 +1805,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         // Load existing companies for update operations
         const { data: existingCompanies } = await supabase
           .from('companies')
-          .select('id, unified_number, social_insurance_number, labor_subscription_number')
+          .select('id, unified_number')
         
         // Create maps for lookup by unique identifiers
         const companiesByUnifiedNumber = new Map<number, string>() // unified_number -> company_id
-        const companiesBySocialInsurance = new Map<string, string>() // social_insurance_number -> company_id
-        const companiesByLaborSubscription = new Map<string, string>() // labor_subscription_number -> company_id
         
         existingCompanies?.forEach(company => {
           if (company.unified_number) {
             companiesByUnifiedNumber.set(Number(company.unified_number), company.id)
-          }
-          if (company.social_insurance_number) {
-            companiesBySocialInsurance.set(company.social_insurance_number.toString().trim(), company.id)
-          }
-          if (company.labor_subscription_number) {
-            companiesByLaborSubscription.set(company.labor_subscription_number.toString().trim(), company.id)
           }
         })
         
@@ -1800,21 +1846,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             // Check for existing company by unique identifiers
             let existingCompanyId: string | null = null
             
-            // Priority 1: Check by unified_number
+            // التفرد بالرقم الموحد فقط
             if (companyData.unified_number) {
               existingCompanyId = companiesByUnifiedNumber.get(Number(companyData.unified_number)) || null
-            }
-            
-            // Priority 2: Check by social_insurance_number if not found
-            if (!existingCompanyId && companyData.social_insurance_number) {
-              const socialInsuranceStr = companyData.social_insurance_number.toString().trim()
-              existingCompanyId = companiesBySocialInsurance.get(socialInsuranceStr) || null
-            }
-            
-            // Priority 3: Check by labor_subscription_number if not found
-            if (!existingCompanyId && companyData.labor_subscription_number) {
-              const laborSubscriptionStr = companyData.labor_subscription_number.toString().trim()
-              existingCompanyId = companiesByLaborSubscription.get(laborSubscriptionStr) || null
             }
             
             if (existingCompanyId) {
@@ -1829,45 +1863,23 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               // Insert new company
               const { error: insertError } = await supabase.from('companies').insert(companyData)
               if (insertError) {
-                // Check if error is due to duplicate unique identifier (race condition)
+                // تكرار محتمل بسبب الرقم الموحد فقط
                 if (insertError.code === '23505' || insertError.message?.includes('unique') || insertError.message?.includes('duplicate')) {
-                  // Try to find and update
-                  let foundCompanyId: string | null = null
-                  
                   if (companyData.unified_number) {
                     const { data: foundCompany } = await supabase
                       .from('companies')
                       .select('id')
                       .eq('unified_number', companyData.unified_number)
                       .single()
-                    if (foundCompany) foundCompanyId = foundCompany.id
-                  }
-                  
-                  if (!foundCompanyId && companyData.social_insurance_number) {
-                    const { data: foundCompany } = await supabase
-                      .from('companies')
-                      .select('id')
-                      .eq('social_insurance_number', companyData.social_insurance_number)
-                      .single()
-                    if (foundCompany) foundCompanyId = foundCompany.id
-                  }
-                  
-                  if (!foundCompanyId && companyData.labor_subscription_number) {
-                    const { data: foundCompany } = await supabase
-                      .from('companies')
-                      .select('id')
-                      .eq('labor_subscription_number', companyData.labor_subscription_number)
-                      .single()
-                    if (foundCompany) foundCompanyId = foundCompany.id
-                  }
-                  
-                  if (foundCompanyId) {
-                    const { error: updateError } = await supabase
-                      .from('companies')
-                      .update(companyData)
-                      .eq('id', foundCompanyId)
-                    
-                    if (updateError) throw updateError
+                    if (foundCompany) {
+                      const { error: updateError } = await supabase
+                        .from('companies')
+                        .update(companyData)
+                        .eq('id', foundCompany.id)
+                      if (updateError) throw updateError
+                    } else {
+                      throw insertError
+                    }
                   } else {
                     throw insertError
                   }
@@ -1880,68 +1892,12 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 if (companyData.unified_number) {
                   const { data: newCompany } = await supabase
                     .from('companies')
-                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
+                    .select('id, unified_number')
                     .eq('unified_number', companyData.unified_number)
                     .single()
                   
                   if (newCompany) {
                     companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
-                    if (newCompany.social_insurance_number) {
-                      companiesBySocialInsurance.set(newCompany.social_insurance_number.toString().trim(), newCompany.id)
-                    }
-                    if (newCompany.labor_subscription_number) {
-                      companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
-                    }
-                    // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
-                    setImportedIds(prev => {
-                      const updated = {
-                        ...prev,
-                        companies: [...prev.companies, newCompany.id]
-                      }
-                      importedIdsRef.current = updated
-                      return updated
-                    })
-                  }
-                } else if (companyData.social_insurance_number) {
-                  const { data: newCompany } = await supabase
-                    .from('companies')
-                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
-                    .eq('social_insurance_number', companyData.social_insurance_number)
-                    .single()
-                  
-                  if (newCompany) {
-                    companiesBySocialInsurance.set(companyData.social_insurance_number.toString().trim(), newCompany.id)
-                    if (newCompany.unified_number) {
-                      companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
-                    }
-                    if (newCompany.labor_subscription_number) {
-                      companiesByLaborSubscription.set(newCompany.labor_subscription_number.toString().trim(), newCompany.id)
-                    }
-                    // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
-                    setImportedIds(prev => {
-                      const updated = {
-                        ...prev,
-                        companies: [...prev.companies, newCompany.id]
-                      }
-                      importedIdsRef.current = updated
-                      return updated
-                    })
-                  }
-                } else if (companyData.labor_subscription_number) {
-                  const { data: newCompany } = await supabase
-                    .from('companies')
-                    .select('id, unified_number, social_insurance_number, labor_subscription_number')
-                    .eq('labor_subscription_number', companyData.labor_subscription_number)
-                    .single()
-                  
-                  if (newCompany) {
-                    companiesByLaborSubscription.set(companyData.labor_subscription_number.toString().trim(), newCompany.id)
-                    if (newCompany.unified_number) {
-                      companiesByUnifiedNumber.set(Number(newCompany.unified_number), newCompany.id)
-                    }
-                    if (newCompany.social_insurance_number) {
-                      companiesBySocialInsurance.set(newCompany.social_insurance_number.toString().trim(), newCompany.id)
-                    }
                     // تتبع ID للشركة المضافة (لحذفها عند الإلغاء)
                     setImportedIds(prev => {
                       const updated = {
@@ -2137,10 +2093,51 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     })
     return errorCount
   }
+
+  // حساب أخطاء مانعة ديناميكياً بناءً على الصفوف المحددة فقط والتكرارات الفعلية
+  const getBlockingErrorCount = useMemo((): number => {
+    const targetIndices = selectedRows.size > 0
+      ? Array.from(selectedRows)
+      : previewData.map((_, idx) => idx)
+
+    const errorRows = new Set<number>()
+
+    // أخطاء التحقق الأصلية للصفوف المستهدفة
+    targetIndices.forEach(idx => {
+      const excelRowNumber = idx + 2
+      const rowErrors = validationResults.filter(
+        e => e.row === excelRowNumber && e.severity === 'error'
+      )
+      if (rowErrors.length > 0) {
+        errorRows.add(idx)
+      }
+    })
+
+    // إعادة تقييم التكرارات ديناميكياً بناءً على الصفوف المستهدفة
+    const duplicateGroups = new Map<string, number[]>()
+    targetIndices.forEach(idx => {
+      const row = previewData[idx]
+      if (!row) return
+      const key = importType === 'employees'
+        ? row['رقم الإقامة']?.toString().trim()
+        : row['الرقم الموحد']?.toString().trim()
+      if (!key) return
+      const list = duplicateGroups.get(key) || []
+      list.push(idx)
+      duplicateGroups.set(key, list)
+    })
+
+    duplicateGroups.forEach(indices => {
+      if (indices.length > 1) {
+        indices.forEach(i => errorRows.add(i))
+      }
+    })
+
+    return errorRows.size
+  }, [previewData, selectedRows, validationResults, importType])
   
   const selectedRowsErrorCount = getSelectedRowsErrors()
-  // استخدام إجمالي الأخطاء لمنع الاستيراد دائماً
-  const blockingErrorCount = totalErrorCount
+  const blockingErrorCount = getBlockingErrorCount
   const errorCount = blockingErrorCount
 
   return (
@@ -2349,7 +2346,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 <span className="text-base">💡</span>
                 <span>
                   <strong className="font-semibold">نصيحة:</strong> يمكنك التمرير على أي خلية ملونة لعرض تفاصيل الخطأ أو التحذير. 
-                  جميع الأخطاء يجب إصلاحها قبل إمكانية الاستيراد.
+                  التحذيرات ستُستورد، والصفوف ذات الأخطاء غير المحددة سيتم تجاهلها. للتعارض مع بيانات النظام اختر إبقاء السجل الحالي أو استبداله.
                 </span>
               </p>
             </div>
@@ -2975,7 +2972,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           
           <button
             onClick={importData}
-            disabled={importing || isDeleting || errorCount > 0}
+            disabled={importing || isDeleting || blockingErrorCount > 0}
             className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
               errorCount === 0
                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
@@ -3140,7 +3137,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                           <span className="text-base">💡</span>
                           <span>
                             <strong className="font-semibold">نصيحة:</strong> يمكنك التمرير على أي خلية ملونة لعرض تفاصيل الخطأ أو التحذير. 
-                            جميع الأخطاء يجب إصلاحها قبل إمكانية الاستيراد.
+                            التحذيرات ستُستورد، والصفوف ذات الأخطاء غير المحددة سيتم تجاهلها. للتعارض مع بيانات النظام اختر إبقاء السجل الحالي أو استبداله.
                           </span>
                         </p>
                       </div>
@@ -3263,6 +3260,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                         {paginatedData.map(({ row, index: originalIndex, status }, localRowIndex) => {
                           const excelRowNumber = originalIndex + 2
                           const isEven = localRowIndex % 2 === 0
+                          const isConflictRow = dbConflicts.has(originalIndex)
+                          const conflictChoice = conflictResolution.get(originalIndex)
                           return (
                             <tr key={originalIndex} className={`border-b border-gray-200 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-100`}>
                               <td 
@@ -3291,10 +3290,44 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                                         ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
                                         : 'bg-green-50 text-green-700 border-green-200'
                                   }`}
-                                  title={status.rowValidation.map(issue => issue.message).join(' • ')}
+                                  title={
+                                    [
+                                      ...status.rowValidation.map(issue => issue.message),
+                                      isConflictRow && !conflictChoice ? 'الرجاء اختيار إبقاء السجل الحالي أو استبداله' : null
+                                    ].filter(Boolean).join(' • ')
+                                  }
                                 >
                                   {status.hasError ? 'خطأ' : status.hasWarning ? 'تحذير' : 'سليم'}
+                                  {isConflictRow && !conflictChoice && (
+                                    <span className="ml-1 text-[9px] font-semibold text-orange-700">قرار مطلوب</span>
+                                  )}
                                 </span>
+                                {isConflictRow && (
+                                  <div className="mt-1 flex items-center gap-2 justify-center text-[10px] text-gray-700">
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`conflict-${originalIndex}`}
+                                        value="keep"
+                                        checked={conflictChoice === 'keep'}
+                                        onChange={() => updateConflictChoice(originalIndex, 'keep')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span>إبقاء</span>
+                                    </label>
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`conflict-${originalIndex}`}
+                                        value="replace"
+                                        checked={conflictChoice === 'replace'}
+                                        onChange={() => updateConflictChoice(originalIndex, 'replace')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span>استبدال</span>
+                                    </label>
+                                  </div>
+                                )}
                               </td>
                               {columns.map((key, colIndex) => {
                                 const value = row[key]
@@ -3716,7 +3749,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                   
                   <button
                     onClick={importData}
-                    disabled={importing || isDeleting || errorCount > 0}
+                    disabled={importing || isDeleting || blockingErrorCount > 0}
                     className={`flex items-center gap-3 px-10 py-4 rounded-xl text-lg font-bold transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed ${
                       errorCount === 0
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'

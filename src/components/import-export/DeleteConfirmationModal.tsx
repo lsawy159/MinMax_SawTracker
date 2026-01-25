@@ -41,7 +41,13 @@ export default function DeleteConfirmationModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-confirmation-title"
+      aria-describedby="delete-confirmation-description"
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50">
@@ -50,7 +56,7 @@ export default function DeleteConfirmationModal({
               <AlertCircle className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
+              <h2 id="delete-confirmation-title" className="text-xl font-bold text-gray-900 mb-1">
                 ⚠️ تأكيد الحذف
               </h2>
               <p className="text-sm text-red-600 font-medium">
@@ -69,7 +75,7 @@ export default function DeleteConfirmationModal({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="mb-6 space-y-4">
+          <div id="delete-confirmation-description" className="mb-6 space-y-4">
             <div className="bg-white border-2 border-red-200 rounded-lg p-4">
               <p className="text-base font-semibold text-gray-800 mb-3 text-center">
                 {deleteMode === 'all' 
