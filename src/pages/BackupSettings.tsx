@@ -320,13 +320,13 @@ export default function BackupSettingsManagement() {
             </div>
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-sm font-bold text-gray-900">إدارة مراسلات النظام</h1>
+                <h1 className="text-sm font-bold text-gray-900">إعدادات النسخ الاحتياطي</h1>
                 <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${systemPulse.tone === 'success' ? 'text-green-700' : 'text-amber-700'}`}>
                   <span className={`w-2 h-2 rounded-full ${systemPulse.tone === 'success' ? 'bg-green-500' : 'bg-amber-500'}`} />
                   {systemPulse.tone === 'success' ? 'نشط' : 'عامل الانتظار'}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-600">مراقبة قائمة البريد، إعدادات الإشعارات، والنسخ الاحتياطية</p>
+              <p className="text-[11px] text-gray-600">إدارة إعدادات النسخ الاحتياطي وإشعارات البريد الإلكتروني</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
