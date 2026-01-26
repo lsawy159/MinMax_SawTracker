@@ -1,5 +1,6 @@
 // Edge Function: معالجة قائمة انتظار البريد الإلكتروني
-// تعمل كل دقيقة (عبر cron job) لمعالجة البريد المعلق
+// تعمل بشكل مجدول. تمت إضافة حارس سياسات لتجنب الإرسال الجماعي
+// ودعم وضع "الملخص اليومي" فقط.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -306,12 +307,12 @@ Deno.serve(async (req) => {
     
     // قراءة إعدادات Resend من Environment Variables
     const resendKey = Deno.env.get('RESEND_API_KEY')
-    const resendFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@sawtracker.com'
+    const resendFrom = Deno.env.get('RESEND_FROM_EMAIL')
 
-    if (!resendKey) {
-      console.error('[Email Queue] Resend configuration missing')
+    if (!resendKey || !resendFrom) {
+      console.error('[Email Queue] Resend configuration missing: تأكد من ضبط RESEND_API_KEY و RESEND_FROM_EMAIL (موثّق)')
       return new Response(
-        JSON.stringify({ success: false, error: 'Resend configuration not found' }),
+        JSON.stringify({ success: false, error: 'Resend configuration not found or from email missing' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
       )
     }
@@ -334,15 +335,59 @@ Deno.serve(async (req) => {
         persistSession: false
       }
     })
+    
+    // قراءة سياسات المعالجة من system_settings
+    const { data: settingsRows } = await supabase
+      .from('system_settings')
+      .select('setting_key, setting_value')
+      .in('setting_key', [
+        'email_queue_processing_enabled',
+        'email_queue_mode',
+        'email_queue_max_age_hours'
+      ])
+    
+    // خريطة الإعدادات مع الحفاظ على النوع الأصلي (JSON/boolean/number/string)
+    const settingsMap = new Map<string, unknown>()
+    for (const row of (settingsRows || [])) {
+      settingsMap.set(row.setting_key as string, row.setting_value as unknown)
+    }
 
-    // جلب أول 10 سجلات pending (مرتبة حسب priority و created_at)
-    const { data: queueItems, error: fetchError } = await supabase
+    const getSetting = <T>(key: string, def: T): T => {
+      const v = settingsMap.get(key)
+      if (v === undefined || v === null) return def
+      return v as T
+    }
+
+    const processingEnabled = getSetting<boolean>('email_queue_processing_enabled', true)
+    if (!processingEnabled) {
+      console.warn('[Email Queue] Processing disabled by policy (email_queue_processing_enabled=false)')
+      return new Response(
+        JSON.stringify({ success: true, message: 'Processing disabled by policy', processed: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
+      )
+    }
+    
+    const mode = getSetting<string>('email_queue_mode', 'digest-only') // 'digest-only' | 'all'
+    const maxAgeHours = getSetting<number>('email_queue_max_age_hours', 24)
+    const now = new Date()
+    const minCreatedAt = new Date(now.getTime() - maxAgeHours * 60 * 60 * 1000).toISOString()
+
+    // بناء الاستعلام وفق السياسة
+    let query = supabase
       .from('email_queue')
       .select('*')
       .eq('status', 'pending')
+      .gte('created_at', minCreatedAt)
       .order('priority', { ascending: false })
       .order('created_at', { ascending: true })
-      .limit(10)
+
+    // في وضع الملخص اليومي: عالج الرسائل التي عنوانها يحتوي Daily Digest فقط
+    if (mode === 'digest-only') {
+      query = query.ilike('subject', '%Daily Digest%')
+    }
+
+    // الملخص اليومي يجب أن يُرسل مرة واحدة: أعالج عنصر واحد فقط
+    const { data: queueItems, error: fetchError } = await query.limit(mode === 'digest-only' ? 1 : 10)
 
     if (fetchError) {
       console.error('[Email Queue] Error fetching queue items:', fetchError)
@@ -360,7 +405,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log(`[Email Queue] Found ${queueItems.length} pending emails to process`)
+    console.log(`[Email Queue] Found ${queueItems.length} pending emails to process (mode=${mode}, maxAgeHours=${maxAgeHours})`)
 
     let processedCount = 0
     let successCount = 0
@@ -385,8 +430,16 @@ Deno.serve(async (req) => {
 
         console.log(`[Email Queue] Processing email ${item.id} to ${item.to_emails.join(', ')}`)
 
-        // إرسال البريد عبر Resend API لكل مستلم
-        const sendPromises = item.to_emails.map(async (recipient: string) => {
+        // إرسال البريد عبر Resend API لكل مستلم بشكل متسلسل مع تأخير 600ms لتجنب Rate Limit
+        const results: Array<PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>> = []
+        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+        for (const recipient of item.to_emails) {
+          // سجل أي بريد وهمي قبل الإصلاح
+          if (recipient === 'admin@sawtracker.com') {
+            console.warn(`[Email Queue] LOG: Found mock recipient 'admin@sawtracker.com' for item ${item.id}`)
+          }
+
           try {
             const resp = await fetch('https://api.resend.com/emails', {
               method: 'POST',
@@ -405,19 +458,22 @@ Deno.serve(async (req) => {
 
             if (!resp.ok) {
               const errorText = await resp.text()
-              throw new Error(`Resend failed (${resp.status}): ${errorText}`)
+              results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: false, error: `Resend failed (${resp.status}): ${errorText}` } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
+            } else {
+              results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: true } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
             }
-
-            return { recipient, success: true }
           } catch (error) {
             console.error(`[Email Queue] Failed to send to ${recipient}:`, error)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg = (error as any)?.message ?? 'Unknown error'
-            return { recipient, success: false, error: msg }
+            results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: false, error: msg } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
           }
-        })
 
-        const results = await Promise.allSettled(sendPromises)
+          // تأخير إلزامي 600ms بين كل محاولة إرسال
+          await sleep(600)
+        }
+
+        // تقييم النتائج بعد الإرسال المتسلسل
         const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
 
         if (failed.length > 0) {

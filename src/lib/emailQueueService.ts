@@ -35,6 +35,16 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
     scheduledAt,
   } = options;
 
+  // Safety mode: restrict queue to Daily Digest only when enabled
+  const mode = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE || 'digest-only'
+  if (mode === 'digest-only') {
+    const isDigest = typeof subject === 'string' && subject.toLowerCase().includes('daily digest')
+    const adminOnly = toEmails.length === 1 && toEmails[0] === 'ahmad.alsawy159@gmail.com'
+    if (!isDigest || !adminOnly) {
+      return { success: false, error: 'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.' }
+    }
+  }
+
   // 1. Email validation
   const allRecipients = [...toEmails, ...(ccEmails || []), ...(bccEmails || [])];
   for (const email of allRecipients) {
