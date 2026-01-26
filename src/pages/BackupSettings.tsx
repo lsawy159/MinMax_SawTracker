@@ -336,7 +336,7 @@ export default function BackupSettingsManagement() {
             </div>
             <div className="flex items-center gap-1">
               <RefreshCw className="w-4 h-4" />
-              <span>تحديث كل دقيقتين</span>
+              <span>تحديث كل دقيقتين (120 ثانية)</span>
             </div>
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function BackupSettingsManagement() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">مراقبة قائمة الانتظار</h2>
-                  <p className="text-xs text-gray-600">تحديث آلي كل دقيقتين مع إمكانية التحديث اليدوي</p>
+                  <p className="text-xs text-gray-600">تحديث آلي كل دقيقتين (120 ثانية) مع إمكانية التحديث اليدوي</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button onClick={retryAllFailed} className="px-2 py-1 text-[11px] bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">إعادة محاولة الفاشلة</button>
