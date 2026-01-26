@@ -2,30 +2,55 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
-import { Settings } from 'lucide-react'
-import { useEffect } from 'react'
+import { Settings, Shield } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { usePermissions } from '@/utils/permissions'
 
 export default function AlertSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { canView, canEdit } = usePermissions()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // التحقق من صلاحيات المستخدم
     if (!user) {
       navigate('/login')
       return
     }
 
-    // السماح فقط للمستخدمين الذين يملكون صلاحية العرض
     if (!canView('centralizedSettings')) {
       navigate('/dashboard')
+      return
     }
-  }, [user, navigate, canView])
+
+    setIsLoading(false)
+  }, [user, canView, navigate])
+
+  if (isLoading || !user) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 mt-4">جاري التحميل...</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   if (!canView('centralizedSettings')) {
-    return null
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-14 h-14 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
+            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+          </div>
+        </div>
+      </Layout>
+    )
   }
 
   return (
