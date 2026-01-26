@@ -23,8 +23,8 @@ const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
-const CentralizedSettings = lazy(() => import('./pages/CentralizedSettings'))
-const SystemCorrespondenceManagement = lazy(() => import('./pages/EmailManagement'))
+const AlertSettings = lazy(() => import('./pages/AlertSettings'))
+const BackupSettingsManagement = lazy(() => import('./pages/BackupSettings'))
 const UserGuide = lazy(() => import('./pages/UserGuide'))
 const AdminGuide = lazy(() => import('./pages/AdminGuide'))
 
@@ -150,21 +150,23 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
-        <Route path="/system-correspondence" element={
+        <Route path="/backup-settings" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <SystemCorrespondenceManagement />
+              <BackupSettingsManagement />
             </Suspense>
           </ProtectedRoute>
         } />
-        <Route path="/email-management" element={<Navigate to="/system-correspondence" replace />} />
-        <Route path="/centralized-settings" element={
+        <Route path="/email-management" element={<Navigate to="/backup-settings" replace />} />
+        <Route path="/system-correspondence" element={<Navigate to="/backup-settings" replace />} />
+        <Route path="/alert-settings" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <CentralizedSettings />
+              <AlertSettings />
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/centralized-settings" element={<Navigate to="/alert-settings" replace />} />
         <Route path="/notifications" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>

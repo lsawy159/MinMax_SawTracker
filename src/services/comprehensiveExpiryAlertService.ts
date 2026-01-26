@@ -395,168 +395,145 @@ async function monitorEmployeeExpiryDates(): Promise<ExpiryAlert[]> {
  * إرسال تنبيهات البريد الإلكتروني للتنبيهات العاجلة والهامة
  */
 async function sendEmailNotifications(alerts: ExpiryAlert[]): Promise<void> {
-  // تصفية التنبيهات العاجلة والهامة فقط
+  // تجميع التنبيهات العاجلة والهامة فقط
   const criticalAlerts = alerts.filter(
     alert => alert.priority === 'urgent' || alert.priority === 'high'
   )
 
   if (criticalAlerts.length === 0) {
-    logger.debug('لا توجد تنبيهات عاجلة أو هامة لإرسال البريد الإلكتروني')
+    logger.debug('لا توجد تنبيهات عاجلة أو هامة لإرسال ملخص يومي')
     return
   }
 
-  // البريد الإلكتروني للمسؤول
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com'
-
-  // إرسال بريد إلكتروني لكل تنبيه
-  const emailPromises = criticalAlerts.map(async alert => {
+  // حارس التكرار: لا ترسل نفس السجل خلال 24 ساعة
+  const SETTING_KEY = 'expiry_digest_last_sent'
+  const { data: settingRows, error: settingError } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', SETTING_KEY)
+    .limit(1)
+  if (settingError) {
+    logger.warn('تعذر قراءة سجل الإرسال السابق للملخص اليومي:', settingError)
+  }
+  const sentMap: Record<string, string> = (() => {
     try {
-      const priorityColor = alert.priority === 'urgent' ? '#dc2626' : '#ea580c'
-      const priorityEmoji = alert.priority === 'urgent' ? '🚨' : '⚠️'
-      const priorityText = alert.priority === 'urgent' ? 'عاجل' : 'هام'
-      
-      const subject = `${priorityEmoji} تنبيه ${priorityText}: ${alert.documentTypeArabic} - ${alert.entityName}`
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, ${priorityColor}, ${alert.priority === 'urgent' ? '#991b1b' : '#c2410c'}); color: white; padding: 30px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px;">
-                ${priorityEmoji} تنبيه ${priorityText}
-              </h1>
-              <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">
-                ${alert.documentTypeArabic}
-              </p>
-            </div>
-            
-            <!-- Content -->
-            <div style="padding: 30px;">
-              <!-- Entity Info -->
-              <div style="background-color: #f9fafb; border-right: 4px solid ${priorityColor}; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
-                <h2 style="margin: 0 0 15px 0; color: #1f2937; font-size: 20px;">
-                  معلومات الكيان
-                </h2>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">النوع:</td>
-                    <td style="padding: 8px 0; color: #1f2937;">${alert.entityType === 'company' ? 'شركة' : 'موظف'}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">الاسم:</td>
-                    <td style="padding: 8px 0; color: #1f2937;">${alert.entityName}</td>
-                  </tr>
-                  ${alert.companyName ? `
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">الشركة:</td>
-                    <td style="padding: 8px 0; color: #1f2937;">${alert.companyName}</td>
-                  </tr>
-                  ` : ''}
-                  <tr>
-                    <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">نوع المستند:</td>
-                    <td style="padding: 8px 0; color: #1f2937;">${alert.documentTypeArabic}</td>
-                  </tr>
-                </table>
-              </div>
-              
-              <!-- Alert Message -->
-              <div style="background-color: ${alert.priority === 'urgent' ? '#fef2f2' : '#fff7ed'}; border: 2px solid ${priorityColor}; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
-                <h3 style="margin: 0 0 10px 0; color: ${priorityColor}; font-size: 18px;">
-                  📋 الرسالة
-                </h3>
-                <p style="margin: 0; color: #374151; line-height: 1.6; font-size: 16px;">
-                  ${alert.message}
-                </p>
-              </div>
-              
-              <!-- Expiry Info -->
-              <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                <div style="flex: 1; background-color: #f3f4f6; padding: 15px; border-radius: 5px; text-align: center;">
-                  <div style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">تاريخ الانتهاء</div>
-                  <div style="color: #1f2937; font-size: 18px; font-weight: bold;">${new Date(alert.expiryDate).toLocaleDateString('ar-SA')}</div>
-                </div>
-                <div style="flex: 1; background-color: ${alert.priority === 'urgent' ? '#fef2f2' : '#fff7ed'}; padding: 15px; border-radius: 5px; text-align: center;">
-                  <div style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">الأيام المتبقية</div>
-                  <div style="color: ${priorityColor}; font-size: 24px; font-weight: bold;">
-                    ${alert.daysRemaining >= 0 ? alert.daysRemaining : `(منتهي منذ ${Math.abs(alert.daysRemaining)} يوم)`}
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Action Required -->
-              <div style="background-color: #eff6ff; border-right: 4px solid #3b82f6; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
-                <h3 style="margin: 0 0 10px 0; color: #1e40af; font-size: 18px;">
-                  ✅ الإجراء المطلوب
-                </h3>
-                <p style="margin: 0; color: #374151; line-height: 1.6; font-size: 16px;">
-                  ${alert.actionRequired}
-                </p>
-              </div>
-              
-              <!-- Footer Note -->
-              <div style="border-top: 2px solid #e5e7eb; padding-top: 20px; text-align: center;">
-                <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                  هذا تنبيه آلي من نظام SAW Tracker<br>
-                  يرجى اتخاذ الإجراء اللازم في أقرب وقت ممكن
-                </p>
-                <p style="margin: 15px 0 0 0; color: #9ca3af; font-size: 12px;">
-                  تاريخ الإرسال: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `
-
-      const textContent = `
-${priorityEmoji} تنبيه ${priorityText}: ${alert.documentTypeArabic}
-
-معلومات الكيان:
-- النوع: ${alert.entityType === 'company' ? 'شركة' : 'موظف'}
-- الاسم: ${alert.entityName}
-${alert.companyName ? `- الشركة: ${alert.companyName}` : ''}
-- نوع المستند: ${alert.documentTypeArabic}
-
-الرسالة:
-${alert.message}
-
-تاريخ الانتهاء: ${new Date(alert.expiryDate).toLocaleDateString('ar-SA')}
-الأيام المتبقية: ${alert.daysRemaining >= 0 ? alert.daysRemaining : `(منتهي منذ ${Math.abs(alert.daysRemaining)} يوم)`}
-
-الإجراء المطلوب:
-${alert.actionRequired}
-
----
-هذا تنبيه آلي من نظام SAW Tracker
-تاريخ الإرسال: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}
-      `.trim()
-
-      await enqueueEmail({
-        toEmails: [adminEmail],
-        subject,
-        htmlContent,
-        textContent,
-        priority: alert.priority
-      })
-
-      logger.debug(`تم إضافة بريد إلكتروني إلى قائمة الانتظار: ${alert.id}`)
-    } catch (emailError) {
-      logger.error(`فشل إضافة بريد إلكتروني لتنبيه ${alert.id}:`, emailError)
-      // استمر في معالجة التنبيهات الأخرى حتى لو فشل واحد
+      const raw = settingRows?.[0]?.setting_value as string | undefined
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
     }
+  })()
+
+  const now = Date.now()
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const eligibleAlerts = criticalAlerts.filter(a => {
+    const last = sentMap[a.id]
+    if (!last) return true
+    return (now - new Date(last).getTime()) >= DAY_MS
   })
 
-  // انتظار جميع وعود البريد الإلكتروني
-  await Promise.allSettled(emailPromises)
-  
-  logger.info(`تم إرسال ${criticalAlerts.length} بريد إلكتروني للتنبيهات العاجلة والهامة`)
+  if (eligibleAlerts.length === 0) {
+    logger.info('كل التنبيهات العاجلة/الهامة تم إشعارها خلال آخر 24 ساعة — لا إرسال جديد')
+    return
+  }
+
+  // إنشاء قالب «الملخص اليومي»
+  const buildDigestTable = (items: ExpiryAlert[], title: string) => {
+    const rows = items.map(item => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${item.entityType === 'employee' ? item.entityName : (item.companyName || item.entityName)}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${item.documentTypeArabic}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${new Date(item.expiryDate).toLocaleDateString('ar-SA')}</td>
+      </tr>
+    `).join('')
+    return `
+      <h3 style="margin:16px 0 8px;color:#1f2937;">${title}</h3>
+      <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+        <thead>
+          <tr style="background:#f9fafb;text-align:right;">
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">الاسم</th>
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">نوع المستند</th>
+            <th style="padding:10px;border-bottom:1px solid #e5e7eb;">تاريخ الانتهاء</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `
+  }
+
+  const employeeItems = eligibleAlerts.filter(a => a.entityType === 'employee')
+  const companyItems = eligibleAlerts.filter(a => a.entityType === 'company')
+
+  const header = `
+    <div style="background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;padding:20px;text-align:center;border-radius:8px;">
+      <h2 style="margin:0;font-size:22px;">📬 الملخص اليومي للتنبيهات</h2>
+      <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}</p>
+    </div>
+  `
+
+  const sections = [
+    employeeItems.length ? buildDigestTable(employeeItems, 'تنبيهات الموظفين') : '',
+    companyItems.length ? buildDigestTable(companyItems, 'تنبيهات الشركات') : ''
+  ].filter(Boolean).join('\n')
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+      <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:#f5f5f5;margin:0;padding:20px;">
+        <div style="max-width:720px;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);padding:20px;">
+          ${header}
+          <p style="margin:16px 0;color:#374151;font-size:14px;">يتضمن هذا الملخص جميع التنبيهات العاجلة والهامة خلال آخر فحص.</p>
+          ${sections || '<p style="color:#6b7280;">لا توجد تنبيهات حالياً.</p>'}
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
+          <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">هذا بريد آلي من نظام SAW Tracker</p>
+        </div>
+      </body>
+    </html>
+  `
+
+  const textContent = [
+    '📬 الملخص اليومي للتنبيهات',
+    `تاريخ الإرسال: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}`,
+    '',
+    ...eligibleAlerts.map(a => `- ${(a.entityType === 'employee') ? a.entityName : (a.companyName || a.entityName)} | ${a.documentTypeArabic} | ${new Date(a.expiryDate).toLocaleDateString('ar-SA')}`)
+  ].join('\n')
+
+  const subject = `📬 Daily Digest: ${eligibleAlerts.length} تنبيه`
+
+  // تأخير 600ms احتراماً لمعدل Resend
+  await new Promise(res => setTimeout(res, 600))
+
+  // إرسال بريد واحد إلى المسؤول الأساسي المطلوب
+  const adminEmail = 'ahmad.alsawy159@gmail.com'
+  const enqueueResult = await enqueueEmail({
+    toEmails: [adminEmail],
+    subject,
+    htmlContent,
+    textContent,
+    priority: 'high'
+  })
+
+  if (!enqueueResult.success) {
+    logger.error('فشل إضافة الملخص اليومي إلى قائمة الانتظار:', enqueueResult.error)
+    return
+  }
+
+  // تحديث سجل الإرسال لمنع التكرار خلال 24 ساعة
+  const updatedSentMap = { ...sentMap }
+  const isoNow = new Date().toISOString()
+  for (const a of eligibleAlerts) {
+    updatedSentMap[a.id] = isoNow
+  }
+  const { error: upsertError } = await supabase
+    .from('system_settings')
+    .upsert({ setting_key: SETTING_KEY, setting_value: JSON.stringify(updatedSentMap), updated_at: isoNow }, { onConflict: 'setting_key' })
+    .select()
+  if (upsertError) {
+    logger.warn('تعذر تحديث سجل الإرسال للملخص اليومي:', upsertError)
+  }
+
+  logger.info(`تم إضافة بريد واحد للملخص اليومي بعدد عناصر: ${eligibleAlerts.length}`)
 }
 
 // ========================
@@ -590,7 +567,7 @@ export async function runComprehensiveExpiryMonitoring(): Promise<{
       alert => alert.priority === 'urgent' || alert.priority === 'high'
     )
 
-    // إرسال تنبيهات البريد الإلكتروني
+    // إرسال ملخص يومي واحد بالبريد
     await sendEmailNotifications(allAlerts)
 
     logger.info(

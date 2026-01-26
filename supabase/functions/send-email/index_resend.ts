@@ -62,7 +62,7 @@ async function sendEmailViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: Deno.env.get("RESEND_FROM_EMAIL") || "noreply@sawtracker.com",
+        from: Deno.env.get("RESEND_FROM_EMAIL"),
         to,
         cc: cc && cc.length > 0 ? cc : undefined,
         bcc: bcc && bcc.length > 0 ? bcc : undefined,

@@ -50,7 +50,7 @@ async function sendEmailViaAPI(
             bcc: bcc?.map(email => ({ email })) || [],
             subject
           }],
-          from: { email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@sawtracker.com' },
+          from: { email: Deno.env.get('SENDGRID_FROM_EMAIL') },
           content: [
             { type: 'text/plain', value: text || subject },
             { type: 'text/html', value: html || `<p>${text || subject}</p>` }
@@ -79,7 +79,7 @@ async function sendEmailViaAPI(
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@sawtracker.com',
+          from: Deno.env.get('RESEND_FROM_EMAIL'),
           to,
           cc,
           bcc,
@@ -106,7 +106,7 @@ async function sendEmailViaAPI(
     try {
       const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mail.sawtracker.com'
       const formData = new FormData()
-      formData.append('from', Deno.env.get('MAILGUN_FROM_EMAIL') || 'noreply@sawtracker.com')
+      formData.append('from', Deno.env.get('MAILGUN_FROM_EMAIL') || 'Ahmad.alsawy159@gmail.com')
       to.forEach(email => formData.append('to', email))
       if (cc) cc.forEach(email => formData.append('cc', email))
       if (bcc) bcc.forEach(email => formData.append('bcc', email))

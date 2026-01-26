@@ -1,0 +1,325 @@
+{
+  "audit_metadata": {
+    "report_date": "2026-01-25",
+    "audit_version": "1.0",
+    "project": "SAW Tracker",
+    "language": "Arabic",
+    "status": "Pending Review"
+  },
+  "summary": {
+    "total_findings": 38,
+    "critical_issues": 9,
+    "medium_issues": 12,
+    "low_issues": 17,
+    "requires_action": true
+  },
+  "critical_findings": [
+    {
+      "id": "CRIT-001",
+      "file": "supabase/functions/send-email/index.ts",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [56, 198],
+      "context": "noreply@sawtracker.com (fallback value)",
+      "impact": "Emails will not be delivered if RESEND_FROM_EMAIL env var is not set",
+      "recommendation": "Replace with actual domain and ensure environment variable is mandatory",
+      "affected_service": "Email delivery"
+    },
+    {
+      "id": "CRIT-002",
+      "file": "supabase/functions/send-email/index_simple.ts",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [53, 82, 109],
+      "context": "noreply@sawtracker.com (3 occurrences)",
+      "impact": "Email delivery failure for SendGrid, Resend, Mailgun backends",
+      "recommendation": "Replace with actual domain and ensure all environment variables are mandatory",
+      "affected_service": "Email delivery (multiple backends)"
+    },
+    {
+      "id": "CRIT-003",
+      "file": "supabase/functions/send-email/index_simple.ts",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [107],
+      "context": "mail.sawtracker.com (Mailgun domain)",
+      "impact": "Mailgun email delivery will fail completely",
+      "recommendation": "Must be replaced with valid domain via MAILGUN_DOMAIN env var",
+      "affected_service": "Mailgun backend"
+    },
+    {
+      "id": "CRIT-004",
+      "file": "supabase/functions/send-email/index_resend.ts",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [65],
+      "context": "noreply@sawtracker.com (fallback value)",
+      "impact": "Resend email delivery will fail",
+      "recommendation": "Ensure RESEND_FROM_EMAIL environment variable is always set",
+      "affected_service": "Email delivery (Resend backend)"
+    },
+    {
+      "id": "CRIT-005",
+      "file": "supabase/functions/process-email-queue/index.ts",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [309],
+      "context": "noreply@sawtracker.com (fallback value)",
+      "impact": "Email queue processing will use invalid sender address",
+      "recommendation": "Replace with actual domain via environment variable",
+      "affected_service": "Email queue processor"
+    },
+    {
+      "id": "CRIT-006",
+      "file": ".env",
+      "severity": "CRITICAL",
+      "type": "fake_domain",
+      "domain": "sawtracker.com",
+      "lines": [11],
+      "context": "VITE_ADMIN_EMAIL=admin@sawtracker.com",
+      "impact": "Admin notifications will not be delivered",
+      "recommendation": "IMMEDIATE: Replace with actual admin email address",
+      "affected_service": "Admin notifications"
+    }
+  ],
+  "medium_findings": [
+    {
+      "id": "MED-001",
+      "file": ".env.template",
+      "severity": "MEDIUM",
+      "type": "example_domain",
+      "domain": "example.com",
+      "lines": [11],
+      "context": "VITE_ADMIN_EMAIL=your-admin-email@example.com",
+      "status": "ACCEPTABLE",
+      "reason": "This is a template file with placeholder values"
+    },
+    {
+      "id": "MED-002",
+      "file": ".env.email.example",
+      "severity": "MEDIUM",
+      "type": "example_domain",
+      "domain": "example.com",
+      "lines": [43],
+      "context": "# Example: admin1@example.com,admin2@example.com",
+      "status": "ACCEPTABLE",
+      "reason": "This is a documentation comment with example values"
+    },
+    {
+      "id": "MED-003",
+      "file": "src/pages/BackupSettings.tsx",
+      "severity": "MEDIUM",
+      "type": "fallback_value",
+      "domain": "example.com",
+      "lines": [21],
+      "context": "const DEFAULT_ADMIN_EMAIL = ... || 'admin@example.com'",
+      "status": "ACCEPTABLE",
+      "reason": "Safe fallback value that will be overridden by VITE_ADMIN_EMAIL env var"
+    },
+    {
+      "id": "MED-004",
+      "file": "src/utils/alerts.ts",
+      "severity": "MEDIUM",
+      "type": "fallback_value",
+      "domain": "example.com",
+      "lines": [136],
+      "context": "const adminEmails = [...] || 'admin@example.com'",
+      "status": "ACCEPTABLE",
+      "reason": "Safe fallback value"
+    },
+    {
+      "id": "MED-005",
+      "file": "src/utils/employeeAlerts.ts",
+      "severity": "MEDIUM",
+      "type": "fallback_value",
+      "domain": "example.com",
+      "lines": [74],
+      "context": "const adminEmails = [...] || 'admin@example.com'",
+      "status": "ACCEPTABLE",
+      "reason": "Safe fallback value"
+    },
+    {
+      "id": "MED-006",
+      "file": "src/services/comprehensiveExpiryAlertService.ts",
+      "severity": "MEDIUM",
+      "type": "fallback_value",
+      "domain": "example.com",
+      "lines": [409],
+      "context": "const adminEmail = ... || 'admin@example.com'",
+      "status": "ACCEPTABLE",
+      "reason": "Safe fallback value"
+    }
+  ],
+  "low_findings": [
+    {
+      "id": "LOW-001",
+      "file": "playwright-tests/test-data.ts",
+      "severity": "LOW",
+      "type": "test_data",
+      "domain": "example.com",
+      "lines": [21, 27],
+      "context": "test-company@example.com, test-employee@example.com",
+      "status": "ACCEPTABLE",
+      "reason": "Test data for E2E tests, isolated from production"
+    },
+    {
+      "id": "LOW-002",
+      "file": "playwright-tests/employees.spec.ts",
+      "severity": "LOW",
+      "type": "test_data",
+      "domain": "example.com",
+      "lines": [111],
+      "context": "emp{timestamp}@example.com",
+      "status": "ACCEPTABLE",
+      "reason": "Test data for employee registration E2E test"
+    },
+    {
+      "id": "LOW-003",
+      "file": "playwright-tests/companies.spec.ts",
+      "severity": "LOW",
+      "type": "test_data",
+      "domain": "example.com",
+      "lines": [109],
+      "context": "company{timestamp}@example.com",
+      "status": "ACCEPTABLE",
+      "reason": "Test data for company registration E2E test"
+    },
+    {
+      "id": "LOW-004",
+      "file": "create_sample_companies.sql",
+      "severity": "LOW",
+      "type": "sample_data",
+      "gitignore_status": "PROTECTED",
+      "context": "Sample companies for testing",
+      "status": "PROTECTED",
+      "reason": "File is in .gitignore, not committed to Git"
+    },
+    {
+      "id": "LOW-005",
+      "file": "create_sample_companies.ts",
+      "severity": "LOW",
+      "type": "sample_data",
+      "gitignore_status": "PROTECTED",
+      "context": "TypeScript script for creating sample companies",
+      "status": "PROTECTED",
+      "reason": "File is in .gitignore, not committed to Git"
+    },
+    {
+      "id": "LOW-006",
+      "file": "supabase/migrations/test_phase1_security.sql",
+      "severity": "LOW",
+      "type": "test_data",
+      "context": "Security testing data",
+      "status": "ACCEPTABLE",
+      "reason": "Test data for security phase 1 testing"
+    }
+  ],
+  "recommendations": {
+    "priority_1_immediate": [
+      "Replace VITE_ADMIN_EMAIL in .env from admin@sawtracker.com to actual admin email",
+      "Ensure RESEND_FROM_EMAIL environment variable is set in Supabase",
+      "Ensure SENDGRID_FROM_EMAIL environment variable is set in Supabase",
+      "Ensure MAILGUN_FROM_EMAIL environment variable is set in Supabase",
+      "Ensure MAILGUN_DOMAIN environment variable is set in Supabase"
+    ],
+    "priority_2_before_production": [
+      "Add runtime validation to reject fake domains",
+      "Add logging to track when fallback values are used",
+      "Create production environment configuration template",
+      "Document all required environment variables clearly",
+      "Test email delivery with actual domain in staging environment"
+    ],
+    "priority_3_documentation": [
+      "Document email configuration requirements in README",
+      "Create deployment checklist for email setup",
+      "Add comments in code to highlight fallback values",
+      "Create environment setup guide for new developers"
+    ]
+  },
+  "environment_variables_required": [
+    {
+      "variable": "VITE_ADMIN_EMAIL",
+      "purpose": "Administrator email for system notifications",
+      "current_value": "admin@sawtracker.com (in .env)",
+      "required": true,
+      "example": "admin@yourdomain.com"
+    },
+    {
+      "variable": "RESEND_FROM_EMAIL",
+      "purpose": "Sender email for Resend email backend",
+      "current_value": "noreply@sawtracker.com (fallback)",
+      "required": true,
+      "example": "noreply@yourdomain.com"
+    },
+    {
+      "variable": "SENDGRID_FROM_EMAIL",
+      "purpose": "Sender email for SendGrid backend",
+      "current_value": "noreply@sawtracker.com (fallback)",
+      "required": true,
+      "example": "noreply@yourdomain.com"
+    },
+    {
+      "variable": "MAILGUN_FROM_EMAIL",
+      "purpose": "Sender email for Mailgun backend",
+      "current_value": "noreply@sawtracker.com (fallback)",
+      "required": true,
+      "example": "noreply@yourdomain.com"
+    },
+    {
+      "variable": "MAILGUN_DOMAIN",
+      "purpose": "Mailgun domain for email sending",
+      "current_value": "mail.sawtracker.com (fallback)",
+      "required": true,
+      "example": "mail.yourdomain.com"
+    }
+  ],
+  "deployment_checklist": [
+    {
+      "task": "Verify admin email configuration",
+      "file": ".env",
+      "status": "PENDING"
+    },
+    {
+      "task": "Verify Resend email sender",
+      "file": "supabase/functions/send-email/index.ts",
+      "status": "PENDING"
+    },
+    {
+      "task": "Verify SendGrid email sender",
+      "file": "supabase/functions/send-email/index_simple.ts",
+      "status": "PENDING"
+    },
+    {
+      "task": "Verify Mailgun configuration",
+      "file": "supabase/functions/send-email/index_simple.ts",
+      "status": "PENDING"
+    },
+    {
+      "task": "Test email delivery end-to-end",
+      "status": "PENDING"
+    },
+    {
+      "task": "Test admin notification delivery",
+      "status": "PENDING"
+    },
+    {
+      "task": "Review email logs for errors",
+      "status": "PENDING"
+    },
+    {
+      "task": "Verify SPF/DKIM/DMARC records",
+      "status": "PENDING"
+    }
+  ],
+  "related_documentation": [
+    "MOCK_DATA_AUDIT_REPORT.md",
+    "MOCK_DATA_QUICK_SUMMARY.md",
+    "DETAILED_MOCK_DATA_INVENTORY.md",
+    "CRITICAL_MOCK_DATA_WARNING.md"
+  ]
+}

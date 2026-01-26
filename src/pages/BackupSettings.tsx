@@ -22,10 +22,12 @@ const DEFAULT_ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'Ahmad.alsawy159
 
 export default function BackupSettingsManagement() {
   const { user } = useAuth()
-  const { canView, canEdit } = usePermissions()
+  
+  // يجب استدعاء hooks دائماً في أعلى المكوّن - لا conditional
+  const permissions = usePermissions()
 
-  const hasViewPermission = canView('adminSettings')
-  const hasEditPermission = canEdit('adminSettings') || user?.role === 'admin'
+  const hasViewPermission = permissions?.canView('adminSettings') || user?.role === 'admin'
+  const hasEditPermission = permissions?.canEdit('adminSettings') || user?.role === 'admin'
 
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
     admin_email: DEFAULT_ADMIN_EMAIL,

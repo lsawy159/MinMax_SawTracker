@@ -390,7 +390,7 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
             <SettingsIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">الإعدادات المركزية</h1>
+            <h1 className="text-lg font-bold">إعدادات التنبيهات</h1>
             <p className="text-[11px] text-indigo-100 mt-0.5">
               صفحة موحدة لإعدادات الحالات والتنبيهات وألوان الجداول
             </p>

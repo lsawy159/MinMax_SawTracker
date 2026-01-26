@@ -9,43 +9,45 @@ import { usePermissions } from '@/utils/permissions'
 export default function AlertSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { canView, canEdit } = usePermissions()
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [hasPermission, setHasPermission] = useState(false)
+  const [canEditSettings, setCanEditSettings] = useState(false)
+  
+  // يجب استدعاء hooks دائماً في أعلى المكوّن - لا conditional
+  const permissions = usePermissions()
 
   useEffect(() => {
-    try {
-      if (!user) {
-        navigate('/login')
-        return
-      }
+    const checkAccess = async () => {
+      try {
+        if (!user) {
+          navigate('/login')
+          return
+        }
 
-      if (!canView('centralizedSettings')) {
-        navigate('/dashboard')
-        return
-      }
+        // تحقق بديل من الصلاحيات
+        const canViewSettings = permissions?.canView('centralizedSettings') || user.role === 'admin'
+        const canEditPerm = permissions?.canEdit('centralizedSettings') || user.role === 'admin'
 
-      setIsLoading(false)
-    } catch (err) {
-      console.error('AlertSettings error:', err)
-      setError('حدث خطأ أثناء تحميل الصفحة')
-      setIsLoading(false)
+        if (!canViewSettings) {
+          navigate('/dashboard')
+          return
+        }
+
+        setHasPermission(true)
+        setCanEditSettings(canEditPerm)
+        setIsLoading(false)
+      } catch (err) {
+        console.error('AlertSettings access check error:', err)
+        // في حالة الخطأ، اسمح بالعرض للمدير على الأقل
+        if (user?.role === 'admin') {
+          setHasPermission(true)
+          setCanEditSettings(true)
+        }
+        setIsLoading(false)
+      }
     }
-  }, [user, canView, navigate])
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Shield className="w-14 h-14 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ</h2>
-            <p className="text-gray-600">{error}</p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
+    checkAccess()
+  }, [user, navigate, permissions])
 
   if (isLoading || !user) {
     return (
@@ -60,7 +62,7 @@ export default function AlertSettings() {
     )
   }
 
-  if (!canView('centralizedSettings')) {
+  if (!hasPermission) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-screen">
@@ -91,7 +93,7 @@ export default function AlertSettings() {
         </div>
 
         {/* Content */}
-        <UnifiedSettings isReadOnly={!canEdit('centralizedSettings')} />
+        <UnifiedSettings isReadOnly={!canEditSettings} />
       </div>
     </Layout>
   )

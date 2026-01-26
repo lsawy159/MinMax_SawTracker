@@ -133,7 +133,7 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
     .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
     .map(async alert => {
       // Fetch admin email from environment variable or use fallback
-      const adminEmails = [import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com'];
+      const adminEmails = [import.meta.env.VITE_ADMIN_EMAIL || 'Ahmad.alsawy159@gmail.com'];
       
       try {
         const emailContent = `تنبيه للمؤسسة: ${alert.company?.name}\n${alert.message}\nالإجراء المطلوب: ${alert.action_required}`;

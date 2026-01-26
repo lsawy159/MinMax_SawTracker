@@ -66,7 +66,7 @@ export const PERMISSION_SECTIONS = {
     actions: ['view', 'edit'] as const
   },
   centralizedSettings: {
-    label: 'الإعدادات المركزية',
+    label: 'إعدادات التنبيهات',
     actions: ['view', 'edit'] as const
   }
 } as const
