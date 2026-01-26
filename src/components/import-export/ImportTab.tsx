@@ -191,13 +191,13 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     })
   }
 
-  const getRowIssues = (rowIndex: number) => {
+  const getRowIssues = useCallback((rowIndex: number) => {
     const excelRowNumber = rowIndex + 2
     const rowValidation = validationResults.filter(error => error.row === excelRowNumber)
     const hasError = rowValidation.some(error => error.severity === 'error')
     const hasWarning = rowValidation.some(error => error.severity === 'warning')
     return { hasError, hasWarning, rowValidation }
-  }
+  }, [validationResults])
 
   const getVisibleRowIndices = () => {
     return previewData
@@ -229,7 +229,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       }
       return newSet
     })
-  }, [previewData, validationFilter, validationResults])
+  }, [previewData, validationFilter, getRowIssues])
 
   const updateConflictChoice = useCallback((rowIndex: number, choice: 'keep' | 'replace') => {
     setConflictResolution(prev => {
@@ -1398,7 +1398,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       }
 
       // تطبيق التحديد واستبعاد أخطاء التحقق
-      rowsWithIndex = rowsWithIndex.filter(({ row, index }) => {
+      rowsWithIndex = rowsWithIndex.filter(({ index }) => {
         if (!targetIndices.has(index)) return false
 
         // استبعاد الصفوف ذات الأخطاء غير المحددة (أو المحددة لكن المفروض أن الزر لن يُفعّل حينها)
