@@ -60,8 +60,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/admin-guide', icon: Shield, label: 'دليل مدير النظام', adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
     { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
-    { path: '/system-correspondence', icon: Mail, label: 'إدارة مراسلات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
-    { path: '/centralized-settings', icon: Database, label: 'الإعدادات المركزية', permission: { section: 'centralizedSettings' as const, action: 'view' }, badge: null },
+    { path: '/backup-settings', icon: Mail, label: 'إدارة مراسلات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
+    { path: '/alert-settings', icon: Bell, label: 'إعدادات التنبيهات والحالات', permission: { section: 'centralizedSettings' as const, action: 'view' }, badge: null },
     { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
   ]
 
