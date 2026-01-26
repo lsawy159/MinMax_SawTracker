@@ -11,20 +11,41 @@ export default function AlertSettings() {
   const navigate = useNavigate()
   const { canView, canEdit } = usePermissions()
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login')
-      return
-    }
+    try {
+      if (!user) {
+        navigate('/login')
+        return
+      }
 
-    if (!canView('centralizedSettings')) {
-      navigate('/dashboard')
-      return
-    }
+      if (!canView('centralizedSettings')) {
+        navigate('/dashboard')
+        return
+      }
 
-    setIsLoading(false)
+      setIsLoading(false)
+    } catch (err) {
+      console.error('AlertSettings error:', err)
+      setError('حدث خطأ أثناء تحميل الصفحة')
+      setIsLoading(false)
+    }
   }, [user, canView, navigate])
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <Shield className="w-14 h-14 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ</h2>
+            <p className="text-gray-600">{error}</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   if (isLoading || !user) {
     return (
