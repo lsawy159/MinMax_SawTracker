@@ -81,6 +81,15 @@ SIMPLE_CHECK.sql
 STORAGE_RLS_POLICIES.sql
 check_admin_user.sql
 execute_sql.py
+setup_cron_job.sql
+
+# Files with embedded API keys (SECURITY)
+test-phase1-security.ts
+apply_email_queue_migration.mjs
+check_email_status.py
+check_failed_emails.py
+scripts/clear_email_queue.py
+scripts/clearEmailQueue.mjs
 
 # Build logs and plan files
 build.log

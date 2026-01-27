@@ -18,7 +18,7 @@ SELECT cron.schedule(
   SELECT net.http_post(
     url := 'https://xaqmuiowidnjlchexxdg.supabase.co/functions/v1/process-email-queue',
     headers := jsonb_build_object(
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhcW11aW93aWRuamxjaGV4eGRnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTgwMjUyNCwiZXhwIjoyMDc3Mzc4NTI0fQ.sTSofbUKBihR82COSCaztl6P6LBuhQwvaVDBia_BGIc',
+      'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
       'Content-Type', 'application/json'
     ),
     body := jsonb_build_object('action', 'process-digest')
