@@ -7,8 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
 import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import BackupManagement from '@/components/settings/BackupManagement'
-import SecuritySettingsManager from '@/components/settings/SecuritySettingsManager'
 import SessionsManager from '@/components/settings/SessionsManager'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
@@ -31,7 +29,7 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
-type TabType = 'system' | 'fields' | 'backup' | 'security-settings' | 'sessions' | 'audit' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
+type TabType = 'system' | 'fields' | 'sessions' | 'audit' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -159,18 +157,7 @@ export default function GeneralSettings() {
       icon: Edit3,
       component: CustomFieldManager
     },
-    {
-      key: 'backup',
-      label: 'إعدادات النسخ الاحتياطية',
-      icon: Database,
-      component: BackupManagement
-    },
-    {
-      key: 'security-settings',
-      label: 'إعدادات الأمان والنسخ الاحتياطية',
-      icon: Shield,
-      component: SecuritySettingsManager
-    },
+
     {
       key: 'sessions',
       label: 'إدارة الجلسات النشطة',

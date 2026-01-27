@@ -1,7 +1,14 @@
 import { Employee, Company } from '../lib/supabase'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
-import { enqueueEmail } from '../lib/emailQueueService'
+
+/**
+ * 🚨 DEPRECATED: No longer used - alerts saved directly to daily_excel_logs
+ * Kept for reference but not called
+ */
+async function shouldSkipEmailAlert_DEPRECATED(employeeId: string, alertType: string): Promise<boolean> {
+  return false
+}
 
 export interface EmployeeAlert {
   id: string
@@ -34,78 +41,130 @@ export interface EmployeeAlert {
  * @param companies - Reserved for future use: company data for enrichment
  */
 export async function generateEmployeeAlerts(employees: Employee[], companies: Company[]): Promise<EmployeeAlert[]> {
-  // Reserved for future use: companies parameter for future enrichment features
-  void companies
   const alerts: EmployeeAlert[] = []
   
-
+  // Create a map of companies for quick lookup
+  const companyMap = new Map(companies.map(c => [c.id, c]))
   
   for (const employee of employees) {
+    // Get company data
+    const company = companyMap.get(employee.company_id)
+    
     // Add contract expiry alerts
     const contractAlert = await checkContractExpiry(employee)
-    if (contractAlert) {
+    if (contractAlert && company) {
+      contractAlert.company = {
+        id: company.id,
+        name: company.name,
+        commercial_registration_number: company.commercial_registration_number,
+        unified_number: company.unified_number
+      }
       alerts.push(contractAlert)
     }
     
     // Add residence expiry alerts
     const residenceAlert = await checkResidenceExpiry(employee)
-    if (residenceAlert) {
+    if (residenceAlert && company) {
+      residenceAlert.company = {
+        id: company.id,
+        name: company.name,
+        commercial_registration_number: company.commercial_registration_number,
+        unified_number: company.unified_number
+      }
       alerts.push(residenceAlert)
     }
     
     // Add health insurance expiry alerts
     const healthInsuranceAlert = await checkHealthInsuranceExpiry(employee)
-    if (healthInsuranceAlert) {
+    if (healthInsuranceAlert && company) {
+      healthInsuranceAlert.company = {
+        id: company.id,
+        name: company.name,
+        commercial_registration_number: company.commercial_registration_number,
+        unified_number: company.unified_number
+      }
       alerts.push(healthInsuranceAlert)
     }
     
     // Add hired worker contract expiry alerts
     const hiredWorkerContractAlert = await checkHiredWorkerContractExpiry(employee)
-    if (hiredWorkerContractAlert) {
+    if (hiredWorkerContractAlert && company) {
+      hiredWorkerContractAlert.company = {
+        id: company.id,
+        name: company.name,
+        commercial_registration_number: company.commercial_registration_number,
+        unified_number: company.unified_number
+      }
       alerts.push(hiredWorkerContractAlert)
     }
   }
   
-  // Enqueue emails for urgent/high priority alerts asynchronously
-  const emailPromises = alerts
+  // 🚨 EMERGENCY: Save alerts to daily_excel_logs for consolidation into daily Excel digest
+  // Check for duplicates before inserting to prevent repeated alerts
+  
+  // Create a map of employee data for easier lookup
+  const employeeMap = new Map(employees.map(e => [e.id, e]))
+  
+  const logPromises = alerts
     .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
     .map(async alert => {
-      // Fetch admin email from environment variable or use fallback
-      const adminEmails = [import.meta.env.VITE_ADMIN_EMAIL || 'Ahmad.alsawy159@gmail.com'];
-      
       try {
-        const priorityColor = alert.priority === 'urgent' ? '#dc2626' : '#ea580c'
-        const priorityEmoji = alert.priority === 'urgent' ? '🚨' : '⚠️'
-        const priorityText = alert.priority === 'urgent' ? 'عاجل' : 'هام'
+        const employee = employeeMap.get(alert.employee.id)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
         
-        const emailContent = `تنبيه للموظف: ${alert.employee.name}\n${alert.message}\nالإجراء المطلوب: ${alert.action_required}`;
-        await enqueueEmail({
-          toEmails: adminEmails,
-          subject: `${priorityEmoji} تنبيه ${priorityText}: ${alert.title} - ${alert.employee.name}`,
-          textContent: emailContent,
-          htmlContent: `
-            <div dir="rtl" style="font-family: Arial, sans-serif;">
-              <h2 style="color: ${priorityColor};">${priorityEmoji} ${alert.title}</h2>
-              <p><strong>الموظف:</strong> ${alert.employee.name}</p>
-              <p><strong>المهنة:</strong> ${alert.employee.profession}</p>
-              <p><strong>الجنسية:</strong> ${alert.employee.nationality}</p>
-              <p><strong>الرسالة:</strong> ${alert.message}</p>
-              <p><strong>الإجراء المطلوب:</strong> ${alert.action_required}</p>
-              <p style="color: #666;"><small>تاريخ الانتهاء: ${alert.expiry_date}</small></p>
-            </div>
-          `,
-          priority: alert.priority,
-        });
-        logger.debug(`Email enqueued for employee alert ${alert.id}`);
-      } catch (emailError) {
-        logger.error(`Failed to enqueue email for employee alert ${alert.id}:`, emailError);
-        // Continue processing alerts even if email fails (non-blocking)
+        // Check if this exact alert already exists today
+        const { data: existingAlerts, error: checkError } = await supabase
+          .from('daily_excel_logs')
+          .select('id')
+          .eq('employee_id', alert.employee.id)
+          .eq('alert_type', alert.type)
+          .eq('expiry_date', alert.expiry_date)
+          .gte('created_at', today.toISOString())
+          .limit(1)
+        
+        if (checkError) {
+          logger.error(`Failed to check for duplicate alert:`, checkError)
+        }
+        
+        // Skip if already exists
+        if (existingAlerts && existingAlerts.length > 0) {
+          logger.debug(`⏭️ Alert already exists: ${alert.type} for ${alert.employee.name}`)
+          return
+        }
+        
+        const { error } = await supabase
+          .from('daily_excel_logs')
+          .insert({
+            employee_id: alert.employee.id,
+            alert_type: alert.type,
+            priority: alert.priority,
+            title: alert.title,
+            message: alert.message,
+            action_required: alert.action_required,
+            expiry_date: alert.expiry_date,
+            details: {
+              employee_name: alert.employee.name,
+              employee_profession: alert.employee.profession,
+              employee_nationality: alert.employee.nationality,
+              residence_number: employee?.residence_number,
+              unified_number: alert.company?.unified_number,
+            },
+          })
+
+        if (error) {
+          logger.error(`Failed to log employee alert ${alert.id} to daily_excel_logs:`, error)
+        } else {
+          logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.employee.name}`)
+        }
+      } catch (logError) {
+        logger.error(`Exception logging employee alert ${alert.id}:`, logError)
       }
     });
   
-  // Wait for all email promises to settle, but don't block the alert return
-  Promise.allSettled(emailPromises).catch(err => {
-    logger.error('Error settling employee email promises:', err);
+  // Wait for all log promises to settle, but don't block the alert return
+  Promise.allSettled(logPromises).catch(err => {
+    logger.error('Error settling employee log promises:', err);
   });
   
   return alerts.sort((a, b) => {
