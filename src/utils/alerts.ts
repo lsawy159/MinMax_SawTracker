@@ -133,29 +133,7 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
     .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
     .map(async alert => {
       try {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        
-        // Check if this exact alert already exists today
-        const { data: existingAlerts, error: checkError } = await supabase
-          .from('daily_excel_logs')
-          .select('id')
-          .eq('company_id', alert.company?.id || '')
-          .eq('alert_type', alert.type)
-          .eq('expiry_date', alert.expiry_date)
-          .gte('created_at', today.toISOString())
-          .limit(1)
-        
-        if (checkError) {
-          logger.error(`Failed to check for duplicate company alert:`, checkError)
-        }
-        
-        // Skip if already exists
-        if (existingAlerts && existingAlerts.length > 0) {
-          logger.debug(`⏭️ Company alert already exists: ${alert.type} for ${alert.company?.name}`)
-          return
-        }
-        
+        // Insert alert - database unique constraint prevents duplicates
         const { error } = await supabase
           .from('daily_excel_logs')
           .insert({
@@ -174,7 +152,12 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
           })
 
         if (error) {
-          logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
+          // Check if it's a duplicate constraint error (code 23505)
+          if (error.code === '23505') {
+            logger.debug(`⏭️ Company alert already exists: ${alert.type} for ${alert.company?.name}`)
+          } else {
+            logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
+          }
         } else {
           logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
         }
