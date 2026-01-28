@@ -57,8 +57,7 @@ WHERE id IN (
     SELECT id,
            ROW_NUMBER() OVER (
              PARTITION BY 
-               COALESCE(employee_id, 'null'), 
-               COALESCE(company_id, 'null'), 
+               COALESCE(employee_id::text, company_id::text),
                alert_type, 
                alert_date
              ORDER BY created_at ASC
