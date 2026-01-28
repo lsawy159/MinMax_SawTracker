@@ -88,7 +88,8 @@ export default function BackupSettingsPage() {
     failed: 0,
     lastSuccessTime: '' as string | ''
   })
-  // const [activity, setActivity] = useState<Array<{ id: string; to_emails: string[]; subject: string; status: string; created_at: string; processed_at: string | null }>>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [activity, setActivity] = useState<Array<{ id: string; to_emails: string[]; subject: string; status: string; created_at: string; processed_at: string | null }>>([])
 
   // Backup History State
   const [backups, setBackups] = useState<BackupRecord[]>([])
@@ -99,7 +100,8 @@ export default function BackupSettingsPage() {
   const [securityLoading, setSecurityLoading] = useState(false)
 
   // Loading & Saving States
-  // const [loading, setLoading] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [manualBackupLoading, setManualBackupLoading] = useState(false)
   const [downloadingBackup, setDownloadingBackup] = useState<string | null>(null)
