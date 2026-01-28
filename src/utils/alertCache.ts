@@ -6,7 +6,8 @@
 
 import { Employee, Company } from '../lib/supabase'
 import { generateEmployeeAlerts, EmployeeAlert } from './employeeAlerts'
-import { generateCompanyAlertsSync, Alert } from './alerts'
+import { generateCompanyAlertsSync } from './alerts'
+import { Alert } from '../components/alerts/AlertCard'
 import { logger } from './logger'
 
 interface CacheEntry<T> {
