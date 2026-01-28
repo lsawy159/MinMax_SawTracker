@@ -100,6 +100,9 @@ public/use.txt
 # Local documentation directory - never commit to git
 docs-local/
 
+# AI Agent Memory - NEVER commit to git (contains session data)
+.agent-memory/
+
 # Development files and old fixes
 .dev-files/
 # Note: .dev-files/old-migrations/ contains dangerous or outdated migration files that should not be applied
