@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '@/components/layout/Layout'
-import { Settings, Globe, Shield, FileText, Clock, Database, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, BarChart3, Users } from 'lucide-react'
+import { Settings, Globe, Shield, FileText, Clock, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, BarChart3, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'

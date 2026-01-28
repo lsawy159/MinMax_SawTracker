@@ -45,7 +45,7 @@ interface DailyExcelLog {
   message: string
   action_required?: string
   expiry_date?: string
-  details: Record<string, any>
+  details: Record<string, unknown>
   created_at: string
 }
 
@@ -181,7 +181,7 @@ async function generateExcelFile(alerts: DailyExcelLog[]): Promise<string> {
     for (const [alertType, records] of Object.entries(alertsByType)) {
       try {
         const sheetName = alertTypeNames[alertType] || alertType
-        const wsData: any[][] = []
+        const wsData: unknown[][] = []
 
         // Check if this is employee or company alert
         const isEmployeeAlert = records[0].employee_id !== null
@@ -192,7 +192,7 @@ async function generateExcelFile(alerts: DailyExcelLog[]): Promise<string> {
           
           // Employee data rows
           for (const record of records) {
-            const details = record.details as any
+            const details = record.details as Record<string, unknown>
             const daysDiff = calculateDaysDifference(record.expiry_date)
             const status = getStatus(record.expiry_date)
             
@@ -211,7 +211,7 @@ async function generateExcelFile(alerts: DailyExcelLog[]): Promise<string> {
           
           // Company data rows
           for (const record of records) {
-            const details = record.details as any
+            const details = record.details as Record<string, unknown>
             const daysDiff = calculateDaysDifference(record.expiry_date)
             const status = getStatus(record.expiry_date)
             

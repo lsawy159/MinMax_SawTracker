@@ -2,14 +2,6 @@ import { Alert } from '../components/alerts/AlertCard'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
 
-/**
- * 🚨 DEPRECATED: No longer used - alerts saved directly to daily_excel_logs
- * Kept for reference but not called
- */
-async function shouldSkipEmailAlertCompany_DEPRECATED(companyId: string, alertType: string): Promise<boolean> {
-  return false
-}
-
 // Default thresholds for alerts
 const DEFAULT_THRESHOLDS = {
   residence_urgent_days: 7,

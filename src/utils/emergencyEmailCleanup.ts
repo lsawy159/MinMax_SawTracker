@@ -79,7 +79,7 @@ export async function getEmailQueueStatus() {
 export async function ensureDailyAlertLogsTable(): Promise<boolean> {
   try {
     // Try to select from table to see if it exists
-    const { data, error: selectError } = await supabase
+    const { error: selectError } = await supabase
       .from('daily_alert_logs')
       .select('id')
       .limit(1)
@@ -109,7 +109,7 @@ export async function logAlertToDailyLogs(params: {
   priority: 'urgent' | 'high' | 'medium' | 'low'
   title: string
   message: string
-  details: Record<string, any>
+  details: Record<string, unknown>
 }): Promise<boolean> {
   try {
     const { error } = await supabase

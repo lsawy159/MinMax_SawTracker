@@ -2,14 +2,6 @@ import { Employee, Company } from '../lib/supabase'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
 
-/**
- * 🚨 DEPRECATED: No longer used - alerts saved directly to daily_excel_logs
- * Kept for reference but not called
- */
-async function shouldSkipEmailAlert_DEPRECATED(employeeId: string, alertType: string): Promise<boolean> {
-  return false
-}
-
 export interface EmployeeAlert {
   id: string
   type: 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry' | 'hired_worker_contract_expiry'  // تحديث: insurance_expiry → health_insurance_expiry
@@ -56,7 +48,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
       contractAlert.company = {
         id: company.id,
         name: company.name,
-        commercial_registration_number: company.commercial_registration_number,
+        commercial_registration_number: company.commercial_registration_expiry,
         unified_number: company.unified_number
       }
       alerts.push(contractAlert)
@@ -68,7 +60,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
       residenceAlert.company = {
         id: company.id,
         name: company.name,
-        commercial_registration_number: company.commercial_registration_number,
+        commercial_registration_number: company.commercial_registration_expiry,
         unified_number: company.unified_number
       }
       alerts.push(residenceAlert)
@@ -80,7 +72,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
       healthInsuranceAlert.company = {
         id: company.id,
         name: company.name,
-        commercial_registration_number: company.commercial_registration_number,
+        commercial_registration_number: company.commercial_registration_expiry,
         unified_number: company.unified_number
       }
       alerts.push(healthInsuranceAlert)
@@ -92,7 +84,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
       hiredWorkerContractAlert.company = {
         id: company.id,
         name: company.name,
-        commercial_registration_number: company.commercial_registration_number,
+        commercial_registration_number: company.commercial_registration_expiry,
         unified_number: company.unified_number
       }
       alerts.push(hiredWorkerContractAlert)

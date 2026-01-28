@@ -6,14 +6,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { toast } from 'sonner'
 import {
-  Mail, Save, RefreshCw, Shield, Info, CheckCircle, AlertTriangle, Clock,
+  Mail, Save, RefreshCw, Shield, Info, CheckCircle, AlertTriangle,
   Loader2, HardDrive, Download, Trash2, Database, Settings as SettingsIcon,
   Eye
 } from 'lucide-react'
 import { enqueueEmail } from '@/lib/emailQueueService'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
-import { triggerManualBackupAndNotify, maybeNotifyBackup } from '@/lib/backupService'
+import { triggerManualBackupAndNotify } from '@/lib/backupService'
 import { logger } from '@/utils/logger'
 
 interface EmailConfig {
@@ -79,7 +79,7 @@ export default function BackupSettingsPage() {
 
   // Refresh Interval State
   const [refreshInterval, setRefreshInterval] = useState(120000)
-  const [refreshLoading, setRefreshLoading] = useState(false)
+  // const [refreshLoading, setRefreshLoading] = useState(false)
 
   // Email Queue Stats
   const [stats, setStats] = useState({
@@ -88,7 +88,7 @@ export default function BackupSettingsPage() {
     failed: 0,
     lastSuccessTime: '' as string | ''
   })
-  const [activity, setActivity] = useState<Array<{ id: string; to_emails: string[]; subject: string; status: string; created_at: string; processed_at: string | null }>>([])
+  // const [activity, setActivity] = useState<Array<{ id: string; to_emails: string[]; subject: string; status: string; created_at: string; processed_at: string | null }>>([])
 
   // Backup History State
   const [backups, setBackups] = useState<BackupRecord[]>([])
@@ -99,7 +99,7 @@ export default function BackupSettingsPage() {
   const [securityLoading, setSecurityLoading] = useState(false)
 
   // Loading & Saving States
-  const [loading, setLoading] = useState(true)
+  // const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [manualBackupLoading, setManualBackupLoading] = useState(false)
   const [downloadingBackup, setDownloadingBackup] = useState<string | null>(null)

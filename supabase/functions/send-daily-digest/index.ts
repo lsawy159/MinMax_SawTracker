@@ -28,7 +28,7 @@ interface DailyAlert {
   priority: 'urgent' | 'high' | 'medium' | 'low'
   title: string
   message: string
-  details: Record<string, any>
+  details: Record<string, unknown>
   created_at: string
 }
 
@@ -157,7 +157,6 @@ serve(async (req: Request) => {
     // 1. Get all alerts from today
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const todayIso = today.toISOString()
 
     const { data: alerts, error: fetchError } = await supabase
       .from('daily_excel_logs')
