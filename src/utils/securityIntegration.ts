@@ -129,13 +129,24 @@ export function setupGlobalErrorLogging() {
  */
 export class ActivityTracker {
   private inactivityTimeout: ReturnType<typeof setTimeout> | null = null
+  private inactivityInterval: ReturnType<typeof setInterval> | null = null
   private lastActivityTime: number = Date.now()
   private sessionStartTime: number = Date.now()
+  private isTracking: boolean = false
 
   /**
    * Start tracking user activity
    */
   startTracking(sessionTimeoutMinutes: number = 30) {
+    // منع بدء التتبع أكثر من مرة
+    if (this.isTracking) {
+      logger.debug('[ActivityTracker] Already tracking, skipping duplicate start')
+      return
+    }
+
+    this.isTracking = true
+    logger.debug('[ActivityTracker] Starting activity tracking')
+
     // Track user interactions
     const activities = ['mousedown', 'keydown', 'scroll', 'touchstart']
     
@@ -143,8 +154,13 @@ export class ActivityTracker {
       document.addEventListener(activity, () => this.updateActivity(), true)
     })
 
+    // تنظيف أي interval قديم قبل إنشاء واحد جديد
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval)
+    }
+
     // Check for inactivity periodically
-    setInterval(() => this.checkInactivity(sessionTimeoutMinutes), 60000) // Check every minute
+    this.inactivityInterval = setInterval(() => this.checkInactivity(sessionTimeoutMinutes), 60000) // Check every minute
   }
 
   /**
@@ -168,6 +184,22 @@ export class ActivityTracker {
       // Trigger logout
       window.dispatchEvent(new Event('session-expired'))
     }
+  }
+
+  /**
+   * Stop tracking user activity and cleanup
+   */
+  stopTracking() {
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval)
+      this.inactivityInterval = null
+    }
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout)
+      this.inactivityTimeout = null
+    }
+    this.isTracking = false
+    logger.debug('[ActivityTracker] Stopped activity tracking')
   }
 
   /**

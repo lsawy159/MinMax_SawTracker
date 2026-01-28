@@ -35,8 +35,12 @@ class Logger {
 
   private shouldLog(level: LogLevel): boolean {
     if (isTest) return false
-    if (level === LogLevel.ERROR) return true
-    return isDev
+    // في Production: اعرض فقط WARN و ERROR، أخفِ DEBUG و INFO
+    if (!isDev) {
+      return level >= LogLevel.WARN
+    }
+    // في Development: اعرض كل شيء
+    return true
   }
 
   private formatMessage(level: LogLevel, ...args: unknown[]): string {

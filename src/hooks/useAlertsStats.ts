@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { generateCompanyAlertsSync } from '../utils/alerts'
-import { generateEmployeeAlerts, enrichEmployeeAlertsWithCompanyData } from '../utils/employeeAlerts'
+import { enrichEmployeeAlertsWithCompanyData } from '../utils/employeeAlerts'
+import { alertCache } from '../utils/alertCache'
 
 export interface AlertsStats {
   total: number
@@ -74,9 +74,9 @@ export function useAlertsStats() {
       const companies = companiesResult.data || []
       const employees = employeesResult.data || []
 
-      // --- الخطوة 1: توليد القوائم الكاملة (لشارات "المؤسسات" و "الموظفين") ---
-      const companyAlerts = await generateCompanyAlertsSync(companies)
-      const employeeAlertsGenerated = await generateEmployeeAlerts(employees, companies)
+      // --- الخطوة 1: توليد القوائم الكاملة (لشارات "المؤسسات" و "الموظفين") باستخدام Cache ---
+      const companyAlerts = await alertCache.getCompanyAlerts(companies)
+      const employeeAlertsGenerated = await alertCache.getEmployeeAlerts(employees, companies)
       const employeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
 
       // --- الخطوة 2: توليد القوائم "غير المقروءة" (لشارة "التنبيهات") - فقط urgent و high ---

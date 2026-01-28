@@ -5,15 +5,12 @@ import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { 
-  generateCompanyAlertsSync
-} from '@/utils/alerts'
-import { 
-  generateEmployeeAlerts, 
   enrichEmployeeAlertsWithCompanyData,
   getEmployeeNotificationThresholdsPublic,
   DEFAULT_EMPLOYEE_THRESHOLDS,
   type EmployeeAlert
 } from '@/utils/employeeAlerts'
+import { alertCache } from '@/utils/alertCache'
 import type { Alert } from '@/components/alerts/AlertCard'
 import { getStatusThresholds, DEFAULT_STATUS_THRESHOLDS } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
@@ -154,10 +151,12 @@ export default function Dashboard() {
     
     // استماع لأحداث تحديث البيانات لتحديث الإحصائيات
     const handleCompanyUpdated = () => {
+      alertCache.invalidateCompanyAlerts() // إبطال cache المؤسسات
       fetchBasicData()
     }
     
     const handleEmployeeUpdated = () => {
+      alertCache.invalidateEmployeeAlerts() // إبطال cache الموظفين
       fetchBasicData()
     }
     
@@ -254,16 +253,16 @@ export default function Dashboard() {
   // Phase 2: Load alerts (non-critical, can be deferred)
   const fetchSecondaryData = () => {
     try {
-      // Generate alerts asynchronously (non-blocking)
+      // Generate alerts asynchronously (non-blocking) using cache
       // Using setTimeout to defer execution and avoid blocking the main thread
       setTimeout(async () => {
         if (employees.length > 0 && companies.length > 0) {
-          // توليد تنبيهات المؤسسات
-          const companyAlertsGenerated = await generateCompanyAlertsSync(companies)
+          // توليد تنبيهات المؤسسات باستخدام Cache
+          const companyAlertsGenerated = await alertCache.getCompanyAlerts(companies)
           setCompanyAlerts(companyAlertsGenerated)
           
-          // توليد تنبيهات الموظفين
-          const employeeAlertsGenerated = await generateEmployeeAlerts(employees, companies)
+          // توليد تنبيهات الموظفين باستخدام Cache
+          const employeeAlertsGenerated = await alertCache.getEmployeeAlerts(employees, companies)
           const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
           setEmployeeAlerts(enrichedEmployeeAlerts)
         }
