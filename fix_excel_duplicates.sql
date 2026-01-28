@@ -1,12 +1,13 @@
 -- ==========================================
 -- FIX: Prevent Duplicate Alerts in Excel Files
--- Run this in Supabase SQL Editor
+-- FINAL SOLUTION - Run this in Supabase SQL Editor
 -- ==========================================
 
--- Problem: Race condition causes duplicate alert insertions
--- Solution: Regular date column + trigger + unique constraint
+-- Problem: Duplicate alerts in Excel export (126 instead of 63)
+-- Root cause: alert_date NULL values bypass unique constraint
+-- Solution: Make alert_date NOT NULL + ensure all data populated
 
--- Step 1: Add regular date column (not generated)
+-- Step 1: Ensure alert_date column exists
 DO $$ 
 BEGIN
   IF NOT EXISTS (
@@ -17,12 +18,23 @@ BEGIN
   END IF;
 END $$;
 
--- Step 2: Populate existing data
+-- Step 2: Populate ALL missing alert_date values (CRITICAL!)
 UPDATE daily_excel_logs 
 SET alert_date = created_at::date 
-WHERE alert_date IS NULL;
+WHERE alert_date IS NULL
+  OR alert_date = CAST('1900-01-01' AS DATE);
 
--- Step 3: Create trigger to auto-populate alert_date on insert
+-- Step 3: Verify all rows have alert_date
+SELECT COUNT(*) as rows_without_date
+FROM daily_excel_logs
+WHERE alert_date IS NULL;
+-- Expected: 0
+
+-- Step 4: Make alert_date NOT NULL (prevent future NULLs)
+ALTER TABLE daily_excel_logs
+ALTER COLUMN alert_date SET NOT NULL;
+
+-- Step 5: Create/replace trigger to auto-populate alert_date on insert
 CREATE OR REPLACE FUNCTION set_alert_date()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -37,7 +49,7 @@ CREATE TRIGGER trigger_set_alert_date
   FOR EACH ROW
   EXECUTE FUNCTION set_alert_date();
 
--- Step 4: Clean existing duplicates (keep the oldest entry)
+-- Step 6: Delete ALL duplicates (aggressive cleaning)
 DELETE FROM daily_excel_logs
 WHERE id IN (
   SELECT id
@@ -45,8 +57,8 @@ WHERE id IN (
     SELECT id,
            ROW_NUMBER() OVER (
              PARTITION BY 
-               COALESCE(employee_id::text, ''), 
-               COALESCE(company_id::text, ''), 
+               COALESCE(employee_id, 'null'), 
+               COALESCE(company_id, 'null'), 
                alert_type, 
                alert_date
              ORDER BY created_at ASC
@@ -56,37 +68,27 @@ WHERE id IN (
   WHERE row_num > 1
 );
 
--- Step 5: Create unique index to prevent future duplicates
--- For employee alerts: employee_id + alert_type + date
-CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_excel_logs_employee_unique
+-- Step 7: Create unique indexes (without WHERE clause to enforce strictly)
+DROP INDEX IF EXISTS idx_daily_excel_logs_employee_unique;
+DROP INDEX IF EXISTS idx_daily_excel_logs_company_unique;
+
+CREATE UNIQUE INDEX idx_daily_excel_logs_employee_unique
 ON daily_excel_logs (employee_id, alert_type, alert_date)
 WHERE employee_id IS NOT NULL AND company_id IS NULL;
 
--- For company alerts: company_id + alert_type + date
-CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_excel_logs_company_unique
+CREATE UNIQUE INDEX idx_daily_excel_logs_company_unique
 ON daily_excel_logs (company_id, alert_type, alert_date)
 WHERE company_id IS NOT NULL AND employee_id IS NULL;
 
--- Step 6: Add comments for documentation
-COMMENT ON COLUMN daily_excel_logs.alert_date IS 
-'Auto-populated date field for uniqueness constraint (populated by trigger)';
-
-COMMENT ON INDEX idx_daily_excel_logs_employee_unique IS 
-'Prevents duplicate employee alerts from being logged on the same day';
-
-COMMENT ON INDEX idx_daily_excel_logs_company_unique IS 
-'Prevents duplicate company alerts from being logged on the same day';
-
--- Step 7: Verification - Check for any remaining duplicates
+-- Step 8: Final verification
 SELECT 
   COALESCE(employee_id::text, company_id::text) as entity_id,
   alert_type,
   alert_date,
-  COUNT(*) as duplicate_count
+  COUNT(*) as count
 FROM daily_excel_logs
 GROUP BY COALESCE(employee_id::text, company_id::text), alert_type, alert_date
 HAVING COUNT(*) > 1
-ORDER BY duplicate_count DESC;
+ORDER BY count DESC;
 
--- Expected: No rows returned (zero duplicates)
--- If you see this message with 0 rows: SUCCESS!
+-- Expected: SUCCESS (0 rows) - no duplicates remaining!
