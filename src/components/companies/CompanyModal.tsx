@@ -339,7 +339,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         if (isEditing && company?.labor_subscription_number) {
           return company.labor_subscription_number
         }
-        throw new Error('رقم اشتراك التأمينات مطلوب')
+        throw new Error('رقم اشتراك قوى مطلوب')
       })()
 
       const companyData: Record<string, unknown> = {
@@ -633,7 +633,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
             {/* رقم اشتراك قوى */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم اشتراك قوى
+                رقم اشتراك قوى <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
