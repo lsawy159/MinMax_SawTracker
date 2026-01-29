@@ -1,10 +1,15 @@
 # MinMax SawTracker - AI Coding Agent Instructions
 
-**Last Updated:** January 28, 2026
+**Last Updated:** January 29, 2026 - 16:00 (local time)
 
 ---
 
 ## 🎯 AI Agent Protocol
+
+### Git Push Safety Protocol
+- **Mandatory Secret Scan**: Before any git push request, verify no files containing secrets (passwords, API keys, tokens, private keys) are included.
+- **Block If Unsure**: If there is any doubt about sensitive content, stop and ask for confirmation or remediation before proceeding.
+- **Never Push Secrets**: Do not proceed with git push if sensitive files are detected.
 
 ### Self-Managed AI Memory
 - **Memory Folder**: Create and maintain `.agent-memory/` in the project root

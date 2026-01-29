@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
 import { formatDateDDMMMYYYY } from '@/utils/dateFormatter'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
+import { validateUnifiedNumber, validateLaborSubscription } from '@/utils/companyNumberValidation'
 
 interface ValidationError {
   row: number
@@ -859,13 +860,30 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               message: 'الرقم الموحد مطلوب',
               severity: 'error'
             })
-          } else if (isNaN(Number(row['الرقم الموحد']))) {
-            errors.push({
-              row: rowNum,
-              field: 'الرقم الموحد',
-              message: 'الرقم الموحد يجب أن يكون رقماً',
-              severity: 'error'
-            })
+          } else {
+            // التحقق من صحة الرقم الموحد (يبدأ بـ 7 ويكون 10 أرقام)
+            const unifiedValidation = validateUnifiedNumber(row['الرقم الموحد'].toString().trim())
+            if (!unifiedValidation.valid) {
+              errors.push({
+                row: rowNum,
+                field: 'الرقم الموحد',
+                message: unifiedValidation.error || 'الرقم الموحد غير صحيح',
+                severity: 'error'
+              })
+            }
+          }
+
+          // التحقق من صحة رقم قوى إذا تم إدخاله
+          if (row['رقم اشتراك قوى'] && row['رقم اشتراك قوى'].toString().trim()) {
+            const laborValidation = validateLaborSubscription(row['رقم اشتراك قوى'].toString().trim())
+            if (!laborValidation.valid) {
+              errors.push({
+                row: rowNum,
+                field: 'رقم اشتراك قوى',
+                message: laborValidation.error || 'رقم قوى غير صحيح',
+                severity: 'error'
+              })
+            }
           }
 
           // تعارض مع سجل موجود في النظام باستخدام الرقم الموحد فقط

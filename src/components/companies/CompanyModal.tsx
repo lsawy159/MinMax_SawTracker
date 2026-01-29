@@ -10,6 +10,7 @@ import {
 } from '@/utils/autoCompanyStatus'
 import { normalizeDate } from '@/utils/dateParser'
 import { logger } from '@/utils/logger'
+import { validateUnifiedNumber, validateLaborSubscription } from '@/utils/companyNumberValidation'
 
 interface CompanyModalProps {
   isOpen: boolean
@@ -146,12 +147,24 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       return false
     }
 
-    // التحقق من صيغة الأرقام
-    if (formData.unified_number.trim() && isNaN(parseInt(formData.unified_number.trim()))) {
-      const errorMsg = 'الرقم الموحد يجب أن يكون رقماً صحيحاً'
+    // التحقق من صحة الرقم الموحد (يبدأ بـ 7 ويكون 10 أرقام)
+    const unifiedValidation = validateUnifiedNumber(formData.unified_number.trim())
+    if (!unifiedValidation.valid) {
+      const errorMsg = unifiedValidation.error || 'الرقم الموحد غير صحيح'
       console.error('❌ خطأ في التحقق:', errorMsg)
       toast.error(errorMsg)
       return false
+    }
+
+    // التحقق من صحة رقم قوى إذا تم إدخاله (يجب أن يبدأ بـ 13 بصيغة 13-XXXXXXX)
+    if (formData.labor_subscription_number.trim()) {
+      const laborValidation = validateLaborSubscription(formData.labor_subscription_number.trim())
+      if (!laborValidation.valid) {
+        const errorMsg = laborValidation.error || 'رقم قوى غير صحيح'
+        console.error('❌ خطأ في التحقق:', errorMsg)
+        toast.error(errorMsg)
+        return false
+      }
     }
 
     // التحقق من صيغة التواريخ مع رسائل أوضح
