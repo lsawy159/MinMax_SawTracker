@@ -33,7 +33,11 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const ADMIN_EMAIL = Deno.env.get('VITE_ADMIN_EMAIL') || 'ahmad.alsawy159@gmail.com'
+const ADMIN_EMAIL = Deno.env.get('VITE_ADMIN_EMAIL')
+
+if (!ADMIN_EMAIL) {
+  throw new Error('VITE_ADMIN_EMAIL environment variable is required but not configured')
+}
 
 interface DailyExcelLog {
   id: string

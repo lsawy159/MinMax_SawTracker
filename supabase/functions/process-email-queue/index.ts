@@ -435,11 +435,6 @@ Deno.serve(async (req) => {
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
         for (const recipient of item.to_emails) {
-          // سجل أي بريد وهمي قبل الإصلاح
-          if (recipient === 'admin@sawtracker.com') {
-            console.warn(`[Email Queue] LOG: Found mock recipient 'admin@sawtracker.com' for item ${item.id}`)
-          }
-
           try {
             const resp = await fetch('https://api.resend.com/emails', {
               method: 'POST',

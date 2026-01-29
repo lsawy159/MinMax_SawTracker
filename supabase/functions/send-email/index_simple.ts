@@ -24,7 +24,7 @@ function formatEmailArray(email: string | string[]): string[] {
   return email && typeof email === 'string' ? [email.trim()] : []
 }
 
-// Helper to send email via external API
+// Helper to send email via Resend API (PRIMARY SERVICE)
 async function sendEmailViaAPI(
   to: string[],
   subject: string,
@@ -33,111 +33,39 @@ async function sendEmailViaAPI(
   cc?: string[],
   bcc?: string[]
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  // Option 1: Using SendGrid API (if configured)
-  const sendgridKey = Deno.env.get('SENDGRID_API_KEY')
-  if (sendgridKey) {
-    try {
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sendgridKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          personalizations: [{
-            to: to.map(email => ({ email })),
-            cc: cc?.map(email => ({ email })) || [],
-            bcc: bcc?.map(email => ({ email })) || [],
-            subject
-          }],
-          from: { email: Deno.env.get('SENDGRID_FROM_EMAIL') },
-          content: [
-            { type: 'text/plain', value: text || subject },
-            { type: 'text/html', value: html || `<p>${text || subject}</p>` }
-          ]
-        })
-      })
-
-      if (response.ok) {
-        return { success: true, messageId: response.headers.get('X-Message-Id') || 'sent' }
-      }
-      return { success: false, error: `SendGrid error: ${response.status}` }
-    } catch (error) {
-      console.error('SendGrid error:', error)
-      return { success: false, error: `SendGrid error: ${error.message}` }
-    }
-  }
-
-  // Option 2: Using Resend API (simpler alternative)
   const resendKey = Deno.env.get('RESEND_API_KEY')
-  if (resendKey) {
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: Deno.env.get('RESEND_FROM_EMAIL'),
-          to,
-          cc,
-          bcc,
-          subject,
-          html: html || `<p>${text || subject}</p>`,
-          text: text || subject
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return { success: true, messageId: data.id }
-      }
-      return { success: false, error: `Resend error: ${response.status}` }
-    } catch (error) {
-      console.error('Resend error:', error)
-      return { success: false, error: `Resend error: ${error.message}` }
-    }
+  if (!resendKey) {
+    const error = 'RESEND_API_KEY is not configured in Supabase Secrets'
+    console.error('❌', error)
+    return { success: false, error }
   }
 
-  // Option 3: Using Mailgun API
-  const mailgunKey = Deno.env.get('MAILGUN_API_KEY')
-  if (mailgunKey) {
-    try {
-      const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN') || 'mail.sawtracker.com'
-      const formData = new FormData()
-      formData.append('from', Deno.env.get('MAILGUN_FROM_EMAIL') || 'Ahmad.alsawy159@gmail.com')
-      to.forEach(email => formData.append('to', email))
-      if (cc) cc.forEach(email => formData.append('cc', email))
-      if (bcc) bcc.forEach(email => formData.append('bcc', email))
-      formData.append('subject', subject)
-      formData.append('text', text || subject)
-      formData.append('html', html || `<p>${text || subject}</p>`)
-
-      const response = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`api:${mailgunKey}`)}`
-        },
-        body: formData
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify({
+        from: Deno.env.get('RESEND_FROM_EMAIL'),
+        to,
+        cc,
+        bcc,
+        subject,
+        html: html || `<p>${text || subject}</p>`,
+        text: text || subject
       })
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        return { success: true, messageId: data.id }
-      }
-      return { success: false, error: `Mailgun error: ${response.status}` }
-    } catch (error) {
-      console.error('Mailgun error:', error)
-      return { success: false, error: `Mailgun error: ${error.message}` }
+    if (response.ok) {
+      const data = await response.json()
+      return { success: true, messageId: data.id }
     }
-  }
-
-  // Fallback: Log to console and return error
-  console.warn('No email service configured (SENDGRID_API_KEY, RESEND_API_KEY, or MAILGUN_API_KEY)')
-  return { 
-    success: false, 
-    error: 'No email service configured. Please set up SendGrid, Resend, or Mailgun API keys in Supabase Secrets.' 
+    return { success: false, error: `Resend API error (${response.status})` }
+  } catch (error) {
+    console.error('❌ Resend error:', error)
+    return { success: false, error: `Resend error: ${error.message}` }
   }
 }
 
