@@ -346,7 +346,8 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
 
       return {
-        isValid: missing.length === 0,
+        // ❌ رفض الملف إذا كان هناك أعمدة مفقودة أو أعمدة إضافية
+        isValid: missing.length === 0 && extra.length === 0,
         missing,
         extra
       }
@@ -879,11 +880,44 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             newDbConflicts.add(index)
           }
         })
+
+        // ✅ كشف التكرارات داخل ملف Excel نفسه (نفس الرقم الموحد مرتين في الملف)
+        const unifiedNumberMap = new Map<number, number[]>()
+        jsonData.forEach((row: Record<string, unknown>, index: number) => {
+          const unifiedNumber = row['الرقم الموحد'] ? Number(row['الرقم الموحد']) : null
+          if (unifiedNumber !== null && !isNaN(unifiedNumber)) {
+            const indices = unifiedNumberMap.get(unifiedNumber) || []
+            indices.push(index)
+            unifiedNumberMap.set(unifiedNumber, indices)
+          }
+        })
+
+        // أضف أخطاء للتكرارات داخل الملف نفسه
+        unifiedNumberMap.forEach((indices, unifiedNumber) => {
+          if (indices.length > 1) {
+            // نفس الرقم الموحد موجود مرتين أو أكثر في ملف Excel
+            indices.forEach(idx => {
+              const rowNum = idx + 2
+              errors.push({
+                row: rowNum,
+                field: 'الرقم الموحد',
+                message: `الرقم الموحد (${unifiedNumber}) مكرر في ملف Excel. لا يمكن استيراد صفين بنفس الرقم الموحد.`,
+                severity: 'error'
+              })
+            })
+          }
+        })
       }
 
       setValidationResults(errors)
       setDbConflicts(newDbConflicts)
-      setConflictResolution(new Map())
+      
+      // ✅ ضع الخيار الافتراضي "استبدال" لجميع التكرارات من قاعدة البيانات
+      const defaultConflictResolution = new Map<number, 'keep' | 'replace'>()
+      newDbConflicts.forEach(idx => {
+        defaultConflictResolution.set(idx, 'replace')  // الافتراضي = استبدال
+      })
+      setConflictResolution(defaultConflictResolution)
 
       if (errors.filter(e => e.severity === 'error').length === 0) {
         toast.success(`✓ تم التحقق من ${jsonData.length} سجل بنجاح`)
@@ -2069,7 +2103,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
   // حساب الأخطاء في جميع الصفوف
   const totalErrorCount = validationResults.filter(e => e.severity === 'error').length
-  const warningCount = validationResults.filter(e => e.severity === 'warning').length
   const errorRowCount = new Set(validationResults.filter(e => e.severity === 'error').map(e => e.row)).size
   const warningRowCount = new Set(validationResults.filter(e => e.severity === 'warning').map(e => e.row)).size
   
@@ -2096,24 +2129,27 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
   // حساب أخطاء مانعة ديناميكياً بناءً على الصفوف المحددة فقط والتكرارات الفعلية
   const getBlockingErrorCount = useMemo((): number => {
+    const errorRows = new Set<number>()
+
+    // ✅ إذا كانت هناك صفوف محددة، احسب الأخطاء للصفوف المحددة فقط
+    // إذا لم تكن هناك صفوف محددة، احسب الأخطاء لجميع الصفوف
     const targetIndices = selectedRows.size > 0
       ? Array.from(selectedRows)
       : previewData.map((_, idx) => idx)
 
-    const errorRows = new Set<number>()
-
-    // أخطاء التحقق الأصلية للصفوف المستهدفة
-    targetIndices.forEach(idx => {
-      const excelRowNumber = idx + 2
-      const rowErrors = validationResults.filter(
-        e => e.row === excelRowNumber && e.severity === 'error'
-      )
-      if (rowErrors.length > 0) {
-        errorRows.add(idx)
+    // احسب الأخطاء من validation results للصفوف المستهدفة فقط
+    validationResults.forEach(error => {
+      if (error.severity === 'error' && error.row > 1) {
+        // Excel row numbers start from 2 (1 is header)
+        const dataIndex = error.row - 2
+        if (dataIndex >= 0 && dataIndex < previewData.length && targetIndices.includes(dataIndex)) {
+          errorRows.add(dataIndex)
+        }
       }
     })
 
-    // إعادة تقييم التكرارات ديناميكياً بناءً على الصفوف المستهدفة
+    // ✅ التكرارات من النظام فقط (Database duplicates) يمكن استبدالها
+    // التكرارات الداخلية (Internal duplicates) لا يمكن حلها - مانعة دائماً
     const duplicateGroups = new Map<string, number[]>()
     targetIndices.forEach(idx => {
       const row = previewData[idx]
@@ -2127,14 +2163,33 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       duplicateGroups.set(key, list)
     })
 
+    // فقط DB duplicates (موجودة في النظام بالفعل) يمكن استبدالها
     duplicateGroups.forEach(indices => {
       if (indices.length > 1) {
-        indices.forEach(i => errorRows.add(i))
+        // تحقق من أن جميع النسخ المكررة هي من DB conflicts (موجودة بالفعل)
+        const allAreDbConflicts = indices.every(i => dbConflicts.has(i))
+        
+        if (allAreDbConflicts) {
+          // كل النسخ المكررة من النظام - الافتراضي = "استبدال"
+          // فقط أضفها للأخطاء إذا اختار المستخدم "بقاء" بشكل صريح
+          const hasKeepChoice = indices.some(i => conflictResolution.get(i) === 'keep')
+          if (hasKeepChoice) {
+            indices.forEach(i => {
+              if (conflictResolution.get(i) === 'keep') {
+                errorRows.add(i)
+              }
+            })
+          }
+        } else {
+          // بعض النسخ المكررة من ملف Excel نفسه → خطأ مانع دائماً
+          // (لا يمكن استبدالها - يجب إصلاح الملف)
+          indices.forEach(i => errorRows.add(i))
+        }
       }
     })
 
     return errorRows.size
-  }, [previewData, selectedRows, validationResults, importType])
+  }, [previewData, validationResults, importType, conflictResolution, dbConflicts, selectedRows])
   
   const selectedRowsErrorCount = getSelectedRowsErrors()
   const blockingErrorCount = getBlockingErrorCount
@@ -2315,19 +2370,19 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               ملخص نتائج التحقق
             </h4>
             <div className="flex items-center gap-4">
-              {errorCount > 0 && (
+              {errorRowCount > 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
                   <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="font-bold text-red-700">{errorCount} خطأ</span>
+                  <span className="font-bold text-red-700">{errorRowCount} {errorRowCount === 1 ? 'صف به خطأ' : 'صفوف بها أخطاء'}</span>
                 </div>
               )}
-              {warningCount > 0 && (
+              {warningRowCount > 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
                   <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <span className="font-bold text-yellow-700">{warningCount} تحذير</span>
+                  <span className="font-bold text-yellow-700">{warningRowCount} {warningRowCount === 1 ? 'صف به تحذير' : 'صفوف بها تحذيرات'}</span>
                 </div>
               )}
-              {errorCount === 0 && warningCount === 0 && (
+              {errorRowCount === 0 && warningRowCount === 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
                   <CheckCircle className="w-5 h-5 text-green-600" />
                   <span className="font-bold text-green-700">جاهز للاستيراد</span>
@@ -2369,48 +2424,73 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 الأعمدة في ملف Excel لا تطابق الأعمدة المطلوبة من النظام.
               </p>
               <p className="text-red-700 text-sm mb-4">
-                <strong>يرجى إعادة تسمية أعمدة Excel لتطابق الأعمدة المطلوبة أدناه حتى يتم الاستيراد بنجاح.</strong>
+                <strong>يرجى تصحيح ملف Excel ليحتوي على الأعمدة المطلوبة فقط - بدون نقص أو زيادة.</strong>
               </p>
               
               {columnValidationError.missing.length > 0 && (
                 <div className="mb-4">
-                  <h5 className="font-bold text-red-900 mb-2">الأعمدة المفقودة ({columnValidationError.missing.length}):</h5>
-                  <div className="bg-red-100 rounded p-3">
+                  <h5 className="font-bold text-red-900 mb-2 flex items-center gap-2">
+                    <XCircle className="w-5 h-5" />
+                    الأعمدة المفقودة ({columnValidationError.missing.length}) - يجب إضافتها:
+                  </h5>
+                  <div className="bg-red-100 rounded p-3 border-l-4 border-red-600">
                     <ul className="list-disc list-inside space-y-1">
                       {columnValidationError.missing.map((col, index) => (
                         <li key={index} className="text-red-800 font-medium">{col}</li>
                       ))}
                     </ul>
                   </div>
+                  <p className="text-xs text-red-700 mt-2 font-semibold">
+                    ⚠️ لا يمكن الاستيراد بدون هذه الأعمدة
+                  </p>
                 </div>
               )}
 
               {columnValidationError.extra.length > 0 && (
                 <div className="mb-4">
-                  <h5 className="font-bold text-yellow-900 mb-2">الأعمدة الإضافية (غير مطلوبة):</h5>
-                  <div className="bg-yellow-100 rounded p-3">
+                  <h5 className="font-bold text-orange-900 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    الأعمدة الإضافية ({columnValidationError.extra.length}) - يجب حذفها:
+                  </h5>
+                  <div className="bg-orange-100 rounded p-3 border-l-4 border-orange-600">
                     <ul className="list-disc list-inside space-y-1">
                       {columnValidationError.extra.map((col, index) => (
-                        <li key={index} className="text-yellow-800">{col}</li>
+                        <li key={index} className="text-orange-800 font-medium">{col}</li>
                       ))}
                     </ul>
                   </div>
+                  <p className="text-xs text-orange-700 mt-2 font-semibold">
+                    ⚠️ النظام يقبل الأعمدة المطلوبة فقط - يرجى حذف هذه الأعمدة من ملف Excel
+                  </p>
                 </div>
               )}
 
               <div className="mt-4 pt-4 border-t border-red-200">
-                <h5 className="font-bold text-gray-900 mb-3">
-                  الأعمدة المطلوبة ({importType === 'employees' ? EMPLOYEE_COLUMNS_ORDER.length : COMPANY_COLUMNS_ORDER.length} عمود):
+                <h5 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  الأعمدة المطلوبة بالضبط ({importType === 'employees' ? EMPLOYEE_COLUMNS_ORDER.length : COMPANY_COLUMNS_ORDER.length} عمود):
                 </h5>
                 <div className="bg-gray-50 rounded p-4 border border-gray-200">
+                  <p className="text-xs text-gray-600 mb-3 font-medium">
+                    📋 يجب أن يحتوي ملف Excel على هذه الأعمدة فقط - بنفس الترتيب والأسماء:
+                  </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {(importType === 'employees' ? EMPLOYEE_COLUMNS_ORDER : COMPANY_COLUMNS_ORDER).map((col, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <span className="text-gray-600 font-mono text-xs">{index + 1}.</span>
-                        <span className="text-gray-800 font-medium">{col}</span>
+                      <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200">
+                        <span className="text-gray-600 font-mono text-xs bg-gray-100 px-2 py-1 rounded">{index + 1}</span>
+                        <span className="text-gray-800 font-medium text-sm">{col}</span>
                       </div>
                     ))}
                   </div>
+                </div>
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
+                  <p className="text-xs text-blue-800 flex items-start gap-2">
+                    <span className="text-base flex-shrink-0">💡</span>
+                    <span>
+                      <strong>نصيحة:</strong> افتح ملف Excel، احذف الأعمدة الإضافية، وتأكد من أن أسماء الأعمدة تطابق القائمة أعلاه تماماً (بما في ذلك المسافات والرموز).
+                      يمكنك تحميل القالب الصحيح من قسم "التصدير" لضمان التطابق.
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -3106,19 +3186,19 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                         ملخص نتائج التحقق
                       </h4>
                       <div className="flex items-center gap-4">
-                        {errorCount > 0 && (
+                        {errorRowCount > 0 && (
                           <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
                             <XCircle className="w-5 h-5 text-red-600" />
-                            <span className="font-bold text-red-700">{errorCount} خطأ</span>
+                            <span className="font-bold text-red-700">{errorRowCount} {errorRowCount === 1 ? 'صف به خطأ' : 'صفوف بها أخطاء'}</span>
                           </div>
                         )}
-                        {warningCount > 0 && (
+                        {warningRowCount > 0 && (
                           <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
                             <AlertCircle className="w-5 h-5 text-yellow-600" />
-                            <span className="font-bold text-yellow-700">{warningCount} تحذير</span>
+                            <span className="font-bold text-yellow-700">{warningRowCount} {warningRowCount === 1 ? 'صف به تحذير' : 'صفوف بها تحذيرات'}</span>
                           </div>
                         )}
-                        {errorCount === 0 && warningCount === 0 && (
+                        {errorRowCount === 0 && warningRowCount === 0 && (
                           <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
                             <CheckCircle className="w-5 h-5 text-green-600" />
                             <span className="font-bold text-green-700">جاهز للاستيراد</span>
@@ -3298,9 +3378,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                                   }
                                 >
                                   {status.hasError ? 'خطأ' : status.hasWarning ? 'تحذير' : 'سليم'}
-                                  {isConflictRow && !conflictChoice && (
-                                    <span className="ml-1 text-[9px] font-semibold text-orange-700">قرار مطلوب</span>
-                                  )}
+                                  {/* إزالة الرسالة "قرار مطلوب" لأن الخيار الافتراضي = "استبدال" */}
                                 </span>
                                 {isConflictRow && (
                                   <div className="mt-1 flex items-center gap-2 justify-center text-[10px] text-gray-700">
