@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   calculateDaysRemaining,
   calculateCommercialRegistrationStatus,
-  calculateSocialInsuranceStatus,
   calculateCommercialRegStats,
-  calculateSocialInsuranceStats,
   calculateCompanyStatusStats,
 } from '../autoCompanyStatus'
 
@@ -161,61 +159,6 @@ describe('autoCompanyStatus utils', () => {
     })
   })
 
-  describe('calculateSocialInsuranceStatus', () => {
-    it('should return "غير محدد" status for null date', () => {
-      const result = calculateSocialInsuranceStatus(null)
-      
-      expect(result.status).toBe('غير محدد')
-      expect(result.daysRemaining).toBe(0)
-      expect(result.priority).toBe('low')
-      expect(result.description).toContain('غير محدد')
-    })
-
-    it('should return "منتهي" status for expired date', () => {
-      const result = calculateSocialInsuranceStatus(yesterday.toISOString())
-      
-      expect(result.status).toBe('منتهي')
-      expect(result.daysRemaining).toBeLessThan(0)
-      expect(result.priority).toBe('urgent')
-      expect(result.description).toContain('انتهى')
-    })
-
-    it('should return "طارئ" status for 0 days remaining', () => {
-      const result = calculateSocialInsuranceStatus(today.toISOString())
-      
-      expect(result.status).toBe('طارئ')
-      expect(result.daysRemaining).toBe(0)
-      expect(result.priority).toBe('urgent')
-      expect(result.description).toContain('اليوم')
-    })
-
-    it('should return "متوسط" status for 15 days remaining', () => {
-      const result = calculateSocialInsuranceStatus(in15Days.toISOString())
-      
-      expect(result.status).toBe('عاجل')
-      expect(result.daysRemaining).toBe(15)
-      expect(result.priority).toBe('high')
-    })
-
-    it('should return "ساري" status for 45 days remaining', () => {
-      const result = calculateSocialInsuranceStatus(in45Days.toISOString())
-      
-      expect(result.status).toBe('ساري')
-      expect(result.daysRemaining).toBe(45)
-      expect(result.priority).toBe('low')
-    })
-
-    it('should have same structure as commercial registration status', () => {
-      const result = calculateSocialInsuranceStatus(in45Days.toISOString())
-      
-      expect(result).toHaveProperty('status')
-      expect(result).toHaveProperty('daysRemaining')
-      expect(result).toHaveProperty('color')
-      expect(result).toHaveProperty('description')
-      expect(result).toHaveProperty('priority')
-    })
-  })
-
   describe('calculateCommercialRegStats', () => {
     it('should return correct stats for empty array', () => {
       const stats = calculateCommercialRegStats([])
@@ -292,55 +235,6 @@ describe('autoCompanyStatus utils', () => {
     })
   })
 
-  describe('calculateSocialInsuranceStats', () => {
-    it('should return correct stats for empty array', () => {
-      const stats = calculateSocialInsuranceStats([])
-      
-      expect(stats.total).toBe(0)
-      expect(stats.expired).toBe(0)
-      expect(stats.urgent).toBe(0)
-      expect(stats.high).toBe(0)
-      expect(stats.medium).toBe(0)
-      expect(stats.valid).toBe(0)
-    })
-
-    it('should calculate correct stats for mixed companies', () => {
-      const companies = [
-        { social_insurance_expiry: yesterday.toISOString().split('T')[0] }, // منتهي
-        { social_insurance_expiry: in5Days.toISOString().split('T')[0] },   // طارئ
-        { social_insurance_expiry: in15Days.toISOString().split('T')[0] },  // متوسط
-        { social_insurance_expiry: in45Days.toISOString().split('T')[0] },  // ساري
-      ]
-      
-      const stats = calculateSocialInsuranceStats(companies)
-      
-      expect(stats.total).toBe(4)
-      expect(stats.expired).toBe(1)
-      expect(stats.urgent).toBe(1)
-      expect(stats.high).toBe(1)
-      expect(stats.medium).toBe(0)
-      expect(stats.valid).toBe(1)
-    })
-
-    it('should have same structure as commercial reg stats', () => {
-      const stats = calculateSocialInsuranceStats([])
-      
-      expect(stats).toHaveProperty('total')
-      expect(stats).toHaveProperty('expired')
-      expect(stats).toHaveProperty('urgent')
-      expect(stats).toHaveProperty('high')
-      expect(stats).toHaveProperty('medium')
-      expect(stats).toHaveProperty('valid')
-      expect(stats).toHaveProperty('notSpecified')
-      expect(stats).toHaveProperty('percentageValid')
-      expect(stats).toHaveProperty('percentageExpired')
-      expect(stats).toHaveProperty('percentageUrgent')
-      expect(stats).toHaveProperty('percentageHigh')
-      expect(stats).toHaveProperty('percentageMedium')
-      expect(stats).toHaveProperty('percentageNotSpecified')
-    })
-  })
-
   describe('calculateCompanyStatusStats', () => {
     it('should return correct combined stats', () => {
       const companies = [
@@ -348,13 +242,11 @@ describe('autoCompanyStatus utils', () => {
           id: '1',
           name: 'شركة 1',
           commercial_registration_expiry: in45Days.toISOString().split('T')[0],
-          social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
         {
           id: '2',
           name: 'شركة 2',
           commercial_registration_expiry: in5Days.toISOString().split('T')[0],
-          social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
       ]
       
@@ -362,7 +254,6 @@ describe('autoCompanyStatus utils', () => {
       
       expect(stats.totalCompanies).toBe(2)
       expect(stats.commercialRegStats.total).toBe(2)
-      expect(stats.socialInsuranceStats.total).toBe(2)
     })
 
     it('should calculate critical alerts correctly', () => {
@@ -371,13 +262,11 @@ describe('autoCompanyStatus utils', () => {
           id: '1',
           name: 'شركة طارئة',
           commercial_registration_expiry: in5Days.toISOString().split('T')[0], // طارئ
-          social_insurance_expiry: in45Days.toISOString().split('T')[0], // ساري
         },
         {
           id: '2',
           name: 'شركة سارية',
           commercial_registration_expiry: in45Days.toISOString().split('T')[0],
-          social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
       ]
       
@@ -393,13 +282,11 @@ describe('autoCompanyStatus utils', () => {
           id: '1',
           name: 'شركة متوسطة',
           commercial_registration_expiry: in15Days.toISOString().split('T')[0], // عاجل
-          social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
         {
           id: '2',
           name: 'شركة سارية',
           commercial_registration_expiry: in45Days.toISOString().split('T')[0],
-          social_insurance_expiry: in45Days.toISOString().split('T')[0],
         },
       ]
       
@@ -414,15 +301,13 @@ describe('autoCompanyStatus utils', () => {
           id: '1',
           name: 'شركة بدون تواريخ',
           commercial_registration_expiry: null,
-          social_insurance_expiry: null,
-        },
+        }
       ]
       
       const stats = calculateCompanyStatusStats(companies)
       
       expect(stats.totalCompanies).toBe(1)
       expect(stats.commercialRegStats.notSpecified).toBe(1)
-      expect(stats.socialInsuranceStats.notSpecified).toBe(1)
       expect(stats.totalCriticalAlerts).toBe(0)
     })
 

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { LogIn, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -30,7 +30,7 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     try {
-      await signIn(email, password)
+      await signIn(username, password)
       // لا ننتقل هنا مباشرة، بل ننتظر useEffect أعلاه
       // useEffect سينتقل تلقائياً عندما يكون user موجود و authLoading = false
     } catch {
@@ -55,8 +55,8 @@ export default function Login() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 text-right">البريد الإلكتروني</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required dir="ltr" />
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-right">اسم المستخدم (للمستخدمين) أو البريد الإلكتروني (للمدير)</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required dir="ltr" placeholder="username أو email" minLength={3} maxLength={50} pattern="[a-zA-Z0-9@._\-]+" title="حروف، أرقام، @، _ أو - أو . فقط" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 text-right">كلمة المرور</label>

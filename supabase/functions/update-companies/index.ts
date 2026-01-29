@@ -51,10 +51,7 @@ serve(async (req) => {
     const thresholds = statusSettings?.setting_value || {
       commercial_reg_urgent_days: 7,   // طارئ
       commercial_reg_high_days: 30,    // عاجل
-      commercial_reg_medium_days: 45,  // متوسط
-      social_insurance_urgent_days: 7,   // طارئ
-      social_insurance_high_days: 30,    // عاجل
-      social_insurance_medium_days: 45   // متوسط
+      commercial_reg_medium_days: 45   // متوسط
     }
     
     if (allCompanies && allCompanies.length > 0) {
@@ -62,7 +59,6 @@ serve(async (req) => {
         try {
           // حساب الحالات
           let commercialRegStatus = 'غير محدد'
-          let insuranceStatus = 'غير محدد'
           let taxNumber = company.tax_number || null
           
           // حساب حالة السجل التجاري
@@ -81,24 +77,6 @@ serve(async (req) => {
               commercialRegStatus = 'متوسط'
             } else {
               commercialRegStatus = 'ساري'
-            }
-          }
-          
-          // حساب حالة اشتراك التأمينات
-          if (company.social_insurance_expiry || company.insurance_subscription_expiry) {
-            const expiryDate = new Date(company.social_insurance_expiry || company.insurance_subscription_expiry)
-            const daysDiff = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-            
-            if (daysDiff <= 0) {
-              insuranceStatus = 'منتهي'
-            } else if (daysDiff <= thresholds.social_insurance_urgent_days) {
-              insuranceStatus = 'طارئ'
-            } else if (daysDiff <= thresholds.social_insurance_high_days) {
-              insuranceStatus = 'عاجل'
-            } else if (daysDiff <= thresholds.social_insurance_medium_days) {
-              insuranceStatus = 'متوسط'
-            } else {
-              insuranceStatus = 'ساري'
             }
           }
           
@@ -179,15 +157,6 @@ serve(async (req) => {
           else if (company.commercial_registration_status === 'عاجل' || company.commercial_registration_status.includes('عاجل')) stats.highCommercial++
           else if (company.commercial_registration_status === 'متوسط' || company.commercial_registration_status.includes('متوسط')) stats.mediumCommercial++
           else if (company.commercial_registration_status === 'ساري') stats.activeCommercial++
-        }
-        
-        if (company.insurance_subscription_status || company.social_insurance_status) {
-          const status = company.insurance_subscription_status || company.social_insurance_status
-          if (status === 'منتهي') stats.expiredInsurance++
-          else if (status === 'طارئ' || status.includes('طارئ')) stats.urgentInsurance++
-          else if (status === 'عاجل' || status.includes('عاجل')) stats.highInsurance++
-          else if (status === 'متوسط' || status.includes('متوسط')) stats.mediumInsurance++
-          else if (status === 'ساري') stats.activeInsurance++
         }
       }
       

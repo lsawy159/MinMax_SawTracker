@@ -9,6 +9,13 @@ export interface ParseDateResult {
   format?: string
 }
 
+const NO_VALUE_TEXT = 'لا يوجد'
+
+const isNoValue = (value: string | null | undefined): boolean => {
+  if (!value || typeof value !== 'string') return false
+  return value.trim() === NO_VALUE_TEXT
+}
+
 /**
  * أسماء الأشهر بالإنجليزية (كاملة ومختصرة)
  */
@@ -362,6 +369,13 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
     }
   }
 
+  if (isNoValue(trimmed)) {
+    return {
+      date: null,
+      format: 'no_value'
+    }
+  }
+
   // محاولة الصيغ المختلفة بالترتيب
   // نبدأ بالصيغ الأكثر شيوعاً في Excel
   // نضع DD/MM/YYYY أولاً لأنه الأكثر شيوعاً
@@ -475,6 +489,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
  * تحويل التاريخ إلى صيغة YYYY-MM-DD
  */
 export function normalizeDate(dateStr: string | null | undefined): string | null {
+  if (isNoValue(dateStr || '')) return null
   const result = parseDate(dateStr)
   if (result.date) {
     const year = result.date.getFullYear()
@@ -489,6 +504,7 @@ export function normalizeDate(dateStr: string | null | undefined): string | null
  * التحقق من صحة التاريخ
  */
 export function isValidDate(dateStr: string | null | undefined): boolean {
+  if (isNoValue(dateStr || '')) return true
   const result = parseDate(dateStr)
   return result.date !== null
 }

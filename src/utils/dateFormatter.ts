@@ -1,6 +1,14 @@
 import { toHijri } from 'hijri-converter'
 import { normalizeDate as parseNormalizeDate, isValidDate as parseIsValidDate } from './dateParser'
 
+const NO_VALUE_TEXT = 'لا يوجد'
+
+const isNoValue = (value: string | Date | null | undefined): boolean => {
+  if (value === null || value === undefined) return true
+  if (typeof value === 'string') return value.trim() === NO_VALUE_TEXT || value.trim() === ''
+  return false
+}
+
 /**
  * تحويل التاريخ الميلادي إلى هجري
  */
@@ -26,8 +34,8 @@ export function toHijriDate(date: Date | null | undefined): { year: number; mont
  * تنسيق التاريخ الهجري كنص
  */
 export function formatHijriDate(date: Date | null | undefined): string {
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const hijri = toHijriDate(date)
@@ -46,8 +54,8 @@ export function formatHijriDate(date: Date | null | undefined): string {
  */
 export function formatGregorianDate(date: Date | string | null | undefined, includeTime: boolean = false): string {
   // التحقق من القيم الفارغة
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -79,8 +87,8 @@ export function formatGregorianDate(date: Date | string | null | undefined, incl
  */
 export function formatDateWithHijri(date: Date | string | null | undefined, includeTime: boolean = false): string {
   // التحقق من القيم الفارغة
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -98,8 +106,8 @@ export function formatDateWithHijri(date: Date | string | null | undefined, incl
  */
 export function formatDateShortWithHijri(date: Date | string | null | undefined): string {
   // التحقق من القيم الفارغة
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -121,8 +129,8 @@ export function formatDateShortWithHijri(date: Date | string | null | undefined)
  */
 export function formatDateTimeWithHijri(date: Date | string | null | undefined): string {
   // التحقق من القيم الفارغة
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -146,8 +154,8 @@ export function formatDateTimeWithHijri(date: Date | string | null | undefined):
  */
 export function formatDateDDMMMYYYY(date: Date | string | null | undefined): string {
   // التحقق من القيم الفارغة
-  if (!date || date === null || date === undefined) {
-    return ''
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
   }
   
   const dateObj = typeof date === 'string' ? new Date(date) : date

@@ -13,9 +13,6 @@ const DEFAULT_THRESHOLDS = {
   commercial_reg_urgent_days: 30,
   commercial_reg_high_days: 45,
   commercial_reg_medium_days: 60,
-  social_insurance_urgent_days: 30,  // بدلاً من insurance_urgent_days
-  social_insurance_high_days: 45,
-  social_insurance_medium_days: 60,   // بدلاً من insurance_medium_days
   health_insurance_urgent_days: 30,
   health_insurance_high_days: 45,
   health_insurance_medium_days: 60,
@@ -87,8 +84,6 @@ export interface Company {
   unified_number?: number
   commercial_registration_number?: string
   commercial_registration_expiry?: string
-  social_insurance_expiry?: string  // بدلاً من insurance_subscription_expiry
-  social_insurance_start?: string   // بدلاً من insurance_subscription_start
   ending_subscription_power_date?: string
   ending_subscription_moqeem_date?: string
   created_at: string
@@ -106,12 +101,6 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
     const commercialRegAlert = await checkCommercialRegistrationExpiry(company)
     if (commercialRegAlert) {
       alerts.push(commercialRegAlert)
-    }
-    
-    // إضافة تنبيهات التأمينات الاجتماعية
-    const socialInsuranceAlert = await checkSocialInsuranceExpiry(company)
-    if (socialInsuranceAlert) {
-      alerts.push(socialInsuranceAlert)
     }
     
     // إضافة تنبيهات اشتراك قوى
@@ -223,45 +212,6 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
             expiry_date: company.commercial_registration_expiry,
             days_remaining: daysRemaining,
             action_required: `قم بتجديد السجل التجاري للمؤسسة "${company.name}"`,
-            created_at: new Date().toISOString()
-          })
-        }
-      }
-      
-      // إضافة تنبيهات التأمينات الاجتماعية (في النسخة المتزامنة)
-      if (company.social_insurance_expiry) {
-        const today = new Date()
-        const expiryDate = new Date(company.social_insurance_expiry)
-        const timeDiff = expiryDate.getTime() - today.getTime()
-        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
-        
-        if (daysRemaining <= thresholds.social_insurance_medium_days) {
-          let priority: Alert['priority']
-          if (daysRemaining < 0) {
-            priority = 'urgent'
-          } else if (daysRemaining <= thresholds.social_insurance_urgent_days) {
-            priority = 'urgent'
-          } else if (daysRemaining <= (thresholds.social_insurance_high_days || thresholds.social_insurance_urgent_days + 15)) {
-            priority = 'high'
-          } else {
-            priority = 'medium'
-          }
-          
-          alerts.push({
-            id: `social_insurance_${company.id}_${company.social_insurance_expiry}`,
-            type: 'social_insurance_expiry',
-            priority,
-            title: 'انتهاء صلاحية التأمينات الاجتماعية',
-            message: `تنتهي التأمينات الاجتماعية للمؤسسة "${company.name}" ${daysRemaining < 0 ? `منذ ${Math.abs(daysRemaining)} يوم` : `خلال ${daysRemaining} يوم`}`,
-            company: {
-              id: company.id,
-              name: company.name,
-              commercial_registration_number: company.commercial_registration_number,
-              unified_number: company.unified_number
-            },
-            expiry_date: company.social_insurance_expiry,
-            days_remaining: daysRemaining,
-            action_required: `قم بتجديد التأمينات الاجتماعية للمؤسسة "${company.name}"`,
             created_at: new Date().toISOString()
           })
         }
@@ -380,6 +330,52 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
       }
   })
   
+  // 🚨 EMERGENCY: Save alerts to daily_excel_logs for consolidation into daily Excel digest
+  // Check for duplicates before inserting to prevent repeated alerts
+  if (import.meta.env.MODE !== 'test' && !import.meta.env.VITEST) {
+    const logPromises = alerts
+      .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
+      .map(async alert => {
+        try {
+          // Insert alert - database unique constraint prevents duplicates
+          const { error } = await supabase
+            .from('daily_excel_logs')
+            .insert({
+              company_id: alert.company?.id || null,
+              alert_type: alert.type,
+              priority: alert.priority,
+              title: alert.title,
+              message: alert.message,
+              action_required: alert.action_required,
+              expiry_date: alert.expiry_date,
+              details: {
+                company_name: alert.company?.name,
+                company_commercial_id: alert.company?.commercial_registration_number,
+                unified_number: alert.company?.unified_number,
+              },
+            })
+
+          if (error) {
+            // Check if it's a duplicate constraint error (code 23505)
+            if (error.code === '23505') {
+              logger.debug(`⏭️ Company alert already exists: ${alert.type} for ${alert.company?.name}`)
+            } else {
+              logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
+            }
+          } else {
+            logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
+          }
+        } catch (logError) {
+          logger.error(`Exception logging company alert ${alert.id}:`, logError)
+        }
+      })
+
+    // Wait for all log promises to settle, but don't block the alert return
+    Promise.allSettled(logPromises).catch(err => {
+      logger.error('Error settling company log promises:', err)
+    })
+  }
+
   return alerts.sort((a, b) => {
     const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
@@ -458,85 +454,6 @@ export async function checkCommercialRegistrationExpiry(company: Company): Promi
       unified_number: company.unified_number
     },
     expiry_date: company.commercial_registration_expiry,
-    days_remaining: daysRemaining,
-    action_required: actionRequired,
-    created_at: new Date().toISOString()
-  }
-}
-
-/**
- * فحص انتهاء صلاحية التأمينات الاجتماعية للمؤسسة
- */
-export async function checkSocialInsuranceExpiry(company: Company): Promise<Alert | null> {
-  // إذا لم يكن هناك تاريخ انتهاء للتأمينات الاجتماعية، نتحقق من تاريخ البداية لحساب المدة الافتراضية
-  if (!company.social_insurance_expiry && !company.social_insurance_start) {
-    return null
-  }
-  
-  const today = new Date()
-  
-  let expiryDate: Date
-  let message: string
-  let actionRequired: string
-  let priority: Alert['priority']
-  
-  // حساب تاريخ انتهاء التأمينات الاجتماعية
-  if (company.social_insurance_expiry) {
-    expiryDate = new Date(company.social_insurance_expiry)
-  } else {
-    // إذا لم يكن هناك تاريخ انتهاء، نحسب سنة واحدة من تاريخ البداية
-    const startDate = new Date(company.social_insurance_start!)
-    expiryDate = new Date(startDate)
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1)
-  }
-  
-  const timeDiff = expiryDate.getTime() - today.getTime()
-  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
-  
-  const thresholds = await getNotificationThresholds()
-  
-  // لا يوجد تنبيه إذا كانت التأمينات الاجتماعية سارية لأكثر من الحد الأقصى
-  if (daysRemaining > thresholds.social_insurance_medium_days) {
-    return null
-  }
-  
-  // تحديد الأولوية حسب عدد الأيام المتبقية
-  if (daysRemaining < 0) {
-    priority = 'urgent'
-    const daysExpired = Math.abs(daysRemaining)
-    message = `انتهت صلاحية التأمينات الاجتماعية للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديدها فوراً لحماية المؤسسة من المخاطر.`
-    actionRequired = `قم بتجديد التأمينات الاجتماعية للمؤسسة "${company.name}" فوراً لضمان الحماية القانونية والمالية.`
-  } else if (daysRemaining <= thresholds.social_insurance_urgent_days) {
-    priority = 'urgent'
-    message = `تنتهي التأمينات الاجتماعية للمؤسسة "${company.name}" خلال ${daysRemaining} يوم. يجب تجديدها فوراً.`
-    actionRequired = `قم بترتيب تجديد التأمينات الاجتماعية للمؤسسة "${company.name}" خلال ${daysRemaining} يوم القادمة.`
-  } else if (daysRemaining <= (thresholds.social_insurance_high_days || thresholds.social_insurance_urgent_days + 15)) {
-    priority = 'high'
-    message = `تنتهي التأمينات الاجتماعية للمؤسسة "${company.name}" خلال ${daysRemaining} يوم. يجب تجديدها قريباً.`
-    actionRequired = `قم بترتيب تجديد التأمينات الاجتماعية للمؤسسة "${company.name}" خلال ${daysRemaining} يوم القادمة.`
-  } else if (daysRemaining <= thresholds.social_insurance_medium_days) {
-    priority = 'medium'
-    message = `تنتهي التأمينات الاجتماعية للمؤسسة "${company.name}" خلال ${daysRemaining} يوم. يفضل تجديدها قبل انتهاء المدة.`
-    actionRequired = `قم بمراجعة وتجديد التأمينات الاجتماعية للمؤسسة "${company.name}" خلال الشهر القادم.`
-  } else {
-    priority = 'low'
-    message = `التأمينات الاجتماعية للمؤسسة "${company.name}" ستنتهي خلال ${daysRemaining} يوم.`
-    actionRequired = `قم بمتابعة تجديد التأمينات الاجتماعية للمؤسسة "${company.name}" عند الحاجة.`
-  }
-  
-  return {
-    id: `social_insurance_${company.id}_${expiryDate.toISOString().split('T')[0]}`,
-    type: 'social_insurance_expiry',
-    priority,
-    title: 'انتهاء صلاحية التأمينات الاجتماعية',
-    message,
-    company: {
-      id: company.id,
-      name: company.name,
-      commercial_registration_number: company.commercial_registration_number,
-      unified_number: company.unified_number
-    },
-    expiry_date: expiryDate.toISOString().split('T')[0],
     days_remaining: daysRemaining,
     action_required: actionRequired,
     created_at: new Date().toISOString()
@@ -755,7 +672,6 @@ export function getAlertsStats(alerts: Alert[]) {
   
   // عد التنبيهات حسب النوع (عدد التنبيهات، ليس المؤسسات)
   const commercialRegAlerts = alerts.filter(a => a.type === 'commercial_registration_expiry').length
-  const socialInsuranceAlerts = alerts.filter(a => a.type === 'social_insurance_expiry').length
   const powerAlerts = alerts.filter(a => a.type === 'power_subscription_expiry').length
   const moqeemAlerts = alerts.filter(a => a.type === 'moqeem_subscription_expiry').length
   
@@ -767,7 +683,6 @@ export function getAlertsStats(alerts: Alert[]) {
     medium,
     low,
     commercialRegAlerts,
-    socialInsuranceAlerts,  // بدلاً من insuranceAlerts
     powerAlerts,
     moqeemAlerts
   }

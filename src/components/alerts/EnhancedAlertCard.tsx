@@ -2,7 +2,6 @@ import {
   AlertTriangle, 
   Calendar, 
   Building2, 
-  Shield, 
   Clock, 
   ExternalLink, 
   RefreshCw, 
@@ -19,7 +18,7 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
 export interface EnhancedAlert {
   id: string
-  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry' | 'government_docs_renewal'
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -35,7 +34,7 @@ export interface EnhancedAlert {
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   
   // Enhanced fields
-  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'government_docs_renewal'
   document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
@@ -175,8 +174,6 @@ export function EnhancedAlertCard({
     switch (type) {
   case 'commercial_registration_expiry':
         return <Building2 className="h-5 w-5" />
-      case 'social_insurance_expiry':  // تحديث: insurance_subscription → social_insurance_expiry
-        return <Shield className="h-5 w-5" />
       case 'government_docs_renewal':
         return <FileText className="h-5 w-5" />
       default:
@@ -188,7 +185,6 @@ export function EnhancedAlertCard({
     const labels = {
       commercial_registration_expiry: 'السجل التجاري',
       commercial_registration: 'السجل التجاري',
-      social_insurance_expiry: 'التأمينات الاجتماعية',  // تحديث: insurance_subscription → social_insurance_expiry
       government_docs_renewal: 'الوثائق الحكومية'
     }
     return labels[type] || type

@@ -48,8 +48,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: { section: 'dashboard' as const, action: 'view' }, badge: null },
-    { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null },
-    { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null },
+    { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
+    { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
     { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: { section: 'projects' as const, action: 'view' }, badge: null },
     { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: { section: 'alerts' as const, action: 'view' }, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
     { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: { section: 'advancedSearch' as const, action: 'view' }, badge: null },
@@ -184,20 +184,44 @@ export default function Layout({ children }: { children: ReactNode }) {
                       </div>
                       
                       {hasBadge && !isCollapsed && (
-                        <div className={`
-                          flex items-center justify-center
-                          min-w-[18px] h-[18px] px-1 rounded-full
-                          text-[10px] font-bold text-white
-                          shadow-sm transition-transform duration-200
-                          ${
-                            item.badge?.color === 'red' 
-                              ? 'bg-red-500' 
-                              : 'bg-blue-500'
-                          }
-                          ${isActive ? 'scale-110' : 'group-hover:scale-105'}
-                        `}>
-                          {item.badge!.count > 99 ? '99+' : item.badge!.count}
-                        </div>
+                        item.badgeTooltip ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`
+                                flex items-center justify-center
+                                min-w-[18px] h-[18px] px-1 rounded-full
+                                text-[10px] font-bold text-white
+                                shadow-sm transition-transform duration-200
+                                ${
+                                  item.badge?.color === 'red' 
+                                    ? 'bg-red-500' 
+                                    : 'bg-blue-500'
+                                }
+                                ${isActive ? 'scale-110' : 'group-hover:scale-105'}
+                              `}>
+                                {item.badge!.count > 99 ? '99+' : item.badge!.count}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="bg-gray-900 text-white">
+                              {item.badgeTooltip}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <div className={`
+                            flex items-center justify-center
+                            min-w-[18px] h-[18px] px-1 rounded-full
+                            text-[10px] font-bold text-white
+                            shadow-sm transition-transform duration-200
+                            ${
+                              item.badge?.color === 'red' 
+                                ? 'bg-red-500' 
+                                : 'bg-blue-500'
+                            }
+                            ${isActive ? 'scale-110' : 'group-hover:scale-105'}
+                          `}>
+                            {item.badge!.count > 99 ? '99+' : item.badge!.count}
+                          </div>
+                        )
                       )}
                       
                       {hasBadge && isCollapsed && (
@@ -235,6 +259,11 @@ export default function Layout({ children }: { children: ReactNode }) {
                               </span>
                             )}
                           </div>
+                          {item.badgeTooltip && (
+                            <div className="mt-1 text-[10px] text-gray-300">
+                              {item.badgeTooltip}
+                            </div>
+                          )}
                         </TooltipContent>
                       </Tooltip>
                     )

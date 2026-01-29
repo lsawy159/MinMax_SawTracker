@@ -32,9 +32,7 @@ export interface Company {
   labor_subscription_number: string
   commercial_registration_expiry?: string
   // التأمينات الاجتماعية للمؤسسة
-  social_insurance_expiry?: string  // بدلاً من insurance_subscription_expiry
   social_insurance_number?: string  // رقم اشتراك التأمينات الاجتماعية
-  social_insurance_status?: string  // بدلاً من insurance_subscription_status
   commercial_registration_status?: string
   additional_fields?: Record<string, unknown>
   // حقول انتهاء الاشتراكات الجديدة
@@ -94,6 +92,7 @@ export interface Employee {
 export interface User {
   id: string
   email: string
+  username: string
   full_name: string
   role: 'admin' | 'user'
   permissions: Record<string, unknown>

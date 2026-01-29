@@ -202,23 +202,6 @@ export default function Reports() {
           }
         })
 
-        // Social insurance (التأمينات الاجتماعية)
-        companiesData.forEach(comp => {
-          if (comp.social_insurance_expiry) {
-            const days = differenceInDays(new Date(comp.social_insurance_expiry), new Date())
-            const status = categorizeExpiry(comp.social_insurance_expiry)
-            if (status) {
-              items.push({
-                type: 'تأمينات اجتماعية',
-                name: comp.name,
-                expiryDate: comp.social_insurance_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
         // Resident subscription (اشتراك مقيم)
         companiesData.forEach(comp => {
           if (comp.ending_subscription_moqeem_date) {

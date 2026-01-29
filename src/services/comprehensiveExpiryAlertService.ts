@@ -73,16 +73,6 @@ const COMPANY_DOCUMENT_CONFIGS: ExpiryMonitorConfig[] = [
     }
   },
   {
-    fieldName: 'social_insurance_expiry',
-    arabicName: 'التأمينات الاجتماعية',
-    alertType: 'social_insurance_expiry',
-    thresholdKeys: {
-      urgent: 'social_insurance_urgent_days',
-      high: 'social_insurance_high_days',
-      medium: 'social_insurance_medium_days'
-    }
-  },
-  {
     fieldName: 'ending_subscription_power_date',
     arabicName: 'اشتراك قوى',
     alertType: 'power_subscription_expiry',

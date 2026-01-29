@@ -11,18 +11,17 @@ import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
 import { useLocation } from 'react-router-dom'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
+import { normalizeArabic } from '@/utils/textUtils'
 import { 
   calculateCommercialRegistrationStatus, 
-  calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
   calculatePowerSubscriptionStatus,
   calculateMoqeemSubscriptionStatus,
   calculateCompanyStatusStats
 } from '@/utils/autoCompanyStatus'
 
-type SortField = 'name' | 'created_at' | 'commercial_registration_status' | 'social_insurance_status' | 'employee_count' | 'power_subscription_status' | 'moqeem_subscription_status'  // تحديث: insurance_subscription_status → social_insurance_status
+type SortField = 'name' | 'created_at' | 'commercial_registration_status' | 'employee_count' | 'power_subscription_status' | 'moqeem_subscription_status'
 type SortDirection = 'asc' | 'desc'
 type CommercialRegStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
-type SocialInsuranceStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'  // تحديث: InsuranceStatus → SocialInsuranceStatus
 type PowerSubscriptionStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type MoqeemSubscriptionStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 
@@ -52,9 +51,9 @@ export default function Companies() {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
   const [commercialRegStatus, setCommercialRegStatus] = useState<CommercialRegStatus>('all')
-  const [socialInsuranceStatus, setSocialInsuranceStatus] = useState<SocialInsuranceStatus>('all')  // تحديث: insuranceStatus → socialInsuranceStatus
   const [powerSubscriptionStatus, setPowerSubscriptionStatus] = useState<PowerSubscriptionStatus>('all')
   const [moqeemSubscriptionStatus, setMoqeemSubscriptionStatus] = useState<MoqeemSubscriptionStatus>('all')
+  const [showAlertsOnly, setShowAlertsOnly] = useState(false)
 
   const [employeeCountFilter, setEmployeeCountFilter] = useState<EmployeeCountFilter>('all')
   const [availableSlotsFilter, setAvailableSlotsFilter] = useState<AvailableSlotsFilter>('all')
@@ -87,9 +86,9 @@ export default function Companies() {
         const filters = JSON.parse(saved)
         setSearchTerm(filters.searchTerm || '')
         setCommercialRegStatus(filters.commercialRegStatus || 'all')
-        setSocialInsuranceStatus(filters.socialInsuranceStatus || filters.insuranceStatus || 'all')  // تحديث: دعم التوافق مع الأسماء القديمة
         setPowerSubscriptionStatus(filters.powerSubscriptionStatus || 'all')
         setMoqeemSubscriptionStatus(filters.moqeemSubscriptionStatus || 'all')
+        setShowAlertsOnly(filters.showAlertsOnly || false)
 
         setEmployeeCountFilter(filters.employeeCountFilter || 'all')
         setAvailableSlotsFilter(filters.availableSlotsFilter || 'all')
@@ -109,9 +108,9 @@ export default function Companies() {
       const filters = {
         searchTerm,
         commercialRegStatus,
-        socialInsuranceStatus,  // تحديث: insuranceStatus → socialInsuranceStatus
         powerSubscriptionStatus,
         moqeemSubscriptionStatus,
+        showAlertsOnly,
 
         employeeCountFilter,
         availableSlotsFilter,
@@ -127,9 +126,9 @@ export default function Companies() {
   }, [ // <-- [FIX] إضافة جميع الاعتماديات التي تستخدمها الدالة
     searchTerm,
     commercialRegStatus,
-    socialInsuranceStatus,  // تحديث: insuranceStatus → socialInsuranceStatus
     powerSubscriptionStatus,
     moqeemSubscriptionStatus,
+    showAlertsOnly,
     employeeCountFilter,
     availableSlotsFilter,
     dateRangeFilter,
@@ -235,6 +234,20 @@ export default function Companies() {
     return differenceInDays(new Date(date), new Date())
   }, [])
 
+  const hasCompanyAlert = useCallback((company: Company): boolean => {
+    const crStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
+    const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
+    const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
+
+    return [crStatus, powerStatus, moqeemStatus].some(status =>
+      ['منتهي', 'طارئ', 'عاجل', 'متوسط'].includes(status.status)
+    )
+  }, [])
+
+  const companyAlertsCount = useMemo(() => {
+    return companies.filter(company => hasCompanyAlert(company)).length
+  }, [companies, hasCompanyAlert])
+
   // [FIX] تم تحويلها إلى useMemo بدلاً من useState + useEffect
   const filteredCompanies = useMemo(() => {
     let filtered = [...companies]
@@ -258,18 +271,6 @@ export default function Companies() {
         if (commercialRegStatus === 'expired') return statusInfo.status === 'منتهي'
         if (commercialRegStatus === 'expiring_soon') return statusInfo.status === 'طارئ' || statusInfo.status === 'عاجل' || statusInfo.status === 'متوسط'
         if (commercialRegStatus === 'valid') return statusInfo.status === 'ساري'
-        return true
-      })
-    }
-
-    // Apply social insurance status filter (التأمينات الاجتماعية للمؤسسات)
-    if (socialInsuranceStatus !== 'all') {  // تحديث: insuranceStatus → socialInsuranceStatus
-      filtered = filtered.filter(company => {
-        const statusInfo = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
-
-        if (socialInsuranceStatus === 'expired') return statusInfo.status === 'منتهي'
-        if (socialInsuranceStatus === 'expiring_soon') return statusInfo.status === 'طارئ' || statusInfo.status === 'عاجل' || statusInfo.status === 'متوسط'
-        if (socialInsuranceStatus === 'valid') return statusInfo.status === 'ساري'
         return true
       })
     }
@@ -304,6 +305,11 @@ export default function Companies() {
         if (moqeemSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
         return true
       })
+    }
+
+    // Apply alerts filter
+    if (showAlertsOnly) {
+      filtered = filtered.filter(company => hasCompanyAlert(company))
     }
 
 
@@ -359,8 +365,15 @@ export default function Companies() {
     // Apply exemptions filter
     if (exemptionsFilter !== 'all') {
       filtered = filtered.filter(company => {
-        if (!company.exemptions) return false
-        return company.exemptions === exemptionsFilter
+        const targetPhrase = normalizeArabic('تم الاعفاء')
+        const normalizedValue = normalizeArabic(company.exemptions)
+        const isExempt = normalizedValue.includes(targetPhrase)
+
+        if (exemptionsFilter === 'تم الاعفاء') {
+          return isExempt
+        }
+
+        return !isExempt
       })
     }
 
@@ -381,10 +394,6 @@ export default function Companies() {
         case 'commercial_registration_status':
           aValue = a.commercial_registration_expiry ? calculateCommercialRegistrationStatus(a.commercial_registration_expiry).daysRemaining : -999999
           bValue = b.commercial_registration_expiry ? calculateCommercialRegistrationStatus(b.commercial_registration_expiry).daysRemaining : -999999
-          break
-        case 'social_insurance_status':  // تحديث: insurance_subscription_status → social_insurance_status
-          aValue = a.social_insurance_expiry ? calculateSocialInsuranceStatus(a.social_insurance_expiry).daysRemaining : -999999  // تحديث: insurance_subscription_expiry → social_insurance_expiry
-          bValue = b.social_insurance_expiry ? calculateSocialInsuranceStatus(b.social_insurance_expiry).daysRemaining : -999999
           break
         case 'employee_count':
           aValue = a.employee_count || 0
@@ -416,9 +425,9 @@ export default function Companies() {
     companies,
     searchTerm,
     commercialRegStatus,
-    socialInsuranceStatus,  // تحديث: insuranceStatus → socialInsuranceStatus
     powerSubscriptionStatus,
     moqeemSubscriptionStatus,
+    showAlertsOnly,
     employeeCountFilter,
     availableSlotsFilter,
     dateRangeFilter,
@@ -427,7 +436,8 @@ export default function Companies() {
     exemptionsFilter,
     sortField,
     sortDirection,
-    getDaysRemaining
+    getDaysRemaining,
+    hasCompanyAlert
   ])
 
 
@@ -443,16 +453,15 @@ export default function Companies() {
     const filter = params.get('filter')
     
     if (filter === 'alerts') {
-      // فلترة المؤسسات التي لديها تنبيهات (سجل تجاري أو تأمينات منتهية أو قريبة من الانتهاء)
-      setCommercialRegStatus('expired')
-      setSocialInsuranceStatus('expired')
+      // فلترة المؤسسات التي لديها تنبيهات (سجل تجاري/قوى/مقيم)
+      setShowAlertsOnly(true)
     }
   }, [location.search])
   
   useEffect(() => {
     // Save filters to localStorage whenever filters change
     saveFiltersToStorage()
-  }, [saveFiltersToStorage, searchTerm, commercialRegStatus, socialInsuranceStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, employeeCountFilter, availableSlotsFilter, dateRangeFilter, customStartDate, customEndDate, exemptionsFilter, sortField, sortDirection])
+  }, [saveFiltersToStorage, searchTerm, commercialRegStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, showAlertsOnly, employeeCountFilter, availableSlotsFilter, dateRangeFilter, customStartDate, customEndDate, exemptionsFilter, sortField, sortDirection])
 
   // دالة الحصول على لون حالة الأماكن الشاغرة
   const getAvailableSlotsColor = (availableSlots: number) => {
@@ -483,9 +492,9 @@ export default function Companies() {
   const clearFilters = () => {
     setSearchTerm('')
     setCommercialRegStatus('all')
-    setSocialInsuranceStatus('all')
     setPowerSubscriptionStatus('all')
     setMoqeemSubscriptionStatus('all')
+    setShowAlertsOnly(false)
 
     setEmployeeCountFilter('all')
     setAvailableSlotsFilter('all')
@@ -668,9 +677,9 @@ export default function Companies() {
   const activeFiltersCount = [
     searchTerm !== '',
     commercialRegStatus !== 'all',
-    socialInsuranceStatus !== 'all',  // تحديث: insuranceStatus → socialInsuranceStatus
     powerSubscriptionStatus !== 'all',
     moqeemSubscriptionStatus !== 'all',
+    showAlertsOnly,
 
     employeeCountFilter !== 'all',
     availableSlotsFilter !== 'all',
@@ -760,7 +769,7 @@ export default function Companies() {
   // إعادة تعيين الصف المحدد عند تغيير الفلاتر أو الصفحة
   useEffect(() => {
     setSelectedRowIndex(null)
-  }, [searchTerm, commercialRegStatus, socialInsuranceStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, employeeCountFilter, availableSlotsFilter, dateRangeFilter, exemptionsFilter, sortField, sortDirection, currentPage])
+  }, [searchTerm, commercialRegStatus, powerSubscriptionStatus, moqeemSubscriptionStatus, showAlertsOnly, employeeCountFilter, availableSlotsFilter, dateRangeFilter, exemptionsFilter, sortField, sortDirection, currentPage])
 
   // Pagination handlers
   const goToPage = (page: number) => {
@@ -873,7 +882,6 @@ export default function Companies() {
               id: c.id,
               name: c.name,
               commercial_registration_expiry: c.commercial_registration_expiry,
-              social_insurance_expiry: c.social_insurance_expiry,  // تحديث: insurance_subscription_expiry → social_insurance_expiry
               ending_subscription_power_date: c.ending_subscription_power_date,
               ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
             })))
@@ -936,6 +944,19 @@ export default function Companies() {
               )}
             </button>
 
+            {/* Alerts quick filter */}
+            <button
+              onClick={() => setShowAlertsOnly(prev => !prev)}
+              className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
+              title="عرض المؤسسات ذات التنبيهات فقط"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">تنبيهات</span>
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {companyAlertsCount}
+              </span>
+            </button>
+
             {/* Sort Dropdown */}
             <div className="relative">
               <button
@@ -962,7 +983,6 @@ export default function Companies() {
                       { field: 'name' as SortField, label: 'الاسم' },
                       { field: 'created_at' as SortField, label: 'تاريخ التسجيل' },
                       { field: 'commercial_registration_status' as SortField, label: 'حالة التسجيل التجاري' },
-                      { field: 'social_insurance_status' as SortField, label: 'حالة التأمينات الاجتماعية' },  // تحديث: insurance_subscription_status → social_insurance_status
                       { field: 'employee_count' as SortField, label: 'عدد الموظفين' },
                       { field: 'power_subscription_status' as SortField, label: 'حالة اشتراك قوى' },
                       { field: 'moqeem_subscription_status' as SortField, label: 'حالة اشتراك مقيم' }
@@ -1079,21 +1099,6 @@ export default function Companies() {
                       <select
                         value={commercialRegStatus}
                         onChange={(e) => setCommercialRegStatus(e.target.value as CommercialRegStatus)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="all">الكل</option>
-                        <option value="expired">منتهي</option>
-                        <option value="expiring_soon">عاجل</option>
-                        <option value="valid">ساري</option>
-                      </select>
-                    </div>
-
-                    {/* Insurance Status */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة اشتراك التأمينات</label>
-                      <select
-                        value={socialInsuranceStatus}
-                        onChange={(e) => setSocialInsuranceStatus(e.target.value as SocialInsuranceStatus)}  // تحديث: insuranceStatus → socialInsuranceStatus
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="all">الكل</option>
@@ -1320,7 +1325,6 @@ export default function Companies() {
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">رقم اشتراك التأمينات الاجتماعية</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">رقم اشتراك قوى</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">انتهاء السجل التجاري</th>
-                        <th className="px-4 py-3 text-right font-semibold text-gray-700">انتهاء اشتراك التأمينات</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">حالة اشتراك قوى</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">حالة اشتراك مقيم</th>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700">عدد الموظفين</th>
@@ -1331,7 +1335,6 @@ export default function Companies() {
                     <tbody>
                       {paginatedCompanies.map((company, index) => {
                         const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-                        const socialInsuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
                         const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
                         const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
                         const isSelected = selectedRowIndex === index
@@ -1365,21 +1368,6 @@ export default function Companies() {
                                   'bg-green-100 text-green-700'
                                 }`}>
                                   {company.commercial_registration_expiry}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              {company.social_insurance_expiry ? (  // تحديث: insurance_subscription_expiry → social_insurance_expiry
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  socialInsuranceStatus.status === 'منتهي' ? 'bg-red-100 text-red-700' :
-                                  socialInsuranceStatus.status === 'طارئ' ? 'bg-red-100 text-red-700' :
-                                  socialInsuranceStatus.status === 'عاجل' ? 'bg-orange-100 text-orange-700' :
-                                  socialInsuranceStatus.status === 'متوسط' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-green-100 text-green-700'
-                                }`}>
-                                  {company.social_insurance_expiry}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">-</span>

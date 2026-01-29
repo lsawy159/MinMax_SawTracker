@@ -1,11 +1,11 @@
-import { AlertTriangle, Calendar, Building2, Shield, Clock, ExternalLink, Zap, Home, Eye, Mail } from 'lucide-react'
+import { AlertTriangle, Calendar, Building2, Clock, ExternalLink, Zap, Home, Eye, Mail } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
 export interface Alert {
   id: string
   // أنواع تنبيهات المؤسسات
-  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'power_subscription_expiry' | 'moqeem_subscription_expiry'
+  type: 'commercial_registration_expiry' | 'power_subscription_expiry' | 'moqeem_subscription_expiry'
   priority: 'urgent' | 'high' | 'medium' | 'low'
   title: string
   message: string
@@ -78,8 +78,6 @@ export function AlertCard({
     switch (type) {
       case 'commercial_registration_expiry':
         return <Building2 className="h-5 w-5" />
-      case 'social_insurance_expiry':
-        return <Shield className="h-5 w-5" />
       case 'power_subscription_expiry':
         return <Zap className="h-5 w-5" />
       case 'moqeem_subscription_expiry':

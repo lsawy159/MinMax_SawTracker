@@ -59,7 +59,7 @@ const REFRESH_OPTIONS = [
 ]
 
 export default function BackupSettingsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const permissions = usePermissions()
 
   const hasViewPermission = permissions?.canView('adminSettings') || user?.role === 'admin'
@@ -98,6 +98,10 @@ export default function BackupSettingsPage() {
   // Security Settings State
   const [securitySettings, setSecuritySettings] = useState<SecuritySetting[]>([])
   const [securityLoading, setSecurityLoading] = useState(false)
+
+  // Send Digest/Alert Email State
+  const [isSendingDigest, setIsSendingDigest] = useState(false)
+  const [digestMessage, setDigestMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // Loading & Saving States
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -393,6 +397,54 @@ export default function BackupSettingsPage() {
     }
   }, [])
 
+  const handleSendDigestNow = async () => {
+    try {
+      setIsSendingDigest(true)
+      setDigestMessage(null)
+
+      // التحقق من وجود جلسة نشطة
+      if (!session?.access_token) {
+        setDigestMessage({
+          type: 'error',
+          text: 'تم انقطاع الجلسة. يرجى تحديث الصفحة وتسجيل الدخول مجدداً.'
+        })
+        setIsSendingDigest(false)
+        return
+      }
+
+      const response = await fetch(
+        'https://vpxazxzekkkepfjchjly.supabase.co/functions/v1/send-daily-excel-digest',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ manual: true })
+        }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`${response.statusText}: ${errorText}`)
+      }
+
+      const result = await response.json()
+      setDigestMessage({
+        type: 'success',
+        text: `تم إرسال البريد بنجاح! (${result.message || 'تم إرسال التنبيهات'})`
+      })
+    } catch (err) {
+      console.error('Error sending digest:', err)
+      setDigestMessage({
+        type: 'error',
+        text: `خطأ في إرسال البريد: ${err instanceof Error ? err.message : 'حاول مرة أخرى'}`
+      })
+    } finally {
+      setIsSendingDigest(false)
+    }
+  }
+
   const handleManualBackup = async () => {
     if (manualBackupLoading) return
     setManualBackupLoading(true)
@@ -687,6 +739,51 @@ export default function BackupSettingsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Send Alert Email Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="p-3 bg-blue-100 rounded-lg mt-1">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">إرسال بريد التنبيهات</h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        أرسل جميع التنبيهات الحالية غير المحلولة إلى بريدك الإداري الآن
+                      </p>
+                      <p className="text-gray-500 text-xs mt-2">
+                        البريد سيُرسل تلقائياً كل يوم الساعة 03:00 صباحاً مع جميع التنبيهات النشطة
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSendDigestNow}
+                    disabled={isSendingDigest}
+                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition whitespace-nowrap"
+                  >
+                    {isSendingDigest ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                        جاري الإرسال...
+                      </span>
+                    ) : (
+                      'إرسال الآن'
+                    )}
+                  </button>
+                </div>
+
+                {/* Message */}
+                {digestMessage && (
+                  <div className={`mt-4 p-3 rounded-lg ${
+                    digestMessage.type === 'success' 
+                      ? 'bg-green-50 border border-green-200 text-green-800' 
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}>
+                    <p className="text-sm">{digestMessage.text}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

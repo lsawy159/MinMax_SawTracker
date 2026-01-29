@@ -2,7 +2,6 @@ import { memo } from 'react'
 import { Building2, Users, Edit2, Trash2, FileText } from 'lucide-react'
 import { 
   calculateCommercialRegistrationStatus, 
-  calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
   calculatePowerSubscriptionStatus,
   calculateMoqeemSubscriptionStatus
 } from '@/utils/autoCompanyStatus'
@@ -35,7 +34,6 @@ function CompanyCard({
   
   // حساب حالات المؤسسة
   const commercialRegStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-  const socialInsuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
   const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
   const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
 
@@ -49,7 +47,6 @@ function CompanyCard({
   const getBorderColor = () => {
     const priorities = [
       commercialRegStatus.priority,
-      socialInsuranceStatus.priority,  // تحديث: insuranceStatus → socialInsuranceStatus
       powerStatus.priority,
       moqeemStatus.priority
     ]
@@ -180,26 +177,6 @@ function CompanyCard({
             )}
           </div>
 
-          {/* حالة التأمينات الاجتماعية */}
-          <div>
-            <div className="text-xs font-medium text-gray-600 mb-1">حالة التأمينات الاجتماعية</div>
-            {company.social_insurance_expiry ? (
-              <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${socialInsuranceStatus.color.backgroundColor} ${socialInsuranceStatus.color.textColor} ${socialInsuranceStatus.color.borderColor}`}>
-                <div className="flex items-center gap-1">
-                  <div className="text-sm">{socialInsuranceStatus.status === 'طارئ' ? '🚨' : socialInsuranceStatus.status === 'عاجل' ? '🔥' : socialInsuranceStatus.status === 'متوسط' ? '⚠️' : socialInsuranceStatus.status === 'ساري' ? '✅' : '❌'}</div>
-                  <div className="flex flex-col">
-                    <span className="font-bold">{socialInsuranceStatus.status}</span>
-                    <span className="text-xs opacity-75">{formatDaysText(socialInsuranceStatus.daysRemaining)}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
-                غير محدد
-              </div>
-            )}
-          </div>
-
           {/* حالة اشتراك قوى */}
           <div>
             <div className="text-xs font-medium text-gray-600 mb-1">حالة اشتراك قوى</div>
@@ -263,7 +240,6 @@ export default memo(CompanyCard, (prevProps, nextProps) => {
     prevProps.company.employee_count === nextProps.company.employee_count &&
     prevProps.company.available_slots === nextProps.company.available_slots &&
     prevProps.company.commercial_registration_expiry === nextProps.company.commercial_registration_expiry &&
-    prevProps.company.social_insurance_expiry === nextProps.company.social_insurance_expiry &&
     prevProps.company.ending_subscription_power_date === nextProps.company.ending_subscription_power_date &&
     prevProps.company.ending_subscription_moqeem_date === nextProps.company.ending_subscription_moqeem_date &&
     prevProps.company.notes === nextProps.company.notes

@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
+import { normalizeArabic } from '@/utils/textUtils'
 
 interface CompanyWithStats extends Company {
   employee_count?: number
@@ -55,8 +56,8 @@ export default function ExportTab() {
     expiringPowerSub30: false,
     expiredMoqeemSub: false,
     expiringMoqeemSub30: false,
-    expiredSocialInsurance: false,
-    expiringSocialInsurance30: false
+    exempted: false,
+    notExempted: false
   })
 
   // UI chip component
@@ -270,8 +271,15 @@ export default function ExportTab() {
       if (companyFilters.expiringPowerSub30 && !isExpiringWithin30Days(company.ending_subscription_power_date)) return false
       if (companyFilters.expiredMoqeemSub && !isExpired(company.ending_subscription_moqeem_date)) return false
       if (companyFilters.expiringMoqeemSub30 && !isExpiringWithin30Days(company.ending_subscription_moqeem_date)) return false
-      if (companyFilters.expiredSocialInsurance && !isExpired(company.social_insurance_expiry)) return false
-      if (companyFilters.expiringSocialInsurance30 && !isExpiringWithin30Days(company.social_insurance_expiry)) return false
+
+      if (companyFilters.exempted || companyFilters.notExempted) {
+        const targetPhrase = normalizeArabic('تم الاعفاء')
+        const normalizedValue = normalizeArabic(company.exemptions)
+        const isExempt = normalizedValue.includes(targetPhrase)
+
+        if (companyFilters.exempted && !companyFilters.notExempted && !isExempt) return false
+        if (!companyFilters.exempted && companyFilters.notExempted && isExempt) return false
+      }
       
       return true
     })
@@ -403,8 +411,8 @@ export default function ExportTab() {
       expiringPowerSub30: false,
       expiredMoqeemSub: false,
       expiringMoqeemSub30: false,
-      expiredSocialInsurance: false,
-      expiringSocialInsurance30: false
+      exempted: false,
+      notExempted: false
     })
     setSearchQuery('')
     toast.success('تم إعادة تعيين جميع الفلاتر')
@@ -504,7 +512,6 @@ export default function ExportTab() {
         'رقم اشتراك التأمينات الاجتماعية': company.social_insurance_number || '',
         'رقم اشتراك قوى': company.labor_subscription_number || '',
         'تاريخ انتهاء السجل التجاري': company.commercial_registration_expiry ? formatDateShortWithHijri(company.commercial_registration_expiry) : '',
-        'تاريخ انتهاء التأمينات الاجتماعية': company.social_insurance_expiry ? formatDateShortWithHijri(company.social_insurance_expiry) : '',
         'تاريخ انتهاء اشتراك قوى': company.ending_subscription_power_date ? formatDateShortWithHijri(company.ending_subscription_power_date) : '',
         'تاريخ انتهاء اشتراك مقيم': company.ending_subscription_moqeem_date ? formatDateShortWithHijri(company.ending_subscription_moqeem_date) : '',
         'عدد الموظفين': company.employee_count || 0,
@@ -524,7 +531,6 @@ export default function ExportTab() {
         { wch: 25 }, // رقم اشتراك التأمينات الاجتماعية
         { wch: 20 }, // رقم اشتراك قوى
         { wch: 25 }, // تاريخ انتهاء السجل التجاري
-        { wch: 25 }, // تاريخ انتهاء التأمينات الاجتماعية
         { wch: 25 }, // تاريخ انتهاء اشتراك قوى
         { wch: 25 }, // تاريخ انتهاء اشتراك مقيم
         { wch: 15 }, // عدد الموظفين
@@ -1169,11 +1175,11 @@ export default function ExportTab() {
             {companyFilters.expiringMoqeemSub30 && (
               <Chip active={true} onClick={() => toggleCompanyFilter('expiringMoqeemSub30')} color="green">مقيم ينتهي خلال 30 يوم ✕</Chip>
             )}
-            {companyFilters.expiredSocialInsurance && (
-              <Chip active={true} onClick={() => toggleCompanyFilter('expiredSocialInsurance')} color="green">تأمينات منتهية ✕</Chip>
+            {companyFilters.exempted && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('exempted')} color="green">تم الاعفاء ✕</Chip>
             )}
-            {companyFilters.expiringSocialInsurance30 && (
-              <Chip active={true} onClick={() => toggleCompanyFilter('expiringSocialInsurance30')} color="green">تأمينات تنتهي خلال 30 يوم ✕</Chip>
+            {companyFilters.notExempted && (
+              <Chip active={true} onClick={() => toggleCompanyFilter('notExempted')} color="green">غير معفى ✕</Chip>
             )}
           </div>
         )}
@@ -1214,15 +1220,14 @@ export default function ExportTab() {
             الاشتراكات
           </button>
           <button
-            onClick={() => toggleCompanyFilterGroup('insurance')}
+            onClick={() => toggleCompanyFilterGroup('exemptions')}
             className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedCompanyFilterGroup === 'insurance'
+              expandedCompanyFilterGroup === 'exemptions'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Shield className="w-3.5 h-3.5 inline mr-1" />
-            التأمينات الاجتماعية
+            الاعفاءات
           </button>
           {getActiveCompanyFiltersCount > 0 && (
             <button
@@ -1268,10 +1273,10 @@ export default function ExportTab() {
           </div>
         )}
 
-        {expandedCompanyFilterGroup === 'insurance' && (
+        {expandedCompanyFilterGroup === 'exemptions' && (
           <div className="bg-gray-50 rounded-md p-2 mb-2 flex flex-wrap gap-2">
-            <Chip active={companyFilters.expiredSocialInsurance} onClick={() => toggleCompanyFilter('expiredSocialInsurance')} color="green">منتهي</Chip>
-            <Chip active={companyFilters.expiringSocialInsurance30} onClick={() => toggleCompanyFilter('expiringSocialInsurance30')} color="green">ينتهي خلال 30 يوم</Chip>
+            <Chip active={companyFilters.exempted} onClick={() => toggleCompanyFilter('exempted')} color="green">تم الاعفاء</Chip>
+            <Chip active={companyFilters.notExempted} onClick={() => toggleCompanyFilter('notExempted')} color="green">غير معفى</Chip>
           </div>
         )}
 
@@ -1307,7 +1312,6 @@ export default function ExportTab() {
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">{company.unified_number ? `${company.name} (${company.unified_number})` : company.name}</div>
                   <div className="text-gray-600">
-                    {company.social_insurance_expiry && `انتهاء التأمينات الاجتماعية: ${company.social_insurance_expiry}`}
                     {company.max_employees && ` | الحد: ${company.max_employees} موظف`}
                     {company.available_slots !== undefined && ` | أماكن شاغرة: ${company.available_slots}`}
                   </div>
@@ -1391,12 +1395,6 @@ export default function ExportTab() {
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-600">السجل التجاري</span>
                     <span className="font-medium">{company.commercial_registration_expiry}</span>
-                  </div>
-                )}
-                {company.social_insurance_expiry && (
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-600">التأمينات</span>
-                    <span className="font-medium">{company.social_insurance_expiry}</span>
                   </div>
                 )}
                 {company.ending_subscription_power_date && (

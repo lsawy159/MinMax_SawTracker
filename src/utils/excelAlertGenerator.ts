@@ -23,6 +23,76 @@ export interface AlertLogRecord {
   processed_at: string | null
 }
 
+function normalizeValue(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().toLowerCase()
+}
+
+function getEntityKey(alert: AlertLogRecord): string {
+  const details = (alert.details || {}) as Record<string, unknown>
+  const employeeName = normalizeValue(details.employee_name)
+  const residenceNumber = normalizeValue(details.residence_number)
+  if (residenceNumber || employeeName) {
+    return `emp:${employeeName}|${residenceNumber}`
+  }
+
+  const companyName = normalizeValue(details.company_name)
+  const unifiedNumber = normalizeValue(details.unified_number)
+  if (unifiedNumber || companyName) {
+    return `comp:${companyName}|${unifiedNumber}`
+  }
+
+  if (alert.employee_id) {
+    return `emp:${alert.employee_id}`
+  }
+  if (alert.company_id) {
+    return `comp:${alert.company_id}`
+  }
+
+  return 'unknown'
+}
+
+function getAlertKey(alert: AlertLogRecord): string {
+  const entityKey = getEntityKey(alert)
+  return `${entityKey}|${normalizeValue(alert.alert_type) || 'unknown'}`
+}
+
+function dedupeAlerts(alerts: AlertLogRecord[]): AlertLogRecord[] {
+  const map = new Map<string, AlertLogRecord>()
+  for (const alert of alerts) {
+    const key = getAlertKey(alert)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, alert)
+      continue
+    }
+    const existingTime = new Date(existing.created_at).getTime()
+    const currentTime = new Date(alert.created_at).getTime()
+    if (currentTime > existingTime) {
+      map.set(key, alert)
+    }
+  }
+  return Array.from(map.values())
+}
+
+function dedupeRecordsByEntity(records: AlertLogRecord[]): AlertLogRecord[] {
+  const map = new Map<string, AlertLogRecord>()
+  for (const record of records) {
+    const key = getEntityKey(record)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, record)
+      continue
+    }
+    const existingTime = new Date(existing.created_at).getTime()
+    const currentTime = new Date(record.created_at).getTime()
+    if (currentTime > existingTime) {
+      map.set(key, record)
+    }
+  }
+  return Array.from(map.values())
+}
+
 /**
  * Fetch all unprocessed alerts from today
  */
@@ -80,7 +150,8 @@ export async function fetchAlertsByType(alertType: string): Promise<AlertLogReco
  */
 export async function generateAlertExcelWorkbook(): Promise<XLSX.WorkBook | null> {
   try {
-    const alerts = await fetchTodayAlerts()
+    const rawAlerts = await fetchTodayAlerts()
+    const alerts = dedupeAlerts(rawAlerts)
 
     if (alerts.length === 0) {
       logger.warn('[Excel] No alerts found for today')
@@ -124,7 +195,8 @@ export async function generateAlertExcelWorkbook(): Promise<XLSX.WorkBook | null
 
     // Add sheet for each alert type
     Object.entries(alertsByType).forEach(([alertType, records]) => {
-      const sheetData = records.map(record => ({
+      const dedupedRecords = dedupeRecordsByEntity(records)
+      const sheetData = dedupedRecords.map(record => ({
         'التاريخ': new Date(record.created_at).toLocaleString('ar-SA', {
           timeZone: 'Asia/Riyadh',
         }),

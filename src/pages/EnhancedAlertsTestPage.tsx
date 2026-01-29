@@ -98,7 +98,6 @@ export default function EnhancedAlertsTestPage() {
 
   // Filter alerts by type for demonstration
   const commercialRegAlerts = alerts.filter(alert => alert.alert_type === 'commercial_registration_expiry')
-  const insuranceAlerts = alerts.filter(alert => alert.alert_type === 'social_insurance_expiry')
   const govDocsAlerts = alerts.filter(alert => alert.alert_type === 'government_docs_renewal')
   const criticalAlerts = getCriticalAlerts(alerts)
   const stats = getEnhancedAlertsStats(alerts)
@@ -203,17 +202,6 @@ export default function EnhancedAlertsTestPage() {
             </div>
             <div className="text-2xl font-bold text-blue-600 mb-2">{commercialRegAlerts.length}</div>
             <p className="text-sm text-gray-600">تنبيهات متعلقة بالسجل التجاري</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Shield className="h-5 w-5 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900">اشتراك التأمين</h3>
-            </div>
-            <div className="text-2xl font-bold text-green-600 mb-2">{insuranceAlerts.length}</div>
-            <p className="text-sm text-gray-600">تنبيهات متعلقة بالتأمين</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

@@ -53,7 +53,6 @@ const COMPANY_COLUMNS_ORDER = [
   'رقم اشتراك التأمينات الاجتماعية',
   'رقم اشتراك قوى',
   'تاريخ انتهاء السجل التجاري',
-  'تاريخ انتهاء التأمينات الاجتماعية',
   'تاريخ انتهاء اشتراك قوى',
   'تاريخ انتهاء اشتراك مقيم',
   'الاعفاءات',
@@ -1368,7 +1367,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           ]
         : [
             'تاريخ انتهاء السجل التجاري',
-            'تاريخ انتهاء التأمينات الاجتماعية',
             'تاريخ انتهاء اشتراك قوى',
             'تاريخ انتهاء اشتراك مقيم'
           ]
@@ -1886,7 +1884,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               social_insurance_number: row['رقم اشتراك التأمينات الاجتماعية'] || null,
               labor_subscription_number: row['رقم اشتراك قوى'] || null,
               commercial_registration_expiry: normalizeDate(String(row['تاريخ انتهاء السجل التجاري'] ?? '')),
-              social_insurance_expiry: normalizeDate(String(row['تاريخ انتهاء التأمينات الاجتماعية'] ?? row['تاريخ انتهاء اشتراك التأمين'] ?? '')),
               ending_subscription_power_date: normalizeDate(String(row['تاريخ انتهاء اشتراك قوى'] ?? '')),
               ending_subscription_moqeem_date: normalizeDate(String(row['تاريخ انتهاء اشتراك مقيم'] ?? '')),
               exemptions: row['الاعفاءات'] || null,

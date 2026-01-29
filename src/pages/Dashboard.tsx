@@ -54,12 +54,6 @@ interface Stats {
   highCommercialReg: number
   mediumCommercialReg: number
   validCommercialReg: number
-  // إحصائيات التأمينات الاجتماعية (5 فئات)
-  expiredInsuranceSocial: number
-  urgentInsuranceSocial: number
-  highInsuranceSocial: number
-  mediumInsuranceSocial: number
-  validInsuranceSocial: number
   // إحصائيات اشتراك قوى (5 فئات)
   expiredPower: number
   urgentPower: number
@@ -124,12 +118,6 @@ export default function Dashboard() {
     highCommercialReg: 0,
     mediumCommercialReg: 0,
     validCommercialReg: 0,
-    // إحصائيات التأمينات الاجتماعية (5 فئات)
-    expiredInsuranceSocial: 0,
-    urgentInsuranceSocial: 0,
-    highInsuranceSocial: 0,
-    mediumInsuranceSocial: 0,
-    validInsuranceSocial: 0,
     // إحصائيات اشتراك قوى (5 فئات)
     expiredPower: 0,
     urgentPower: 0,
@@ -417,21 +405,6 @@ export default function Dashboard() {
       validCommercialReg += cats.valid
     })
 
-    // حساب إحصائيات التأمينات الاجتماعية (5 فئات)
-    let expiredInsuranceSocial = 0, urgentInsuranceSocial = 0, highInsuranceSocial = 0, mediumInsuranceSocial = 0, validInsuranceSocial = 0
-    companies.forEach(company => {
-      const cats = calculateFiveCategories(company.social_insurance_expiry, today, {
-        urgent: companyThresholdsInput.social_insurance_urgent_days,
-        high: companyThresholdsInput.social_insurance_high_days,
-        medium: companyThresholdsInput.social_insurance_medium_days
-      })
-      expiredInsuranceSocial += cats.expired
-      urgentInsuranceSocial += cats.urgent
-      highInsuranceSocial += cats.high
-      mediumInsuranceSocial += cats.medium
-      validInsuranceSocial += cats.valid
-    })
-
     // حساب إحصائيات اشتراك قوى (5 فئات)
     let expiredPower = 0, urgentPower = 0, highPower = 0, mediumPower = 0, validPower = 0
     companies.forEach(company => {
@@ -501,12 +474,6 @@ export default function Dashboard() {
       highCommercialReg,
       mediumCommercialReg,
       validCommercialReg,
-      // إحصائيات التأمينات الاجتماعية (5 فئات)
-      expiredInsuranceSocial,
-      urgentInsuranceSocial,
-      highInsuranceSocial,
-      mediumInsuranceSocial,
-      validInsuranceSocial,
       // إحصائيات اشتراك قوى (5 فئات)
       expiredPower,
       urgentPower,
@@ -741,55 +708,6 @@ export default function Dashboard() {
                             </div>
                             <p className="text-lg font-bold text-green-600">{stats.validCommercialReg}</p>
                             <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.commercial_reg_medium_days} يوم</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* إحصائيات التأمينات */}
-                      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-200">
-                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                          إحصائيات التأمينات الاجتماعية
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                          <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">منتهية</span>
-                              <XCircle className="w-3 h-3 text-red-500" />
-                            </div>
-                            <p className="text-lg font-bold text-red-600">{stats.expiredInsuranceSocial}</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">طارئة</span>
-                              <AlertTriangle className="w-3 h-3 text-red-600" />
-                            </div>
-                            <p className="text-lg font-bold text-red-600">{stats.urgentInsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.social_insurance_urgent_days} أيام</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">عاجل</span>
-                              <Clock className="w-3 h-3 text-orange-500" />
-                            </div>
-                            <p className="text-lg font-bold text-orange-600">{stats.highInsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">خلال {companyThresholds.social_insurance_high_days} يوم</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">متوسط</span>
-                              <Calendar className="w-3 h-3 text-yellow-500" />
-                            </div>
-                            <p className="text-lg font-bold text-yellow-600">{stats.mediumInsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{companyThresholds.social_insurance_medium_days} يوم</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2.5 border border-indigo-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-gray-600">ساري</span>
-                              <Shield className="w-3 h-3 text-green-500" />
-                            </div>
-                            <p className="text-lg font-bold text-green-600">{stats.validInsuranceSocial}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">أكثر من {companyThresholds.social_insurance_medium_days} يوم</p>
                           </div>
                         </div>
                       </div>

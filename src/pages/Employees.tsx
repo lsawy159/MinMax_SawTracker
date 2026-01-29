@@ -7,6 +7,7 @@ import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
@@ -1160,17 +1161,24 @@ export default function Employees() {
             </button>
 
             {/* Alerts quick filter */}
-            <button
-              onClick={() => setShowAlertsOnly(prev => !prev)}
-              className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
-              title="عرض الموظفين ذوي التنبيهات فقط"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">تنبيهات</span>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {alertsCount}
-              </span>
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowAlertsOnly(prev => !prev)}
+                  className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
+                  title="عرض الموظفين ذوي التنبيهات فقط"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">تنبيهات</span>
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {alertsCount}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-900 text-white">
+                تحسب طارئ وعاجل ومتوسط
+              </TooltipContent>
+            </Tooltip>
 
             {/* Sort Dropdown */}
             <div className="relative">

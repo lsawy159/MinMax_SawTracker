@@ -103,6 +103,7 @@ export default function ActivityLogs() {
           usersData.forEach(user => {
             users.set(user.id, {
               id: user.id,
+              username: user.username || user.email.split('@')[0],
               email: user.email,
               full_name: user.full_name,
               role: 'user' as const,
@@ -983,7 +984,7 @@ export default function ActivityLogs() {
       if (log.user_id) {
         const user = usersMap.get(log.user_id)
         if (user) {
-          userDisplay = `${user.full_name} (${user.email})`
+          userDisplay = `${user.full_name} (${user.username})`
         } else {
           userDisplay = String(log.user_id).slice(0, 8) + '...'
         }

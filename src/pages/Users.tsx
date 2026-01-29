@@ -52,6 +52,7 @@ export default function Users() {
   const [deletingUser, setDeleteingUser] = useState<User | null>(null)
   
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     full_name: '',
     password: '',
@@ -100,6 +101,7 @@ export default function Users() {
       // Apply admin permissions automatically for admin users
       const normalizedUsers = (data || []).map((user: User) => ({
         ...user,
+        username: user.username || user.email?.split('@')[0] || 'unknown',
         permissions: normalizePermissions(user.permissions, user.role as 'admin' | 'user')
       }))
       
@@ -115,6 +117,7 @@ export default function Users() {
   const openAddModal = () => {
     setEditingUser(null)
     setFormData({
+      username: '',
       email: '',
       full_name: '',
       password: '',
@@ -129,8 +132,9 @@ export default function Users() {
   const openEditModal = (user: User) => {
     setEditingUser(user)
     setFormData({
-      email: user.email,
-      full_name: user.full_name,
+      username: user.username || '',
+      email: user.email || '',
+      full_name: user.full_name || '',
       password: '',
       new_password: '',
       role: user.role,
@@ -152,12 +156,22 @@ export default function Users() {
 
         const accessToken = sessionData?.session?.access_token
 
-        // إذا تغير البريد الإلكتروني، قم بتحديثه في auth.users و public.users
-        if (formData.email !== editingUser.email) {
+        const trimmedUsername = formData.username.trim()
+        const isAdminUser = editingUser.role === 'admin'
+        const desiredEmail = isAdminUser
+          ? editingUser.email
+          : `${trimmedUsername}@sawtracker.local`
+
+        const usernameChanged = trimmedUsername !== editingUser.username
+        const emailChanged = desiredEmail !== editingUser.email
+
+        // إذا تغير username أو البريد (للمستخدمين)، قم بتحديث auth.users و public.users
+        if (usernameChanged || emailChanged) {
           const { data: emailData, error: emailError } = await supabase.functions.invoke('update-user-email', {
             body: {
               user_id: editingUser.id,
-              new_email: formData.email
+              new_email: desiredEmail,
+              new_username: trimmedUsername
             },
             headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
           })
@@ -173,7 +187,7 @@ export default function Users() {
         const { error } = await supabase
           .rpc('update_user_as_admin', {
             user_id: editingUser.id,
-            new_email: formData.email,
+            new_email: desiredEmail,
             new_full_name: formData.full_name,
             new_role: formData.role,
             new_permissions: formData.permissions,
@@ -201,10 +215,16 @@ export default function Users() {
 
         toast.success('تم تحديث المستخدم بنجاح')
       } else {
+        // تحويل username إلى email وهمي
+        const emailToSend = formData.username.includes('@') 
+          ? formData.username 
+          : `${formData.username}@sawtracker.local`
+
         // إنشاء مستخدم جديد عبر Edge Function
         const { data, error } = await supabase.functions.invoke('create-user', {
           body: {
-            email: formData.email,
+            username: formData.username,
+            email: emailToSend,
             password: formData.password,
             full_name: formData.full_name,
             role: 'user', // دائماً user عند الإنشاء
@@ -357,7 +377,7 @@ export default function Users() {
 
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -381,7 +401,7 @@ export default function Users() {
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="البحث بالاسم أو البريد الإلكتروني..."
+              placeholder="البحث بالاسم أو اسم المستخدم..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pr-10 pl-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -402,7 +422,7 @@ export default function Users() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الاسم الكامل</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">البريد الإلكتروني</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">اسم المستخدم</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الدور</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">الحالة</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">آخر تسجيل دخول</th>
@@ -411,9 +431,13 @@ export default function Users() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50 transition">
+                      <tr 
+                        key={user.id} 
+                        onClick={() => openEditModal(user)}
+                        className="hover:bg-gray-50 transition cursor-pointer"
+                      >
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.full_name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{user.username}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
                             user.role === 'admin'
@@ -448,10 +472,13 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 text-sm">
                           {canDeleteUsers ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                               {isAdmin && (
                                 <button
-                                  onClick={() => openEditModal(user)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openEditModal(user)
+                                  }}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                                   title="تعديل"
                                 >
@@ -460,7 +487,10 @@ export default function Users() {
                               )}
                               {isAdmin && (
                                 <button
-                                  onClick={() => toggleUserStatus(user)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleUserStatus(user)
+                                  }}
                                   className={`p-2 rounded-lg transition ${
                                     user.is_active
                                       ? 'text-orange-600 hover:bg-orange-50'
@@ -473,7 +503,8 @@ export default function Users() {
                               )}
                               {canDeleteUsers && (
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     setDeleteingUser(user)
                                     setShowDeleteModal(true)
                                   }}
@@ -510,18 +541,25 @@ export default function Users() {
                 </div>
               ) : (
                 filteredUsers.map((user) => (
-                  <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div 
+                    key={user.id} 
+                    onClick={() => openEditModal(user)}
+                    className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 cursor-pointer hover:shadow-md transition"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
-                        <p className="text-xs text-gray-600">{user.email}</p>
+                        <p className="text-xs text-gray-600">{user.username}</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {(isAdmin || canDeleteUsers) && (
                           <>
                             {isAdmin && (
                               <button
-                                onClick={() => openEditModal(user)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openEditModal(user)
+                                }}
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
                                 title="تعديل"
                               >
@@ -530,7 +568,10 @@ export default function Users() {
                             )}
                             {isAdmin && (
                               <button
-                                onClick={() => toggleUserStatus(user)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleUserStatus(user)
+                                }}
                                 className={`p-2 rounded transition ${
                                   user.is_active
                                     ? 'text-orange-600 hover:bg-orange-50'
@@ -543,7 +584,8 @@ export default function Users() {
                             )}
                             {canDeleteUsers && (
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   setDeleteingUser(user)
                                   setShowDeleteModal(true)
                                 }}
@@ -600,9 +642,9 @@ export default function Users() {
 
 
         {showModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full border border-gray-100">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-3xl p-3 flex justify-between items-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full border border-gray-100 my-8 max-h-[90vh] flex flex-col">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-3xl p-3 flex justify-between items-center flex-shrink-0">
                 <h2 className="text-lg font-bold text-white">
                   {editingUser ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}
                 </h2>
@@ -614,7 +656,7 @@ export default function Users() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-5">
+              <form onSubmit={handleSubmit} className="p-5 overflow-y-auto flex-1">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* القسم الأيسر - المعلومات الأساسية */}
                   <div className="space-y-3">
@@ -639,15 +681,30 @@ export default function Users() {
 
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          البريد الإلكتروني *
+                          اسم المستخدم *
                         </label>
                         <input
-                          type="email"
+                          type="text"
                           required
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          value={formData.username || ''}
+                          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                           className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                          dir="ltr"
+                          placeholder="username"
+                          minLength={3}
+                          maxLength={50}
+                          pattern="[a-zA-Z0-9_.\-]+"
+                          title="حروف، أرقام، _ أو - أو . فقط"
                         />
+                        {editingUser && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formData.username 
+                              ? `اسم المستخدم الحالي: ${formData.username}` 
+                              : 'لم يتم تعيين اسم مستخدم بعد'}
+                            <br />
+                            تعديل اسم المستخدم سيغير بريد المستخدم العادي إلى username@sawtracker.local
+                          </p>
+                        )}
                       </div>
 
                       {!editingUser && (
@@ -763,7 +820,7 @@ export default function Users() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 justify-end border-t border-gray-200 pt-3 mt-4">
+                <div className="flex gap-2 justify-end border-t border-gray-200 pt-3 mt-4 bg-white sticky bottom-0 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
@@ -810,7 +867,7 @@ export default function Users() {
                     <span className="font-medium">الاسم:</span> {deletingUser.full_name}
                   </p>
                   <p className="text-sm text-gray-700">
-                    <span className="font-medium">البريد:</span> {deletingUser.email}
+                    <span className="font-medium">اسم المستخدم:</span> {deletingUser.username}
                   </p>
                   <p className="text-sm text-gray-700">
                     <span className="font-medium">الدور:</span> {deletingUser.role === 'admin' ? 'مدير' : 'مستخدم'}

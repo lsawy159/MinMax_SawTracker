@@ -4,7 +4,6 @@ import { X, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { 
   calculateCommercialRegistrationStatus, 
-  calculateSocialInsuranceStatus,  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus
   calculatePowerSubscriptionStatus,
   calculateMoqeemSubscriptionStatus
 } from '@/utils/autoCompanyStatus'
@@ -28,7 +27,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     social_insurance_number: '',
     labor_subscription_number: '',
     commercial_registration_expiry: '',
-    social_insurance_expiry: '',
     ending_subscription_power_date: '',
     ending_subscription_moqeem_date: '',
     max_employees: '',
@@ -59,7 +57,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           social_insurance_number: company.social_insurance_number || '',
           labor_subscription_number: company.labor_subscription_number || '',
           commercial_registration_expiry: company.commercial_registration_expiry || '',
-          social_insurance_expiry: company.social_insurance_expiry || '',
           ending_subscription_power_date: company.ending_subscription_power_date || '',
           ending_subscription_moqeem_date: company.ending_subscription_moqeem_date || '',
           max_employees: company.max_employees?.toString() || '',
@@ -77,7 +74,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           social_insurance_number: '',
           labor_subscription_number: '',
           commercial_registration_expiry: '',
-          social_insurance_expiry: '',
           ending_subscription_power_date: '',
           ending_subscription_moqeem_date: '',
           max_employees: '',
@@ -170,7 +166,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     // التحقق من صيغة التواريخ مع رسائل أوضح
     const dateFields = [
       { key: 'commercial_registration_expiry', name: 'انتهاء السجل التجاري' },
-      { key: 'social_insurance_expiry', name: 'انتهاء التأمينات الاجتماعية' },  // تحديث: insurance_subscription_expiry → social_insurance_expiry
       { key: 'ending_subscription_power_date', name: 'انتهاء اشتراك قوى' },
       { key: 'ending_subscription_moqeem_date', name: 'انتهاء اشتراك مقيم' }
     ]
@@ -208,7 +203,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
     // التحقق من عدم تداخل التواريخ
     const allDates = {
       'انتهاء السجل التجاري': formData.commercial_registration_expiry,
-      'انتهاء التأمينات الاجتماعية': formData.social_insurance_expiry,  // تحديث: insurance_subscription_expiry → social_insurance_expiry
       'انتهاء اشتراك قوى': formData.ending_subscription_power_date,
       'انتهاء اشتراك مقيم': formData.ending_subscription_moqeem_date
     }
@@ -240,7 +234,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       'social_insurance_number': 'رقم التأمينات الاجتماعية',
       'labor_subscription_number': 'رقم اشتراك التأمينات',
       'commercial_registration_expiry': 'تاريخ انتهاء السجل التجاري',
-      'social_insurance_expiry': 'تاريخ انتهاء التأمينات الاجتماعية',
       'ending_subscription_power_date': 'تاريخ انتهاء اشتراك قوى',
       'ending_subscription_moqeem_date': 'تاريخ انتهاء اشتراك المقيم',
       'max_employees': 'الحد الأقصى للموظفين',
@@ -361,7 +354,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         social_insurance_number: formData.social_insurance_number.trim() || null,
         labor_subscription_number: laborSubscriptionNumber,
         commercial_registration_expiry: normalizeDate(formData.commercial_registration_expiry),
-        social_insurance_expiry: normalizeDate(formData.social_insurance_expiry),
         ending_subscription_power_date: normalizeDate(formData.ending_subscription_power_date),
         ending_subscription_moqeem_date: normalizeDate(formData.ending_subscription_moqeem_date),
         max_employees: maxEmployees,
@@ -379,7 +371,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
       if (isEditing && originalData) {
         const fieldsToCheck = [
           'name', 'unified_number', 'social_insurance_number', 'labor_subscription_number',
-          'commercial_registration_expiry', 'social_insurance_expiry',
+          'commercial_registration_expiry',
           'ending_subscription_power_date', 'ending_subscription_moqeem_date',
           'max_employees', 'exemptions', 'company_type', 'notes'
         ]
@@ -674,21 +666,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               />
             </div>
 
-            {/* تاريخ انتهاء التأمينات الاجتماعية */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                تاريخ انتهاء التأمينات الاجتماعية
-              </label>
-              <input
-                type="date"
-                name="social_insurance_expiry"
-                value={formData.social_insurance_expiry}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-            </div>
-
             {/* تاريخ انتهاء اشتراك قوى */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -737,29 +714,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 ) : (
                   <div className="text-gray-500 text-sm">
                     يرجى إدخال تاريخ انتهاء السجل التجاري أولاً
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* عرض حالة التأمينات الاجتماعية المحسوبة تلقائياً */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                حالة التأمينات الاجتماعية
-              </label>
-              <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
-                {formData.social_insurance_expiry ? (
-                  <div className={`p-2 rounded-md ${calculateSocialInsuranceStatus(formData.social_insurance_expiry).color.backgroundColor}`}>
-                    <div className={`font-medium ${calculateSocialInsuranceStatus(formData.social_insurance_expiry).color.textColor}`}>
-                      {calculateSocialInsuranceStatus(formData.social_insurance_expiry).status}
-                    </div>
-                    <div className={`text-sm mt-1 ${calculateSocialInsuranceStatus(formData.social_insurance_expiry).color.textColor}`}>
-                      {calculateSocialInsuranceStatus(formData.social_insurance_expiry).description}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-sm">
-                    يرجى إدخال تاريخ انتهاء التأمينات الاجتماعية أولاً
                   </div>
                 )}
               </div>

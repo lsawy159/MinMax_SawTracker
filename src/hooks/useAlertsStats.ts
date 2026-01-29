@@ -11,7 +11,6 @@ export interface AlertsStats {
   employeeAlerts: number
   employeeUrgent: number
   commercialRegAlerts: number
-  insuranceAlerts: number
   contractAlerts: number
   residenceAlerts: number
 }
@@ -25,7 +24,6 @@ export function useAlertsStats() {
     employeeAlerts: 0,
     employeeUrgent: 0,
     commercialRegAlerts: 0,
-    insuranceAlerts: 0,
     contractAlerts: 0,
     residenceAlerts: 0
   })
@@ -97,7 +95,6 @@ export function useAlertsStats() {
       const companyProblemUrgent = companyAlerts.filter(alert => 
         (alert.priority === 'urgent' || alert.priority === 'high') && (
           alert.type === 'commercial_registration_expiry' ||
-          alert.type === 'social_insurance_expiry' ||
           alert.type === 'power_subscription_expiry' ||
           alert.type === 'moqeem_subscription_expiry'
         )
@@ -117,7 +114,6 @@ export function useAlertsStats() {
       ).length
       
   const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration_expiry').length
-      const insuranceAlerts = companyAlerts.filter(alert => alert.type === 'social_insurance_expiry').length
       const contractAlerts = employeeAlerts.filter(alert => alert.type === 'contract_expiry').length
       const residenceAlerts = employeeAlerts.filter(alert => alert.type === 'residence_expiry').length
 
@@ -142,7 +138,6 @@ export function useAlertsStats() {
 
         // هذه الإحصائيات التفصيلية يجب أن تعكس "كل المشاكل" أيضاً
         commercialRegAlerts: commercialRegAlerts,
-        insuranceAlerts: insuranceAlerts,
         contractAlerts: contractAlerts,
         residenceAlerts: residenceAlerts
       }

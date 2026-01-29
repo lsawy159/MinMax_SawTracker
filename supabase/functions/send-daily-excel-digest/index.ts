@@ -54,6 +54,91 @@ interface DailyExcelLog {
 }
 
 /**
+ * Normalize values for stable keys
+ */
+function normalizeValue(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().toLowerCase()
+}
+
+/**
+ * Build a stable entity key for de-duplication (employee/company)
+ */
+function getEntityKey(alert: DailyExcelLog): string {
+  const details = (alert.details || {}) as Record<string, unknown>
+  const employeeName = normalizeValue(details.employee_name)
+  const residenceNumber = normalizeValue(details.residence_number)
+  if (residenceNumber || employeeName) {
+    return `emp:${employeeName}|${residenceNumber}`
+  }
+
+  const companyName = normalizeValue(details.company_name)
+  const unifiedNumber = normalizeValue(details.unified_number)
+  if (unifiedNumber || companyName) {
+    return `comp:${companyName}|${unifiedNumber}`
+  }
+
+  if (alert.employee_id) {
+    return `emp:${alert.employee_id}`
+  }
+  if (alert.company_id) {
+    return `comp:${alert.company_id}`
+  }
+
+  return 'unknown'
+}
+
+/**
+ * Build a stable key for de-duplication (one row per entity + alert type)
+ */
+function getAlertKey(alert: DailyExcelLog): string {
+  const entityKey = getEntityKey(alert)
+  return `${entityKey}|${normalizeValue(alert.alert_type) || 'unknown'}`
+}
+
+/**
+ * De-duplicate alerts by entity + type, keeping the most recent one
+ */
+function dedupeAlerts(alerts: DailyExcelLog[]): DailyExcelLog[] {
+  const map = new Map<string, DailyExcelLog>()
+  for (const alert of alerts) {
+    const key = getAlertKey(alert)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, alert)
+      continue
+    }
+    const existingTime = new Date(existing.created_at).getTime()
+    const currentTime = new Date(alert.created_at).getTime()
+    if (currentTime > existingTime) {
+      map.set(key, alert)
+    }
+  }
+  return Array.from(map.values())
+}
+
+/**
+ * De-duplicate records per sheet by entity only (same alert type already grouped)
+ */
+function dedupeRecordsByEntity(records: DailyExcelLog[]): DailyExcelLog[] {
+  const map = new Map<string, DailyExcelLog>()
+  for (const record of records) {
+    const key = getEntityKey(record)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, record)
+      continue
+    }
+    const existingTime = new Date(existing.created_at).getTime()
+    const currentTime = new Date(record.created_at).getTime()
+    if (currentTime > existingTime) {
+      map.set(key, record)
+    }
+  }
+  return Array.from(map.values())
+}
+
+/**
  * Fetch all unprocessed alerts (not yet handled/resolved)
  */
 async function fetchTodayAlerts(): Promise<DailyExcelLog[]> {
@@ -187,15 +272,17 @@ async function generateExcelFile(alerts: DailyExcelLog[]): Promise<string> {
         const sheetName = alertTypeNames[alertType] || alertType
         const wsData: unknown[][] = []
 
+        const dedupedRecords = dedupeRecordsByEntity(records)
+
         // Check if this is employee or company alert
-        const isEmployeeAlert = records[0].employee_id !== null
+        const isEmployeeAlert = dedupedRecords[0].employee_id !== null
 
         if (isEmployeeAlert) {
           // Employee alert headers: Name, ID, Company, Status, Days, Date
           wsData.push(['اسم الموظف', 'رقم الإقامة', 'الرقم الموحد للمؤسسة', 'الحالة', 'عدد الأيام', 'تاريخ الانتهاء'])
           
           // Employee data rows
-          for (const record of records) {
+          for (const record of dedupedRecords) {
             const details = record.details as Record<string, unknown>
             const daysDiff = calculateDaysDifference(record.expiry_date)
             const status = getStatus(record.expiry_date)
@@ -214,7 +301,7 @@ async function generateExcelFile(alerts: DailyExcelLog[]): Promise<string> {
           wsData.push(['اسم المؤسسة', 'الرقم الموحد', 'الحالة', 'عدد الأيام', 'تاريخ الانتهاء'])
           
           // Company data rows
-          for (const record of records) {
+          for (const record of dedupedRecords) {
             const details = record.details as Record<string, unknown>
             const daysDiff = calculateDaysDifference(record.expiry_date)
             const status = getStatus(record.expiry_date)
@@ -442,10 +529,10 @@ serve(async (req: Request) => {
     }
 
     // Fetch today's alerts
-    const alerts = await fetchTodayAlerts()
-    console.log(`[Daily Digest] Found ${alerts.length} unprocessed alerts`)
+    const rawAlerts = await fetchTodayAlerts()
+    console.log(`[Daily Digest] Found ${rawAlerts.length} unprocessed alerts`)
 
-    if (alerts.length === 0) {
+    if (rawAlerts.length === 0) {
       console.log('[Daily Digest] No alerts to send')
       return new Response(
         JSON.stringify({ 
@@ -460,6 +547,27 @@ serve(async (req: Request) => {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           } 
+        }
+      )
+    }
+
+    const alerts = dedupeAlerts(rawAlerts)
+    console.log(`[Daily Digest] Deduped alerts: ${alerts.length} from ${rawAlerts.length}`)
+
+    if (alerts.length === 0) {
+      console.log('[Daily Digest] No alerts to send after de-duplication')
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'No alerts to send after de-duplication',
+          count: 0
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
         }
       )
     }

@@ -37,11 +37,6 @@ interface UnifiedSettingsData {
   commercial_reg_high_days: number
   commercial_reg_medium_days: number
 
-  // المؤسسات - التأمينات الاجتماعية
-  social_insurance_urgent_days: number
-  social_insurance_high_days: number
-  social_insurance_medium_days: number
-
   // المؤسسات - اشتراك قوى
   power_subscription_urgent_days: number
   power_subscription_high_days: number
@@ -80,11 +75,6 @@ const DEFAULT_SETTINGS: UnifiedSettingsData = {
   commercial_reg_urgent_days: 7,
   commercial_reg_high_days: 15,
   commercial_reg_medium_days: 30,
-
-  // المؤسسات - التأمينات الاجتماعية
-  social_insurance_urgent_days: 7,
-  social_insurance_high_days: 15,
-  social_insurance_medium_days: 30,
 
   // المؤسسات - اشتراك قوى
   power_subscription_urgent_days: 7,
@@ -160,18 +150,6 @@ const COMPANY_SECTIONS = [
       urgent: 'commercial_reg_urgent_days',
       high: 'commercial_reg_high_days',
       medium: 'commercial_reg_medium_days'
-    },
-    type: 'company' as const
-  },
-  {
-    key: 'social_insurance',
-    title: 'التأمينات الاجتماعية',
-    icon: '🛡️',
-    description: 'إعدادات حالة وألوان وتنبيهات التأمينات الاجتماعية',
-    fields: {
-      urgent: 'social_insurance_urgent_days',
-      high: 'social_insurance_high_days',
-      medium: 'social_insurance_medium_days'
     },
     type: 'company' as const
   },
@@ -265,9 +243,6 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
         commercial_reg_urgent_days: settings.commercial_reg_urgent_days,
         commercial_reg_high_days: settings.commercial_reg_high_days,
         commercial_reg_medium_days: settings.commercial_reg_medium_days,
-        social_insurance_urgent_days: settings.social_insurance_urgent_days,
-        social_insurance_high_days: settings.social_insurance_high_days,
-        social_insurance_medium_days: settings.social_insurance_medium_days,
         power_subscription_urgent_days: settings.power_subscription_urgent_days,
         power_subscription_high_days: settings.power_subscription_high_days,
         power_subscription_medium_days: settings.power_subscription_medium_days,
@@ -281,9 +256,6 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
         commercial_reg_urgent_days: settings.commercial_reg_urgent_days,
         commercial_reg_high_days: settings.commercial_reg_high_days,
         commercial_reg_medium_days: settings.commercial_reg_medium_days,
-        social_insurance_urgent_days: settings.social_insurance_urgent_days,
-        social_insurance_high_days: settings.social_insurance_high_days,
-        social_insurance_medium_days: settings.social_insurance_medium_days,
         power_subscription_urgent_days: settings.power_subscription_urgent_days,
         power_subscription_high_days: settings.power_subscription_high_days,
         power_subscription_medium_days: settings.power_subscription_medium_days,

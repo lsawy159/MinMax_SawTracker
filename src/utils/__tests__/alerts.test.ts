@@ -75,7 +75,7 @@ describe('alerts utils', () => {
       },
       {
         id: '2',
-        type: 'social_insurance_expiry',
+        type: 'commercial_registration_expiry',
         priority: 'urgent',
         title: 'تنبيه عاجل 2',
         message: 'رسالة تجريبية',
@@ -99,7 +99,7 @@ describe('alerts utils', () => {
       },
       {
         id: '4',
-        type: 'social_insurance_expiry',
+        type: 'power_subscription_expiry',
         priority: 'low',
         title: 'تنبيه خفيف',
         message: 'رسالة تجريبية',
@@ -220,18 +220,9 @@ describe('alerts utils', () => {
     it('should filter alerts by commercial_registration_expiry type', () => {
       const commercialAlerts = filterAlertsByType(mockAlerts, 'commercial_registration_expiry')
       
-      expect(commercialAlerts.length).toBe(2)
+      expect(commercialAlerts.length).toBe(3)
       commercialAlerts.forEach(alert => {
         expect(alert.type).toBe('commercial_registration_expiry')
-      })
-    })
-
-    it('should filter alerts by social_insurance_expiry type', () => {
-      const insuranceAlerts = filterAlertsByType(mockAlerts, 'social_insurance_expiry')
-      
-      expect(insuranceAlerts.length).toBe(2)
-      insuranceAlerts.forEach(alert => {
-        expect(alert.type).toBe('social_insurance_expiry')
       })
     })
 
@@ -255,8 +246,7 @@ describe('alerts utils', () => {
       expect(stats.low).toBe(1)
       
       // عد التنبيهات حسب النوع (عدد التنبيهات وليس المؤسسات)
-      expect(stats.commercialRegAlerts).toBe(2)
-      expect(stats.socialInsuranceAlerts).toBe(2)
+      expect(stats.commercialRegAlerts).toBe(3)  // IDs 1, 2, 3
     })
 
     it('should return zeros for empty alerts array', () => {
@@ -267,7 +257,6 @@ describe('alerts utils', () => {
       expect(stats.medium).toBe(0)
       expect(stats.low).toBe(0)
       expect(stats.commercialRegAlerts).toBe(0)
-      expect(stats.socialInsuranceAlerts).toBe(0)
     })
 
     it('should count correctly with mixed priorities', () => {

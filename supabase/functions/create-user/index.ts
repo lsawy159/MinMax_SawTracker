@@ -69,13 +69,42 @@ serve(async (req) => {
     }
 
     // قراءة بيانات الطلب
-    const { email, password, full_name, role, permissions, is_active } = await req.json()
+    const { username, email, password, full_name, role, permissions, is_active } = await req.json()
 
     // التحقق من البيانات المطلوبة
-    if (!email || !password || !full_name) {
+    if (!username || !email || !password || !full_name) {
       return new Response(
-        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: email, password, full_name' } }),
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: username, email, password, full_name' } }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // التحقق من صحة username (حروف، أرقام، _ أو - أو . فقط)
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Username must contain only letters, numbers, underscores, or hyphens' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // التحقق من عدم وجود username مكرر
+    const { data: existingUser, error: usernameCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .ilike('username', username)
+      .single()
+
+    if (existingUser) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'اسم المستخدم موجود بالفعل. اختر اسماً آخر.' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+      return new Response(
+        JSON.stringify({ error: { code: 'DATABASE_ERROR', message: 'Failed to check username availability' } }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -111,7 +140,8 @@ serve(async (req) => {
       password,
       email_confirm: true, // تأكيد البريد تلقائياً
       user_metadata: {
-        full_name
+        full_name,
+        username
       }
     })
 
@@ -125,6 +155,7 @@ serve(async (req) => {
     // إنشاء سجل في public.users
     const newUser = {
       id: authUser.user.id,
+      username,
       email,
       full_name,
       role: role || 'user',

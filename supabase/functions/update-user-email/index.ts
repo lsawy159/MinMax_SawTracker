@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     // قراءة بيانات الطلب
-    const { user_id, new_email } = await req.json()
+    const { user_id, new_email, new_username } = await req.json()
 
     // التحقق من البيانات المطلوبة
     if (!user_id || !new_email) {
@@ -86,6 +86,38 @@ serve(async (req) => {
         JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Invalid email format' } }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // التحقق من صحة username إذا تم إرساله
+    if (new_username && !/^[a-zA-Z0-9_.-]+$/.test(new_username)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Invalid username format' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // التحقق من تكرار username إذا تم إرساله
+    if (new_username) {
+      const { data: existingUsername, error: usernameCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .ilike('username', new_username)
+        .neq('id', user_id)
+        .single()
+
+      if (existingUsername) {
+        return new Response(
+          JSON.stringify({ error: { code: 'CONFLICT', message: 'Username already in use by another user' } }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+        return new Response(
+          JSON.stringify({ error: { code: 'DATABASE_ERROR', message: 'Failed to check username availability' } }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // التحقق من وجود المستخدم
@@ -122,9 +154,17 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
     // تحديث البريد الإلكتروني في auth.users
+    const authUpdatePayload: { email: string; user_metadata?: Record<string, unknown> } = {
+      email: new_email
+    }
+
+    if (new_username) {
+      authUpdatePayload.user_metadata = { username: new_username }
+    }
+
     const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
       user_id,
-      { email: new_email }
+      authUpdatePayload
     )
 
     if (updateAuthError) {
@@ -134,10 +174,15 @@ serve(async (req) => {
       )
     }
 
-    // تحديث البريد الإلكتروني في public.users
+    // تحديث البريد الإلكتروني واسم المستخدم في public.users
+    const updatePayload: { email: string; username?: string } = { email: new_email }
+    if (new_username) {
+      updatePayload.username = new_username
+    }
+
     const { error: updateUserError } = await supabaseAdmin
       .from('users')
-      .update({ email: new_email })
+      .update(updatePayload)
       .eq('id', user_id)
 
     if (updateUserError) {

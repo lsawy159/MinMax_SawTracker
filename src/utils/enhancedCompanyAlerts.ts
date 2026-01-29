@@ -4,7 +4,7 @@ import { differenceInDays } from 'date-fns'
 // Simple enhanced alert interface for compatibility
 export interface SimpleEnhancedAlert {
   id: string
-  type: 'commercial_registration_expiry' | 'social_insurance_expiry'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry'
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -21,7 +21,7 @@ export interface SimpleEnhancedAlert {
   estimated_cost?: string
   
   // Enhanced fields for compatibility
-  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'government_docs_renewal'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
   related_documents: string[]
@@ -49,11 +49,6 @@ export interface AlertThresholds {
     medium: number
     low: number
   }
-  social_insurance: {  // تحديث: insurance → social_insurance
-    urgent: number
-    medium: number
-    low: number
-  }
   government_docs: {
     urgent: number
     medium: number
@@ -63,13 +58,12 @@ export interface AlertThresholds {
 
 export const DEFAULT_ENHANCED_THRESHOLDS: AlertThresholds = {
   commercial_reg: { urgent: 30, medium: 60, low: 90 },
-  social_insurance: { urgent: 30, medium: 60, low: 90 },  // تحديث: insurance → social_insurance
   government_docs: { urgent: 15, medium: 45, low: 75 }
 }
 
 export interface EnhancedAlert {
   id: string
-  type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  type: 'commercial_registration_expiry' | 'government_docs_renewal'
   priority: 'urgent' | 'medium' | 'low'
   title: string
   message: string
@@ -84,7 +78,7 @@ export interface EnhancedAlert {
   created_at: string
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   estimated_cost?: string
-  alert_type: 'commercial_registration_expiry' | 'social_insurance_expiry' | 'government_docs_renewal'  // تحديث: insurance_subscription → social_insurance_expiry
+  alert_type: 'commercial_registration_expiry' | 'government_docs_renewal'
   document_category: 'legal' | 'financial' | 'operational'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
   estimated_renewal_time: string
@@ -165,62 +159,6 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
           ],
           renewal_cost_estimate: { min: 500, max: 2000, currency: 'SAR' },
           responsible_department: 'Legal Affairs',
-          renewal_history: []
-        })
-      }
-    }
-    
-    // Social Insurance Alerts (التأمينات الاجتماعية للمؤسسات)
-    if (company.social_insurance_expiry) {
-      const expiryDate = new Date(company.social_insurance_expiry)
-      const today = new Date()
-      const daysRemaining = differenceInDays(expiryDate, today)
-      
-      if (daysRemaining <= DEFAULT_ENHANCED_THRESHOLDS.social_insurance.low) {
-        const priority = daysRemaining < 0 ? 'urgent' : 
-                        daysRemaining <= 30 ? 'urgent' : 
-                        daysRemaining <= 60 ? 'medium' : 'low'
-        
-        alerts.push({
-          id: `enhanced_social_insurance_${company.id}_${company.social_insurance_expiry}`,
-          type: 'social_insurance_expiry',
-          priority,
-          title: 'انتهاء صلاحية التأمينات الاجتماعية',
-          message: `تنتهي التأمينات الاجتماعية للمؤسسة "${company.name}" ${daysRemaining < 0 ? `منذ ${Math.abs(daysRemaining)} يوم` : `خلال ${daysRemaining} يوم`}`,
-          company: {
-            id: company.id,
-            name: company.name,
-            commercial_registration_number: company.commercial_registration_number
-          },
-          expiry_date: company.social_insurance_expiry,
-          days_remaining: daysRemaining,
-          action_required: `قم بترتيب تجديد التأمينات الاجتماعية للمؤسسة "${company.name}"`,
-          created_at: new Date().toISOString(),
-          risk_level: daysRemaining < 0 ? 'critical' : 
-                     daysRemaining <= 30 ? 'high' : 
-                     daysRemaining <= 60 ? 'medium' : 'low',
-          estimated_cost: '2000 - 10000 ريال',
-          
-          // Enhanced fields
-          alert_type: 'social_insurance_expiry',
-          document_category: 'financial',
-          renewal_complexity: 'simple',
-          estimated_renewal_time: daysRemaining < 7 ? '1-2 أيام' : '3-5 أيام',
-          related_documents: ['وثيقة التأمينات الاجتماعية', 'الفواتير', 'الشهادات'],
-          compliance_risk: daysRemaining < 0 ? 'critical' : 
-                          daysRemaining <= 30 ? 'high' : 
-                          daysRemaining <= 60 ? 'medium' : 'low',
-          business_impact: daysRemaining < 0 ? 'critical' : 
-                          daysRemaining <= 30 ? 'significant' : 
-                          daysRemaining <= 60 ? 'moderate' : 'minimal',
-          suggested_actions: [
-            'التواصل مع مؤسسة التأمينات الاجتماعية',
-            'مراجعة شروط الوثيقة',
-            'دفع قسط التجديد',
-            'تأكيد التجديد'
-          ],
-          renewal_cost_estimate: { min: 2000, max: 10000, currency: 'SAR' },
-          responsible_department: 'Finance',
           renewal_history: []
         })
       }
@@ -358,11 +296,6 @@ function _getEnhancedTitle(_type: string, _days: number): string {
     if (_days <= 7) return 'السجل التجاري عاجل'
     if (_days <= 30) return 'تجديد السجل التجاري مطلوب'
     return 'متابعة تجديد السجل التجاري'
-  } else if (_type === 'social_insurance_expiry') {  // تحديث: insurance_subscription → social_insurance_expiry
-    if (_days < 0) return 'التأمينات الاجتماعية منتهي'
-    if (_days <= 7) return 'التأمينات الاجتماعية عاجل'
-    if (_days <= 30) return 'تجديد التأمينات الاجتماعية مطلوب'
-    return 'متابعة تجديد التأمينات الاجتماعية'
   }
   
   return 'تنبيه تجديد الوثائق'
@@ -405,8 +338,7 @@ export function getEnhancedAlertsStats(alerts: EnhancedAlert[]) {
     byRisk,
     byDocumentCategory,
     byBusinessImpact,
-  commercialRegAlerts: alerts.filter(a => a.alert_type === 'commercial_registration_expiry').length,
-    socialInsuranceAlerts: alerts.filter(a => a.alert_type === 'social_insurance_expiry').length,  // تحديث: insurance_subscription → social_insurance_expiry
+    commercialRegAlerts: alerts.filter(a => a.alert_type === 'commercial_registration_expiry').length,
     govDocsAlerts: alerts.filter(a => a.alert_type === 'government_docs_renewal').length
   }
 }

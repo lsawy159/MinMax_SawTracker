@@ -17,9 +17,6 @@ export const DEFAULT_STATUS_THRESHOLDS = {
   commercial_reg_urgent_days: 7,
   commercial_reg_high_days: 15,
   commercial_reg_medium_days: 30,
-  social_insurance_urgent_days: 7,
-  social_insurance_high_days: 15,
-  social_insurance_medium_days: 30,
   power_subscription_urgent_days: 7,
   power_subscription_high_days: 15,
   power_subscription_medium_days: 30,
@@ -238,53 +235,6 @@ export const calculateCommercialRegistrationStatus = (
 }
 
 /**
- * حساب حالة المؤسسة بناءً على تاريخ انتهاء اشتراك التأمينات
- * النظام الموحد: طارئ - عاجل - متوسط - ساري
- */
-export const calculateSocialInsuranceStatus = (
-  expiryDate: string | null | undefined,
-  thresholds?: typeof DEFAULT_STATUS_THRESHOLDS
-): {
-  status: 'غير محدد' | 'منتهي' | 'طارئ' | 'عاجل' | 'متوسط' | 'ساري'
-  daysRemaining: number
-  color: {
-    backgroundColor: string
-    textColor: string
-    borderColor: string
-  }
-  description: string
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-} => {
-  if (!expiryDate) {
-    return {
-      status: 'غير محدد',
-      daysRemaining: 0,
-      color: {
-        backgroundColor: 'bg-gray-50',
-        textColor: 'text-gray-600',
-        borderColor: 'border-gray-200'
-      },
-      description: 'تاريخ انتهاء التأمينات الاجتماعية غير محدد',
-      priority: 'low'
-    }
-  }
-
-  // Get thresholds if not provided
-  const statusThresholds = thresholds || getStatusThresholdsSync()
-  const urgentDays = statusThresholds.social_insurance_urgent_days
-  const highDays = statusThresholds.social_insurance_high_days
-  const mediumDays = statusThresholds.social_insurance_medium_days
-
-  const daysRemaining = calculateDaysRemaining(expiryDate)
-  const result = calculateUnifiedStatus(daysRemaining, urgentDays, highDays, mediumDays, 'التأمينات الاجتماعية')
-  
-  return {
-    ...result,
-    daysRemaining
-  }
-}
-
-/**
  * حساب إحصائيات السجل التجاري
  */
 export interface CommercialRegStats {
@@ -322,81 +272,6 @@ export const calculateCommercialRegStats = (companies: Array<{ commercial_regist
 
   companies.forEach(company => {
     const statusInfo = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-    
-    switch (statusInfo.status) {
-      case 'منتهي':
-        stats.expired++
-        break
-      case 'طارئ':
-        stats.urgent++
-        break
-      case 'عاجل':
-        stats.high++
-        break
-      case 'متوسط':
-        stats.medium++
-        break
-      case 'ساري':
-        stats.valid++
-        break
-      case 'غير محدد':
-        stats.notSpecified++
-        break
-    }
-  })
-
-  // حساب النسب المئوية
-  if (stats.total > 0) {
-    stats.percentageValid = Math.round((stats.valid / stats.total) * 100)
-    stats.percentageExpired = Math.round((stats.expired / stats.total) * 100)
-    stats.percentageUrgent = Math.round((stats.urgent / stats.total) * 100)
-    stats.percentageHigh = Math.round((stats.high / stats.total) * 100)
-    stats.percentageMedium = Math.round((stats.medium / stats.total) * 100)
-    stats.percentageNotSpecified = Math.round((stats.notSpecified / stats.total) * 100)
-  }
-
-  return stats
-}
-
-/**
- * حساب إحصائيات اشتراك التأمينات
- */
-export interface InsuranceStats {
-  total: number
-  expired: number
-  urgent: number    // طارئ - أحمر
-  high: number      // عاجل - برتقالي
-  medium: number    // متوسط - أصفر
-  valid: number     // ساري - أخضر
-  notSpecified: number
-  percentageValid: number
-  percentageExpired: number
-  percentageUrgent: number
-  percentageHigh: number
-  percentageMedium: number
-  percentageNotSpecified: number
-}
-
-// تحديث: calculateInsuranceStats - استخدام social_insurance_expiry
-export const calculateSocialInsuranceStats = (companies: Array<{ social_insurance_expiry: string | null }>): InsuranceStats => {
-  const stats = {
-    total: companies.length,
-    expired: 0,
-    urgent: 0,    // طارئ - أحمر
-    high: 0,      // عاجل - برتقالي
-    medium: 0,    // متوسط - أصفر
-    valid: 0,     // ساري - أخضر
-    notSpecified: 0,
-    percentageValid: 0,
-    percentageExpired: 0,
-    percentageUrgent: 0,
-    percentageHigh: 0,
-    percentageMedium: 0,
-    percentageNotSpecified: 0
-  }
-
-  companies.forEach(company => {
-    const statusInfo = calculateSocialInsuranceStatus(company.social_insurance_expiry)
     
     switch (statusInfo.status) {
       case 'منتهي':
@@ -678,13 +553,12 @@ export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqe
 }
 
 /**
- * حساب إحصائيات موحدة للمؤسسة (السجل التجاري + اشتراك التأمينات + اشتراك قوى + اشتراك مقيم)
+ * حساب إحصائيات موحدة للمؤسسة (السجل التجاري + اشتراك قوى + اشتراك مقيم)
  * النظام الموحد: طارئ، عاجل، متوسط، ساري
  */
 export interface CompanyStatusStats {
   totalCompanies: number
   commercialRegStats: CommercialRegStats
-  socialInsuranceStats: InsuranceStats  // تحديث: insuranceStats → socialInsuranceStats
   powerStats: PowerStats
   moqeemStats: MoqeemStats
   // إحصائيات موحدة (تشمل جميع الحالات)
@@ -704,16 +578,11 @@ export const calculateCompanyStatusStats = (companies: Array<{
   id: string
   name: string
   commercial_registration_expiry: string | null
-  social_insurance_expiry: string | null  // تحديث: insurance_subscription_expiry → social_insurance_expiry
   ending_subscription_power_date?: string | null
   ending_subscription_moqeem_date?: string | null
 }>): CompanyStatusStats => {
   const commercialRegCompanies = companies.map(c => ({
     commercial_registration_expiry: c.commercial_registration_expiry
-  }))
-  
-  const socialInsuranceCompanies = companies.map(c => ({
-    social_insurance_expiry: c.social_insurance_expiry  // تحديث: insurance_subscription_expiry → social_insurance_expiry
   }))
   
   const powerCompanies = companies.map(c => ({
@@ -725,7 +594,6 @@ export const calculateCompanyStatusStats = (companies: Array<{
   }))
 
   const commercialRegStats = calculateCommercialRegStats(commercialRegCompanies)
-  const socialInsuranceStats = calculateSocialInsuranceStats(socialInsuranceCompanies)  // تحديث: calculateInsuranceStats → calculateSocialInsuranceStats
   const powerStats = calculatePowerStats(powerCompanies)
   const moqeemStats = calculateMoqeemStats(moqeemCompanies)
 
@@ -735,19 +603,16 @@ export const calculateCompanyStatusStats = (companies: Array<{
 
   companies.forEach(company => {
     const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-    const insuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
     const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
     const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
     
     if (commercialStatus.priority === 'urgent' || 
-        insuranceStatus.priority === 'urgent' ||
         powerStatus.priority === 'urgent' ||
         moqeemStatus.priority === 'urgent') {
       totalCriticalAlerts++
     }
     
     if (commercialStatus.priority === 'medium' || 
-        insuranceStatus.priority === 'medium' ||
         powerStatus.priority === 'medium' ||
         moqeemStatus.priority === 'medium') {
       totalMediumAlerts++
@@ -767,11 +632,10 @@ export const calculateCompanyStatusStats = (companies: Array<{
 
   companies.forEach(company => {
     const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-    const insuranceStatus = calculateSocialInsuranceStatus(company.social_insurance_expiry)  // تحديث: calculateInsuranceSubscriptionStatus → calculateSocialInsuranceStatus, insurance_subscription_expiry → social_insurance_expiry
     const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
     const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
     
-    const allStatuses = [commercialStatus, insuranceStatus, powerStatus, moqeemStatus]
+    const allStatuses = [commercialStatus, powerStatus, moqeemStatus]
     const priorities = allStatuses.map(s => s.priority)
     const statuses = allStatuses.map(s => s.status)
     
@@ -810,7 +674,6 @@ export const calculateCompanyStatusStats = (companies: Array<{
   return {
     totalCompanies: companies.length,
     commercialRegStats,
-    socialInsuranceStats,  // تحديث: insuranceStats → socialInsuranceStats
     powerStats,
     moqeemStats,
     totalValid,

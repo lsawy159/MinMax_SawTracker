@@ -11,7 +11,7 @@ export interface AuthContextType {
   loading: boolean
   isAdmin: boolean
   error: string | null
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (usernameOrEmail: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   refreshUserData: () => Promise<void>
   clearError: () => void
@@ -423,12 +423,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // --- دوال المصادقة ---
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (usernameOrEmail: string, password: string) => {
     setLoading(true)
     setError(null)
     // لا نعين fetchingRef هنا لأن onAuthStateChange سيتولى استدعاء fetchUserData
     
     try {
+      // تحويل username إلى email وهمي إذا لم يحتوي على @
+      const email = usernameOrEmail.includes('@') 
+        ? usernameOrEmail 
+        : `${usernameOrEmail}@sawtracker.local`
+      
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -437,7 +442,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (signInError) {
         logger.error('[Auth] Sign in error:', signInError)
         // تسجيل محاولة دخول فاشلة
-        await securityLogger.logFailedLogin(email, signInError.message).catch(err => {
+        await securityLogger.logFailedLogin(usernameOrEmail, signInError.message).catch(err => {
           logger.warn('[Auth] Failed to log failed login attempt:', err)
         })
         throw signInError
@@ -477,7 +482,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           resource_type: 'auth',
           resource_id: signInData.session.user.id,
           status: 'success',
-          new_values: { email, timestamp: new Date().toISOString() }
+          new_values: { username: usernameOrEmail, timestamp: new Date().toISOString() }
         }).catch(err => {
           logger.warn('[Auth] Failed to log successful login:', err)
         })
@@ -493,7 +498,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (err.message.includes('Email not confirmed')) {
             errorMessage = 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك الإلكتروني.'
           } else if (err.message.includes('Invalid login credentials')) {
-            errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+            errorMessage = 'اسم المستخدم أو البريد الإلكتروني أو كلمة المرور غير صحيحة.'
           } else {
             errorMessage = err.message
           }

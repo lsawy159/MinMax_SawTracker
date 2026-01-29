@@ -2,7 +2,20 @@
  * التحقق من صحة أرقام المؤسسات
  * - الرقم الموحد: يجب أن يبدأ برقم 7 ويكون 10 أرقام
  * - رقم قوى: يجب أن يبدأ ب 13 على شكل 13-XXXXXXX (7 أرقام)
+ * - "لا يوجد": قيمة صالحة تُعامل كـ N/A
  */
+
+export const NO_VALUE_TEXT = 'لا يوجد'
+
+export const isNoValue = (value: string | number | null | undefined): boolean => {
+  if (value === null || value === undefined) return false
+  return String(value).trim() === NO_VALUE_TEXT
+}
+
+export const normalizeNoValue = (value: string | number | null | undefined): string | number | null => {
+  if (value === null || value === undefined) return null
+  return isNoValue(value) ? null : value
+}
 
 /**
  * التحقق من صحة الرقم الموحد
@@ -12,6 +25,10 @@
 export const validateUnifiedNumber = (unifiedNumber: string | number | null | undefined): { valid: boolean; error?: string } => {
   if (!unifiedNumber) {
     return { valid: false, error: 'الرقم الموحد مطلوب' }
+  }
+
+  if (isNoValue(unifiedNumber)) {
+    return { valid: true }
   }
 
   const numberStr = String(unifiedNumber).trim()
@@ -42,6 +59,10 @@ export const validateUnifiedNumber = (unifiedNumber: string | number | null | un
 export const validateLaborSubscription = (laborSubscription: string | number | null | undefined): { valid: boolean; error?: string } => {
   if (!laborSubscription) {
     // إذا كان فارغاً، لا مشكلة (حقل اختياري)
+    return { valid: true }
+  }
+
+  if (isNoValue(laborSubscription)) {
     return { valid: true }
   }
 
