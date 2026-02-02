@@ -93,7 +93,7 @@ export default function ActivityLogs() {
       if (userIds.size > 0) {
         const { data: usersData, error: usersError } = await supabase
           .from('users')
-          .select('id, email, full_name')
+          .select('id, email, full_name, username')
           .in('id', Array.from(userIds))
 
         if (usersError) {
