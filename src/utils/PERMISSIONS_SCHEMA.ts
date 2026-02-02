@@ -41,6 +41,10 @@ export const PERMISSION_SECTIONS = {
     label: 'البحث المتقدم',
     actions: ['view'] as const
   },
+  userGuide: {
+    label: 'دليل المستخدم',
+    actions: ['view'] as const
+  },
   reports: {
     label: 'التقارير',
     actions: ['view', 'export'] as const

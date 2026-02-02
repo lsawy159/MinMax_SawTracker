@@ -24,7 +24,7 @@ export default function UserGuide() {
   const [selectedSection, setSelectedSection] = useState<string>('')
 
   // Check permissions
-  if (!canView('employees')) {
+  if (!canView('userGuide')) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-screen">

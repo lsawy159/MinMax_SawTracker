@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/reports', icon: BarChart3, label: 'التقارير', permission: { section: 'reports' as const, action: 'view' }, badge: null },
     { path: '/activity-logs', icon: History, label: 'سجل النشاطات', permission: { section: 'activityLogs' as const, action: 'view' }, badge: null },
     { path: '/import-export', icon: ArrowDownUp, label: 'استيراد/تصدير', permission: { section: 'importExport' as const, action: 'view' }, badge: null },
-    { path: '/user-guide', icon: BookOpen, label: 'دليل المستخدم', permission: { section: 'employees' as const, action: 'view' }, badge: null },
+    { path: '/user-guide', icon: BookOpen, label: 'دليل المستخدم', permission: { section: 'userGuide' as const, action: 'view' }, badge: null },
     { path: '/admin-guide', icon: Shield, label: 'دليل مدير النظام', adminOnly: true, badge: null },
     { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
     { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
