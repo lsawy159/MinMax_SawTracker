@@ -2,6 +2,7 @@
 import React, { StrictMode } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { createRoot } from 'react-dom/client'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'
 import App from './App.tsx'
@@ -111,6 +112,7 @@ try {
     <StrictMode>
       <ErrorBoundary>
         <App />
+        <SpeedInsights />
       </ErrorBoundary>
     </StrictMode>,
   )
