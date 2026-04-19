@@ -18,6 +18,7 @@ export interface PermissionMatrix {
   payroll: { view: boolean; export: boolean }
   alerts: { view: boolean }
   advancedSearch: { view: boolean }
+  userGuide: { view: boolean }
   importExport: { view: boolean; import: boolean; export: boolean }
   activityLogs: { view: boolean }
   dashboard: { view: boolean }

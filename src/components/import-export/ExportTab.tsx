@@ -1,12 +1,21 @@
 import { useState, useEffect, useMemo, ReactNode } from 'react'
 import { supabase, Employee, Company, Project } from '@/lib/supabase'
-import { FileDown, CheckSquare, Square, Calendar, Shield, FileText, Building2, RotateCcw, Search } from 'lucide-react'
+import { FileDown, CheckSquare, Square, Calendar, Shield, FileText, Building2, RotateCcw, Search, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { loadXlsx } from '@/utils/lazyXlsx'
 import { differenceInDays } from 'date-fns'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { normalizeArabic } from '@/utils/textUtils'
+import { getEmployeeBusinessFields } from '@/utils/employeeBusinessFields'
+import {
+  EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
+  getPayrollComponentBucket,
+  getPayrollObligationBreakdownTotal,
+  getPayrollObligationBucketFromType,
+  normalizePayrollObligationBreakdown,
+} from '@/utils/payrollObligationBuckets'
+import { EmployeeListSkeleton } from '@/components/ui/Skeleton'
 
 interface CompanyWithStats extends Company {
   employee_count?: number
@@ -27,6 +36,8 @@ export default function ExportTab() {
   const [projectFilterQuery, setProjectFilterQuery] = useState<string>('')
   const [expandedFilterGroup, setExpandedFilterGroup] = useState<string | null>(null)
   const [expandedCompanyFilterGroup, setExpandedCompanyFilterGroup] = useState<string | null>(null)
+  const [employeeExportMode, setEmployeeExportMode] = useState<'basic' | 'monthly'>('basic')
+  const [monthlyExportMonth, setMonthlyExportMonth] = useState(new Date().toISOString().slice(0, 7))
   
   // Multi-select for companies (replaces filterCompany)
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set())
@@ -74,14 +85,14 @@ export default function ExportTab() {
   }) => (
     <button
       onClick={onClick}
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] leading-4 font-medium transition border ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium leading-4 transition ${
         active
           ? (color === 'blue'
-              ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-              : 'bg-green-600 text-white border-green-600 hover:bg-green-700')
+              ? 'border-primary bg-primary text-slate-950 hover:bg-primary/90'
+              : 'border-green-600 bg-green-600 text-white hover:bg-green-700')
           : (color === 'blue'
-              ? 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50'
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-green-50')
+              ? 'border-gray-200 bg-white text-gray-700 hover:bg-primary/10'
+              : 'border-gray-200 bg-white text-gray-700 hover:bg-green-50')
       }`}
     >
       {children}
@@ -418,7 +429,7 @@ export default function ExportTab() {
     toast.success('تم إعادة تعيين جميع الفلاتر')
   }
 
-  const exportEmployees = () => {
+  const exportEmployees = async () => {
     if (selectedEmployees.size === 0) {
       toast.error('الرجاء اختيار موظف واحد على الأقل')
       return
@@ -426,66 +437,177 @@ export default function ExportTab() {
 
     setLoading(true)
     try {
-      // Export only selected employees from filtered list
+      const XLSX = await loadXlsx()
       const selectedData = filteredEmployees.filter(e => selectedEmployees.has(e.id))
-      
-      // Prepare data for Excel
-      const excelData = selectedData.map(emp => ({
-        'الاسم': emp.name,
-        'المهنة': emp.profession || '',
-        'الجنسية': emp.nationality || '',
-        'رقم الإقامة': emp.residence_number,
-        'رقم الجواز': emp.passport_number || '',
-        'رقم الهاتف': emp.phone || '',
-        'الحساب البنكي': emp.bank_account || '',
-        'الراتب': emp.salary || '',
-        'المشروع': emp.project_name || '',
-        'الشركة أو المؤسسة': emp.company?.name || '',
-        'الرقم الموحد': emp.company?.unified_number || '',
-        'تاريخ الميلاد': emp.birth_date ? formatDateShortWithHijri(emp.birth_date) : '',
-        'تاريخ الالتحاق': emp.joining_date ? formatDateShortWithHijri(emp.joining_date) : '',
-        'تاريخ انتهاء الإقامة': emp.residence_expiry ? formatDateShortWithHijri(emp.residence_expiry) : '',
-        'تاريخ انتهاء العقد': emp.contract_expiry ? formatDateShortWithHijri(emp.contract_expiry) : '',
-        'تاريخ انتهاء عقد أجير': emp.hired_worker_contract_expiry ? formatDateShortWithHijri(emp.hired_worker_contract_expiry) : '',
-        'تاريخ انتهاء التأمين الصحي': emp.health_insurance_expiry ? formatDateShortWithHijri(emp.health_insurance_expiry) : '',
-        'رابط صورة الإقامة': emp.residence_image_url || '',
-        'الملاحظات': emp.notes || ''
-      }))
+      const selectedIds = selectedData.map(emp => emp.id)
 
-      // Create workbook
+      const payrollMap = new Map<string, {
+        overtime_amount?: number
+        deductions_amount?: number
+        installment_deducted_amount?: number
+        deductions_notes?: string
+        overtime_notes?: string
+        breakdown: typeof EMPTY_PAYROLL_OBLIGATION_BREAKDOWN
+      }>()
+
+      const obligationTotalsMap = new Map<string, typeof EMPTY_PAYROLL_OBLIGATION_BREAKDOWN>()
+
+      if (selectedIds.length > 0) {
+        const { data: obligationHeaders, error: obligationTotalsError } = await supabase
+          .from('employee_obligation_headers')
+          .select('employee_id, obligation_type, total_amount, status')
+          .in('employee_id', selectedIds)
+
+        if (obligationTotalsError) throw obligationTotalsError
+
+        ;(obligationHeaders || []).forEach((header) => {
+          const bucket = getPayrollObligationBucketFromType(header.obligation_type)
+          const current = normalizePayrollObligationBreakdown(obligationTotalsMap.get(header.employee_id))
+          current[bucket] += Number(header.total_amount || 0)
+          obligationTotalsMap.set(header.employee_id, current)
+        })
+      }
+
+      if (employeeExportMode === 'monthly' && selectedIds.length > 0) {
+        const monthStart = `${monthlyExportMonth}-01`
+        const nextMonthDate = new Date(`${monthlyExportMonth}-01T00:00:00`)
+        nextMonthDate.setMonth(nextMonthDate.getMonth() + 1)
+        const nextMonthStart = nextMonthDate.toISOString().slice(0, 10)
+
+        const { data: payrollEntries, error: payrollError } = await supabase
+          .from('payroll_entries')
+          .select('id, employee_id, payroll_month, overtime_amount, deductions_amount, installment_deducted_amount, deductions_notes, overtime_notes')
+          .in('employee_id', selectedIds)
+          .gte('payroll_month', monthStart)
+          .lt('payroll_month', nextMonthStart)
+
+        if (payrollError) throw payrollError
+
+        const entryIds = (payrollEntries || []).map((entry) => entry.id)
+        const { data: components, error: componentsError } = entryIds.length > 0
+          ? await supabase
+              .from('payroll_entry_components')
+              .select('payroll_entry_id, component_code, amount')
+              .in('payroll_entry_id', entryIds)
+          : { data: [], error: null }
+
+        if (componentsError) throw componentsError
+
+        const breakdownByEntryId = new Map<string, typeof EMPTY_PAYROLL_OBLIGATION_BREAKDOWN>()
+        ;(components || []).forEach((component) => {
+          const bucket = getPayrollComponentBucket(component.component_code)
+          if (!bucket) return
+
+          const current = normalizePayrollObligationBreakdown(breakdownByEntryId.get(component.payroll_entry_id))
+          current[bucket] += Number(component.amount || 0)
+          breakdownByEntryId.set(component.payroll_entry_id, current)
+        })
+
+        ;(payrollEntries || []).forEach((entry) => {
+          const currentBreakdown = normalizePayrollObligationBreakdown(
+            breakdownByEntryId.get(entry.id) ?? {
+              ...EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
+              penalty: Number(entry.deductions_amount || 0),
+              advance: Number(entry.installment_deducted_amount || 0),
+            }
+          )
+
+          payrollMap.set(entry.employee_id, {
+            overtime_amount: Number(entry.overtime_amount || 0),
+            deductions_amount: Number(entry.deductions_amount || 0),
+            installment_deducted_amount: Number(entry.installment_deducted_amount || 0),
+            deductions_notes: entry.deductions_notes || '',
+            overtime_notes: entry.overtime_notes || '',
+            breakdown: currentBreakdown,
+          })
+        })
+      }
+
+      const excelData = selectedData.map(emp => {
+        const businessFields = getEmployeeBusinessFields(emp)
+        const obligationTotals = normalizePayrollObligationBreakdown(obligationTotalsMap.get(emp.id))
+        const baseRow = {
+          'الاسم': emp.name,
+          'المهنة': emp.profession || '',
+          'الجنسية': emp.nationality || '',
+          'رقم الإقامة': emp.residence_number,
+          'رقم الجواز': emp.passport_number || '',
+          'رقم الهاتف': emp.phone || '',
+          'الحساب البنكي': emp.bank_account || '',
+          'اسم البنك': businessFields.bank_name,
+          'الراتب': emp.salary || '',
+          'حالة عقد أجير': businessFields.hired_worker_contract_status,
+          'حالة النقل': businessFields.transfer_status,
+          'رسوم النقل': businessFields.transfer_fee,
+          'رسوم التجديد': businessFields.renewal_fee,
+          'إجمالي رسوم نقل وتجديد': obligationTotals.transfer_renewal,
+          'إجمالي جزاءات وغرامات': obligationTotals.penalty,
+          'إجمالي السلف': obligationTotals.advance,
+          'إجمالي أخرى': obligationTotals.other,
+          'إجمالي الاستقطاعات': getPayrollObligationBreakdownTotal(obligationTotals),
+          'المشروع': emp.project?.name || emp.project_name || '',
+          'الشركة أو المؤسسة': emp.company?.name || '',
+          'الرقم الموحد': emp.company?.unified_number || '',
+          'تاريخ الميلاد': emp.birth_date ? formatDateShortWithHijri(emp.birth_date) : '',
+          'تاريخ الالتحاق': emp.joining_date ? formatDateShortWithHijri(emp.joining_date) : '',
+          'تاريخ انتهاء الإقامة': emp.residence_expiry ? formatDateShortWithHijri(emp.residence_expiry) : '',
+          'تاريخ انتهاء العقد': emp.contract_expiry ? formatDateShortWithHijri(emp.contract_expiry) : '',
+          'تاريخ انتهاء عقد أجير': emp.hired_worker_contract_expiry ? formatDateShortWithHijri(emp.hired_worker_contract_expiry) : '',
+          'تاريخ انتهاء التأمين الصحي': emp.health_insurance_expiry ? formatDateShortWithHijri(emp.health_insurance_expiry) : '',
+          'رابط صورة الإقامة': emp.residence_image_url || '',
+          'الملاحظات': emp.notes || ''
+        }
+
+        if (employeeExportMode !== 'monthly') {
+          return baseRow
+        }
+
+        const payrollEntry = payrollMap.get(emp.id)
+        const monthlyBreakdown = normalizePayrollObligationBreakdown(payrollEntry?.breakdown)
+
+        return {
+          ...baseRow,
+          'الشهر': monthlyExportMonth,
+          'الإضافي': Number(payrollEntry?.overtime_amount || 0),
+          'ملاحظات الجزاءات': payrollEntry?.deductions_notes || '',
+          'ملاحظات الإضافي': payrollEntry?.overtime_notes || '',
+          'قسط رسوم نقل وتجديد': monthlyBreakdown.transfer_renewal,
+          'قسط جزاءات وغرامات': monthlyBreakdown.penalty,
+          'قسط سلفة': monthlyBreakdown.advance,
+          'قسط أخرى': monthlyBreakdown.other,
+          'إجمالي استقطاعات الشهر': getPayrollObligationBreakdownTotal(monthlyBreakdown),
+        }
+      })
+
       const ws = XLSX.utils.json_to_sheet(excelData)
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'الموظفين')
+      XLSX.utils.book_append_sheet(wb, ws, employeeExportMode === 'monthly' ? 'تصدير شهري' : 'الموظفين')
 
-      // Set column widths
-      const wscols = [
-        { wch: 20 }, // الاسم
-        { wch: 20 }, // المهنة
-        { wch: 15 }, // الجنسية
-        { wch: 15 }, // رقم الإقامة
-        { wch: 15 }, // رقم الجواز
-        { wch: 15 }, // رقم الهاتف
-        { wch: 25 }, // الحساب البنكي
-        { wch: 15 }, // الراتب
-        { wch: 20 }, // المشروع
-        { wch: 25 }, // الشركة أو المؤسسة
-        { wch: 15 }, // الرقم الموحد
-        { wch: 15 }, // تاريخ الميلاد
-        { wch: 15 }, // تاريخ الالتحاق
-        { wch: 15 }, // تاريخ انتهاء الإقامة
-        { wch: 15 }, // تاريخ انتهاء العقد
-        { wch: 15 }, // تاريخ انتهاء عقد أجير
-        { wch: 20 }, // تاريخ انتهاء التأمين الصحي
-        { wch: 25 }, // رابط صورة الإقامة
-        { wch: 25 }  // الملاحظات
-      ]
-      ws['!cols'] = wscols
+      ws['!cols'] = employeeExportMode === 'monthly'
+        ? [
+            { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 },
+            { wch: 25 }, { wch: 25 }, { wch: 14 }, { wch: 14 }, { wch: 16 },
+            { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 24 }, { wch: 16 },
+            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 },
+            { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 28 }, { wch: 28 },
+            { wch: 22 }, { wch: 22 }
+          ]
+        : [
+            { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+            { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 14 }, { wch: 18 },
+            { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 25 },
+            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+            { wch: 20 }, { wch: 25 }, { wch: 25 }
+          ]
 
-      // Generate Excel file
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
       const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      saveAs(data, `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`)
+      const dateLabel = new Date().toISOString().split('T')[0]
+      const exportFileName = employeeExportMode === 'monthly'
+        ? `employees_monthly_export_${monthlyExportMonth}_${dateLabel}.xlsx`
+        : `employees_export_${dateLabel}.xlsx`
 
+      saveAs(data, exportFileName)
       toast.success(`تم تصدير ${selectedEmployees.size} موظف بنجاح`)
     } catch (error) {
       console.error('Export error:', error)
@@ -495,7 +617,7 @@ export default function ExportTab() {
     }
   }
 
-  const exportCompanies = () => {
+  const exportCompanies = async () => {
     if (selectedCompanies.size === 0) {
       toast.error('الرجاء اختيار مؤسسة واحدة على الأقل')
       return
@@ -503,6 +625,7 @@ export default function ExportTab() {
 
     setLoading(true)
     try {
+      const XLSX = await loadXlsx()
       // Export only selected companies from filtered list
       const selectedData = filteredCompanies.filter(c => selectedCompanies.has(c.id))
       
@@ -554,6 +677,19 @@ export default function ExportTab() {
     }
   }
 
+  const isInitialLoading = loading && employees.length === 0 && companies.length === 0
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-4 text-[13px] leading-5">
+        <div className="app-filter-surface">
+          <div className="h-5 w-40 animate-pulse rounded-md bg-slate-200" />
+        </div>
+        <EmployeeListSkeleton />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3 text-[13px] leading-5">
       {/* Export Type Selection */}
@@ -567,9 +703,9 @@ export default function ExportTab() {
               setSelectedCompanyIds(new Set())
               setSearchQuery('')
             }}
-            className={`flex-1 px-3 py-2 rounded-md border font-medium transition ${
+            className={`flex-1 rounded-md border px-3 py-2 font-medium transition ${
               exportType === 'employees'
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                ? 'border-primary bg-primary/15 text-slate-900'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
             }`}
           >
@@ -600,11 +736,37 @@ export default function ExportTab() {
           <button
             onClick={exportEmployees}
             disabled={loading || selectedEmployees.size === 0}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            className="app-button-primary px-3 py-1.5"
           >
-            <FileDown className="w-5 h-5" />
-            تصدير المحدد ({selectedEmployees.size})
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-5 h-5" />}
+            {loading ? 'جارٍ التصدير...' : `تصدير المحدد (${selectedEmployees.size})`}
           </button>
+        </div>
+
+        <div className="app-filter-surface mb-3 flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="min-w-[220px]">
+            <label className="mb-1 block text-xs font-semibold text-slate-700">نوع تصدير الموظفين</label>
+            <select
+              value={employeeExportMode}
+              onChange={(e) => setEmployeeExportMode(e.target.value as 'basic' | 'monthly')}
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="basic">تصدير أساسي مع رسوم النقل والتجديد</option>
+              <option value="monthly">تصدير شهري بالتفاصيل المالية</option>
+            </select>
+          </div>
+
+          {employeeExportMode === 'monthly' && (
+            <div className="min-w-[180px]">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">الشهر المطلوب</label>
+              <input
+                type="month"
+                value={monthlyExportMonth}
+                onChange={(e) => setMonthlyExportMonth(e.target.value)}
+                className="app-input py-2.5"
+              />
+            </div>
+          )}
         </div>
 
         {/* Search and Filter Toggle */}
@@ -615,7 +777,7 @@ export default function ExportTab() {
               placeholder="بحث بالاسم أو المهنة أو رقم الإقامة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="app-input py-2"
             />
           </div>
         </div>
@@ -663,66 +825,42 @@ export default function ExportTab() {
         <div className="flex gap-1.5 mb-2 flex-wrap">
           <button
             onClick={() => toggleFilterGroup('companies')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'companies'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'companies' ? 'app-toggle-button-active' : ''}`}
           >
             <Building2 className="w-3.5 h-3.5 inline mr-1" />
             المؤسسات
           </button>
           <button
             onClick={() => toggleFilterGroup('residence')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'residence'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'residence' ? 'app-toggle-button-active' : ''}`}
           >
             <Calendar className="w-3.5 h-3.5 inline mr-1" />
             الإقامة
           </button>
           <button
             onClick={() => toggleFilterGroup('insurance')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'insurance'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'insurance' ? 'app-toggle-button-active' : ''}`}
           >
             <Shield className="w-3.5 h-3.5 inline mr-1" />
             التأمين الصحي
           </button>
           <button
             onClick={() => toggleFilterGroup('project')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'project'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'project' ? 'app-toggle-button-active' : ''}`}
           >
             <FileText className="w-3.5 h-3.5 inline mr-1" />
             المشروع
           </button>
           <button
             onClick={() => toggleFilterGroup('hiredContract')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'hiredContract'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'hiredContract' ? 'app-toggle-button-active' : ''}`}
           >
             <FileText className="w-3.5 h-3.5 inline mr-1" />
             عقد أجير
           </button>
           <button
             onClick={() => toggleFilterGroup('employeeContract')}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition ${
-              expandedFilterGroup === 'employeeContract'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`app-toggle-button text-[12px] ${expandedFilterGroup === 'employeeContract' ? 'app-toggle-button-active' : ''}`}
           >
             <FileText className="w-3.5 h-3.5 inline mr-1" />
             العقد
@@ -748,7 +886,7 @@ export default function ExportTab() {
                 value={companiesFilterQuery}
                 onChange={(e) => setCompaniesFilterQuery(e.target.value)}
                 placeholder="فلترة المؤسسات بالاسم أو الرقم الموحد"
-                className="w-full pr-8 pl-3 py-1.5 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input bg-white py-2 pr-8 text-[12px]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -803,7 +941,7 @@ export default function ExportTab() {
                 value={projectFilterQuery}
                 onChange={(e) => setProjectFilterQuery(e.target.value)}
                 placeholder="بحث باسم المشروع"
-                className="w-full pr-8 pl-3 py-1.5 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="app-input bg-white py-2 pr-8 text-[12px]"
               />
             </div>
             <div className="border border-gray-200 rounded-md bg-white max-h-40 overflow-y-auto p-2 space-y-1">
@@ -1119,10 +1257,10 @@ export default function ExportTab() {
           <button
             onClick={exportCompanies}
             disabled={loading || selectedCompanies.size === 0}
-            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            className="app-button-success px-3 py-1.5"
           >
-            <FileDown className="w-5 h-5" />
-            تصدير المحدد ({selectedCompanies.size})
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-5 h-5" />}
+            {loading ? 'جارٍ التصدير...' : `تصدير المحدد (${selectedCompanies.size})`}
           </button>
         </div>
 
