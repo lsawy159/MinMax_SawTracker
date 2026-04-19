@@ -519,88 +519,102 @@ export default function Dashboard() {
       ) : (
       <div className="p-2.5">
         {loading ? (
-          <div className="flex justify-center items-center h-48">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <div className="space-y-3">
+            <div className="app-panel p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">جاري تجهيز لوحة التحكم</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">نحمّل الإحصائيات والتنبيهات الأساسية الآن.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="app-panel animate-pulse p-3">
+                  <div className="mb-3 h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="mb-2 h-7 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
             {/* الكروت الإحصائية الرئيسية */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-              {/* كرت عدد المؤسسات */}
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md p-3 text-white hover:shadow-lg transition-all duration-200">
+            <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+              <div className="app-panel p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-xs mb-0.5">عدد المؤسسات</p>
-                    <p className="text-xl font-bold">{stats.totalCompanies}</p>
-                    <p className="text-green-100 text-xs mt-1">مؤسسة مسجلة</p>
+                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">عدد المؤسسات</p>
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300">{stats.totalCompanies}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">مؤسسة مسجلة</p>
                   </div>
-                  <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                    <Building2 className="w-5 h-5" />
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2">
+                    <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
                   </div>
                 </div>
               </div>
 
-              {/* كرت عدد الموظفين */}
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-3 text-white hover:shadow-lg transition-all duration-200">
+              <div className="app-panel p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-xs mb-0.5">عدد الموظفين</p>
-                    <p className="text-xl font-bold">{stats.totalEmployees}</p>
-                    <p className="text-blue-100 text-xs mt-1">موظف مسجل</p>
+                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">عدد الموظفين</p>
+                    <p className="text-xl font-bold text-primary">{stats.totalEmployees}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">موظف مسجل</p>
                   </div>
-                  <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                    <Users className="w-5 h-5" />
+                  <div className="rounded-xl border border-primary/30 bg-primary/10 p-2">
+                    <Users className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </div>
 
-              {/* كرت تنبيهات المؤسسات الطارئة والعاجلة */}
-              <div className="bg-gradient-to-br from-red-500 to-orange-600 rounded-lg shadow-md p-3 text-white hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => navigate('/alerts?tab=companies')}>
+              <div className="app-panel cursor-pointer p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg" onClick={() => navigate('/alerts?tab=companies')}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-red-100 text-xs mb-0.5">تنبيهات المؤسسات</p>
-                    <p className="text-xl font-bold">{companyUrgentAndHighAlerts}</p>
-                    <p className="text-red-100 text-xs mt-1">طارئة وعاجلة</p>
+                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">تنبيهات المؤسسات</p>
+                    <p className="text-xl font-bold text-rose-600 dark:text-rose-300">{companyUrgentAndHighAlerts}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">طارئة وعاجلة</p>
                   </div>
-                  <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                    <AlertTriangle className="w-5 h-5" />
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-2">
+                    <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-300" />
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-white/80 text-xs">
+                <div className="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
                   <span>عرض التفاصيل</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="h-3 w-3" />
                 </div>
               </div>
 
-              {/* كرت تنبيهات الموظفين الطارئة والعاجلة */}
-              <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg shadow-md p-3 text-white hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => navigate('/alerts?tab=employees')}>
+              <div className="app-panel cursor-pointer p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg" onClick={() => navigate('/alerts?tab=employees')}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-100 text-xs mb-0.5">تنبيهات الموظفين</p>
-                    <p className="text-xl font-bold">{employeeUrgentAndHighAlerts}</p>
-                    <p className="text-purple-100 text-xs mt-1">طارئة وعاجلة</p>
+                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">تنبيهات الموظفين</p>
+                    <p className="text-xl font-bold text-sky-600 dark:text-sky-300">{employeeUrgentAndHighAlerts}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">طارئة وعاجلة</p>
                   </div>
-                  <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                    <Bell className="w-5 h-5" />
+                  <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2">
+                    <Bell className="h-5 w-5 text-sky-600 dark:text-sky-300" />
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-white/80 text-xs">
+                <div className="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
                   <span>عرض التفاصيل</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="h-3 w-3" />
                 </div>
               </div>
             </div>
 
             {/* نظام التبويبات */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-3">
+            <div className="app-panel mb-3">
               {/* شريط التبويبات */}
-              <div className="flex border-b border-gray-200">
+              <div className="flex border-b border-border">
                 <button
                   onClick={() => setActiveTab('companies')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium transition ${
+                  className={`app-tab-button text-xs ${
                     activeTab === 'companies'
-                      ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'app-tab-button-active'
+                      : 'hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
@@ -608,10 +622,10 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setActiveTab('employees')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium transition ${
+                  className={`app-tab-button text-xs ${
                     activeTab === 'employees'
-                      ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'app-tab-button-active'
+                      : 'hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -624,47 +638,47 @@ export default function Dashboard() {
                 {activeTab === 'companies' ? (
                   <div className="space-y-3">
                     {/* إحصائيات عامة للمؤسسات */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2.5 border border-green-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-green-700">مؤسسات مكتملة</span>
-                          <XCircle className="w-3.5 h-3.5 text-red-500" />
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+                      <div className="app-panel border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">مؤسسات مكتملة</span>
+                          <XCircle className="h-3.5 w-3.5 text-rose-500" />
                         </div>
-                        <p className="text-lg font-bold text-green-900">{stats.fullCompanies}</p>
-                        <p className="text-xs text-green-600 mt-0.5">لا يمكن إضافة موظفين</p>
+                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-300">{stats.fullCompanies}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">لا يمكن إضافة موظفين</p>
                       </div>
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2.5 border border-blue-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-blue-700">أماكن شاغرة</span>
-                          <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                      <div className="app-panel border-sky-500/20 bg-sky-500/5 p-2.5">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">أماكن شاغرة</span>
+                          <MapPin className="h-3.5 w-3.5 text-sky-500" />
                         </div>
-                        <p className="text-lg font-bold text-blue-900">{stats.totalAvailableSlots}</p>
-                        <p className="text-xs text-blue-600 mt-0.5">مكان متاح للإضافة</p>
+                        <p className="text-lg font-bold text-sky-600 dark:text-sky-300">{stats.totalAvailableSlots}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">مكان متاح للإضافة</p>
                       </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2.5 border border-purple-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-purple-700">معدل الاستفادة</span>
-                          <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
+                      <div className="app-panel border-violet-500/20 bg-violet-500/5 p-2.5">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">معدل الاستفادة</span>
+                          <TrendingUp className="h-3.5 w-3.5 text-violet-500" />
                         </div>
-                        <p className="text-lg font-bold text-purple-900">{stats.utilizationRate}%</p>
-                        <p className="text-xs text-purple-600 mt-0.5">من السعة المتاحة</p>
+                        <p className="text-lg font-bold text-violet-600 dark:text-violet-300">{stats.utilizationRate}%</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">من السعة المتاحة</p>
                       </div>
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-2.5 border border-gray-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-700">متوسط الموظفين</span>
-                          <Users className="w-3.5 h-3.5 text-gray-500" />
+                      <div className="app-panel border-slate-500/20 bg-slate-500/5 p-2.5">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">متوسط الموظفين</span>
+                          <Users className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
                         </div>
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">
                           {stats.totalCompanies > 0 ? Math.round(stats.totalEmployees / stats.totalCompanies) : 0}
                         </p>
-                        <p className="text-xs text-gray-600 mt-0.5">لكل مؤسسة</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">لكل مؤسسة</p>
                       </div>
                     </div>
 
                     {/* مربعات الإحصائيات في تنسيق 2×2 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* إحصائيات السجل التجاري */}
-                      <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 border border-orange-200">
+                      <div className="app-panel border-orange-200/60 bg-white/80 p-3 dark:border-orange-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-orange-600" />
                           إحصائيات السجل التجاري
@@ -713,7 +727,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* إحصائيات اشتراك قوى */}
-                      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200">
+                      <div className="app-panel border-sky-200/60 bg-white/80 p-3 dark:border-sky-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-cyan-600" />
                           إحصائيات اشتراك قوى
@@ -762,7 +776,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* إحصائيات اشتراك مقيم */}
-                      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-3 border border-teal-200">
+                      <div className="app-panel border-emerald-200/60 bg-white/80 p-3 dark:border-emerald-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-teal-600" />
                           إحصائيات اشتراك مقيم
@@ -815,12 +829,12 @@ export default function Dashboard() {
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                          <Building2 className="w-3.5 h-3.5 text-primary" />
                           المؤسسات الأخيرة
                         </h3>
                         <button
                           onClick={() => navigate('/companies')}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1"
+                          className="text-primary hover:brightness-90 text-xs font-medium flex items-center gap-1"
                         >
                           عرض الكل
                           <ArrowRight className="w-3 h-3" />
@@ -835,7 +849,7 @@ export default function Dashboard() {
                             <div
                               key={company.id}
                               onClick={() => navigate(`/companies?id=${company.id}`)}
-                              className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-blue-300 hover:shadow-sm transition cursor-pointer"
+                              className="rounded-lg border border-gray-200 bg-white p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/70"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
@@ -870,7 +884,7 @@ export default function Dashboard() {
                     {/* مربعات الإحصائيات في تنسيق 2×2 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* إحصائيات العقود */}
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
+                      <div className="app-panel border-sky-200/60 bg-white/80 p-3 dark:border-sky-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-blue-600" />
                           إحصائيات العقود
@@ -919,7 +933,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* إحصائيات الإقامات */}
-                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3 border border-purple-200">
+                      <div className="app-panel border-violet-200/60 bg-white/80 p-3 dark:border-violet-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-purple-600" />
                           إحصائيات الإقامات
@@ -968,7 +982,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* إحصائيات التأمين الصحي */}
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                      <div className="app-panel border-emerald-200/60 bg-white/80 p-3 dark:border-emerald-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-green-600" />
                           إحصائيات التأمين الصحي
@@ -1017,7 +1031,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* إحصائيات عقد أجير */}
-                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
+                      <div className="app-panel border-amber-200/60 bg-white/80 p-3 dark:border-amber-500/20 dark:bg-slate-900/80">
                         <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-amber-600" />
                           إحصائيات عقد أجير
@@ -1070,12 +1084,12 @@ export default function Dashboard() {
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5 text-purple-600" />
+                          <Users className="w-3.5 h-3.5 text-primary" />
                           الموظفين الأخيرين
                         </h3>
                         <button
                           onClick={() => navigate('/employees')}
-                          className="text-purple-600 hover:text-purple-800 text-xs font-medium flex items-center gap-1"
+                          className="text-primary hover:brightness-90 text-xs font-medium flex items-center gap-1"
                         >
                           عرض الكل
                           <ArrowRight className="w-3 h-3" />
@@ -1088,7 +1102,7 @@ export default function Dashboard() {
                             <div
                               key={employee.id}
                               onClick={() => navigate(`/employees?id=${employee.id}`)}
-                              className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition cursor-pointer"
+                              className="rounded-lg border border-gray-200 bg-white p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/70"
                             >
                               <div className="flex items-center justify-between">
                                 <div>

@@ -1,5 +1,32 @@
 const isDev = import.meta.env.DEV
 const isTest = import.meta.env.MODE === 'test'
+const debugLogsFromEnv = import.meta.env.VITE_DEBUG_LOGS === 'true'
+
+function isVerboseLoggingEnabled(): boolean {
+  if (isTest || !isDev) {
+    return false
+  }
+
+  if (debugLogsFromEnv) {
+    return true
+  }
+
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    const localFlag = window.localStorage.getItem('sawtracker:debug-logs')
+    if (localFlag === 'true') {
+      return true
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    return params.get('debugLogs') === 'true'
+  } catch {
+    return false
+  }
+}
 
 export enum LogLevel {
   DEBUG = 0,
@@ -35,12 +62,12 @@ class Logger {
 
   private shouldLog(level: LogLevel): boolean {
     if (isTest) return false
-    // في Production: اعرض فقط WARN و ERROR، أخفِ DEBUG و INFO
-    if (!isDev) {
-      return level >= LogLevel.WARN
+
+    if (level >= LogLevel.WARN) {
+      return true
     }
-    // في Development: اعرض كل شيء
-    return true
+
+    return isVerboseLoggingEnabled()
   }
 
   private formatMessage(level: LogLevel, ...args: unknown[]): string {

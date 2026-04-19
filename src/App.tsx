@@ -5,7 +5,8 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
 import { queryClient } from './lib/queryClient'
-import { logger } from './utils/logger'
+import AuthLoading from './components/AuthLoading'
+import { useThemeMode } from './hooks/useUiPreferences'
 import './App.css'
 
 // Lazy load all pages for code splitting
@@ -19,69 +20,69 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Alerts = lazy(() => import('./pages/Alerts'))
 const Reports = lazy(() => import('./pages/Reports'))
+const PayrollDeductions = lazy(() => import('./pages/PayrollDeductions'))
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const AlertSettings = lazy(() => import('./pages/AlertSettings'))
 const BackupSettingsManagement = lazy(() => import('./pages/BackupSettings'))
-const UserGuide = lazy(() => import('./pages/UserGuide'))
-const AdminGuide = lazy(() => import('./pages/AdminGuide'))
 
 // Loading fallback component
-function PageLoader() {
+function PageLoader({
+  title = 'جاري تجهيز التطبيق',
+  description = 'نقوم الآن بالتحقق من الجلسة وتحميل البيانات الأساسية.'
+}: {
+  title?: string
+  description?: string
+}) {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="text-gray-600">جاري التحميل...</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50/80 px-4 dark:bg-slate-950">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white/95 p-8 text-center shadow-xl dark:border-white/10 dark:bg-slate-900/90">
+        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{description}</p>
       </div>
     </div>
   )
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth()
+  const { session } = useAuth()
 
-  // الانتظار حتى يكتمل جلب session قبل اتخاذ قرار redirect
-  // هذا يمنع redirect غير مرغوب عند refresh
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // التحقق من session فقط بعد انتهاء loading
-  // إذا كان loading = false و session = null، فهذا يعني عدم وجود جلسة
-  // في هذه الحالة فقط نقوم بـ redirect إلى login
-  if (!session) {
-    logger.debug('[ProtectedRoute] No session found, redirecting to login')
-    return <Navigate to="/login" replace />
-  }
-
-  // إذا كان هناك session، نعرض المحتوى
-  return <>{children}</>
+  return (
+    <AuthLoading
+      showError={false}
+      maxWaitTime={12000}
+      fallback={(
+        <PageLoader
+          title="جاري فتح حسابك"
+          description="نستعيد الجلسة ونجهز بيانات الصفحة بشكل آمن."
+        />
+      )}
+    >
+      {session ? <>{children}</> : <Navigate to="/login" replace />}
+    </AuthLoading>
+  )
 }
 
 function PublicRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth()
+  const { session } = useAuth()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // إذا كان المستخدم مسجل دخول بالفعل، احوله إلى Dashboard
-  if (session) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return <>{children}</>
+  return (
+    <AuthLoading
+      showError={false}
+      maxWaitTime={8000}
+      fallback={(
+        <PageLoader
+          title="جاري فتح صفحة الدخول"
+          description="نتحقق من حالة الجلسة قبل عرض الصفحة المناسبة لك."
+        />
+      )}
+    >
+      {session ? <Navigate to="/dashboard" replace /> : <>{children}</>}
+    </AuthLoading>
+  )
 }
 
 function AppRoutes() {
@@ -188,6 +189,13 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/payroll-deductions" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <PayrollDeductions />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path="/activity-logs" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
@@ -216,26 +224,14 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
-        <Route path="/user-guide" element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <UserGuide />
-            </Suspense>
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-guide" element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <AdminGuide />
-            </Suspense>
-          </ProtectedRoute>
-        } />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
   )
 }
 
 function App() {
+  useThemeMode()
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter

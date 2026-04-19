@@ -21,6 +21,9 @@ export interface AuthContextType {
 // إنشاء Context مع نوع صريح
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const SESSION_VALIDATION_RETRY_DELAYS = [800, 1600]
+const SESSION_NETWORK_ERROR_MESSAGE = 'تعذر التحقق من الجلسة بسبب مشكلة مؤقتة في الشبكة. سنحاول مرة أخرى تلقائياً.'
+
 // AuthProvider متقدم
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -35,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef<User | null>(null) // تخزين user الحالي لتجنب إعادة تسجيل listeners
   const initialSessionCheckedRef = useRef(false) // تتبع ما إذا كان getSession() قد اكتمل
   const creatingSessionRef = useRef(false) // منع إنشاء جلسات متعددة في نفس الوقت
+  const sessionValidationInProgressRef = useRef(false)
 
   const clearStaleSession = useCallback(async (reason: string) => {
     logger.warn('[Auth] Clearing stale session due to:', reason)
@@ -52,6 +56,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // حساب الصلاحيات بشكل آمن
   const isAdmin = user?.role === 'admin' && user?.is_active === true
+
+  const getErrorMessage = useCallback((value: unknown): string => {
+    if (value instanceof Error) {
+      return value.message
+    }
+
+    if (typeof value === 'object' && value !== null && 'message' in value) {
+      const message = (value as { message?: unknown }).message
+      return typeof message === 'string' ? message : String(message ?? '')
+    }
+
+    return String(value ?? '')
+  }, [])
+
+  const isSessionSchemaError = useCallback((value: unknown): boolean => {
+    const message = getErrorMessage(value).toLowerCase()
+    return message.includes('not found') || message.includes('schema cache') || message.includes('does not exist')
+  }, [getErrorMessage])
+
+  const isTransientNetworkError = useCallback((value: unknown): boolean => {
+    const message = getErrorMessage(value).toLowerCase()
+    return (
+      message.includes('failed to fetch')
+      || message.includes('networkerror')
+      || message.includes('network request failed')
+      || message.includes('err_connection_closed')
+      || message.includes('err_internet_disconnected')
+      || message.includes('load failed')
+      || message.includes('fetch')
+    )
+  }, [getErrorMessage])
+
+  const waitForRetry = useCallback(async (delayMs: number) => {
+    await new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), delayMs)
+    })
+  }, [])
 
   // تحديث userRef عند تغيير user
   useEffect(() => {
@@ -177,6 +218,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (sessionError) {
         logger.error('[Auth] Error getting initial session:', sessionError)
+
+        if (isTransientNetworkError(sessionError)) {
+          logger.warn('[Auth] Temporary network issue while getting session. Keeping current auth state.')
+          setError(SESSION_NETWORK_ERROR_MESSAGE)
+          setLoading(false)
+          loadingRef.current = false
+          return
+        }
+
         setError(sessionError.message)
         void clearStaleSession(sessionError.message || 'initial getSession failed')
         setLoading(false)
@@ -353,6 +403,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (userError) {
         logger.error('[Auth] Error fetching user data:', userError)
+
+        if (isTransientNetworkError(userError)) {
+          logger.warn('[Auth] Temporary network issue while fetching user data. Preserving session.')
+          setError(SESSION_NETWORK_ERROR_MESSAGE)
+          return
+        }
+
         setError(userError.message)
         // إذا فشل جلب بيانات المستخدم، قم بتسجيل الخروج
         // هذا يمنع بقاء المستخدم مسجلاً بجلسة auth ولكن بدون بيانات user
@@ -373,6 +430,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       if (mountedRef.current) {
         logger.error('[Auth] Critical error in fetchUserData:', err)
+
+        if (isTransientNetworkError(err)) {
+          logger.warn('[Auth] Network issue in fetchUserData. Preserving current user state.')
+          setError(SESSION_NETWORK_ERROR_MESSAGE)
+          return
+        }
+
         setError((err instanceof Error ? err.message : String(err)) || 'Failed to fetch user data')
         setUser(null)
       }
@@ -492,22 +556,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.debug('[Auth] Sign in successful, waiting for auth state change...')
       
     } catch (err: unknown) {
-      if (mountedRef.current) {
-        let errorMessage = 'An error occurred during sign in.'
-        if (err instanceof AuthError) {
-          if (err.message.includes('Email not confirmed')) {
-            errorMessage = 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك الإلكتروني.'
-          } else if (err.message.includes('Invalid login credentials')) {
-            errorMessage = 'اسم المستخدم أو البريد الإلكتروني أو كلمة المرور غير صحيحة.'
-          } else {
-            errorMessage = err.message
-          }
+      let errorMessage = 'An error occurred during sign in.'
+
+      if (err instanceof AuthError) {
+        if (err.message.includes('Email not confirmed')) {
+          errorMessage = 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك الإلكتروني.'
+        } else if (err.message.includes('Invalid login credentials')) {
+          errorMessage = 'اسم المستخدم أو البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+        } else {
+          errorMessage = err.message
         }
+      } else if (err instanceof Error && err.message) {
+        errorMessage = err.message
+      }
+
+      if (mountedRef.current) {
         logger.error('[Auth] Sign in catch block:', errorMessage)
         setError(errorMessage)
         setLoading(false) // توقف التحميل عند الخطأ
+        loadingRef.current = false
         fetchingRef.current = false
       }
+
+      throw (err instanceof Error ? err : new Error(errorMessage))
     }
     // ملاحظة: لا نقم بتعيين setLoading(false) عند النجاح، لأننا ننتظر fetchUserData
   }, [createUserSession])
@@ -601,6 +672,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { session: newSession }, error: sessionError } = await supabase.auth.getSession()
     
     if (sessionError && mountedRef.current) {
+      if (isTransientNetworkError(sessionError)) {
+        logger.warn('[Auth] retryLogin hit a temporary network issue. Preserving session state.')
+        setError(SESSION_NETWORK_ERROR_MESSAGE)
+        setLoading(false)
+        return
+      }
+
       setError(sessionError.message)
       await clearStaleSession(sessionError.message || 'retryLogin getSession failed')
       setLoading(false)
@@ -635,48 +713,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const checkSessionValidity = useCallback(async (): Promise<boolean> => {
+    if (!user?.id || !session) {
+      return true
+    }
+
+    if (sessionValidationInProgressRef.current) {
+      logger.debug('[Auth] Session validation already running, skipping overlap')
+      return true
+    }
+
+    sessionValidationInProgressRef.current = true
+
+    try {
+      for (let attempt = 0; attempt <= SESSION_VALIDATION_RETRY_DELAYS.length; attempt += 1) {
+        try {
+          const now = new Date().toISOString()
+          const { data: activeSessions, error } = await supabase
+            .from('user_sessions')
+            .select('is_active, logged_out_at, id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .gt('expires_at', now)
+
+          if (error) {
+            if (isSessionSchemaError(error)) {
+              return true
+            }
+
+            if (isTransientNetworkError(error)) {
+              logger.warn(`[Auth] Temporary network issue during session validation (attempt ${attempt + 1})`, error)
+
+              if (attempt < SESSION_VALIDATION_RETRY_DELAYS.length) {
+                await waitForRetry(SESSION_VALIDATION_RETRY_DELAYS[attempt])
+                continue
+              }
+
+              if (mountedRef.current) {
+                setError((current) => current ?? SESSION_NETWORK_ERROR_MESSAGE)
+              }
+              return true
+            }
+
+            logger.warn('[Auth] Error checking session validity:', error)
+            return true
+          }
+
+          if (!activeSessions || activeSessions.length === 0) {
+            logger.warn('[Auth] No active session found - session was terminated remotely')
+            await supabase.auth.signOut()
+            setUser(null)
+            setSession(null)
+            setError('تم إنهاء جلستك من قبل المسؤول')
+            return false
+          }
+
+          if (mountedRef.current) {
+            setError((current) => current === SESSION_NETWORK_ERROR_MESSAGE ? null : current)
+          }
+
+          return true
+        } catch (validationError) {
+          if (isTransientNetworkError(validationError)) {
+            logger.warn(`[Auth] Session validation fetch failed temporarily (attempt ${attempt + 1})`, validationError)
+
+            if (attempt < SESSION_VALIDATION_RETRY_DELAYS.length) {
+              await waitForRetry(SESSION_VALIDATION_RETRY_DELAYS[attempt])
+              continue
+            }
+
+            if (mountedRef.current) {
+              setError((current) => current ?? SESSION_NETWORK_ERROR_MESSAGE)
+            }
+            return true
+          }
+
+          logger.error('[Auth] Error in session validation:', validationError)
+          return true
+        }
+      }
+
+      return true
+    } finally {
+      sessionValidationInProgressRef.current = false
+    }
+  }, [isSessionSchemaError, isTransientNetworkError, session, user?.id, waitForRetry])
+
   // --- Session Validation (Remote Termination Detection) ---
   useEffect(() => {
     if (!user?.id || !session) {
       return
     }
 
-    // Check every 30 seconds if the session is still valid
-    const sessionCheckInterval = setInterval(async () => {
-      try {
-        const now = new Date().toISOString()
-        const { data: activeSessions, error } = await supabase
-          .from('user_sessions')
-          .select('is_active, logged_out_at, id')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .gt('expires_at', now)
-
-        // If table doesn't exist, skip validation
-        if (error) {
-          if (error.message?.includes('not found') || error.message?.includes('schema cache')) {
-            return
-          }
-          logger.warn('[Auth] Error checking session validity:', error)
-          return
-        }
-
-        // If no active session found, user was logged out remotely
-        if (!activeSessions || activeSessions.length === 0) {
-          logger.warn('[Auth] No active session found - session was terminated remotely')
-          // Sign out the user
-          await supabase.auth.signOut()
-          setUser(null)
-          setSession(null)
-          setError('تم إنهاء جلستك من قبل المسؤول')
-        }
-      } catch (error) {
-        logger.error('[Auth] Error in session validation:', error)
-      }
-    }, 30 * 1000) // Check every 30 seconds
+    const sessionCheckInterval = setInterval(() => {
+      void checkSessionValidity()
+    }, 30 * 1000)
 
     return () => clearInterval(sessionCheckInterval)
-  }, [user, session])
+  }, [checkSessionValidity, session, user?.id])
 
 
 
