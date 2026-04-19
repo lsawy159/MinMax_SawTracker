@@ -356,7 +356,6 @@ SET standard_conforming_strings = on;
 
 // دالة مساعدة لإرسال بريد إشعار النسخ الاحتياطي
 async function sendBackupNotificationEmail(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   supabaseUrl: string,
   backupId: string,
@@ -367,49 +366,76 @@ async function sendBackupNotificationEmail(
   errorMessage?: string
 ) {
   try {
-    // قراءة إعدادات البريد من security_settings
-    const { data: emailNotificationSetting } = await supabase
-      .from('security_settings')
+    // 🆕 استخدام نظام الإشعارات الموحد من notification_recipients في system_settings
+    const { data: notificationConfig, error: configError } = await supabase
+      .from('system_settings')
       .select('setting_value')
-      .eq('setting_key', 'backup_email_notifications')
+      .eq('setting_key', 'notification_recipients')
       .maybeSingle()
 
-    // إذا لم يكن مفعّل أو غير موجود، لا نرسل بريد
-    if (!emailNotificationSetting || !emailNotificationSetting.setting_value) {
-      return
-    }
-
-    // قراءة قائمة المستلمين
-    const { data: recipientsSetting } = await supabase
-      .from('security_settings')
-      .select('setting_value')
-      .eq('setting_key', 'backup_email_recipients')
-      .maybeSingle()
-
-    // إذا لم تكن موجودة أو فارغة، لا نرسل بريد
-    if (!recipientsSetting || !recipientsSetting.setting_value) {
-      return
-    }
-
-    // تحويل JSON string إلى array إذا لزم الأمر
     let recipients: string[] = []
-    try {
-      const recipientsValue = typeof recipientsSetting.setting_value === 'string' 
-        ? JSON.parse(recipientsSetting.setting_value) 
-        : recipientsSetting.setting_value
-      
-      if (Array.isArray(recipientsValue)) {
-        recipients = recipientsValue.filter((email: unknown) => typeof email === 'string' && email.includes('@'))
+    const PRIMARY_ADMIN = 'ahmad.alsawy159@gmail.com'
+
+    // محاولة القراءة من notification_recipients
+    if (notificationConfig?.setting_value && !configError) {
+      try {
+        let parsed = notificationConfig.setting_value
+        console.log('[BackupNotification] Raw notification_recipients value:', typeof parsed)
+        
+        // تحليل JSON إذا كانت string
+        if (typeof parsed === 'string') {
+          console.log('[BackupNotification] Parsing string JSON...')
+          parsed = JSON.parse(parsed)
+          
+          // تحليل مزدوج إذا لزم الأمر
+          if (typeof parsed === 'string') {
+            console.log('[BackupNotification] Parsing double-encoded JSON...')
+            parsed = JSON.parse(parsed)
+          }
+        }
+
+        // استخراج جميع المستقبلين
+        if (parsed && typeof parsed === 'object') {
+          // الإداري الأساسي - ALWAYS ADD
+          if (parsed.primary_admin && typeof parsed.primary_admin === 'string') {
+            recipients.push(parsed.primary_admin)
+            console.log('[BackupNotification] Added primary admin:', parsed.primary_admin)
+          } else {
+            recipients.push(PRIMARY_ADMIN)
+            console.log('[BackupNotification] Using hardcoded primary admin:', PRIMARY_ADMIN)
+          }
+          
+          // المستقبلين الإضافيين الذين لديهم إذن backupNotifications
+          if (Array.isArray(parsed.additional_recipients)) {
+            console.log('[BackupNotification] Found additional_recipients:', parsed.additional_recipients.length)
+            for (const recipient of parsed.additional_recipients) {
+              console.log(`[BackupNotification] Checking recipient: ${recipient.email}, backupNotifications: ${recipient.backupNotifications}`)
+              if (recipient.email && recipient.backupNotifications === true) {
+                recipients.push(recipient.email)
+                console.log('[BackupNotification] Added additional recipient:', recipient.email)
+              }
+            }
+          }
+        }
+      } catch (parseError) {
+        console.error('[BackupNotification] خطأ في تحليل notification_recipients:', parseError)
+        // Fallback إلى البريد الإداري الأساسي فقط
+        recipients = [PRIMARY_ADMIN]
+        console.log('[BackupNotification] Using fallback, primary admin only')
       }
-    } catch (parseError) {
-      console.warn('خطأ في تحليل قائمة المستلمين:', parseError)
-      return
+    } else {
+      // إذا لم نجد البيانات أو كان هناك خطأ
+      console.warn('[BackupNotification] notification_recipients not found, using primary admin only')
+      recipients = [PRIMARY_ADMIN]
     }
 
     // إذا كانت القائمة فارغة، لا نرسل بريد
     if (recipients.length === 0) {
+      console.warn('[BackupNotification] No recipients found after parsing')
       return
     }
+
+    console.log(`[BackupNotification] Sending to ${recipients.length} recipient(s): ${recipients.join(', ')}`)
 
     // إنشاء محتوى البريد
     const date = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })

@@ -11,7 +11,6 @@ interface EmailQueueItem {
   subject: string
   html_content: string
   text_content: string | null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attachments: any[]
   status: 'pending' | 'processing' | 'completed' | 'failed'
   priority: number
@@ -453,13 +452,15 @@ Deno.serve(async (req) => {
 
             if (!resp.ok) {
               const errorText = await resp.text()
+              console.error(`[Email Queue] Resend API error for ${recipient} (status ${resp.status}):`, errorText)
               results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: false, error: `Resend failed (${resp.status}): ${errorText}` } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
             } else {
+              const resendResponse = await resp.json() as any
+              console.log(`[Email Queue] Resend success for ${recipient}, id: ${resendResponse?.id || 'unknown'}`)
               results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: true } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
             }
           } catch (error) {
             console.error(`[Email Queue] Failed to send to ${recipient}:`, error)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg = (error as any)?.message ?? 'Unknown error'
             results.push(Promise.resolve({ status: 'fulfilled', value: { recipient, success: false, error: msg } }) as unknown as PromiseSettledResult<{ recipient: string; success: boolean; error?: string }>)
           }
@@ -472,7 +473,23 @@ Deno.serve(async (req) => {
         const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
 
         if (failed.length > 0) {
-          throw new Error(`Failed to send to ${failed.length} recipient(s)`)
+          const failedRecipients = failed
+            .map(item => {
+              if (item.status === 'rejected') {
+                return { recipient: 'unknown', error: 'Promise rejected' }
+              }
+              return {
+                recipient: item.value.recipient,
+                error: item.value.error || 'Unknown error'
+              }
+            })
+
+          throw new Error(
+            JSON.stringify({
+              message: `Failed to send to ${failed.length} recipient(s)`,
+              failedRecipients
+            })
+          )
         }
 
         // تحديث الحالة إلى completed
@@ -487,8 +504,6 @@ Deno.serve(async (req) => {
 
         successCount++
         console.log(`[Email Queue] Successfully processed email ${item.id}`)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error(`[Email Queue] Error processing email ${item.id}:`, error)
         
@@ -529,7 +544,6 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
     )
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[Email Queue] Critical error:', error)
     return new Response(

@@ -7,13 +7,11 @@ interface SessionRequest {
   action: 'create' | 'validate' | 'terminate' | 'list' | 'terminate_all'
   session_token?: string
   user_id?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   device_info?: any
 }
 
 interface SessionResponse {
   success: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
   error?: string
 }
