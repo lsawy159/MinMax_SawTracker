@@ -85,6 +85,126 @@ export interface Employee {
   // حقل الملاحظات
   notes?: string
   additional_fields?: Record<string, unknown>  // للحقول المخصصة من قاعدة البيانات فقط
+  is_deleted?: boolean
+  deleted_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ObligationType = 'transfer' | 'renewal' | 'penalty' | 'advance' | 'other'
+
+export type ObligationPlanStatus = 'draft' | 'active' | 'completed' | 'cancelled' | 'superseded'
+
+export type ObligationLineStatus = 'unpaid' | 'partial' | 'paid' | 'rescheduled' | 'cancelled'
+
+export interface EmployeeObligationHeader {
+  id: string
+  employee_id: string
+  obligation_type: ObligationType
+  title: string
+  total_amount: number
+  currency_code: string
+  start_month: string
+  installment_count: number
+  status: ObligationPlanStatus
+  created_by_user_id?: string | null
+  superseded_by_header_id?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeObligationLine {
+  id: string
+  header_id: string
+  employee_id: string
+  due_month: string
+  amount_due: number
+  amount_paid: number
+  line_status: ObligationLineStatus
+  source_version: number
+  manual_override: boolean
+  override_reason?: string | null
+  rescheduled_from_line_id?: string | null
+  rescheduled_to_line_id?: string | null
+  payroll_entry_id?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PayrollScopeType = 'company' | 'project'
+
+export type PayrollInputMode = 'manual' | 'excel' | 'mixed'
+
+export type PayrollRunStatus = 'draft' | 'processing' | 'finalized' | 'cancelled'
+
+export type PayrollEntryStatus = 'draft' | 'calculated' | 'finalized' | 'paid' | 'cancelled'
+
+export type PayrollComponentType = 'earning' | 'deduction' | 'installment'
+
+export interface PayrollRun {
+  id: string
+  payroll_month: string
+  scope_type: PayrollScopeType
+  scope_id: string
+  input_mode: PayrollInputMode
+  status: PayrollRunStatus
+  uploaded_file_path?: string | null
+  notes?: string | null
+  created_by_user_id?: string | null
+  approved_by_user_id?: string | null
+  created_at: string
+  updated_at: string
+  approved_at?: string | null
+}
+
+export interface PayrollEntry {
+  id: string
+  payroll_run_id: string
+  employee_id: string
+  residence_number_snapshot: number
+  employee_name_snapshot: string
+  company_name_snapshot?: string | null
+  project_name_snapshot?: string | null
+  basic_salary_snapshot: number
+  daily_rate_snapshot: number
+  attendance_days: number
+  paid_leave_days: number
+  overtime_amount: number
+  overtime_notes?: string | null
+  deductions_amount: number
+  deductions_notes?: string | null
+  installment_deducted_amount: number
+  gross_amount: number
+  net_amount: number
+  entry_status: PayrollEntryStatus
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollEntryComponent {
+  id: string
+  payroll_entry_id: string
+  component_type: PayrollComponentType
+  component_code: string
+  amount: number
+  notes?: string | null
+  source_line_id?: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollSlip {
+  id: string
+  payroll_entry_id: string
+  slip_number: string
+  storage_path?: string | null
+  template_version: string
+  snapshot_data: Record<string, unknown>
+  generated_at?: string | null
   created_at: string
   updated_at: string
 }

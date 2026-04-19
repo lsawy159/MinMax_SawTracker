@@ -355,7 +355,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId)
       }
     }
-  }, [createUserSession, clearStaleSession]) // إضافة createUserSession في dependencies
+  }, [createUserSession, clearStaleSession, isTransientNetworkError]) // إضافة createUserSession في dependencies
 
 
   // --- جلب بيانات المستخدم المخصصة ---
@@ -448,7 +448,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentFetchingUserIdRef.current = null
       }
     }
-  }, []) // استخدام userRef.current بدلاً من user لكسر حلقة الاعتماديات
+  }, [isTransientNetworkError]) // استخدام userRef.current بدلاً من user لكسر حلقة الاعتماديات
 
   // [FIX] تم إصلاح مصفوفة الاعتماديات هنا
   useEffect(() => {
@@ -691,7 +691,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (mountedRef.current) {
       setLoading(false)
     }
-  }, [clearStaleSession])
+  }, [clearStaleSession, isTransientNetworkError])
 
 
   // --- توفير الـ Context ---

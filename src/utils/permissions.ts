@@ -15,9 +15,9 @@ export interface PermissionMatrix {
   centralizedSettings: { view: boolean; edit: boolean }
   projects: { view: boolean; create: boolean; edit: boolean; delete: boolean }
   reports: { view: boolean; export: boolean }
+  payroll: { view: boolean; export: boolean }
   alerts: { view: boolean }
   advancedSearch: { view: boolean }
-  userGuide: { view: boolean }
   importExport: { view: boolean; import: boolean; export: boolean }
   activityLogs: { view: boolean }
   dashboard: { view: boolean }
