@@ -285,7 +285,7 @@ export default function Notifications() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="app-panel p-4">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-600">إجمالي التنبيهات</div>
           </div>
@@ -308,7 +308,7 @@ export default function Notifications() {
         </div>
 
         {/* Filters and Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="app-panel mb-6 p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="md:col-span-2">

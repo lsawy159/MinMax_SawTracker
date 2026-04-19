@@ -8,6 +8,7 @@ import ProjectStatistics from '@/components/projects/ProjectStatistics'
 import { FolderKanban, Plus, Search, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
+import { useCardColumns } from '@/hooks/useUiPreferences'
 
 type SortField = 'name' | 'created_at' | 'status' | 'employee_count' | 'total_salaries'
 type SortDirection = 'asc' | 'desc'
@@ -35,6 +36,7 @@ export default function Projects() {
   // Sort states
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const { cardColumns, setCardColumns, gridClass: projectGridClass } = useCardColumns('projects-card-columns', 3)
 
   const loadProjects = useCallback(async () => {
     try {
@@ -215,7 +217,7 @@ export default function Projects() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </Layout>
     )
@@ -237,56 +239,49 @@ export default function Projects() {
       ) : (
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <FolderKanban className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
+        <div className="app-panel flex items-center gap-3 p-4">
+          <div className="app-icon-chip">
+            <FolderKanban className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
+            <p className="text-sm text-slate-500">إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة.</p>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex gap-4">
-            <button
-              onClick={() => setActiveTab('list')}
-              className={`px-6 py-3 font-medium transition ${
-                activeTab === 'list'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              قائمة المشاريع
-            </button>
-            <button
-              onClick={() => setActiveTab('statistics')}
-              className={`px-6 py-3 font-medium transition ${
-                activeTab === 'statistics'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              إحصائيات المشاريع
-            </button>
-          </nav>
+        <div className="app-toggle-shell w-fit">
+          <button
+            onClick={() => setActiveTab('list')}
+            className={`app-toggle-button ${activeTab === 'list' ? 'app-toggle-button-active' : ''}`}
+          >
+            قائمة المشاريع
+          </button>
+          <button
+            onClick={() => setActiveTab('statistics')}
+            className={`app-toggle-button ${activeTab === 'statistics' ? 'app-toggle-button-active' : ''}`}
+          >
+            إحصائيات المشاريع
+          </button>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'list' ? (
           <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="app-filter-surface">
               <div className="flex flex-wrap items-center gap-4">
-                {/* Add Project Button */}
                 {canCreate('projects') && (
                   <button
                     onClick={handleAddProject}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                    className="app-button-primary"
                   >
                     <Plus className="w-4 h-4" />
                     إضافة مشروع جديد
                   </button>
                 )}
-                
-                {/* Search */}
-                <div className="flex-1 min-w-[200px]">
+
+                <div className="min-w-[220px] flex-1">
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
@@ -294,17 +289,16 @@ export default function Projects() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="ابحث عن مشروع..."
-                      className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full rounded-lg border border-gray-300 py-2 pl-4 pr-10 focus:border-transparent focus:ring-2 focus:ring-primary/40"
                     />
                   </div>
                 </div>
 
-                {/* Status Filter */}
                 <div className="min-w-[150px]">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ProjectStatus)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">جميع الحالات</option>
                     <option value="active">نشط</option>
@@ -313,8 +307,7 @@ export default function Projects() {
                   </select>
                 </div>
 
-                {/* Sort */}
-                <div className="min-w-[150px]">
+                <div className="min-w-[170px]">
                   <select
                     value={`${sortField}_${sortDirection}`}
                     onChange={(e) => {
@@ -322,7 +315,7 @@ export default function Projects() {
                       setSortField(field as SortField)
                       setSortDirection(direction as SortDirection)
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="name_asc">الاسم (أ-ي)</option>
                     <option value="name_desc">الاسم (ي-أ)</option>
@@ -333,6 +326,24 @@ export default function Projects() {
                     <option value="created_at_desc">الأحدث</option>
                     <option value="created_at_asc">الأقدم</option>
                   </select>
+                </div>
+
+                <div className="app-toggle-shell">
+                  <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
+                  {[
+                    { value: 2, label: 'كبير' },
+                    { value: 3, label: 'متوسط' },
+                    { value: 4, label: 'صغير' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
+                      className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -348,7 +359,7 @@ export default function Projects() {
                   canCreate('projects') && (
                     <button
                       onClick={handleAddProject}
-                      className="mt-4 text-blue-600 hover:text-blue-700"
+                      className="app-button-primary mt-4"
                     >
                       إضافة مشروع جديد
                     </button>
@@ -356,7 +367,7 @@ export default function Projects() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className={projectGridClass}>
                 {filteredProjects.map((project) => (
                   <ProjectCard
                     key={project.id}

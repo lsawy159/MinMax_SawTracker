@@ -126,10 +126,16 @@ export default function CompanyDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="app-modal-surface max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+        <div className="app-modal-header flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-lg">
               <Building2 className="w-6 h-6 text-blue-600" />
@@ -179,7 +185,7 @@ export default function CompanyDetailModal({
               {employees.length > 0 && (
                 <button
                   onClick={handleViewAllEmployees}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                  className="app-button-primary text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   عرض جميع الموظفين
@@ -211,7 +217,7 @@ export default function CompanyDetailModal({
                           <p className="text-sm text-gray-600 mb-1">{employee.profession}</p>
                         )}
                         {employee.nationality && (
-                          <p className="text-xs text-gray-500">{employee.nationality}</p>
+                          <p className="text-sm text-gray-500">{employee.nationality}</p>
                         )}
                       </div>
                       <Eye className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />

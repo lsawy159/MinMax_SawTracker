@@ -21,7 +21,7 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
       case 'inactive':
         return 'bg-gray-100 text-gray-800 border-gray-200'
       case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-primary/15 text-slate-900 border-primary/30'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -42,12 +42,12 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
 
   return (
     <div 
-      className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
+      className="app-panel h-full cursor-pointer p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
       onClick={() => onView && onView(project)}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="bg-blue-100 p-3 rounded-lg">
-          <FolderKanban className="w-6 h-6 text-blue-600" />
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="app-icon-chip">
+          <FolderKanban className="w-6 h-6" />
         </div>
         <div className="flex items-center gap-2">
           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status || 'active')}`}>
@@ -57,7 +57,7 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
             {canEdit('projects') && (
               <button
                 onClick={() => onEdit(project)}
-                className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                className="rounded-md p-1 text-slate-700 transition hover:bg-primary/10 hover:text-slate-950"
                 title="تعديل المشروع"
               >
                 <Edit2 className="w-4 h-4" />

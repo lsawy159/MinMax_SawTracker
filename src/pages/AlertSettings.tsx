@@ -54,7 +54,7 @@ export default function AlertSettings() {
       <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="text-gray-600 mt-4">جاري التحميل...</p>
           </div>
         </div>
@@ -80,15 +80,13 @@ export default function AlertSettings() {
     <Layout>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Settings className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">إعدادات التنبيهات</h1>
-              <p className="text-gray-600 mt-1">إدارة جميع إعدادات التنبيهات: الحالات، الحدود، والألوان</p>
-            </div>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="app-icon-chip">
+            <Settings className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">إعدادات التنبيهات</h1>
+            <p className="mt-1 text-gray-600">إدارة جميع إعدادات التنبيهات: الحالات، الحدود، والألوان</p>
           </div>
         </div>
 

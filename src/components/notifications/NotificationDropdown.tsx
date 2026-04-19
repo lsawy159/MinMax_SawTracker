@@ -200,7 +200,7 @@ export default function NotificationDropdown() {
                               {notification.title}
                             </h4>
                             {!notification.is_read && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+                              <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-[var(--color-primary)]"></div>
                             )}
                           </div>
                           

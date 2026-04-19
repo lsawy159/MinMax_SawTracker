@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Project } from '@/lib/supabase'
-import { X, FolderKanban } from 'lucide-react'
+import { X, FolderKanban, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ProjectModalProps {
@@ -133,11 +133,13 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="app-modal-surface max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="app-modal-header flex items-center justify-between p-6">
           <div className="flex items-center gap-3">
-            <FolderKanban className="w-6 h-6 text-blue-600" />
+            <div className="app-icon-chip">
+              <FolderKanban className="w-5 h-5" />
+            </div>
             <h2 className="text-xl font-bold text-gray-900">
               {isEditing ? 'تعديل المشروع' : 'إضافة مشروع جديد'}
             </h2>
@@ -161,7 +163,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="app-input"
               placeholder="أدخل اسم المشروع"
               required
               disabled={loading}
@@ -176,7 +178,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="app-input min-h-[110px] resize-none"
               placeholder="أدخل وصف المشروع (اختياري)"
               rows={4}
               disabled={loading}
@@ -191,7 +193,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'completed' })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="app-input"
               disabled={loading}
             >
               <option value="active">نشط</option>
@@ -205,16 +207,17 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              className="app-button-secondary"
               disabled={loading}
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="app-button-primary"
               disabled={loading}
             >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? 'جاري الحفظ...' : (isEditing ? 'تحديث' : 'إنشاء')}
             </button>
           </div>

@@ -3,11 +3,16 @@ import { supabase } from '@/lib/supabase'
 import { FileUp, AlertCircle, CheckCircle, XCircle, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { logger } from '@/utils/logger'
-import * as XLSX from 'xlsx'
+import { loadXlsx } from '@/utils/lazyXlsx'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
 import { formatDateDDMMMYYYY } from '@/utils/dateFormatter'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 import { validateUnifiedNumber, validateLaborSubscription } from '@/utils/companyNumberValidation'
+import {
+  HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
+  TRANSFER_STATUS_OPTIONS,
+  buildEmployeeBusinessAdditionalFields,
+} from '@/utils/employeeBusinessFields'
 
 interface ValidationError {
   row: number
@@ -32,7 +37,12 @@ const EMPLOYEE_COLUMNS_ORDER = [
   'رقم الجواز',
   'رقم الهاتف',
   'الحساب البنكي',
+  'اسم البنك',
   'الراتب',
+  'حالة عقد أجير',
+  'حالة النقل',
+  'رسوم النقل',
+  'رسوم التجديد',
   'المشروع',
   'الشركة أو المؤسسة',
   'الرقم الموحد',
@@ -459,6 +469,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     const errors: ValidationError[] = []
 
     try {
+      const XLSX = await loadXlsx()
       // إنشاء نسخة من الملف لتجنب مشكلة NotReadableError
       let data: ArrayBuffer
       try {
@@ -513,7 +524,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       })
       
       // دالة لقراءة التاريخ من خلية Excel بشكل صحيح
-      const readDateFromCell = (cell: XLSX.CellObject | undefined): string => {
+      const readDateFromCell = (cell: { w?: string; t?: string; v?: unknown } | undefined): string => {
         if (!cell) return ''
         
         // إذا كان هناك نص منسق (cell.w)، استخدمه مباشرة - هذا هو النص المعروض في Excel
@@ -801,6 +812,44 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               })
             }
           }
+
+          const hiredWorkerContractStatusValue = String(row['حالة عقد أجير'] || 'بدون أجير').trim() || 'بدون أجير'
+          if (!HIRED_WORKER_CONTRACT_STATUS_OPTIONS.includes(hiredWorkerContractStatusValue as (typeof HIRED_WORKER_CONTRACT_STATUS_OPTIONS)[number])) {
+            errors.push({
+              row: rowNum,
+              field: 'حالة عقد أجير',
+              message: `القيمة غير صحيحة. القيم المسموحة: ${HIRED_WORKER_CONTRACT_STATUS_OPTIONS.join('، ')}`,
+              severity: 'error'
+            })
+          }
+
+          const transferStatusValue = String(row['حالة النقل'] || 'ليس على الكفالة').trim() || 'ليس على الكفالة'
+          if (!TRANSFER_STATUS_OPTIONS.includes(transferStatusValue as (typeof TRANSFER_STATUS_OPTIONS)[number])) {
+            errors.push({
+              row: rowNum,
+              field: 'حالة النقل',
+              message: `القيمة غير صحيحة. القيم المسموحة: ${TRANSFER_STATUS_OPTIONS.join('، ')}`,
+              severity: 'error'
+            })
+          }
+
+          const feeFields = ['رسوم النقل', 'رسوم التجديد']
+          feeFields.forEach((fieldName) => {
+            const rawValue = row[fieldName]
+            if (rawValue === '' || rawValue === null || rawValue === undefined) {
+              return
+            }
+
+            const parsedValue = Number(String(rawValue).replace(/,/g, '').trim())
+            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+              errors.push({
+                row: rowNum,
+                field: fieldName,
+                message: 'يجب إدخال مبلغ رقمي صحيح أكبر من أو يساوي صفر',
+                severity: 'error'
+              })
+            }
+          })
 
           // Date validation using parseDate
           const dateFields = [
@@ -1109,6 +1158,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             throw new Error('لا يمكن قراءة الملف. يرجى المحاولة مرة أخرى.')
           }
         }
+        const XLSX = await loadXlsx()
         const workbook = XLSX.read(data)
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -1297,6 +1347,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     }
 
     try {
+      const XLSX = await loadXlsx()
       const data = await file.arrayBuffer()
       const workbook = XLSX.read(data)
       const worksheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -1304,7 +1355,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
       // ===== معالجة التواريخ من Excel =====
       // دالة لقراءة التاريخ من خلية Excel بشكل صحيح (نفس المنطق المستخدم في validateData)
-      const readDateFromCell = (cell: XLSX.CellObject | undefined): string => {
+      const readDateFromCell = (cell: { w?: string; t?: string; v?: unknown } | undefined): string => {
         if (!cell) return ''
         
         // إذا كان هناك نص منسق (cell.w)، استخدمه مباشرة - هذا هو النص المعروض في Excel
@@ -1681,6 +1732,14 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               salary: row['الراتب'] ? Number(row['الراتب']) : null,
               project_id: projectId,
               company_id: companyId,
+              additional_fields: buildEmployeeBusinessAdditionalFields(undefined, {
+                bank_name: String(row['اسم البنك'] || '').trim(),
+                hired_worker_contract_status: String(row['حالة عقد أجير'] || 'بدون أجير').trim() || 'بدون أجير',
+                transfer_status: String(row['حالة النقل'] || 'ليس على الكفالة').trim() || 'ليس على الكفالة',
+                transfer_fee: row['رسوم النقل'] ? Number(row['رسوم النقل']) : 0,
+                renewal_fee: row['رسوم التجديد'] ? Number(row['رسوم التجديد']) : 0,
+                hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
+              }),
               // التأكد من أن كل حقل تاريخ يُستورد في مكانه الصحيح
               // عند INSERT: نحفظ جميع التواريخ (حتى null) لأنها حقول جديدة
               // عند UPDATE: سنزيل null في cleanEmployeeDataForUpdate
@@ -2091,7 +2150,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
     setCurrentPage(1)
   }
 
-  const exportValidationReport = () => {
+  const exportValidationReport = async () => {
     if (previewData.length === 0) return
 
     const dataColumns = getOrderedColumns(Object.keys(previewData[0]), previewData)
@@ -2108,6 +2167,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
       return [status, excelRowNumber, ...rowValues, issueDetails || '']
     })
 
+    const XLSX = await loadXlsx()
     const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows])
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Validation Report')
@@ -2228,9 +2288,9 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                     setSelectedRows(new Set())
                     setShouldDeleteBeforeImport(false)
                   }}
-                  className={`flex-1 px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition ${
+                  className={`flex-1 rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition ${
                     importType === 'employees'
-                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      ? 'border-primary bg-primary/15 text-slate-900'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
@@ -2258,7 +2318,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
-              className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition"
+              className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center transition hover:border-primary"
             >
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-700 mb-1">اسحب وأفلت ملف Excel هنا</p>
@@ -2272,7 +2332,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               />
               <label
                 htmlFor="file-upload"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition text-sm"
+                className="app-button-primary cursor-pointer px-4 py-2 text-sm"
               >
                 <FileUp className="w-4 h-4" />
                 اختيار ملف Excel
@@ -2332,15 +2392,15 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
 
       {/* Selected File - يظهر فقط خارج الـ modal */}
       {!isInModal && file && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-3 shadow-md">
+        <div className="app-info-block rounded-xl border-2 border-primary/30 p-3 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                <FileUp className="w-4 h-4 text-white" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-slate-950 shadow-md">
+                <FileUp className="w-4 h-4" />
               </div>
               <div>
-                <div className="font-bold text-blue-900 text-sm mb-0.5">{file.name}</div>
-                <div className="text-xs text-blue-700 font-medium flex items-center gap-1">
+                <div className="mb-0.5 text-sm font-bold text-slate-900">{file.name}</div>
+                <div className="flex items-center gap-1 text-xs font-medium text-slate-700">
                   <span>📁</span>
                   <span>{(file.size / 1024).toFixed(2)} KB</span>
                 </div>
@@ -2350,7 +2410,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               <button
                 onClick={validateData}
                 disabled={validating}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-1.5"
+                className="app-button-primary px-3 py-1.5 text-sm font-medium shadow-md hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {validating ? (
                   <>
@@ -2551,7 +2611,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                 }}
               >
                 <table className="text-[11px] w-full" style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%', maxWidth: '100%' }}>
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
+                <thead className="sticky top-0 z-[1] bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
                   <tr>
                     <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '2%' }}>
                       <input
@@ -3139,13 +3199,13 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
         const columns = getOrderedColumns(dataColumns, previewData)
 
         return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col my-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+            <div className="app-modal-surface my-4 flex max-h-[95vh] w-full max-w-[95vw] flex-col overflow-hidden">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="app-modal-header flex items-center justify-between border-b-2 border-gray-200 bg-gradient-to-r from-slate-50 to-primary/10 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                    <FileUp className="w-5 h-5 text-white" />
+                  <div className="app-icon-chip flex h-10 w-10 items-center justify-center">
+                    <FileUp className="w-5 h-5 text-slate-900" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">
@@ -3266,7 +3326,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
                         <button
                           onClick={() => handleFilterChange('all')}
-                          className={`px-2 py-1 text-xs rounded-md border font-semibold transition ${validationFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                          className={`app-toggle-button text-xs ${validationFilter === 'all' ? 'app-toggle-button-active' : ''}`}
                         >
                           عرض الكل
                         </button>
@@ -3295,7 +3355,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
                       }}
                     >
                       <table className="text-[11px] w-full" style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%', maxWidth: '100%' }}>
-                      <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 sticky top-0 z-10">
+                      <thead className="sticky top-0 z-[1] bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
                         <tr>
                           <th className="px-0.5 py-1 text-center font-semibold text-gray-800 whitespace-nowrap bg-gray-200 text-[11px]" style={{ width: '2%' }}>
                             <input

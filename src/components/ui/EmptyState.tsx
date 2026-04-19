@@ -20,7 +20,7 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
+    <div className="app-panel flex flex-col items-center justify-center border-2 border-dashed border-gray-300 p-12">
       <div className="flex flex-col items-center text-center max-w-md gap-4">
         {/* Icon */}
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
@@ -37,7 +37,7 @@ export function EmptyState({
         {action ? (
           <button
             onClick={action.onClick}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="app-button-primary"
           >
             <Plus className="w-4 h-4" />
             {action.label}
@@ -104,7 +104,7 @@ export function NoSearchResultsEmptyState({
       </p>
       <button
         onClick={onClear}
-        className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+        className="app-button-secondary text-sm"
       >
         مسح البحث
       </button>

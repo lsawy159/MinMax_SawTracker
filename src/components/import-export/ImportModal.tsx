@@ -41,13 +41,13 @@ export default function ImportModal({ isOpen, onClose, importType, onImportSucce
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col my-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+      <div className="app-modal-surface my-4 flex max-h-[95vh] w-full max-w-[95vw] flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="app-modal-header flex items-center justify-between border-b-2 border-gray-200 bg-gradient-to-r from-slate-50 to-primary/10 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-              <FileUp className="w-5 h-5 text-white" />
+            <div className="app-icon-chip flex h-10 w-10 items-center justify-center">
+              <FileUp className="w-5 h-5 text-slate-900" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">

@@ -128,12 +128,12 @@ export default function ProjectDetailModal({
   return (
     <>
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="app-modal-surface max-w-6xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
+          <div className="app-modal-header flex justify-between items-center p-6">
             <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-3 rounded-lg">
-                <FolderKanban className="w-8 h-8" />
+              <div className="app-icon-chip">
+                <FolderKanban className="w-7 h-7" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{project.name}</h2>
@@ -187,7 +187,7 @@ export default function ProjectDetailModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-5 h-5 text-blue-600" />
+                  <Users className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium text-gray-700">عدد الموظفين</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{project.employee_count || 0}</p>
@@ -224,7 +224,7 @@ export default function ProjectDetailModal({
 
             {loadingEmployees ? (
               <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : employees.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
@@ -237,7 +237,7 @@ export default function ProjectDetailModal({
                   <div
                     key={employee.id}
                     onClick={() => handleEmployeeClick(employee)}
-                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
+                    className="rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-primary/40 hover:shadow-md cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">

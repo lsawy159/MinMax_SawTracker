@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
-import { AlertCircle, CheckCircle, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, CheckCircle, X, Loader2 } from 'lucide-react'
 
 interface ConfirmationDialogProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
   title: string
   message: string
   confirmText?: string
@@ -45,6 +45,8 @@ export default function ConfirmationDialog({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   if (!isOpen) return null
 
   const getIconColor = () => {
@@ -80,14 +82,22 @@ export default function ConfirmationDialog({
     }
   }
 
-  const getButtonColor = () => {
-    if (isDangerous) return 'bg-red-600 hover:bg-red-700'
+  const getButtonClass = () => {
+    if (isDangerous) return 'app-button-danger'
     switch (icon) {
-      case 'alert': return 'bg-orange-600 hover:bg-orange-700'
-      case 'success': return 'bg-green-600 hover:bg-green-700'
-      case 'info': return 'bg-blue-600 hover:bg-blue-700'
-      case 'question': return 'bg-indigo-600 hover:bg-indigo-700'
-      default: return 'bg-blue-600 hover:bg-blue-700'
+      case 'alert': return 'app-button-warning'
+      case 'success': return 'app-button-success'
+      default: return 'app-button-primary'
+    }
+  }
+
+  const handleConfirm = async () => {
+    try {
+      setIsSubmitting(true)
+      await Promise.resolve(onConfirm())
+      onClose()
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -111,10 +121,10 @@ export default function ConfirmationDialog({
       aria-describedby={descriptionId}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300"
+        className="app-modal-surface max-w-md overflow-hidden flex w-full flex-col animate-in fade-in zoom-in-95 duration-300"
       >
         {/* Modal Header */}
-        <div className={`flex items-center justify-between px-6 py-4 border-b-2 ${getBorderColor()} bg-gradient-to-r ${getHeaderColor()}`}>
+        <div className={`app-modal-header flex items-center justify-between border-b-2 px-6 py-4 ${getBorderColor()} bg-gradient-to-r ${getHeaderColor()}`}>
           <div className="flex items-center gap-4 flex-1">
             <div className={`w-12 h-12 bg-gradient-to-br ${getIconColor()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
               {getIconComponent()}
@@ -128,7 +138,8 @@ export default function ConfirmationDialog({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-black/10 rounded-lg transition-colors"
+            disabled={isSubmitting}
+            className="rounded-lg p-2 transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="إغلاق"
           >
             <X className="w-5 h-5 text-gray-600" />
@@ -160,23 +171,29 @@ export default function ConfirmationDialog({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div className="app-modal-footer flex gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
+            disabled={isSubmitting}
+            className="app-button-secondary flex-1 justify-center"
             aria-label={cancelText}
           >
             {cancelText}
           </button>
           <button
-            onClick={() => {
-              onConfirm()
-              onClose()
-            }}
-            className={`flex-1 px-4 py-2 ${getButtonColor()} text-white font-medium rounded-lg transition-colors`}
+            onClick={() => void handleConfirm()}
+            disabled={isSubmitting}
+            className={`${getButtonClass()} flex-1 justify-center`}
             aria-label={confirmText}
           >
-            {confirmText}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                جارٍ التنفيذ...
+              </>
+            ) : (
+              confirmText
+            )}
           </button>
         </div>
       </div>

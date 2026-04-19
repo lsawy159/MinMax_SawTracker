@@ -1,12 +1,13 @@
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { loadXlsx } from '@/utils/lazyXlsx'
 
 export default function TemplatesTab() {
   
-  const downloadEmployeeTemplate = () => {
+  const downloadEmployeeTemplate = async () => {
     try {
+      const XLSX = await loadXlsx()
       const templateData = [
         {
           'الاسم': 'محمد أحمد',
@@ -16,7 +17,12 @@ export default function TemplatesTab() {
           'رقم الجواز': 'A1234567',
           'رقم الهاتف': '0501234567',
           'الحساب البنكي': 'SA1234567890123456789012',
+          'اسم البنك': 'مصرف الراجحي',
           'الراتب': '8000',
+          'حالة عقد أجير': 'أجير',
+          'حالة النقل': 'ليس على الكفالة',
+          'رسوم النقل': '2500',
+          'رسوم التجديد': '1200',
           'المشروع': 'مشروع رقم 1',
           'الشركة أو المؤسسة': 'مؤسسة النجاح',
           'الرقم الموحد': '1234567890',
@@ -44,7 +50,12 @@ export default function TemplatesTab() {
         { wch: 15 }, // رقم الجواز
         { wch: 15 }, // رقم الهاتف
         { wch: 25 }, // الحساب البنكي
+        { wch: 20 }, // اسم البنك
         { wch: 15 }, // الراتب
+        { wch: 18 }, // حالة عقد أجير
+        { wch: 16 }, // حالة النقل
+        { wch: 14 }, // رسوم النقل
+        { wch: 14 }, // رسوم التجديد
         { wch: 20 }, // المشروع
         { wch: 25 }, // الشركة أو المؤسسة
         { wch: 15 }, // الرقم الموحد
@@ -103,8 +114,9 @@ export default function TemplatesTab() {
     }
   }
 
-  const downloadCompanyTemplate = () => {
+  const downloadCompanyTemplate = async () => {
     try {
+      const XLSX = await loadXlsx()
       const templateData = [
         {
           'اسم المؤسسة': 'مؤسسة النجاح للتجارة',
@@ -162,7 +174,12 @@ export default function TemplatesTab() {
         'رقم جواز السفر',
         'رقم الهاتف',
         'الحساب البنكي',
+        'اسم البنك',
         'الراتب',
+        'حالة عقد أجير',
+        'حالة النقل',
+        'رسوم النقل',
+        'رسوم التجديد',
         'المشروع',
         'الشركة أو المؤسسة',
         'الرقم الموحد (اختياري - للتمييز بين المؤسسات المتشابهة)',
@@ -204,31 +221,31 @@ export default function TemplatesTab() {
   return (
     <div className="space-y-6">
       {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-blue-900 mb-3">📋 تعليمات استخدام القوالب</h3>
-        <ul className="space-y-2 text-blue-800">
+      <div className="app-info-block rounded-lg p-6">
+        <h3 className="mb-3 text-lg font-bold text-slate-900">📋 تعليمات استخدام القوالب</h3>
+        <ul className="space-y-2 text-slate-800">
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">1.</span>
+            <span className="font-bold text-slate-900">1.</span>
             <span>قم بتحميل القالب المناسب (موظفين أو مؤسسات)</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">2.</span>
+            <span className="font-bold text-slate-900">2.</span>
             <span>افتح الملف في Microsoft Excel أو Google Sheets</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">3.</span>
+            <span className="font-bold text-slate-900">3.</span>
             <span>احذف الصف النموذجي وأضف بياناتك الخاصة</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">4.</span>
+            <span className="font-bold text-slate-900">4.</span>
             <span>تأكد من تعبئة جميع الحقول المطلوبة (المشار إليها بكلمة "مطلوب")</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">5.</span>
+            <span className="font-bold text-slate-900">5.</span>
             <span>لا تقم بتغيير أسماء الأعمدة أو ترتيبها</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-600 font-bold">6.</span>
+            <span className="font-bold text-slate-900">6.</span>
             <span>احفظ الملف بصيغة .xlsx واستخدم تبويب "الاستيراد" لرفعه</span>
           </li>
         </ul>

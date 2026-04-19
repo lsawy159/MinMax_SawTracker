@@ -75,7 +75,7 @@ export function EnhancedAlertsSection({
   const summaryReport = generateAlertSummaryReport(alerts)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="app-panel p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -100,46 +100,36 @@ export function EnhancedAlertsSection({
               placeholder="البحث في التنبيهات..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="app-input pl-10"
             />
           </div>
 
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-              showFilters 
-                ? 'bg-blue-50 border-blue-300 text-blue-700' 
-                : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-            }`}
+            className={showFilters ? 'app-button-primary' : 'app-button-secondary'}
           >
             <Filter className="h-4 w-4" />
             الفلاتر
           </button>
 
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="app-toggle-shell">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                viewMode === 'cards' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`app-toggle-button ${viewMode === 'cards' ? 'app-toggle-button-active' : ''}`}
             >
               البطاقات
             </button>
             <button
               onClick={() => setViewMode('summary')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                viewMode === 'summary' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`app-toggle-button ${viewMode === 'summary' ? 'app-toggle-button-active' : ''}`}
             >
               الملخص
             </button>
             <button
               onClick={() => setViewMode('analytics')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                viewMode === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`app-toggle-button ${viewMode === 'analytics' ? 'app-toggle-button-active' : ''}`}
             >
               التحليلات
             </button>
@@ -149,7 +139,7 @@ export function EnhancedAlertsSection({
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="app-filter-surface mb-6 p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب الأولوية</label>
@@ -161,7 +151,7 @@ export function EnhancedAlertsSection({
                     setFilterMode(value)
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input"
               >
                 <option value="all">جميع التنبيهات</option>
                 <option value="urgent">عاجل فقط</option>
@@ -171,7 +161,7 @@ export function EnhancedAlertsSection({
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب النوع</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select className="app-input">
                 <option value="all">جميع الأنواع</option>
                 <option value="commercial_registration_expiry">السجل التجاري</option>
                 <option value="insurance_subscription">التأمين</option>
@@ -181,7 +171,7 @@ export function EnhancedAlertsSection({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب القسم</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select className="app-input">
                 <option value="all">جميع الأقسام</option>
                 <option value="legal">الشؤون القانونية</option>
                 <option value="finance">الشؤون المالية</option>
@@ -192,10 +182,10 @@ export function EnhancedAlertsSection({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">إجراءات</label>
               <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                <button className="app-button-primary flex-1 justify-center">
                   تطبيق الفلاتر
                 </button>
-                <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                <button className="app-button-secondary justify-center">
                   مسح
                 </button>
               </div>
@@ -282,7 +272,7 @@ export function EnhancedAlertsSection({
           {!showAllAlerts && filteredAlerts.length > 3 && (
             <div className="text-center">
               <button
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="app-button-primary"
                 onClick={() => {/* Show all alerts */}}
               >
                 عرض جميع التنبيهات ({filteredAlerts.length})
@@ -434,21 +424,21 @@ export function EnhancedAlertsSection({
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-blue-50 rounded-lg p-6">
+          <div className="app-filter-surface p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Target className="h-5 w-5" />
               إجراءات سريعة
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <button className="app-button-secondary w-full justify-start py-3">
                 <RefreshCw className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-medium">تجديد جميع التنبيهات الطارئة</span>
               </button>
-              <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <button className="app-button-secondary w-full justify-start py-3">
                 <Download className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium">تصدير تقرير مفصل</span>
               </button>
-              <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <button className="app-button-secondary w-full justify-start py-3">
                 <Settings className="h-4 w-4 text-purple-600" />
                 <span className="text-sm font-medium">إعدادات التنبيهات</span>
               </button>

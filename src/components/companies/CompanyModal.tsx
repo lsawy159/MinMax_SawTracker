@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Company } from '@/lib/supabase'
-import { X, Building2 } from 'lucide-react'
+import { X, Building2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { 
   calculateCommercialRegistrationStatus, 
@@ -561,13 +561,13 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="app-modal-surface max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="app-modal-header flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <Building2 className="w-6 h-6 text-blue-600" />
+            <div className="rounded-xl bg-primary/15 p-2">
+              <Building2 className="h-6 w-6 text-slate-900" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">
               {isEditing ? 'تعديل المؤسسة' : 'إضافة مؤسسة جديدة'}
@@ -583,7 +583,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* اسم المؤسسة */}
             <div>
@@ -595,7 +595,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل اسم المؤسسة"
                 required
                 disabled={loading}
@@ -612,7 +612,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="unified_number"
                 value={formData.unified_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="app-input py-2.5 font-mono"
                 placeholder="أدخل الرقم الموحد"
                 required
                 disabled={loading}
@@ -630,7 +630,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 value={formData.social_insurance_number}
                 onChange={handleChange}
                 placeholder="رقم اشتراك التأمينات الاجتماعية"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -645,7 +645,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="labor_subscription_number"
                 value={formData.labor_subscription_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل رقم اشتراك قوى"
                 disabled={loading}
               />
@@ -661,7 +661,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="commercial_registration_expiry"
                 value={formData.commercial_registration_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -676,7 +676,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="ending_subscription_power_date"
                 value={formData.ending_subscription_power_date}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -691,7 +691,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="ending_subscription_moqeem_date"
                 value={formData.ending_subscription_moqeem_date}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -775,7 +775,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="max_employees"
                 value={formData.max_employees}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل عدد الموظفين الأقصى (افتراضي: 4)"
                 disabled={loading}
               />
@@ -790,7 +790,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="exemptions"
                 value={formData.exemptions}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               >
                 <option value="">اختر حالة الاعفاءات</option>
@@ -810,7 +810,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
                 name="company_type"
                 value={formData.company_type}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل نوع المؤسسة"
                 disabled={loading}
               />
@@ -828,22 +828,22 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               value={formData.notes}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="app-input min-h-[110px] resize-none py-2.5"
               placeholder="أدخل أي ملاحظات إضافية عن المؤسسة..."
               disabled={loading}
             />
           </div>
 
           {/* Footer */}
-          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200">
+          <div className="app-modal-footer mt-8 flex items-center gap-4 border-t border-gray-200 pt-6">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+              className="app-button-primary flex-1 justify-center px-6 py-3"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   جاري {isEditing ? 'التحديث' : 'الإضافة'}...
                 </>
               ) : (
@@ -857,7 +857,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="app-button-secondary flex-1 justify-center px-6 py-3"
             >
               إلغاء
             </button>

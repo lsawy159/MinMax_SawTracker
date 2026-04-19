@@ -15,6 +15,7 @@ import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { triggerManualBackupAndNotify } from '@/lib/backupService'
 import { logger } from '@/utils/logger'
+import { NotificationRecipientsConfig, AdditionalRecipient, createDefaultConfig } from '@/lib/notificationTypes'
 
 interface EmailConfig {
   admin_email: string
@@ -68,14 +69,17 @@ export default function BackupSettingsPage() {
   // Tab State
   const [activeTab, setActiveTab] = useState<TabType>('general')
 
-  // Email Config State
+  // 🔐 NEW: Notification Recipients Config State
+  const [notificationConfig, setNotificationConfig] = useState<NotificationRecipientsConfig>(createDefaultConfig())
+  const [newRecipientEmail, setNewRecipientEmail] = useState('')
+
+  // Legacy Email Config State (for backward compatibility)
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
     admin_email: DEFAULT_ADMIN_EMAIL,
     backup_email_notifications: '',
     backup_notifications_enabled: true
   })
-  const [recipients, setRecipients] = useState<string[]>([])
-  const [newRecipient, setNewRecipient] = useState('')
+  const [recipients, setRecipients] = useState<string[]>()
 
   // Refresh Interval State
   const [refreshInterval, setRefreshInterval] = useState(120000)
@@ -121,12 +125,55 @@ export default function BackupSettingsPage() {
   }, [stats.lastSuccessTime])
 
   // ============================================================================
-  // EMAIL CONFIGURATION FUNCTIONS
+  // EMAIL CONFIGURATION FUNCTIONS - NEW SYSTEM WITH FALLBACK
   // ============================================================================
+
+  // 🔐 Load notification recipients from new notification_recipients setting
+  const loadNotificationRecipients = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'notification_recipients')
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+
+      if (data?.setting_value) {
+        try {
+          const rawValue = data.setting_value as unknown
+          let parsedValue: unknown = rawValue
+
+          if (typeof rawValue === 'string') {
+            parsedValue = JSON.parse(rawValue)
+
+            if (typeof parsedValue === 'string') {
+              parsedValue = JSON.parse(parsedValue)
+            }
+          }
+
+          const config = parsedValue as NotificationRecipientsConfig
+          setNotificationConfig(config)
+          logger.debug('[BackupSettings] Loaded notification recipients:', config)
+        } catch (parseErr) {
+          logger.warn('[BackupSettings] Failed to parse notification_recipients JSON:', parseErr)
+          setNotificationConfig(createDefaultConfig())
+        }
+      } else {
+        setNotificationConfig(createDefaultConfig())
+      }
+    } catch (error) {
+      logger.error('[BackupSettings] Failed to load notification recipients:', error)
+      setNotificationConfig(createDefaultConfig())
+    }
+  }, [])
 
   const loadEmailSettings = useCallback(async () => {
     setLoading(true)
     try {
+      // Load both legacy and new settings
+      await loadNotificationRecipients()
+
       const { data, error } = await supabase
         .from('system_settings')
         .select('setting_key, setting_value')
@@ -164,12 +211,12 @@ export default function BackupSettingsPage() {
         .filter(Boolean)
       setRecipients(parsedRecipients)
     } catch (error) {
-      console.error('[BackupSettings] Failed to load email settings:', error)
+      logger.error('[BackupSettings] Failed to load email settings:', error)
       toast.error('تعذر تحميل إعدادات البريد الإلكتروني')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadNotificationRecipients])
 
   useEffect(() => {
     if (!hasViewPermission) {
@@ -187,6 +234,24 @@ export default function BackupSettingsPage() {
 
     setSaving(true)
     try {
+      // Save new notification_recipients JSON
+      const updatedConfig: NotificationRecipientsConfig = {
+        ...notificationConfig,
+        last_modified: new Date().toISOString()
+      }
+
+      const { error: newError } = await supabase
+        .from('system_settings')
+        .upsert({
+          setting_key: 'notification_recipients',
+          setting_value: JSON.stringify(updatedConfig),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'setting_key' })
+        .select()
+
+      if (newError) throw newError
+
+      // Also save legacy settings for backward compatibility
       const payload = SETTINGS_KEYS.map((key) => {
         let value: string | number | boolean = emailConfig[key as keyof EmailConfig]
         if (key === 'backup_email_notifications') {
@@ -202,41 +267,70 @@ export default function BackupSettingsPage() {
         }
       })
 
-      const { error } = await supabase
+      const { error: legacyError } = await supabase
         .from('system_settings')
         .upsert(payload, { onConflict: 'setting_key' })
         .select()
 
-      if (error) throw error
+      if (legacyError) throw legacyError
 
       toast.success('تم حفظ جميع الإعدادات بنجاح')
       await loadEmailSettings()
     } catch (error) {
-      console.error('[BackupSettings] Failed to save email settings:', error)
+      logger.error('[BackupSettings] Failed to save email settings:', error)
       toast.error('فشل حفظ الإعدادات')
     } finally {
       setSaving(false)
     }
   }
 
+  // 🔐 Add new recipient to notification list
   const addRecipient = () => {
-    const email = newRecipient.trim()
+    const email = newRecipientEmail.trim()
     if (!email) return
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       toast.error('بريد غير صالح')
       return
     }
-    if (recipients.includes(email)) {
+    if (notificationConfig.additional_recipients.some(r => r.email === email)) {
       toast.info('هذا البريد موجود بالفعل')
       return
     }
-    setRecipients(prev => [...prev, email])
-    setNewRecipient('')
+    const newRecipient: AdditionalRecipient = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      email,
+      expiryAlerts: true,
+      backupNotifications: true,
+      dailyDigest: false,
+      added_at: new Date().toISOString(),
+      added_by: user?.id || 'unknown'
+    }
+    setNotificationConfig(prev => ({
+      ...prev,
+      additional_recipients: [...prev.additional_recipients, newRecipient]
+    }))
+    setNewRecipientEmail('')
+    toast.success('تم إضافة المستقبل الجديد')
   }
 
-  const removeRecipient = (email: string) => {
-    setRecipients(prev => prev.filter(e => e !== email))
+  // 🔐 Remove recipient from notification list
+  const removeRecipient = (id: string) => {
+    setNotificationConfig(prev => ({
+      ...prev,
+      additional_recipients: prev.additional_recipients.filter(r => r.id !== id)
+    }))
+    toast.success('تم حذف المستقبل')
+  }
+
+  // 🔐 Update recipient notification flags
+  const updateRecipientFlags = (id: string, updates: Partial<Omit<AdditionalRecipient, 'id' | 'email' | 'added_at' | 'added_by'>>) => {
+    setNotificationConfig(prev => ({
+      ...prev,
+      additional_recipients: prev.additional_recipients.map(r =>
+        r.id === id ? { ...r, ...updates } : r
+      )
+    }))
   }
 
   // ============================================================================
@@ -572,15 +666,15 @@ export default function BackupSettingsPage() {
     <Layout>
       <div className="p-6 space-y-6" dir="rtl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="app-panel border-primary/30 bg-primary/10 p-6 text-slate-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg">
+              <div className="app-icon-chip p-3">
                 <HardDrive className="w-8 h-8" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold">إدارة النسخ الاحتياطية والأمان</h1>
-                <p className="text-blue-100 mt-1">لوحة تحكم متكاملة للنسخ الاحتياطية والبريد الإلكتروني وإعدادات الأمان</p>
+                <p className="mt-1 text-slate-700">لوحة تحكم متكاملة للنسخ الاحتياطية والبريد الإلكتروني وإعدادات الأمان</p>
               </div>
             </div>
             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${
@@ -597,8 +691,8 @@ export default function BackupSettingsPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex border-b border-gray-200">
+        <div className="app-panel">
+          <div className="flex border-b border-border">
             {[
               { id: 'general', label: 'الإعدادات العامة', icon: SettingsIcon },
               { id: 'email', label: 'إدارة البريد والإشعارات', icon: Mail },
@@ -608,10 +702,10 @@ export default function BackupSettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 ${
+                className={`app-tab-button border-b-2 ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'app-tab-button-active'
+                    : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <tab.icon className="w-5 h-5" />
@@ -628,34 +722,34 @@ export default function BackupSettingsPage() {
             <div className="space-y-6">
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">المرسل اليوم</p>
-                      <p className="text-3xl font-bold text-blue-600 mt-2">{stats.sentToday}</p>
+                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.sentToday}</p>
                     </div>
-                    <CheckCircle className="w-12 h-12 text-blue-200" />
+                    <CheckCircle className="w-12 h-12 text-primary" />
                   </div>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">قيد الانتظار</p>
-                      <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
+                      <p className="mt-2 text-3xl font-bold text-yellow-600">{stats.pending}</p>
                     </div>
-                    <RefreshCw className="w-12 h-12 text-yellow-200" />
+                    <RefreshCw className="w-12 h-12 text-yellow-500" />
                   </div>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">رسائل فاشلة</p>
-                      <p className="text-3xl font-bold text-red-600 mt-2">{stats.failed}</p>
+                      <p className="mt-2 text-3xl font-bold text-red-600">{stats.failed}</p>
                     </div>
-                    <AlertTriangle className="w-12 h-12 text-red-200" />
+                    <AlertTriangle className="w-12 h-12 text-red-400" />
                   </div>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="app-panel p-6">
                   <div>
                     <p className="text-sm text-gray-600">آخر عملية نجحت</p>
                     <p className="text-sm font-mono text-gray-800 mt-2 truncate">
@@ -678,7 +772,7 @@ export default function BackupSettingsPage() {
                   <button
                     onClick={handleManualBackup}
                     disabled={manualBackupLoading}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-semibold"
+                    className="app-button-primary w-full justify-center disabled:opacity-60"
                   >
                     {manualBackupLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -689,14 +783,14 @@ export default function BackupSettingsPage() {
                   </button>
                   <button
                     onClick={sendTestEmail}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                    className="app-button-success w-full justify-center"
                   >
                     <Mail className="w-5 h-5" />
                     بريد اختبار
                   </button>
                   <button
                     onClick={retryAllFailed}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold"
+                    className="app-button-warning w-full justify-center"
                   >
                     <RefreshCw className="w-5 h-5" />
                     إعادة محاولة الفاشلة
@@ -716,7 +810,7 @@ export default function BackupSettingsPage() {
                       value={refreshInterval}
                       onChange={(e) => setRefreshInterval(Number(e.target.value))}
                       disabled={!hasEditPermission}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                     >
                       {REFRESH_OPTIONS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -727,9 +821,9 @@ export default function BackupSettingsPage() {
                     </p>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
+                  <div className="app-info-block flex gap-3 p-4">
+                    <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-900" />
+                    <div className="text-sm text-slate-800">
                       <p className="font-semibold mb-1">💡 ملاحظة:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>الحد الأدنى: 30 ثانية</li>
@@ -742,11 +836,11 @@ export default function BackupSettingsPage() {
               </div>
 
               {/* Send Alert Email Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="app-info-block rounded-lg p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg mt-1">
-                      <Mail className="w-5 h-5 text-blue-600" />
+                    <div className="mt-1 rounded-lg bg-primary/20 p-3">
+                      <Mail className="w-5 h-5 text-slate-900" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-gray-900">إرسال بريد التنبيهات</h2>
@@ -761,7 +855,7 @@ export default function BackupSettingsPage() {
                   <button
                     onClick={handleSendDigestNow}
                     disabled={isSendingDigest}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition whitespace-nowrap"
+                    className="app-button-primary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSendingDigest ? (
                       <span className="flex items-center gap-2">
@@ -810,64 +904,122 @@ export default function BackupSettingsPage() {
                 <EmailQueueMonitor />
               </div>
 
-              {/* Email Configuration */}
+              {/* Email Configuration - NEW SYSTEM */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">إعدادات البريد الإلكتروني</h2>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">إدارة مستقبلي الإشعارات</h2>
+                  <p className="text-sm text-gray-600">
+                    🔐 نظام إدارة إشعارات متقدم - البريد الأساسي (ahmad.alsawy159@gmail.com) يتلقى جميع الإشعارات دائماً
+                  </p>
+                </div>
 
-                <div className="space-y-4">
-                  {/* Admin Email */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">البريد الإداري</label>
-                    <input
-                      type="email"
-                      value={emailConfig.admin_email}
-                      onChange={(e) => setEmailConfig(prev => ({ ...prev, admin_email: e.target.value }))}
-                      disabled={!hasEditPermission}
-                      placeholder="admin@yourdomain.com"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                    />
-                  </div>
-
-                  {/* Recipients */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">مستلمو إشعارات النسخ الاحتياطية</label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {recipients.map(email => (
-                        <span
-                          key={email}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-2"
-                        >
-                          {email}
-                          <button
-                            onClick={() => removeRecipient(email)}
-                            disabled={!hasEditPermission}
-                            className="text-blue-600 hover:text-blue-900 font-bold"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
+                <div className="space-y-6">
+                  {/* Primary Admin (Read-Only) */}
+                  <div className="app-info-block rounded-lg p-4">
+                    <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <Shield className="w-4 h-4" />
+                      البريد الأساسي (محمي - يتلقى جميع الإشعارات)
+                    </label>
+                    <div className="flex items-center gap-2">
                       <input
                         type="email"
-                        value={newRecipient}
-                        onChange={(e) => setNewRecipient(e.target.value)}
-                        disabled={!hasEditPermission}
-                        placeholder="أضف بريد جديد..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                        value={notificationConfig.primary_admin}
+                        disabled={true}
+                        className="flex-1 cursor-not-allowed rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 font-semibold text-slate-900"
                       />
-                      <button
-                        onClick={addRecipient}
-                        disabled={!hasEditPermission}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60"
-                      >
-                        إضافة
-                      </button>
+                      <span className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">✓ ثابت</span>
                     </div>
                   </div>
 
-                  {/* Enable/Disable Notifications */}
+                  {/* Additional Recipients Management */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">مستقبلون إضافيون</label>
+                    
+                    {notificationConfig.additional_recipients.length === 0 ? (
+                      <p className="text-sm text-gray-500 mb-4">لا توجد مستقبلون إضافيون حالياً</p>
+                    ) : (
+                      <div className="space-y-3 mb-4">
+                        {notificationConfig.additional_recipients.map((recipient) => (
+                          <div key={recipient.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">{recipient.email}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  أضيف بواسطة: {recipient.added_by === user?.id ? 'أنت' : 'مسؤول آخر'} • {new Date(recipient.added_at).toLocaleDateString('ar-SA')}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => removeRecipient(recipient.id)}
+                                disabled={!hasEditPermission}
+                                className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 text-sm font-medium"
+                              >
+                                حذف
+                              </button>
+                            </div>
+
+                            {/* Notification Type Toggles */}
+                            <div className="grid grid-cols-3 gap-3">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={recipient.expiryAlerts}
+                                  onChange={(e) => updateRecipientFlags(recipient.id, { expiryAlerts: e.target.checked })}
+                                  disabled={!hasEditPermission}
+                                  className="w-4 h-4 rounded"
+                                />
+                                <span className="text-sm text-gray-700">تنبيهات انتهاء الصلاحية</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={recipient.backupNotifications}
+                                  onChange={(e) => updateRecipientFlags(recipient.id, { backupNotifications: e.target.checked })}
+                                  disabled={!hasEditPermission}
+                                  className="w-4 h-4 rounded"
+                                />
+                                <span className="text-sm text-gray-700">إشعارات النسخ الاحتياطية</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={recipient.dailyDigest}
+                                  onChange={(e) => updateRecipientFlags(recipient.id, { dailyDigest: e.target.checked })}
+                                  disabled={!hasEditPermission}
+                                  className="w-4 h-4 rounded"
+                                />
+                                <span className="text-sm text-gray-700">الملخص اليومي</span>
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add New Recipient */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={newRecipientEmail}
+                          onChange={(e) => setNewRecipientEmail(e.target.value)}
+                          disabled={!hasEditPermission}
+                          placeholder="أضف بريد إلكتروني جديد..."
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                          onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
+                        />
+                        <button
+                          onClick={addRecipient}
+                          disabled={!hasEditPermission || !newRecipientEmail.trim()}
+                          className="app-button-primary px-4 py-2 font-semibold disabled:opacity-60"
+                        >
+                          إضافة
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500">سيتمكن المستقبل الجديد من تلقي الإشعارات بناءً على الصناديق المختارة</p>
+                    </div>
+                  </div>
+
+                  {/* Enable/Disable Backup Notifications */}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -886,7 +1038,7 @@ export default function BackupSettingsPage() {
                           className="sr-only"
                         />
                         <div className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                          emailConfig.backup_notifications_enabled ? 'bg-blue-600' : 'bg-gray-300'
+                          emailConfig.backup_notifications_enabled ? 'bg-primary' : 'bg-gray-300'
                         }`}>
                           <div className={`h-5 w-5 bg-white rounded-full shadow transform transition-transform duration-200 ${
                             emailConfig.backup_notifications_enabled ? 'translate-x-6' : 'translate-x-0.5'
@@ -901,7 +1053,7 @@ export default function BackupSettingsPage() {
                     <button
                       onClick={saveEmailSettings}
                       disabled={saving || !hasEditPermission}
-                      className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-semibold"
+                      className="app-button-primary px-6 py-2 font-semibold disabled:opacity-60"
                     >
                       {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                       {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
@@ -924,7 +1076,7 @@ export default function BackupSettingsPage() {
                   <button
                     onClick={loadBackups}
                     disabled={backupsLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                    className="app-button-secondary"
                   >
                     <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
                     تحديث
@@ -956,7 +1108,7 @@ export default function BackupSettingsPage() {
                         {backups.map(backup => (
                           <tr key={backup.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4">
-                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                              <span className="rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold text-slate-900">
                                 {backup.backup_type === 'full' ? 'كاملة' : backup.backup_type === 'incremental' ? 'تزايدية' : 'يدوية'}
                               </span>
                             </td>
@@ -981,7 +1133,7 @@ export default function BackupSettingsPage() {
                               <button
                                 onClick={() => downloadBackup(backup.file_path)}
                                 disabled={downloadingBackup === backup.file_path}
-                                className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition disabled:opacity-60 text-xs font-semibold"
+                                className="flex items-center gap-1 rounded-lg bg-primary/15 px-3 py-1 text-xs font-semibold text-slate-900 transition hover:bg-primary/25 disabled:opacity-60"
                               >
                                 {downloadingBackup === backup.file_path ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -7,9 +7,9 @@ import { Activity, RefreshCw, Download, Trash2, Plus, Edit, Eye, LogIn, LogOut, 
 import { formatDateTimeWithHijri } from '@/utils/dateFormatter'
 // import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { usePermissions } from '@/utils/permissions'
+import { loadXlsx } from '@/utils/lazyXlsx'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { StatsCards } from '@/components/activity/StatsCards'
 import { LogsFilters } from '@/components/activity/LogsFilters'
@@ -152,11 +152,11 @@ export default function ActivityLogs() {
       }
     if (actionLower.includes('update') || actionLower.includes('edit') || actionLower.includes('تحديث') || actionLower.includes('تعديل')) 
       return {
-        bg: 'bg-gradient-to-br from-blue-50 to-cyan-50',
-        border: 'border-l-4 border-blue-500',
-        text: 'text-blue-700',
-        badge: 'bg-blue-100 text-blue-800',
-        icon: 'bg-blue-100 text-blue-600'
+        bg: 'bg-primary/10',
+        border: 'border-l-4 border-primary',
+        text: 'text-slate-900',
+        badge: 'bg-primary/15 text-slate-900',
+        icon: 'bg-primary/15 text-slate-900'
       }
     if (actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('حذف')) 
       return {
@@ -168,11 +168,11 @@ export default function ActivityLogs() {
       }
     if (actionLower.includes('login') || actionLower.includes('دخول')) 
       return {
-        bg: 'bg-gradient-to-br from-purple-50 to-violet-50',
-        border: 'border-l-4 border-purple-500',
-        text: 'text-purple-700',
-        badge: 'bg-purple-100 text-purple-800',
-        icon: 'bg-purple-100 text-purple-600'
+        bg: 'bg-slate-100',
+        border: 'border-l-4 border-slate-500',
+        text: 'text-slate-800',
+        badge: 'bg-slate-200 text-slate-800',
+        icon: 'bg-slate-200 text-slate-700'
       }
     if (actionLower.includes('logout') || actionLower.includes('خروج')) 
       return {
@@ -978,7 +978,7 @@ export default function ActivityLogs() {
   }
 
   // Export to Excel
-  const exportToExcel = useCallback(() => {
+  const exportToExcel = useCallback(async () => {
     const data = filteredLogs.map(log => {
       let userDisplay = 'النظام'
       if (log.user_id) {
@@ -1000,6 +1000,7 @@ export default function ActivityLogs() {
       }
     })
 
+    const XLSX = await loadXlsx()
     const worksheet = XLSX.utils.json_to_sheet(data)
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'سجل النشاطات')
@@ -1024,8 +1025,8 @@ export default function ActivityLogs() {
         {/* Header */}
         <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
-              <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
+            <div className="app-icon-chip flex-shrink-0">
+              <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-slate-900" />
             </div>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">سجل النشاطات</h1>
@@ -1055,14 +1056,14 @@ export default function ActivityLogs() {
             )}
             <button
               onClick={loadLogs}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-xs"
+              className="app-button-secondary text-xs"
             >
               <RefreshCw className="w-3 sm:w-4 h-3 sm:h-4" />
               <span className="hidden sm:inline">تحديث</span>
             </button>
             <button
               onClick={exportToExcel}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-xs"
+              className="app-button-primary text-xs"
             >
               <Download className="w-3 sm:w-4 h-3 sm:h-4" />
               <span className="hidden sm:inline">Excel</span>

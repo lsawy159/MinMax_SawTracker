@@ -1,11 +1,26 @@
 import { useState, useEffect, useRef } from 'react'
-import { Employee, Company, Project, CustomField, supabase } from '@/lib/supabase'
+import { Employee, Company, Project, CustomField, ObligationType, supabase } from '@/lib/supabase'
 import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
+import {
+  useCreateEmployeeObligationPlan,
+  useEmployeeObligations,
+  useUpdateObligationLinePayment,
+} from '@/hooks/useEmployeeObligations'
+import {
+  HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
+  TRANSFER_STATUS_OPTIONS,
+  buildEmployeeBusinessAdditionalFields,
+  getEmployeeBusinessFields,
+} from '@/utils/employeeBusinessFields'
+import {
+  getPayrollObligationBucketFromType,
+  getPayrollObligationBucketLabel,
+} from '@/utils/payrollObligationBuckets'
 
 // Helper: توحيد معالجة التواريخ - الميلادي هو المصدر الأساسي
 const toValidDate = (value: string | Date | null | undefined): Date | null => {
@@ -26,6 +41,27 @@ const calculateDaysRemaining = (date: string | Date | null | undefined): number 
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 }
 
+const formatMoney = (value: number): string => {
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+const buildInstallmentAmounts = (totalAmount: number, installmentCount: number): number[] => {
+  const totalHalalas = Math.round(totalAmount * 100)
+  const baseAmount = Math.floor(totalHalalas / installmentCount)
+  let remainder = totalHalalas % installmentCount
+
+  return Array.from({ length: installmentCount }, () => {
+    const nextAmount = baseAmount + (remainder > 0 ? 1 : 0)
+    if (remainder > 0) {
+      remainder -= 1
+    }
+    return nextAmount / 100
+  })
+}
+
 interface EmployeeCardProps {
   employee: Employee & { company: Company }
   onClose: () => void
@@ -38,6 +74,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const currentMonth = new Date().toISOString().slice(0, 7)
   
   // Define form data type with precise field types
   type EmployeeFormData = {
@@ -129,6 +166,25 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
+  const [showObligationForm, setShowObligationForm] = useState(false)
+  const [editingObligationLineId, setEditingObligationLineId] = useState<string | null>(null)
+  const [obligationPaymentForm, setObligationPaymentForm] = useState({
+    amount_paid: 0,
+    notes: '',
+  })
+  const [obligationForm, setObligationForm] = useState<{
+    obligation_type: ObligationType
+    total_amount: number
+    start_month: string
+    installment_count: number
+    notes: string
+  }>({
+    obligation_type: 'advance',
+    total_amount: employee.salary || 0,
+    start_month: currentMonth,
+    installment_count: 1,
+    notes: '',
+  })
 
   useEffect(() => {
     void loadCustomFields()
@@ -154,24 +210,24 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        // التحقق من أن المستخدم لا يكتب في حقل إدخال
         const target = e.target as HTMLElement
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
           return
         }
-        // إغلاق مودال إنشاء المشروع أولاً إذا كان مفتوحاً
         if (showCreateProjectModal) {
           setShowCreateProjectModal(false)
           setNewProjectName('')
           return
         }
-        // إغلاق الكارت
+        if (isEditMode) {
+          return
+        }
         onClose()
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose, showCreateProjectModal])
+  }, [isEditMode, onClose, showCreateProjectModal])
 
   // تحديث نص البحث عند تغيير الشركة المختارة
   useEffect(() => {
@@ -465,7 +521,13 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
       const actualUpdateData: Record<string, unknown> = {}
       const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
 
-
+      const normalizedAdditionalFields = buildEmployeeBusinessAdditionalFields(formData.additional_fields, {
+        ...getEmployeeBusinessFields({
+          additional_fields: formData.additional_fields,
+          hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+        }),
+        hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+      })
 
       // فحص كل حقل للتأكد من تغييره فقط
       fieldsToCheck.forEach(field => {
@@ -499,6 +561,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
           }
         }
       })
+
+      const baselineAdditionalFields = (baselineData.additional_fields ?? {}) as Record<string, unknown>
+      if (JSON.stringify(baselineAdditionalFields) !== JSON.stringify(normalizedAdditionalFields)) {
+        actualUpdateData.additional_fields = normalizedAdditionalFields
+        changes.additional_fields = {
+          old_value: baselineAdditionalFields,
+          new_value: normalizedAdditionalFields,
+        }
+      }
 
       // إذا لم تكن هناك أي تغييرات، لا تحفظ شيء
       if (Object.keys(actualUpdateData).length === 0) {
@@ -590,19 +661,176 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const contractDays = calculateDaysRemaining(employee?.contract_expiry)
   const hiredWorkerContractDays = calculateDaysRemaining(employee?.hired_worker_contract_expiry)
   const healthInsuranceDays = calculateDaysRemaining(employee?.health_insurance_expiry)
+  const employeeBusinessFields = getEmployeeBusinessFields({
+    additional_fields: formData.additional_fields,
+    hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+  })
+  const {
+    data: obligationPlans = [],
+    isLoading: isLoadingObligations,
+    isError: hasObligationsError,
+  } = useEmployeeObligations(employee.id)
+
+  const activeObligationPlans = obligationPlans.filter(
+    (plan) => plan.status === 'active' || plan.status === 'draft'
+  )
+  const allObligationLines = activeObligationPlans
+    .flatMap((plan) =>
+      plan.lines.map((line) => ({
+        ...line,
+        title: plan.title,
+        currency_code: plan.currency_code,
+        obligation_type: plan.obligation_type,
+      }))
+    )
+    .sort((left, right) => left.due_month.localeCompare(right.due_month))
+  const openObligationLines = allObligationLines.filter(
+    (line) => line.line_status === 'unpaid' || line.line_status === 'partial'
+  )
+  const recentObligationLines = [...allObligationLines]
+    .sort((left, right) => right.due_month.localeCompare(left.due_month))
+    .slice(0, 5)
+
+  const remainingObligationAmount = openObligationLines.reduce(
+    (total, line) => total + Math.max(line.amount_due - line.amount_paid, 0),
+    0
+  )
+  const paidObligationAmount = allObligationLines.reduce(
+    (total, line) => total + Number(line.amount_paid || 0),
+    0
+  )
+  const obligationBucketSummary = activeObligationPlans.reduce(
+    (totals, plan) => {
+      const bucket = getPayrollObligationBucketFromType(plan.obligation_type)
+      const totalAmount = plan.lines.reduce((sum, line) => sum + Number(line.amount_due || 0), 0)
+      const paidAmount = plan.lines.reduce((sum, line) => sum + Number(line.amount_paid || 0), 0)
+
+      totals[bucket].total += totalAmount
+      totals[bucket].paid += paidAmount
+      totals[bucket].remaining += Math.max(totalAmount - paidAmount, 0)
+      return totals
+    },
+    {
+      transfer_renewal: { total: 0, paid: 0, remaining: 0 },
+      penalty: { total: 0, paid: 0, remaining: 0 },
+      advance: { total: 0, paid: 0, remaining: 0 },
+      other: { total: 0, paid: 0, remaining: 0 },
+    }
+  )
+  const installmentPreview = buildInstallmentAmounts(
+    Math.max(obligationForm.total_amount || 0, 0),
+    Math.max(obligationForm.installment_count || 1, 1)
+  )
+  const createEmployeeObligationPlan = useCreateEmployeeObligationPlan()
+  const updateObligationLinePayment = useUpdateObligationLinePayment()
+
+  const handleCreateObligationPlan = async () => {
+    const totalAmount = Number(obligationForm.total_amount)
+    const installmentCount = Number(obligationForm.installment_count)
+
+    if (!obligationForm.start_month) {
+      toast.error('يرجى اختيار شهر البداية')
+      return
+    }
+
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+      toast.error('يرجى إدخال مبلغ صحيح أكبر من صفر')
+      return
+    }
+
+    if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > 12) {
+      toast.error('عدد الأقساط يجب أن يكون بين 1 و 12')
+      return
+    }
+
+    try {
+      await createEmployeeObligationPlan.mutateAsync({
+        employee_id: employee.id,
+        obligation_type: obligationForm.obligation_type,
+        total_amount: totalAmount,
+        start_month: `${obligationForm.start_month}-01`,
+        installment_amounts: buildInstallmentAmounts(totalAmount, installmentCount),
+        notes: obligationForm.notes.trim() || null,
+        status: 'active',
+      })
+
+      toast.success('تم إنشاء خطة الالتزام بنجاح')
+      setShowObligationForm(false)
+      setObligationForm({
+        obligation_type: 'advance',
+        total_amount: employee.salary || 0,
+        start_month: currentMonth,
+        installment_count: 1,
+        notes: '',
+      })
+    } catch (error) {
+      logger.error('Error creating obligation plan:', error)
+      const message = error instanceof Error ? error.message : 'فشل إنشاء خطة الالتزام'
+      toast.error(message)
+    }
+  }
+
+  const startEditingObligationLine = (lineId: string, amountPaid: number, notes?: string | null) => {
+    setEditingObligationLineId(lineId)
+    setObligationPaymentForm({
+      amount_paid: amountPaid,
+      notes: notes || '',
+    })
+  }
+
+  const handleSaveObligationPayment = async (lineId: string, amountDue: number) => {
+    const amountPaid = Number(obligationPaymentForm.amount_paid)
+
+    if (!Number.isFinite(amountPaid) || amountPaid < 0) {
+      toast.error('قيمة المدفوع يجب أن تكون صفراً أو أكبر')
+      return
+    }
+
+    if (amountPaid > amountDue) {
+      toast.error('قيمة المدفوع لا يمكن أن تتجاوز قيمة القسط')
+      return
+    }
+
+    try {
+      await updateObligationLinePayment.mutateAsync({
+        lineId,
+        employeeId: employee.id,
+        amount_paid: amountPaid,
+        notes: obligationPaymentForm.notes.trim() || null,
+      })
+
+      toast.success('تم تحديث سداد القسط بنجاح')
+      setEditingObligationLineId(null)
+      setObligationPaymentForm({ amount_paid: 0, notes: '' })
+    } catch (error) {
+      logger.error('Error updating obligation payment:', error)
+      const message = error instanceof Error ? error.message : 'فشل تحديث السداد'
+      toast.error(message)
+    }
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      onClick={() => {
+        if (!isEditMode) {
+          onClose()
+        }
+      }}
+    >
+      <div
+        className="app-modal-surface relative isolate max-w-4xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className={`sticky top-0 text-white p-6 flex justify-between items-center ${
+        <div className={`sticky top-0 z-30 flex items-center justify-between border-b border-white/10 p-6 text-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.7)] ${
           isEditMode 
-            ? 'bg-gradient-to-r from-orange-600 to-orange-700' 
-            : 'bg-gradient-to-r from-blue-600 to-blue-700'
+            ? 'bg-gradient-to-l from-amber-600 to-orange-500' 
+            : 'bg-gradient-to-l from-slate-950 via-slate-900 to-slate-800'
         }`}>
           <div>
             <h2 className="text-2xl font-bold">{employee.name}</h2>
-            <p className={`mt-1 ${isEditMode ? 'text-orange-100' : 'text-blue-100'}`}>
+            <p className={`mt-1 ${isEditMode ? 'text-orange-100' : 'text-slate-300'}`}>
               {employee.profession} - {employee?.company?.name ?? 'غير محدد'}
             </p>
             {isEditMode && (
@@ -615,7 +843,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
             {isEditMode ? (
               <button
                 onClick={handleCancel}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
+                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-medium text-slate-900 transition hover:bg-slate-100"
               >
                 <RotateCcw className="w-4 h-4" />
                 إلغاء التعديل
@@ -624,7 +852,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
               canEdit('employees') && (
                 <button
                   onClick={handleEdit}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
+                  className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-medium text-slate-900 transition hover:bg-slate-100"
                 >
                   <FileText className="w-4 h-4" />
                   تعديل
@@ -633,7 +861,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
             )}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
+              className="rounded-xl p-2 transition hover:bg-white/15"
             >
               <X className="w-6 h-6" />
             </button>
@@ -720,25 +948,17 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <div className="flex">
+        <div className="border-b border-gray-200 p-3">
+          <div className="app-toggle-shell w-full">
             <button
               onClick={() => setActiveTab('basic')}
-              className={`flex-1 px-6 py-3 font-medium transition ${
-                activeTab === 'basic'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`app-toggle-button flex-1 ${activeTab === 'basic' ? 'app-toggle-button-active' : ''}`}
             >
               البيانات الأساسية
             </button>
             <button
               onClick={() => setActiveTab('custom')}
-              className={`flex-1 px-6 py-3 font-medium transition ${
-                activeTab === 'custom'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`app-toggle-button flex-1 ${activeTab === 'custom' ? 'app-toggle-button-active' : ''}`}
             >
               الحقول الإضافية ({customFields.length})
             </button>
@@ -748,35 +968,32 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         {/* Content */}
         <div className="p-6">
           {activeTab === 'basic' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 1. الاسم */}
-              <div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 1. الاسم */}
+                <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
                 <input
                   type="text"
                   value={formData.name ?? ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
-              {/* 2. المهنة */}
+              {/* 2. مهنة الإقامة */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Briefcase className="w-4 h-4" />
-                  المهنة
+                  مهنة الإقامة
                 </label>
                 <input
                   type="text"
                   value={formData.profession ?? ''}
                   onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -791,9 +1008,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.nationality ?? ''}
                   onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -808,9 +1023,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.residence_number || ''}
                   onChange={(e) => setFormData({ ...formData, residence_number: parseInt(e.target.value) || 0 })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 font-mono ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -822,13 +1035,26 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.passport_number ?? ''}
                   onChange={(e) => setFormData({ ...formData, passport_number: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
-              {/* 6. رقم الهاتف */}
+              {/* 6. تاريخ الميلاد */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  تاريخ الميلاد
+                </label>
+                <input
+                  type="date"
+                  value={formData.birth_date || ''}
+                  onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                  disabled={!isEditMode}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                />
+              </div>
+
+              {/* 7. رقم الهاتف */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Phone className="w-4 h-4" />
@@ -839,13 +1065,11 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.phone || ''}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
-              {/* 7. الحساب البنكي */}
+              {/* 8. الحساب البنكي */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
@@ -856,13 +1080,32 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.bank_account || ''}
                   onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
-              {/* 8. الراتب */}
+              {/* 9. اسم البنك */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  اسم البنك
+                </label>
+                <input
+                  type="text"
+                  value={employeeBusinessFields.bank_name}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    additional_fields: {
+                      ...formData.additional_fields,
+                      bank_name: e.target.value,
+                    },
+                  })}
+                  disabled={!isEditMode}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                />
+              </div>
+
+              {/* 10. الراتب */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
@@ -873,14 +1116,77 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.salary || 0}
                   onChange={(e) => setFormData({ ...formData, salary: Number(e.target.value) })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                   placeholder="الراتب الشهري"
                 />
               </div>
 
-              {/* 9. المشروع */}
+              {/* 11. الشركة أو المؤسسة */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  الشركة أو المؤسسة
+                </label>
+                <div className="relative" ref={companyDropdownRef}>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={companySearchQuery}
+                      onChange={(e) => {
+                        setCompanySearchQuery(e.target.value)
+                        setIsCompanyDropdownOpen(true)
+                      }}
+                      onFocus={() => {
+                        if (isEditMode) {
+                          setIsCompanyDropdownOpen(true)
+                        }
+                      }}
+                      placeholder="ابحث بالاسم أو الرقم الموحد..."
+                      disabled={!isEditMode}
+                      className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <Search className="w-5 h-5 text-gray-400" />
+                    </div>
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isCompanyDropdownOpen && isEditMode && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      {filteredCompanies.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                          {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
+                        </div>
+                      ) : (
+                        filteredCompanies.map(company => (
+                          <button
+                            key={company.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, company_id: company.id })
+                              setCompanySearchQuery(`${company.name} (${company.unified_number})`)
+                              setIsCompanyDropdownOpen(false)
+                            }}
+                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                          >
+                            {company.name} ({company.unified_number})
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 12. المشروع */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FolderKanban className="w-4 h-4" />
@@ -902,9 +1208,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                       }}
                       placeholder="ابحث عن مشروع..."
                       disabled={!isEditMode}
-                      className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
+                      className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                     />
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <Search className="w-5 h-5 text-gray-400" />
@@ -1048,88 +1352,49 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </div>
               </div>
 
-              {/* 10. الشركة أو المؤسسة */}
+              {/* 13. حالة النقل */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  الشركة أو المؤسسة
-                </label>
-                <div className="relative" ref={companyDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={companySearchQuery}
-                      onChange={(e) => {
-                        setCompanySearchQuery(e.target.value)
-                        setIsCompanyDropdownOpen(true)
-                      }}
-                      onFocus={() => {
-                        if (isEditMode) {
-                          setIsCompanyDropdownOpen(true)
-                        }
-                      }}
-                      placeholder="ابحث بالاسم أو الرقم الموحد..."
-                      disabled={!isEditMode}
-                      className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
-                    />
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <Search className="w-5 h-5 text-gray-400" />
-                    </div>
-                    {isEditMode && (
-                      <button
-                        type="button"
-                        onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronDown className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {isCompanyDropdownOpen && isEditMode && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                      {filteredCompanies.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
-                        </div>
-                      ) : (
-                        filteredCompanies.map(company => (
-                          <button
-                            key={company.id}
-                            type="button"
-                            onClick={() => {
-                              setFormData({ ...formData, company_id: company.id })
-                              setCompanySearchQuery(`${company.name} (${company.unified_number})`)
-                              setIsCompanyDropdownOpen(false)
-                            }}
-                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
-                          >
-                            {company.name} ({company.unified_number})
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">حالة النقل</label>
+                <select
+                  value={String(employeeBusinessFields.transfer_status)}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    additional_fields: {
+                      ...formData.additional_fields,
+                      transfer_status: e.target.value,
+                    },
+                  })}
+                  disabled={!isEditMode || Boolean(formData.hired_worker_contract_expiry)}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                >
+                  {TRANSFER_STATUS_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {formData.hired_worker_contract_expiry && (
+                  <p className="mt-2 text-xs text-amber-700">يتم ضبط حالة النقل تلقائياً إلى منقول عند وجود تاريخ انتهاء عقد أجير.</p>
+                )}
               </div>
 
-              {/* 11. تاريخ الميلاد */}
+              {/* 14. حالة عقد أجير */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  تاريخ الميلاد
-                </label>
-                <input
-                  type="date"
-                  value={formData.birth_date || ''}
-                  onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">حالة عقد أجير</label>
+                <select
+                  value={String(employeeBusinessFields.hired_worker_contract_status)}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    additional_fields: {
+                      ...formData.additional_fields,
+                      hired_worker_contract_status: e.target.value,
+                    },
+                  })}
+                  disabled={!isEditMode || Boolean(formData.hired_worker_contract_expiry)}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                >
+                  {HIRED_WORKER_CONTRACT_STATUS_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
               </div>
 
               {/* 12. تاريخ الالتحاق */}
@@ -1143,9 +1408,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.joining_date || ''}
                   onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -1157,9 +1420,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.residence_expiry || ''}
                   onChange={(e) => setFormData({ ...formData, residence_expiry: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -1171,9 +1432,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.contract_expiry || ''}
                   onChange={(e) => setFormData({ ...formData, contract_expiry: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -1185,11 +1444,19 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <input
                   type="date"
                   value={formData.hired_worker_contract_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, hired_worker_contract_expiry: e.target.value })}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    hired_worker_contract_expiry: e.target.value,
+                    additional_fields: e.target.value
+                      ? {
+                          ...formData.additional_fields,
+                          transfer_status: 'منقول',
+                          hired_worker_contract_status: 'أجير',
+                        }
+                      : formData.additional_fields,
+                  })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -1203,9 +1470,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.health_insurance_expiry || ''}
                   onChange={(e) => setFormData({ ...formData, health_insurance_expiry: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -1220,9 +1485,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                   value={formData.residence_image_url || ''}
                   onChange={(e) => setFormData({ ...formData, residence_image_url: e.target.value })}
                   disabled={!isEditMode}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                  }`}
+                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                   placeholder="أدخل رابط صورة الإقامة"
                 />
                 {formData.residence_image_url && !isEditMode && (
@@ -1237,8 +1500,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 )}
               </div>
 
-              {/* 18. الملاحظات */}
-              <div className="md:col-span-2">
+                {/* 18. الملاحظات */}
+                <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   الملاحظات
@@ -1248,12 +1511,332 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="app-input min-h-[100px] resize-none"
                     placeholder="أدخل أي ملاحظات إضافية عن الموظف..."
                   />
                 ) : (
                   <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 min-h-[100px] whitespace-pre-wrap">
                     {formData.notes || 'لا توجد ملاحظات'}
+                  </div>
+                )}
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">الالتزامات المالية</h3>
+                    <p className="text-sm text-gray-600">ملخص الأقساط والخطط المفتوحة لهذا الموظف</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-gray-500">
+                      {isLoadingObligations
+                        ? 'جاري التحميل...'
+                        : `${activeObligationPlans.length} خطة نشطة / مسودة`}
+                    </div>
+                    {canEdit('employees') && (
+                      <button
+                        type="button"
+                        onClick={() => setShowObligationForm((current) => !current)}
+                        className="app-button-primary px-4 py-2 text-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        {showObligationForm ? 'إخفاء النموذج' : 'إضافة التزام'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {hasObligationsError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    تعذر تحميل بيانات الالتزامات المالية حالياً.
+                  </div>
+                ) : isLoadingObligations ? (
+                  <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
+                    جاري تحميل الالتزامات المالية...
+                  </div>
+                ) : obligationPlans.length === 0 ? (
+                  <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
+                    لا توجد التزامات مالية مسجلة لهذا الموظف بعد.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                      <div className="rounded-lg bg-white border border-gray-200 p-4">
+                        <div className="text-sm text-gray-500 mb-1">إجمالي الخطط</div>
+                        <div className="text-2xl font-bold text-gray-900">{obligationPlans.length}</div>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-200 p-4">
+                        <div className="text-sm text-gray-500 mb-1">الأقساط المفتوحة</div>
+                        <div className="text-2xl font-bold text-orange-600">{openObligationLines.length}</div>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-200 p-4">
+                        <div className="text-sm text-gray-500 mb-1">ما تم سداده</div>
+                        <div className="text-2xl font-bold text-green-600">{formatMoney(paidObligationAmount)} SAR</div>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-200 p-4">
+                        <div className="text-sm text-gray-500 mb-1">المتبقي للسداد</div>
+                        <div className="text-2xl font-bold text-blue-700">{formatMoney(remainingObligationAmount)} SAR</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                      {Object.entries(obligationBucketSummary).map(([bucketKey, bucketValue]) => (
+                        <div key={bucketKey} className="rounded-lg border border-gray-200 bg-white p-4">
+                          <div className="text-sm text-gray-500 mb-1">{getPayrollObligationBucketLabel(bucketKey as 'transfer_renewal' | 'penalty' | 'advance' | 'other')}</div>
+                          <div className="text-lg font-bold text-slate-900">{formatMoney(bucketValue.remaining)} SAR</div>
+                          <div className="mt-1 text-xs text-gray-500">المدفوع: {formatMoney(bucketValue.paid)} / الإجمالي: {formatMoney(bucketValue.total)}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      {recentObligationLines.map((line, index) => (
+                        <div
+                          key={line.id}
+                          className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="font-medium text-gray-900">{line.title}</div>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                                  line.line_status === 'paid'
+                                    ? 'bg-green-100 text-green-700'
+                                    : line.line_status === 'partial'
+                                      ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {line.line_status === 'paid' ? 'مسدد' : line.line_status === 'partial' ? 'مسدد جزئيًا' : 'مفتوح'}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                القسط رقم {index + 1} • موعد السداد{' '}
+                                <HijriDateDisplay date={line.due_month}>
+                                  {formatDateShortWithHijri(line.due_month)}
+                                </HijriDateDisplay>
+                              </div>
+                            </div>
+                            <div className="text-sm md:text-left">
+                              <div className="font-semibold text-gray-900">
+                                {formatMoney(Math.max(line.amount_due - line.amount_paid, 0))} {line.currency_code}
+                              </div>
+                              <div className="text-gray-500">
+                                مدفوع: {formatMoney(line.amount_paid)} من {formatMoney(line.amount_due)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {canEdit('employees') && (
+                            <div className="flex flex-col gap-3 border-t border-gray-100 pt-3">
+                              {editingObligationLineId === line.id ? (
+                                <>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        إجمالي المدفوع حتى الآن
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={line.amount_due}
+                                        step="0.01"
+                                        value={obligationPaymentForm.amount_paid}
+                                        onChange={(e) => setObligationPaymentForm({
+                                          ...obligationPaymentForm,
+                                          amount_paid: Number(e.target.value) || 0,
+                                        })}
+                                        className="app-input"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        ملاحظات السداد
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={obligationPaymentForm.notes}
+                                        onChange={(e) => setObligationPaymentForm({
+                                          ...obligationPaymentForm,
+                                          notes: e.target.value,
+                                        })}
+                                        className="app-input"
+                                        placeholder="اختياري"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingObligationLineId(null)}
+                                      className="app-button-secondary px-3 py-2 text-sm"
+                                      disabled={updateObligationLinePayment.isPending}
+                                    >
+                                      إلغاء
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveObligationPayment(line.id, line.amount_due)}
+                                      className="app-button-primary px-3 py-2 text-sm"
+                                      disabled={updateObligationLinePayment.isPending}
+                                    >
+                                      {updateObligationLinePayment.isPending ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          جاري الحفظ...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="w-4 h-4" />
+                                          حفظ السداد
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditingObligationLine(line.id, line.amount_paid, line.notes)}
+                                    className="app-button-secondary px-3 py-2 text-sm"
+                                  >
+                                    <CreditCard className="w-4 h-4" />
+                                    تسجيل سداد
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {allObligationLines.length > 5 && (
+                        <div className="text-sm text-gray-500 text-center pt-1">
+                          يوجد {allObligationLines.length - 5} قسط إضافي غير ظاهر في هذا الملخص.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {showObligationForm && canEdit('employees') && (
+                  <div className="mt-5 rounded-xl border border-blue-200 bg-white p-5 space-y-4">
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">إنشاء خطة التزام جديدة</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        ماذا فعلنا: سننشئ رأس الالتزام وكل الأقساط مرة واحدة.
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        لماذا فعلنا ذلك: حتى لا تفشل القيود المحاسبية في قاعدة البيانات.
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        ما النتيجة المتوقعة: ستظهر الخطة مباشرة في الملخص بالأعلى بعد الحفظ.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">نوع الالتزام</label>
+                        <select
+                          value={obligationForm.obligation_type}
+                          onChange={(e) => setObligationForm({ ...obligationForm, obligation_type: e.target.value as 'transfer' | 'renewal' | 'penalty' | 'advance' | 'other' })}
+                          className="app-input"
+                        >
+                          <option value="advance">سلفة</option>
+                          <option value="transfer">نقل كفالة</option>
+                          <option value="renewal">تجديد</option>
+                          <option value="penalty">غرامة</option>
+                          <option value="other">أخرى</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">إجمالي المبلغ</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={obligationForm.total_amount}
+                          onChange={(e) => setObligationForm({ ...obligationForm, total_amount: Number(e.target.value) || 0 })}
+                          className="app-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">شهر البداية</label>
+                        <input
+                          type="month"
+                          value={obligationForm.start_month}
+                          onChange={(e) => setObligationForm({ ...obligationForm, start_month: e.target.value })}
+                          className="app-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">عدد الأقساط</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="12"
+                          value={obligationForm.installment_count}
+                          onChange={(e) => setObligationForm({ ...obligationForm, installment_count: Number(e.target.value) || 1 })}
+                          className="app-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">قيمة القسط التقريبية</label>
+                        <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                          {installmentPreview.length > 0 ? `${formatMoney(installmentPreview[0])} SAR` : 'غير متاح'}
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                        <textarea
+                          rows={3}
+                          value={obligationForm.notes}
+                          onChange={(e) => setObligationForm({ ...obligationForm, notes: e.target.value })}
+                          className="app-input min-h-[96px] resize-none"
+                          placeholder="أي توضيح إضافي عن هذا الالتزام"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                      سيتم إنشاء {obligationForm.installment_count} قسط. أول 3 أقساط: {installmentPreview.slice(0, 3).map((value) => formatMoney(value)).join(' ، ')}
+                      {installmentPreview.length > 3 ? ' ...' : ''}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowObligationForm(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                        disabled={createEmployeeObligationPlan.isPending}
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateObligationPlan}
+                        disabled={createEmployeeObligationPlan.isPending}
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition disabled:opacity-60"
+                      >
+                        {createEmployeeObligationPlan.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            جاري الإنشاء...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            حفظ الخطة
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1287,9 +1870,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                             }
                           })}
                           disabled={!isEditMode}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                            isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                          }`}
+                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
                       )}
 
@@ -1305,9 +1886,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                           })}
                           rows={3}
                           disabled={!isEditMode}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                            isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                          }`}
+                          className={`app-input min-h-[92px] resize-none ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
                       )}
 
@@ -1323,9 +1902,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                             }
                           })}
                           disabled={!isEditMode}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                            isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                          }`}
+                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
                       )}
 
@@ -1341,9 +1918,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                             }
                           })}
                           disabled={!isEditMode}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                            isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                          }`}
+                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
                       )}
 
@@ -1358,9 +1933,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                             }
                           })}
                           disabled={!isEditMode}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                            isEditMode ? 'border-gray-300 bg-white' : 'border-gray-200 bg-gray-50 text-gray-600'
-                          }`}
+                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         >
                           <option value="">اختر...</option>
                           {Array.isArray(field.field_options.options) && field.field_options.options.map((option: string | { label: string; value: string | number }) => {
@@ -1386,7 +1959,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                               }
                             })}
                             disabled={!isEditMode}
-                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                            className="h-5 w-5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
                           />
                           <span className="text-sm text-gray-600">نعم</span>
                         </div>
@@ -1400,7 +1973,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between">
+        <div className="app-modal-footer flex justify-between p-6">
           {canDelete('employees') && onDelete && (
             <button
               onClick={handleDelete}
@@ -1414,7 +1987,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="app-button-secondary px-6 py-2"
               disabled={saving}
             >
               إغلاق
@@ -1423,7 +1996,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
               <div className="flex gap-3">
                 <button
                   onClick={handleCancel}
-                  className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+                  className="app-button-secondary px-6 py-2"
                   disabled={saving}
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -1432,7 +2005,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-blue-400"
+                  className="app-button-primary px-6 py-2"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}

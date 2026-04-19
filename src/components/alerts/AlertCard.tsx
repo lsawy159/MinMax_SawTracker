@@ -1,4 +1,5 @@
-import { AlertTriangle, Calendar, Building2, Clock, ExternalLink, Zap, Home, Eye, Mail } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Calendar, Building2, Clock, ExternalLink, Zap, Home, Eye, Mail, Loader2 } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
@@ -106,6 +107,17 @@ export function AlertCard({
   }
 
   const priorityConfig = getPriorityConfig(alert.priority)
+  const [actionLoading, setActionLoading] = useState<'view' | 'read' | 'unread' | null>(null)
+  const isBusy = actionLoading !== null
+
+  const runAction = async (action: 'view' | 'read' | 'unread', callback: () => void | Promise<void>) => {
+    try {
+      setActionLoading(action)
+      await Promise.resolve(callback())
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   return (
     <div className={`
@@ -166,11 +178,16 @@ export function AlertCard({
         {/* ← [MODIFIED] زر تحديد كمقروء - يظهر فقط إذا لم يكن مقروءاً */}
         {!isRead && (
           <button
-            onClick={() => onMarkAsRead(alert.id)}
-            className="text-gray-400 hover:text-blue-600 transition-colors"
+            onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
+            disabled={isBusy}
+            className="text-gray-400 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
             title="تحديد كمقروء"
           >
-            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+            {actionLoading === 'read' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <div className="h-3 w-3 rounded-full bg-primary"></div>
+            )}
           </button>
         )}
       </div>
@@ -208,27 +225,30 @@ export function AlertCard({
       </div>
 
       {/* Action Required */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-        <h4 className="text-sm font-medium text-blue-900 mb-1">الإجراء المطلوب:</h4>
-        <p className="text-sm text-blue-700">{alert.action_required}</p>
+      <div className="app-info-block mb-4">
+        <h4 className="mb-1 text-sm font-semibold text-slate-900">الإجراء المطلوب:</h4>
+        <p className="text-sm text-slate-700">{alert.action_required}</p>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={() => onShowCompanyCard(alert.company.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          onClick={() => void runAction('view', () => onShowCompanyCard(alert.company.id))}
+          disabled={isBusy}
+          className="app-button-primary"
         >
-          <ExternalLink className="h-4 w-4" />
+          {actionLoading === 'view' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
           عرض المؤسسة
         </button>
 
         {/* ← [MODIFIED] زر "تم الاطلاع" - يظهر فقط إذا لم يكن مقروءاً */}
         {!isRead && (
           <button
-            onClick={() => onMarkAsRead(alert.id)}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+            onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
+            disabled={isBusy}
+            className="app-button-secondary"
           >
+            {actionLoading === 'read' && <Loader2 className="h-4 w-4 animate-spin" />}
             تم الاطلاع
           </button>
         )}
@@ -236,10 +256,11 @@ export function AlertCard({
         {/* ← [NEW] زر "إعادة إلى غير مقروء" - يظهر إذا كان مقروءاً */}
         {isRead && onMarkAsUnread && (
           <button
-            onClick={() => onMarkAsUnread(alert.id)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+            onClick={() => void runAction('unread', () => onMarkAsUnread(alert.id))}
+            disabled={isBusy}
+            className="app-button-secondary"
           >
-            <Mail className="h-4 w-4" />
+            {actionLoading === 'unread' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             إعادة إلى غير مقروء
           </button>
         )}

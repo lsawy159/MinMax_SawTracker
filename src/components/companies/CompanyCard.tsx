@@ -59,7 +59,7 @@ function CompanyCard({
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border-2 ${getBorderColor()} p-3 sm:p-4 hover:shadow-md transition relative`}>
+    <div className={`app-panel border-2 ${getBorderColor()} relative p-3 sm:p-4 transition hover:-translate-y-0.5 hover:shadow-lg`}>
       {/* مؤشر حالة الأماكن الشاغرة */}
       {(getAvailableSlotsTextColor && getAvailableSlotsText) && (
         <div 
@@ -69,8 +69,8 @@ function CompanyCard({
       )}
       
       <div className="flex items-start justify-between mb-3">
-        <div className="bg-blue-100 p-2 rounded-lg">
-          <Building2 className="w-5 h-5 text-blue-600" />
+        <div className="app-icon-chip">
+          <Building2 className="h-5 w-5" />
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-gray-600">
@@ -83,7 +83,7 @@ function CompanyCard({
             {canEdit('companies') && (
               <button
                 onClick={() => onEdit(company)}
-                className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                className="rounded-lg p-1 text-slate-700 transition hover:bg-primary/10"
                 title="تعديل المؤسسة"
                 data-testid={`edit-company-btn-${company.id}`}
               >
@@ -104,31 +104,31 @@ function CompanyCard({
         </div>
       </div>
       
-      <h3 className="text-base font-bold text-gray-900 mb-2">{company.name}</h3>
+      <h3 className="mb-2 text-lg font-bold text-slate-900">{company.name}</h3>
       
-      <div className="space-y-1.5 text-xs mb-3">
-        <div className="flex justify-between">
-          <span className="text-gray-600">الرقم الموحد:</span>
-          <span className="font-mono text-gray-900">{company.unified_number}</span>
+      <div className="app-card-meta">
+        <div className="app-card-meta-row">
+          <span className="app-card-meta-label">الرقم الموحد:</span>
+          <span className="app-card-meta-value font-mono">{company.unified_number}</span>
         </div>
         {company.social_insurance_number && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">رقم اشتراك التأمينات الاجتماعية:</span>
-            <span className="font-mono text-gray-900">{company.social_insurance_number}</span>
+          <div className="app-card-meta-row">
+            <span className="app-card-meta-label">رقم اشتراك التأمينات الاجتماعية:</span>
+            <span className="app-card-meta-value font-mono">{company.social_insurance_number}</span>
           </div>
         )}
         {company.labor_subscription_number && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">رقم اشتراك قوى:</span>
-            <span className="font-mono text-gray-900">{company.labor_subscription_number}</span>
+          <div className="app-card-meta-row">
+            <span className="app-card-meta-label">رقم اشتراك قوى:</span>
+            <span className="app-card-meta-value font-mono">{company.labor_subscription_number}</span>
           </div>
         )}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">الأماكن الشاغرة:</span>
+        <div className="app-card-meta-row">
+          <span className="app-card-meta-label">الأماكن الشاغرة:</span>
           <div className="flex items-center gap-2">
             {getAvailableSlotsColor && getAvailableSlotsText && (
               <>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAvailableSlotsColor(company.available_slots || 0)}`}>
+                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getAvailableSlotsColor(company.available_slots || 0)}`}>
                   {company.available_slots || 0} / {company.max_employees || 4}
                 </span>
                 {(company.available_slots || 0) > 0 && (
@@ -141,15 +141,15 @@ function CompanyCard({
           </div>
         </div>
         {company.exemptions && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">الاعفاءات:</span>
-            <span className="font-medium text-gray-900">{company.exemptions}</span>
+          <div className="app-card-meta-row">
+            <span className="app-card-meta-label">الاعفاءات:</span>
+            <span className="app-card-meta-value">{company.exemptions}</span>
           </div>
         )}
         {company.company_type && (
-          <div className="flex justify-between">
-            <span className="text-gray-600">نوع المؤسسة:</span>
-            <span className="font-medium text-gray-900">{company.company_type}</span>
+          <div className="app-card-meta-row">
+            <span className="app-card-meta-label">نوع المؤسسة:</span>
+            <span className="app-card-meta-value">{company.company_type}</span>
           </div>
         )}
       </div>
@@ -159,9 +159,9 @@ function CompanyCard({
         <div className="grid grid-cols-2 gap-2">
           {/* حالة السجل التجاري */}
           <div>
-            <div className="text-xs font-medium text-gray-600 mb-1">حالة السجل التجاري</div>
+            <div className="mb-1 text-[13px] font-semibold text-gray-600">حالة السجل التجاري</div>
             {company.commercial_registration_expiry ? (
-              <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
+              <div className={`rounded-lg border-2 px-2 py-1.5 text-sm font-medium ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
                   <div className="text-sm">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
@@ -220,12 +220,12 @@ function CompanyCard({
       </div>
 
       {/* الملاحظات */}
-      <div className="pt-3 border-t border-gray-200">
-        <div className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-2">
+      <div className="border-t border-border pt-3">
+        <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600">
           <FileText className="w-3.5 h-3.5" />
           الملاحظات
         </div>
-        <div className="px-3 py-2 rounded-lg text-xs bg-gray-50 text-gray-700 border border-gray-200 whitespace-pre-wrap min-h-[50px]">
+        <div className="min-h-[50px] whitespace-pre-wrap rounded-xl border border-border bg-slate-50 px-3 py-2 text-xs text-slate-700">
           {company.notes || 'لا توجد ملاحظات'}
         </div>
       </div>

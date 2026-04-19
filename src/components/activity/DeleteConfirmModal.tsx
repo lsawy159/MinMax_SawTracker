@@ -28,8 +28,8 @@ export function DeleteConfirmModal(props: DeleteConfirmModalProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="app-modal-surface max-w-lg w-full">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-red-100 rounded-full">
@@ -132,14 +132,14 @@ export function DeleteConfirmModal(props: DeleteConfirmModalProps) {
                 onClose()
               }}
               disabled={deleting}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+              className="app-button-secondary flex-1 justify-center"
             >
               إلغاء
             </button>
             <button
               onClick={confirmDelete}
               disabled={deleting}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="app-button-danger flex-1 justify-center"
             >
               {deleting ? (
                 <>

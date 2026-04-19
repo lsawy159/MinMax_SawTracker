@@ -4,8 +4,8 @@ import { BarChart3, RefreshCw, Download, AlertTriangle, Calendar, TrendingUp, Bu
 import { supabase } from '@/lib/supabase'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { loadXlsx } from '@/utils/lazyXlsx'
 import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
 
@@ -19,239 +19,138 @@ interface SubscriptionItem {
 
 type TabType = 'companies' | 'employees'
 
+const COMPANY_TYPES = ['سجل تجاري', 'تأمينات اجتماعية', 'اشتراك مقيم', 'اشتراك قوى']
+const EMPLOYEE_TYPES = ['إقامة', 'عقد', 'عقد أجير', 'تأمين صحي']
+
 export default function Reports() {
   const { canExport } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('companies')
-  // Statistics for active tab
   const [totalExpired, setTotalExpired] = useState(0)
   const [totalUrgent, setTotalUrgent] = useState(0)
   const [totalMedium, setTotalMedium] = useState(0)
   const [totalValid, setTotalValid] = useState(0)
-  
-  // Subscription items for table
   const [subscriptionItems, setSubscriptionItems] = useState<SubscriptionItem[]>([])
   const [filteredItems, setFilteredItems] = useState<SubscriptionItem[]>([])
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [statusThresholds, setStatusThresholds] = useState<typeof DEFAULT_STATUS_THRESHOLDS>(DEFAULT_STATUS_THRESHOLDS)
-  
 
-  // Load status thresholds on mount
   useEffect(() => {
     const loadThresholds = async () => {
       const thresholds = await getStatusThresholds()
       setStatusThresholds(thresholds)
     }
+
     loadThresholds()
   }, [])
 
-  // Helper function to categorize expiry
-  const categorizeExpiry = useCallback((expiryDate: string | null | undefined): 'expired' | 'urgent' | 'medium' | 'valid' | null => {
+  const categorizeExpiry = useCallback((expiryDate: string | null | undefined): SubscriptionItem['status'] | null => {
     if (!expiryDate) return null
+
     const days = differenceInDays(new Date(expiryDate), new Date())
     if (days < 0) return 'expired'
-    
+
     const urgentDays = statusThresholds.commercial_reg_urgent_days || 7
     const highDays = statusThresholds.commercial_reg_high_days || 15
     const mediumDays = statusThresholds.commercial_reg_medium_days || 30
-    
-    if (days <= urgentDays) return 'urgent' // طارئ
-    if (days <= highDays) return 'urgent' // عاجل
-    if (days <= mediumDays) return 'medium' // متوسط
+
+    if (days <= urgentDays) return 'urgent'
+    if (days <= highDays) return 'urgent'
+    if (days <= mediumDays) return 'medium'
     return 'valid'
   }, [statusThresholds])
 
-
-  // Calculate statistics for active tab
   const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
-    // Filter items by tab
-    const tabItems = items.filter(item => {
-      if (tab === 'companies') {
-        return ['سجل تجاري', 'تأمينات اجتماعية', 'اشتراك مقيم', 'اشتراك قوى'].includes(item.type)
-      } else {
-        return ['إقامة', 'عقد', 'عقد أجير', 'تأمين صحي'].includes(item.type)
-      }
-    })
+    const types = tab === 'companies' ? COMPANY_TYPES : EMPLOYEE_TYPES
+    const tabItems = items.filter((item) => types.includes(item.type))
 
-    // Calculate statistics
-    const stats = {
-      expired: tabItems.filter(item => item.status === 'expired').length,
-      urgent: tabItems.filter(item => item.status === 'urgent').length,
-      medium: tabItems.filter(item => item.status === 'medium').length,
-      valid: tabItems.filter(item => item.status === 'valid').length
-    }
-
-    setTotalExpired(stats.expired)
-    setTotalUrgent(stats.urgent)
-    setTotalMedium(stats.medium)
-    setTotalValid(stats.valid)
+    setTotalExpired(tabItems.filter((item) => item.status === 'expired').length)
+    setTotalUrgent(tabItems.filter((item) => item.status === 'urgent').length)
+    setTotalMedium(tabItems.filter((item) => item.status === 'medium').length)
+    setTotalValid(tabItems.filter((item) => item.status === 'valid').length)
   }, [])
 
-  // Load data
   const loadData = useCallback(async () => {
     setLoading(true)
+
     try {
-      // Load employees
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('employees')
-        .select('*')
-        .order('name')
+      const [{ data: employeesData, error: employeesError }, { data: companiesData, error: companiesError }] = await Promise.all([
+        supabase.from('employees').select('*').order('name'),
+        supabase.from('companies').select('*').order('name'),
+      ])
 
       if (employeesError) throw employeesError
-
-      // Load companies
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('companies')
-        .select('*')
-        .order('name')
-
       if (companiesError) throw companiesError
 
-      // Employees and companies data are used directly, not stored in state
-
-      // Calculate statistics and build subscription items
-      if (employeesData && companiesData) {
-        // Build subscription items list
-        const items: SubscriptionItem[] = []
-
-        // ========== EMPLOYEE ITEMS ==========
-        // Employee residences
-        employeesData.forEach(emp => {
-          if (emp.residence_expiry) {
-            const days = differenceInDays(new Date(emp.residence_expiry), new Date())
-            const status = categorizeExpiry(emp.residence_expiry)
-            if (status) {
-              items.push({
-                type: 'إقامة',
-                name: emp.name,
-                expiryDate: emp.residence_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Employee contracts
-        employeesData.forEach(emp => {
-          if (emp.contract_expiry) {
-            const days = differenceInDays(new Date(emp.contract_expiry), new Date())
-            const status = categorizeExpiry(emp.contract_expiry)
-            if (status) {
-              items.push({
-                type: 'عقد',
-                name: emp.name,
-                expiryDate: emp.contract_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Hired worker contracts (عقد أجير)
-        employeesData.forEach(emp => {
-          if (emp.hired_worker_contract_expiry) {
-            const days = differenceInDays(new Date(emp.hired_worker_contract_expiry), new Date())
-            const status = categorizeExpiry(emp.hired_worker_contract_expiry)
-            if (status) {
-              items.push({
-                type: 'عقد أجير',
-                name: emp.name,
-                expiryDate: emp.hired_worker_contract_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Employee health insurance (التأمين الصحي)
-        employeesData.forEach(emp => {
-          if (emp.health_insurance_expiry) {
-            const days = differenceInDays(new Date(emp.health_insurance_expiry), new Date())
-            const status = categorizeExpiry(emp.health_insurance_expiry)
-            if (status) {
-              items.push({
-                type: 'تأمين صحي',
-                name: emp.name,
-                expiryDate: emp.health_insurance_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // ========== COMPANY ITEMS ==========
-        // Commercial registration (السجل التجاري)
-        companiesData.forEach(comp => {
-          if (comp.commercial_registration_expiry) {
-            const days = differenceInDays(new Date(comp.commercial_registration_expiry), new Date())
-            const status = categorizeExpiry(comp.commercial_registration_expiry)
-            if (status) {
-              items.push({
-                type: 'سجل تجاري',
-                name: comp.name,
-                expiryDate: comp.commercial_registration_expiry,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Resident subscription (اشتراك مقيم)
-        companiesData.forEach(comp => {
-          if (comp.ending_subscription_moqeem_date) {
-            const days = differenceInDays(new Date(comp.ending_subscription_moqeem_date), new Date())
-            const status = categorizeExpiry(comp.ending_subscription_moqeem_date)
-            if (status) {
-              items.push({
-                type: 'اشتراك مقيم',
-                name: comp.name,
-                expiryDate: comp.ending_subscription_moqeem_date,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Power subscription (اشتراك قوى)
-        companiesData.forEach(comp => {
-          if (comp.ending_subscription_power_date) {
-            const days = differenceInDays(new Date(comp.ending_subscription_power_date), new Date())
-            const status = categorizeExpiry(comp.ending_subscription_power_date)
-            if (status) {
-              items.push({
-                type: 'اشتراك قوى',
-                name: comp.name,
-                expiryDate: comp.ending_subscription_power_date,
-                daysRemaining: days,
-                status
-              })
-            }
-          }
-        })
-
-        // Sort by priority (expired first, then urgent, then medium, then valid)
-        items.sort((a, b) => {
-          const priorityOrder = { expired: 0, urgent: 1, medium: 2, valid: 3 }
-          if (priorityOrder[a.status] !== priorityOrder[b.status]) {
-            return priorityOrder[a.status] - priorityOrder[b.status]
-          }
-          return a.daysRemaining - b.daysRemaining
-        })
-
-        setSubscriptionItems(items)
-        
-        // Calculate statistics for current tab
-        updateTabStatistics(items, activeTab)
+      if (!employeesData || !companiesData) {
+        setSubscriptionItems([])
+        return
       }
+
+      const items: SubscriptionItem[] = []
+
+      employeesData.forEach((employee) => {
+        const employeeFields = [
+          { type: 'إقامة', expiry: employee.residence_expiry },
+          { type: 'عقد', expiry: employee.contract_expiry },
+          { type: 'عقد أجير', expiry: employee.hired_worker_contract_expiry },
+          { type: 'تأمين صحي', expiry: employee.health_insurance_expiry },
+        ]
+
+        employeeFields.forEach((field) => {
+          if (!field.expiry) return
+
+          const status = categorizeExpiry(field.expiry)
+          if (!status) return
+
+          items.push({
+            type: field.type,
+            name: employee.name,
+            expiryDate: field.expiry,
+            daysRemaining: differenceInDays(new Date(field.expiry), new Date()),
+            status,
+          })
+        })
+      })
+
+      companiesData.forEach((company) => {
+        const companyFields = [
+          { type: 'سجل تجاري', expiry: company.commercial_registration_expiry },
+          { type: 'اشتراك مقيم', expiry: company.ending_subscription_moqeem_date },
+          { type: 'اشتراك قوى', expiry: company.ending_subscription_power_date },
+          { type: 'تأمينات اجتماعية', expiry: company.social_insurance_expiry },
+        ]
+
+        companyFields.forEach((field) => {
+          if (!field.expiry) return
+
+          const status = categorizeExpiry(field.expiry)
+          if (!status) return
+
+          items.push({
+            type: field.type,
+            name: company.name,
+            expiryDate: field.expiry,
+            daysRemaining: differenceInDays(new Date(field.expiry), new Date()),
+            status,
+          })
+        })
+      })
+
+      items.sort((left, right) => {
+        const priority = { expired: 0, urgent: 1, medium: 2, valid: 3 }
+        if (priority[left.status] !== priority[right.status]) {
+          return priority[left.status] - priority[right.status]
+        }
+
+        return left.daysRemaining - right.daysRemaining
+      })
+
+      setSubscriptionItems(items)
+      updateTabStatistics(items, activeTab)
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.error('Error loading reports data:', error)
       toast.error('حدث خطأ أثناء تحميل البيانات')
     } finally {
       setLoading(false)
@@ -262,63 +161,65 @@ export default function Reports() {
     loadData()
   }, [loadData])
 
-  // Update statistics when tab changes
   useEffect(() => {
     if (subscriptionItems.length > 0) {
       updateTabStatistics(subscriptionItems, activeTab)
+    } else {
+      setTotalExpired(0)
+      setTotalUrgent(0)
+      setTotalMedium(0)
+      setTotalValid(0)
     }
   }, [activeTab, subscriptionItems, updateTabStatistics])
 
-  // Reset filter type when tab changes
   useEffect(() => {
     setFilterType('all')
   }, [activeTab])
 
-  // Filter items by tab and filters
   useEffect(() => {
-    // First filter by tab
-    let filtered = subscriptionItems.filter(item => {
-      if (activeTab === 'companies') {
-        return ['سجل تجاري', 'تأمينات اجتماعية', 'اشتراك مقيم', 'اشتراك قوى'].includes(item.type)
-      } else {
-        return ['إقامة', 'عقد', 'عقد أجير', 'تأمين صحي'].includes(item.type)
-      }
-    })
+    const allowedTypes = activeTab === 'companies' ? COMPANY_TYPES : EMPLOYEE_TYPES
 
-    // Then filter by type if not 'all'
+    let nextItems = subscriptionItems.filter((item) => allowedTypes.includes(item.type))
+
     if (filterType !== 'all') {
-      filtered = filtered.filter(item => item.type === filterType)
+      nextItems = nextItems.filter((item) => item.type === filterType)
     }
 
-    // Then filter by status if not 'all'
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(item => item.status === filterStatus)
+      nextItems = nextItems.filter((item) => item.status === filterStatus)
     }
 
-    setFilteredItems(filtered)
-  }, [filterType, filterStatus, subscriptionItems, activeTab])
+    setFilteredItems(nextItems)
+  }, [activeTab, filterStatus, filterType, subscriptionItems])
 
-  // Export to Excel
-  const exportToExcel = () => {
-    const data = filteredItems.map(item => ({
+  const exportExpiryReportToExcel = async () => {
+    const XLSX = await loadXlsx()
+    const rows = filteredItems.map((item) => ({
       'النوع': item.type,
       'الاسم': item.name,
       'تاريخ الانتهاء': item.expiryDate,
       'الأيام المتبقية': item.daysRemaining,
-      'الحالة': item.status === 'expired' ? 'منتهي' : item.status === 'urgent' ? (item.daysRemaining <= (statusThresholds.commercial_reg_urgent_days || 7) ? 'طارئ' : 'عاجل') : item.status === 'medium' ? 'متوسط' : 'ساري'
+      'الحالة': item.status === 'expired'
+        ? 'منتهي'
+        : item.status === 'urgent'
+          ? (item.daysRemaining <= (statusThresholds.commercial_reg_urgent_days || 7) ? 'طارئ' : 'عاجل')
+          : item.status === 'medium'
+            ? 'متوسط'
+            : 'ساري',
     }))
 
-    const worksheet = XLSX.utils.json_to_sheet(data)
+    const worksheet = XLSX.utils.json_to_sheet(rows)
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, activeTab === 'companies' ? 'المؤسسات' : 'الموظفين')
+    const sheetName = activeTab === 'companies' ? 'المؤسسات' : 'الموظفين'
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const tabName = activeTab === 'companies' ? 'المؤسسات' : 'الموظفين'
-    saveAs(blob, `تقرير_${tabName}_${new Date().toISOString().split('T')[0]}.xlsx`)
+    saveAs(blob, `تقرير_${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`)
     toast.success('تم تصدير البيانات بنجاح')
   }
 
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadgeColor = (status: SubscriptionItem['status']) => {
     switch (status) {
       case 'expired':
         return 'bg-red-100 text-red-800 border-red-200'
@@ -333,7 +234,7 @@ export default function Reports() {
     }
   }
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: SubscriptionItem['status']) => {
     switch (status) {
       case 'expired':
         return 'منتهي'
@@ -363,24 +264,25 @@ export default function Reports() {
     )
   }
 
+  const typeOptions = activeTab === 'companies' ? COMPANY_TYPES : EMPLOYEE_TYPES
+
   return (
     <Layout>
       <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">التقارير</h1>
           <div className="flex gap-2">
             <button
               onClick={loadData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+              className="app-button-primary"
             >
               <RefreshCw className="w-4 h-4" />
               تحديث البيانات
             </button>
             {canExport('reports') && (
               <button
-                onClick={exportToExcel}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
+                onClick={exportExpiryReportToExcel}
+                className="app-button-success"
               >
                 <Download className="w-4 h-4" />
                 تصدير Excel
@@ -389,15 +291,14 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
+        <div className="app-panel mb-6">
+          <div className="flex border-b border-border">
             <button
               onClick={() => setActiveTab('companies')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
+              className={`app-tab-button ${
                 activeTab === 'companies'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <Building2 className="w-5 h-5" />
@@ -405,10 +306,10 @@ export default function Reports() {
             </button>
             <button
               onClick={() => setActiveTab('employees')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
+              className={`app-tab-button ${
                 activeTab === 'employees'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <Users className="w-5 h-5" />
@@ -417,11 +318,8 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Report Content */}
-        <div>
-          {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">إجمالي المنتهية</p>
@@ -432,8 +330,7 @@ export default function Reports() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">عاجل</p>
@@ -444,8 +341,7 @@ export default function Reports() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">متوسط</p>
@@ -456,8 +352,7 @@ export default function Reports() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">ساري</p>
@@ -470,36 +365,23 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Detailed Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
+        <div className="app-panel p-6">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold">الاشتراكات القريبة من الانتهاء</h2>
             <div className="flex gap-2">
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(event) => setFilterType(event.target.value)}
                 className="px-3 py-2 border rounded-md text-sm"
               >
                 <option value="all">جميع الأنواع</option>
-                {activeTab === 'companies' ? (
-                  <>
-                    <option value="سجل تجاري">سجل تجاري</option>
-                    <option value="تأمينات اجتماعية">تأمينات اجتماعية</option>
-                    <option value="اشتراك مقيم">اشتراك مقيم</option>
-                    <option value="اشتراك قوى">اشتراك قوى</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="إقامة">إقامة</option>
-                    <option value="عقد">عقد</option>
-                    <option value="عقد أجير">عقد أجير</option>
-                    <option value="تأمين صحي">تأمين صحي</option>
-                  </>
-                )}
+                {typeOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
               </select>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(event) => setFilterStatus(event.target.value)}
                 className="px-3 py-2 border rounded-md text-sm"
               >
                 <option value="all">جميع الحالات</option>
@@ -511,7 +393,6 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Desktop View - Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
@@ -526,13 +407,11 @@ export default function Reports() {
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                      لا توجد بيانات
-                    </td>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">لا توجد بيانات</td>
                   </tr>
                 ) : (
                   filteredItems.map((item, index) => (
-                    <tr key={index} className="border-t hover:bg-gray-50">
+                    <tr key={`${item.type}-${item.name}-${index}`} className="border-t hover:bg-gray-50">
                       <td className="px-4 py-2">{item.type}</td>
                       <td className="px-4 py-2 font-medium">{item.name}</td>
                       <td className="px-4 py-2">{item.expiryDate}</td>
@@ -553,13 +432,12 @@ export default function Reports() {
             </table>
           </div>
 
-          {/* Mobile View - Cards */}
           <div className="md:hidden space-y-3 p-4">
             {filteredItems.length === 0 ? (
               <div className="text-center text-gray-500 py-8">لا توجد بيانات</div>
             ) : (
               filteredItems.map((item, index) => (
-                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                <div key={`${item.type}-${item.name}-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <p className="text-xs text-gray-600 font-semibold">النوع</p>
@@ -569,12 +447,10 @@ export default function Reports() {
                       {getStatusText(item.status)}
                     </span>
                   </div>
-                  
                   <div>
                     <p className="text-xs text-gray-600 font-semibold">الاسم/المؤسسة</p>
                     <p className="text-sm font-medium text-gray-900">{item.name}</p>
                   </div>
-                  
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-gray-600 font-semibold">تاريخ الانتهاء</p>
@@ -591,7 +467,6 @@ export default function Reports() {
               ))
             )}
           </div>
-        </div>
         </div>
       </div>
     </Layout>

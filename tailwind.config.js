@@ -16,6 +16,11 @@ module.exports = {
 			},
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				display: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -23,15 +28,15 @@ module.exports = {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#2B5D3A',
+					DEFAULT: '#FECE14',
 					foreground: 'hsl(var(--primary-foreground))',
 				},
 				secondary: {
-					DEFAULT: '#4A90E2',
+					DEFAULT: '#000000',
 					foreground: 'hsl(var(--secondary-foreground))',
 				},
 				accent: {
-					DEFAULT: '#F5A623',
+					DEFAULT: 'hsl(var(--accent))',
 					foreground: 'hsl(var(--accent-foreground))',
 				},
 				destructive: {
@@ -50,6 +55,13 @@ module.exports = {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))',
 				},
+				success: '#16A34A',
+				warning: '#D97706',
+				danger: '#DC2626',
+			},
+			boxShadow: {
+				soft: '0 10px 30px -15px rgba(17, 24, 39, 0.15)',
+				focus: '0 0 0 4px rgba(254, 206, 20, 0.35)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -33,7 +33,7 @@ export function LogsFilters(props: LogsFiltersProps) {
   } = props
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+    <div className="app-filter-surface mb-6 p-3 sm:p-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">الفلاتر</h3>

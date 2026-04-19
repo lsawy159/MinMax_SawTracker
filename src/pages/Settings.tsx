@@ -260,9 +260,9 @@ export default function Settings() {
   return (
     <Layout>
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-blue-600" />
+        <div className="mb-6 flex items-center gap-3">
+          <div className="app-icon-chip">
+            <SettingsIcon className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">الإعدادات</h1>
@@ -271,17 +271,17 @@ export default function Settings() {
         </div>
 
         {/* علامات التبويب */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
+        <div className="app-panel mb-6">
+          <div className="flex border-b border-border">
             <button
               onClick={() => {
                 setActiveTab('companies');
-                loadCompanyLimits(); // تحميل البيانات عند الضغط
+                loadCompanyLimits();
               }}
-              className={`flex items-center gap-3 px-6 py-4 font-medium transition ${
+              className={`app-tab-button border-b-2 ${
                 activeTab === 'companies'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               <Building2 className="w-5 h-5" />
@@ -290,12 +290,12 @@ export default function Settings() {
             <button
               onClick={() => {
                 setActiveTab('nationalities');
-                loadNationalities(); // تحميل البيانات عند الضغط
+                loadNationalities();
               }}
-              className={`flex items-center gap-3 px-6 py-4 font-medium transition ${
+              className={`app-tab-button border-b-2 ${
                 activeTab === 'nationalities'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               <Globe className="w-5 h-5" />
@@ -306,13 +306,13 @@ export default function Settings() {
 
         {/* محتوى التبويبات */}
         {activeTab === 'companies' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+          <div className="app-panel overflow-hidden">
+            <div className="border-b border-primary/20 bg-primary/10 p-6 text-slate-900">
               <div className="flex items-center gap-3">
-                <Building2 className="w-6 h-6" />
+                <Building2 className="w-6 h-6 text-slate-900" />
                 <div>
                   <h2 className="text-xl font-bold">حدود الموظفين للشركات</h2>
-                  <p className="text-sm text-blue-100 mt-1">
+                  <p className="mt-1 text-sm text-slate-700">
                     حدد الحد الأقصى لعدد الموظفين المسموح به لكل شركة
                   </p>
                 </div>
@@ -321,7 +321,7 @@ export default function Settings() {
 
             {loading ? (
               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
               </div>
             ) : (
               <>
@@ -469,7 +469,7 @@ export default function Settings() {
                     </div>
                     <div className="bg-white rounded-lg p-4 border border-gray-200">
                       <div className="text-sm text-gray-600 mb-1">إجمالي الموظفين</div>
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-slate-900">
                         {companyLimits.reduce((sum, l) => sum + l.current_employees, 0)}
                       </div>
                     </div>
@@ -492,7 +492,7 @@ export default function Settings() {
                       <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="app-button-primary disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Save className="w-5 h-5" />
                         {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
@@ -564,7 +564,7 @@ export default function Settings() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => openNationalityModal(nationality)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                className="rounded-lg p-2 text-slate-700 transition hover:bg-primary/10 hover:text-slate-900"
                                 title="تعديل"
                               >
                                 <Edit2 className="w-4 h-4" />

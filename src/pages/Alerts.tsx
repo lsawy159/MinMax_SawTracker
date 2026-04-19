@@ -20,6 +20,7 @@ import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import { usePermissions } from '@/utils/permissions'
+import { useCardColumns } from '@/hooks/useUiPreferences'
 
 interface AlertsProps {
   initialTab?: 'companies' | 'employees' | 'all'
@@ -49,6 +50,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company }) | null>(null)
   const navigate = useNavigate()
+  const { cardColumns, setCardColumns, gridClass: alertGridClass } = useCardColumns('alerts-card-columns', 3)
 
   useEffect(() => {
     fetchData()
@@ -464,7 +466,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     return (
       <Layout>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </Layout>
     )
@@ -474,67 +476,67 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     <Layout>
       <div className="p-6">
         {/* إحصائيات سريعة (تبقى كما هي، تعرض غير المقروء فقط لهذه الصفحة) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">إجمالي التنبيهات</p>
-                <p className="text-3xl font-bold text-gray-900">{totalAlerts}</p>
+                <p className="text-sm text-slate-500 mb-1">إجمالي التنبيهات</p>
+                <p className="text-3xl font-bold text-slate-900">{totalAlerts}</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Bell className="w-8 h-8 text-blue-600" />
+              <div className="app-icon-chip">
+                <Bell className="w-7 h-7" />
               </div>
             </div>
           </div>
 
-          <div className="bg-red-50 rounded-xl shadow-sm border border-red-200 p-6">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-soft">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-red-700 mb-1">تنبيهات طارئة وعاجلة</p>
                 <p className="text-3xl font-bold text-red-600">{totalUrgentAlerts}</p>
               </div>
-              <div className="bg-red-100 p-3 rounded-lg">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+              <div className="rounded-xl bg-red-100 p-3 text-red-600">
+                <AlertTriangle className="w-7 h-7" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">تنبيهات المؤسسات</p>
-                <p className="text-3xl font-bold text-blue-600">{companyAlertsStats.total}</p>
+                <p className="text-sm text-slate-500 mb-1">تنبيهات المؤسسات</p>
+                <p className="text-3xl font-bold text-slate-900">{companyAlertsStats.total}</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Building2 className="w-8 h-8 text-blue-600" />
+              <div className="app-icon-chip">
+                <Building2 className="w-7 h-7" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">تنبيهات الموظفين</p>
-                <p className="text-3xl font-bold text-purple-600">{employeeAlertsStats.total}</p>
+                <p className="text-sm text-slate-500 mb-1">تنبيهات الموظفين</p>
+                <p className="text-3xl font-bold text-slate-900">{employeeAlertsStats.total}</p>
               </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Users className="w-8 h-8 text-purple-600" />
+              <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+                <Users className="w-7 h-7" />
               </div>
             </div>
           </div>
         </div>
 
         {/* فلاتر البحث والتنقل */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="app-panel mb-8 p-6">
           {/* تبويبات (المؤسسات / الموظفين) */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="app-toggle-shell w-fit">
               <button
                 onClick={() => setActiveTab('all')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
                   activeTab === 'all' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'app-tab-button-active' 
+                    : 'app-tab-button'
                 }`}
               >
                 الكل ({totalAlerts})
@@ -543,8 +545,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 onClick={() => setActiveTab('companies')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
                   activeTab === 'companies' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'app-tab-button-active' 
+                    : 'app-tab-button'
                 }`}
               >
                 المؤسسات ({companyAlertsStats.total})
@@ -553,8 +555,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 onClick={() => setActiveTab('employees')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
                   activeTab === 'employees' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'app-tab-button-active' 
+                    : 'app-tab-button'
                 }`}
               >
                 الموظفين ({employeeAlertsStats.total})
@@ -571,7 +573,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   placeholder="البحث في التنبيهات..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent"
                 />
               </div>
 
@@ -579,7 +581,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               <select
                 value={activeFilter}
                 onChange={(e) => setActiveFilter(e.target.value as 'all' | 'urgent' | 'high' | 'medium' | 'low')}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent"
               >
                 <option value="all">جميع الأولويات (طارئ وعاجل)</option>
                 <option value="urgent">طارئ</option>
@@ -587,19 +589,37 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 <option value="medium">متوسط</option>
                 <option value="low">طفيف</option>
               </select>
+
+              <div className="app-toggle-shell">
+                <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
+                {[
+                  { value: 2, label: 'كبير' },
+                  { value: 3, label: 'متوسط' },
+                  { value: 4, label: 'صغير' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
+                    className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* [NEW] تبويبات (جديد / مقروء) */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex border border-gray-300 rounded-lg p-1 w-full sm:w-auto">
+              <div className="app-toggle-shell w-full sm:w-auto">
                 <button
                   onClick={() => setReadFilterTab('new')}
                   className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
                     readFilterTab === 'new' 
-                      ? 'bg-blue-600 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'app-toggle-button-active' 
+                      : 'app-toggle-button'
                   }`}
                 >
                   تنبيهات جديدة ({totalAlerts})
@@ -608,8 +628,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   onClick={() => setReadFilterTab('read')}
                   className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
                     readFilterTab === 'read' 
-                      ? 'bg-white text-blue-600 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'app-toggle-button-active' 
+                      : 'app-toggle-button'
                   }`}
                 >
                   مقروءة ({totalReadAlerts})
@@ -620,7 +640,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               {readFilterTab === 'new' && totalAlerts > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                  className="app-button-success"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                   <span>تم الاطلاع على الكل</span>
@@ -631,7 +651,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               {readFilterTab === 'read' && totalReadAlerts > 0 && (
                 <button
                   onClick={handleMarkAllAsUnread}
-                  className="flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                  className="app-button-secondary"
                 >
                   <Mail className="w-5 h-5" />
                   <span>إعادة الكل إلى غير مقروء</span>
@@ -647,13 +667,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           {(activeTab === 'all' || activeTab === 'companies') && filteredCompanyAlerts.length > 0 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <Building2 className="w-6 h-6 text-blue-600" />
+                <Building2 className="w-6 h-6 text-primary" />
                 <h2 className="text-xl font-bold text-gray-900">تنبيهات المؤسسات</h2>
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                <span className="rounded-full bg-primary/15 px-2 py-1 text-sm font-medium text-slate-900">
                   {filteredCompanyAlerts.length}
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className={alertGridClass}>
                 {filteredCompanyAlerts.map((alert) => (
                   <AlertCard
                     key={alert.id}
@@ -672,13 +692,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           {(activeTab === 'all' || activeTab === 'employees') && filteredEmployeeAlerts.length > 0 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-purple-600" />
+                <Users className="w-6 h-6 text-slate-700" />
                 <h2 className="text-xl font-bold text-gray-900">تنبيهات الموظفين</h2>
-                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm font-medium">
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700">
                   {filteredEmployeeAlerts.length}
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className={alertGridClass}>
                 {filteredEmployeeAlerts.map((alert) => (
                   <EmployeeAlertCard
                     key={alert.id}
@@ -719,10 +739,10 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       {/* كارت المؤسسة المنبثق (لا تغيير) */}
       {showCompanyCard && selectedCompany && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="app-modal-header flex items-center justify-between px-6 py-4">
               <h2 className="text-xl font-bold text-gray-900">تفاصيل المؤسسة</h2>
               <button
                 onClick={() => setShowCompanyCard(false)}

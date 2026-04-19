@@ -37,8 +37,14 @@ export default tseslint.config(
   // قواعد خاصة لـ Edge Functions و Scripts - تعطيل no-console
   {
     files: ['supabase/functions/**/*.ts', 'scripts/**/*.ts', 'src/scripts/**/*.ts'],
+    languageOptions: {
+      // Deno-specific globals for Edge Functions
+      globals: globals.deno ? { ...globals.deno } : {}
+    },
     rules: {
       'no-console': 'off', // Edge Functions و Scripts تحتاج console للتنقيح والمراقبة
+      '@typescript-eslint/no-explicit-any': 'off', // Deno APIs may require any
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
   // قواعد خاصة بملفات الاختبارات - السماح بـ console و متغيرات غير مستخدمة

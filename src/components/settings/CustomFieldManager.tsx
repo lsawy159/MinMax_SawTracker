@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, CustomField } from '@/lib/supabase'
-import { Plus, Edit2, Trash2, Save, X, AlertCircle } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 
@@ -21,6 +21,7 @@ interface FieldFormData {
 export default function CustomFieldManager() {
   const [fields, setFields] = useState<CustomField[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingField, setEditingField] = useState<CustomField | null>(null)
   const [formData, setFormData] = useState<FieldFormData>({
@@ -123,6 +124,7 @@ export default function CustomFieldManager() {
     }
 
     try {
+      setIsSaving(true)
       if (editingField) {
         // تحديث حقل موجود
         const { error } = await supabase
@@ -186,8 +188,8 @@ export default function CustomFieldManager() {
       toast.success(field.is_active ? 'تم إيقاف الحقل' : 'تم تفعيل الحقل')
       loadFields()
     } catch {
-      toast.error('فشل تحديث حالة الحقل')
-    }
+      toast.error('فشل تحديث حالة الحقل')    } finally {
+      setIsSaving(false)    }
   }
 
   const getFieldTypeLabel = (type: string) => {
@@ -208,7 +210,7 @@ export default function CustomFieldManager() {
   return (
     <div className="space-y-6">
       {/* Header with Add Button */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="app-panel p-6">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-gray-900">الحقول المخصصة</h2>
@@ -218,7 +220,7 @@ export default function CustomFieldManager() {
           </div>
           <button
             onClick={() => handleOpenForm()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="app-button-primary"
           >
             <Plus className="w-5 h-5" />
             إضافة حقل جديد
@@ -382,10 +384,10 @@ export default function CustomFieldManager() {
 
       {/* Add/Edit Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="app-modal-surface max-h-[90vh] w-full max-w-2xl overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
+            <div className="app-modal-header flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white">
               <h3 className="text-xl font-bold">
                 {editingField ? 'تعديل حقل مخصص' : 'إضافة حقل مخصص جديد'}
               </h3>
@@ -407,8 +409,8 @@ export default function CustomFieldManager() {
                 <select
                   value={formData.entity_type}
                   onChange={(e) => setFormData({ ...formData, entity_type: e.target.value as EntityType })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                  disabled={!!editingField}
+                  className="app-input"
+                  disabled={!!editingField || isSaving}
                 >
                   <option value="employee">موظف</option>
                   <option value="company">مؤسسة</option>
@@ -425,8 +427,8 @@ export default function CustomFieldManager() {
                   value={formData.field_name}
                   onChange={(e) => setFormData({ ...formData, field_name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                   placeholder="مثال: emergency_contact"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
-                  disabled={!!editingField}
+                  className="app-input font-mono"
+                  disabled={!!editingField || isSaving}
                 />
                 <p className="text-xs text-gray-500 mt-1">استخدم أحرف إنجليزية صغيرة وشرطة سفلية فقط</p>
               </div>
@@ -441,7 +443,8 @@ export default function CustomFieldManager() {
                   value={formData.field_label}
                   onChange={(e) => setFormData({ ...formData, field_label: e.target.value })}
                   placeholder="مثال: جهة الاتصال في حالات الطوارئ"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="app-input"
+                  disabled={isSaving}
                 />
               </div>
 
@@ -453,7 +456,7 @@ export default function CustomFieldManager() {
                 <select
                   value={formData.field_type}
                   onChange={(e) => setFormData({ ...formData, field_type: e.target.value as FieldType })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="app-input bg-white"
                 >
                   <option value="text">نص قصير</option>
                   <option value="textarea">نص طويل</option>
@@ -475,7 +478,7 @@ export default function CustomFieldManager() {
                     onChange={(e) => setSelectOptions(e.target.value)}
                     placeholder="اكتب كل خيار في سطر منفصل"
                     rows={5}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="app-input min-h-[120px] resize-none"
                   />
                   <p className="text-xs text-gray-500 mt-1">اكتب كل خيار في سطر جديد</p>
                 </div>
@@ -488,7 +491,7 @@ export default function CustomFieldManager() {
                     type="checkbox"
                     checked={formData.is_required}
                     onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
                   <span className="text-sm text-gray-700">حقل مطلوب</span>
                 </label>
@@ -498,7 +501,7 @@ export default function CustomFieldManager() {
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
                   <span className="text-sm text-gray-700">مفعّل</span>
                 </label>
@@ -506,19 +509,21 @@ export default function CustomFieldManager() {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-end gap-3">
+            <div className="app-modal-footer sticky bottom-0 flex justify-end gap-3 border-t border-gray-200 bg-white p-6">
               <button
                 onClick={handleCloseForm}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                disabled={isSaving}
+                className="app-button-secondary"
               >
                 إلغاء
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                disabled={isSaving}
+                className="app-button-primary"
               >
-                <Save className="w-4 h-4" />
-                {editingField ? 'تحديث' : 'إضافة'}
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {isSaving ? 'جارٍ الحفظ...' : editingField ? 'تحديث' : 'إضافة'}
               </button>
             </div>
           </div>

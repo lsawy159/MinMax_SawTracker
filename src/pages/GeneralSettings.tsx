@@ -492,7 +492,7 @@ export default function GeneralSettings() {
               checked={!!value}
               onChange={(e) => updateSetting(setting.setting_key, e.target.checked)}
               disabled={disabled}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:cursor-not-allowed"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
             />
             <span className="mr-2 text-sm text-gray-600">
               {value ? 'مفعل' : 'معطل'}
@@ -534,7 +534,7 @@ export default function GeneralSettings() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
         </div>
       </Layout>
     )
@@ -546,22 +546,20 @@ export default function GeneralSettings() {
     <Layout>
       <div className="p-3">
         {/* Header */}
-        <div className="mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-                <Settings className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">إعدادات النظام</h1>
-                <p className="text-xs text-gray-600 mt-0.5">إدارة إعدادات النظام والإعدادات العامة</p>
-              </div>
-            </div>
+        <div className="mb-3 flex items-center gap-2">
+          <div className="app-icon-chip p-2">
+            <Settings className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">إعدادات النظام</h1>
+            <p className="mt-0.5 text-xs text-gray-600">إدارة إعدادات النظام والإعدادات العامة</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 sticky top-3">
+            <div className="app-panel sticky top-3 p-2.5">
               <h3 className="font-semibold text-gray-900 mb-2 text-xs">فئات الإعدادات</h3>
               <nav className="space-y-1">
                 {settingsCategories.map(category => {
@@ -570,13 +568,13 @@ export default function GeneralSettings() {
                     <button
                       key={category.key}
                       onClick={() => setActiveTab(category.key as TabType)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 rounded text-right transition-all duration-200 text-xs ${
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-right text-xs transition-all duration-200 ${
                         activeTab === category.key
-                          ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500 shadow-sm'
+                          ? 'bg-primary/15 text-slate-900 shadow-soft ring-1 ring-primary/40'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 ${activeTab === category.key ? 'text-blue-600' : 'text-gray-500'}`} />
+                      <Icon className={`w-4 h-4 ${activeTab === category.key ? 'text-slate-900' : 'text-gray-500'}`} />
                       <span className="font-medium">{category.label}</span>
                     </button>
                   )
@@ -588,12 +586,12 @@ export default function GeneralSettings() {
           {/* Settings Content */}
           <div className="lg:col-span-3">
             {activeCategory && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="app-panel overflow-hidden">
                 {/* Tab Header */}
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <activeCategory.icon className="w-5 h-5 text-blue-600" />
+                      <activeCategory.icon className="w-5 h-5 text-slate-900" />
                       <div>
                         <h2 className="text-sm font-semibold text-gray-900">{activeCategory.label}</h2>
                         {activeCategory.settings && (
@@ -613,7 +611,7 @@ export default function GeneralSettings() {
                         <button
                           onClick={saveActiveTabSettings}
                           disabled={isSaving}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50 font-semibold"
+                          className="app-button-primary px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50"
                         >
                           <Save className="w-3.5 h-3.5" />
                           {isSaving ? 'جاري...' : 'حفظ هذا التبويب'}
@@ -661,10 +659,10 @@ export default function GeneralSettings() {
 
         {/* Quick Stats */}
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-2.5">
+          <div className="app-panel border-primary/30 bg-primary/10 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
-                <Settings className="w-4 h-4 text-white" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-slate-950 shadow-sm">
+                <Settings className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="font-bold text-xs text-gray-900">
@@ -687,9 +685,9 @@ export default function GeneralSettings() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm border border-purple-200 p-2.5">
+          <div className="app-panel border-slate-200 bg-slate-50 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 shadow-sm">
                 <Clock className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -717,11 +715,11 @@ export default function GeneralSettings() {
           icon="alert"
         >
           {getChangedSettings().length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-h-60 overflow-y-auto">
-              <p className="text-sm font-semibold text-blue-900 mb-3">الإعدادات التي ستتغير:</p>
+            <div className="app-info-block max-h-60 overflow-y-auto rounded-lg p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-900">الإعدادات التي ستتغير:</p>
               <div className="space-y-2">
                 {getChangedSettings().map(setting => (
-                  <div key={setting.setting_key} className="bg-white border border-blue-100 rounded p-3">
+                  <div key={setting.setting_key} className="rounded border border-primary/20 bg-white p-3">
                     <p className="text-sm font-medium text-gray-900">{setting.description}</p>
                     <div className="flex items-center justify-between mt-2 text-xs">
                       <div>

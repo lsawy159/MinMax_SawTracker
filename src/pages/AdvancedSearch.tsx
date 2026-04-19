@@ -4,8 +4,8 @@ import { Search, Filter, X, Save, Download, Star, Grid3X3, List, ChevronLeft, Ch
 import { supabase, Company as CompanyType, Employee as EmployeeType } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
-import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { loadXlsx } from '@/utils/lazyXlsx'
 import { useAuth } from '@/contexts/AuthContext'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import CompanyModal from '@/components/companies/CompanyModal'
@@ -900,7 +900,9 @@ export default function AdvancedSearch() {
     }
   }
 
-  const exportResults = () => {
+  const exportResults = async () => {
+    const XLSX = await loadXlsx()
+
     if (activeTab === 'employees') {
       const employeeData = filteredEmployees.map(emp => {
         const basicData = {
@@ -1079,7 +1081,7 @@ export default function AdvancedSearch() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">البحث المتقدم</h1>
             <p className="text-sm text-gray-600">
-              النتائج المطابقة: <span className="font-bold text-blue-600">{resultsCount}</span>
+              النتائج المطابقة: <span className="font-bold text-slate-900">{resultsCount}</span>
               {activeFiltersCount > 0 && (
                 <span className="mr-2 text-gray-500">
                   ({activeFiltersCount} فلتر نشط)
@@ -1090,7 +1092,7 @@ export default function AdvancedSearch() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowFiltersModal(true)}
-              className="relative px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+              className="app-button-primary relative"
             >
               <Filter className="w-4 h-4" />
               <span>الفلاتر</span>
@@ -1102,7 +1104,7 @@ export default function AdvancedSearch() {
             </button>
             <button
               onClick={saveSearch}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-2"
+              className="app-button-secondary"
             >
               <Save className="w-4 h-4" />
               <span>حفظ البحث</span>
@@ -1110,7 +1112,7 @@ export default function AdvancedSearch() {
             <button
               onClick={exportResults}
               disabled={resultsCount === 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="app-button-success disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>تصدير ({resultsCount})</span>
@@ -1119,17 +1121,17 @@ export default function AdvancedSearch() {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
+        <div className="app-panel mb-6">
+          <div className="flex border-b border-border">
             <button
               onClick={() => {
                 setActiveTab('employees')
                 setCurrentPage(1)
               }}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
+              className={`app-tab-button flex-1 border-b-2 ${
                 activeTab === 'employees'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               <Users className="w-5 h-5" />
@@ -1140,10 +1142,10 @@ export default function AdvancedSearch() {
                 setActiveTab('companies')
                 setCurrentPage(1)
               }}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
+              className={`app-tab-button flex-1 border-b-2 ${
                 activeTab === 'companies'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'app-tab-button-active'
+                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               <Building2 className="w-5 h-5" />
@@ -1153,7 +1155,7 @@ export default function AdvancedSearch() {
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="app-filter-surface mb-6 p-4">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -1171,7 +1173,7 @@ export default function AdvancedSearch() {
                 placeholder={activeTab === 'employees' 
                   ? "ابحث بالاسم، المهنة، الجنسية، رقم الجوال، أو أي حقل إضافي..."
                   : "ابحث باسم المؤسسة، الرقم الموحد، الرقم التأميني، أو أي حقل إضافي..."}
-                className="w-full pr-11 pl-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 py-2.5 pl-4 pr-11 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -1189,7 +1191,7 @@ export default function AdvancedSearch() {
                   </button>
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : 'text-gray-600 hover:bg-gray-100'}`}
                     title="عرض جدول"
                   >
                     <List className="w-4 h-4" />
@@ -1780,7 +1782,7 @@ export default function AdvancedSearch() {
                 </button>
                 <button
                   onClick={() => setShowFiltersModal(false)}
-                  className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg text-xs font-semibold"
+                  className="app-button-primary px-5 py-2 text-xs font-semibold"
                 >
                   تطبيق الفلاتر
                 </button>
@@ -1794,7 +1796,7 @@ export default function AdvancedSearch() {
           {/* Loading State */}
             {isLoading && (
               <div className="text-center py-8">
-                <div className="animate-spin w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                 <p className="mt-3 text-sm text-gray-600">جاري تحميل البيانات...</p>
               </div>
             )}
@@ -1972,7 +1974,7 @@ export default function AdvancedSearch() {
                           onClick={() => goToPage(pageNum)}
                           className={`px-2 py-1 border rounded-md text-xs ${
                             currentPage === pageNum 
-                              ? 'bg-blue-600 text-white border-blue-600' 
+                              ? 'border-primary bg-primary text-slate-950' 
                               : 'hover:bg-gray-50'
                           }`}
                         >

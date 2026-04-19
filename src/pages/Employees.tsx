@@ -14,6 +14,7 @@ import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
 import { getEmployeeNotificationThresholdsPublic, type EmployeeNotificationThresholds } from '@/utils/employeeAlerts'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
+import { useCardColumns } from '@/hooks/useUiPreferences'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -69,6 +70,7 @@ export default function Employees() {
   // حالة نوع العرض
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   const isMobileView = useIsMobileView()
+  const { cardColumns, setCardColumns, gridClass: employeeGridClass } = useCardColumns('employees-card-columns', 4)
 
   // حالة التعديل السريع - تم إزالتها
   
@@ -1070,58 +1072,53 @@ export default function Employees() {
               )}
             </p>
           </div>
-          <div className="flex gap-2">
-            {/* View Mode Toggle */}
-            {!isMobileView && (
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 border border-gray-300">
+          <div className="flex flex-wrap gap-2">
+            <div className="app-toggle-shell">
+              {!isMobileView && (
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
-                    viewMode === 'table'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : ''}`}
                   title="عرض الجدول"
                 >
                   <Table className="w-4 h-4" />
                   <span className="hidden sm:inline">جدول</span>
                 </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
-                    viewMode === 'grid'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="عرض الكروت"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden sm:inline">كروت</span>
-                </button>
+              )}
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`app-toggle-button ${viewMode === 'grid' ? 'app-toggle-button-active' : ''}`}
+                title="عرض الكروت"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden sm:inline">كروت</span>
+              </button>
+            </div>
+
+            {viewMode === 'grid' && (
+              <div className="app-toggle-shell">
+                <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
+                {[
+                  { value: 2, label: 'كبير' },
+                  { value: 3, label: 'متوسط' },
+                  { value: 4, label: 'صغير' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
+                    className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             )}
-            {isMobileView && (
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 border border-gray-300">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm ${
-                    viewMode === 'grid'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="عرض الكروت"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden sm:inline">كروت</span>
-                </button>
-              </div>
-            )}
-            
+
             {canCreate('employees') && (
               <>
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-2"
+                  className="app-button-primary"
                 >
                   <UserPlus className="w-4 h-4" />
                   إضافة موظف
@@ -1132,7 +1129,7 @@ export default function Employees() {
         </div>
 
         {/* Compact Search and Filter Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6">
+        <div className="app-filter-surface mb-6">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -1149,7 +1146,7 @@ export default function Employees() {
             {/* Filter Button with Badge */}
             <button
               onClick={() => setShowFiltersModal(true)}
-              className="relative px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+              className="app-button-primary relative"
             >
               <Filter className="w-4 h-4" />
               <span>الفلاتر</span>
@@ -1184,7 +1181,7 @@ export default function Employees() {
             <div className="relative">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-2 border border-gray-300"
+                className="app-button-secondary"
               >
                 {getSortIcon(sortField)}
                 <span className="hidden sm:inline">الترتيب</span>
@@ -1220,7 +1217,7 @@ export default function Employees() {
                           setShowSortDropdown(false)
                         }}
                         className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-50 transition flex items-center justify-between ${
-                          sortField === field ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                          sortField === field ? 'bg-primary/10 text-slate-900' : 'text-gray-700'
                         }`}
                       >
                         <span>{label}</span>
@@ -1622,10 +1619,10 @@ export default function Employees() {
 
         {/* Bulk Actions Bar */}
         {selectedEmployees.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3">
+          <div className="app-info-block mb-3 rounded-lg p-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <div className="bg-blue-600 text-white px-2 py-0.5 rounded-md text-xs font-medium">
+                <div className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-slate-950">
                   {selectedEmployees.size} موظف محدد
                 </div>
                 <button
@@ -1675,11 +1672,11 @@ export default function Employees() {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : viewMode === 'grid' ? (
           // Grid View
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          <div className={employeeGridClass}>
             {sortedAndFilteredEmployees.map((employee) => {
               const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
               const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
@@ -1720,17 +1717,17 @@ export default function Employees() {
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className={`bg-white rounded-xl shadow-sm border-2 ${getBorderColor()} p-4 hover:shadow-md transition relative cursor-pointer`}
+                  className={`app-panel border-2 ${getBorderColor()} relative cursor-pointer p-4 transition hover:-translate-y-0.5 hover:shadow-lg`}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <User className="w-5 h-5 text-blue-600" />
+                    <div className="app-icon-chip">
+                      <User className="h-5 w-5" />
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       {canEdit('employees') && (
                         <button
                           onClick={() => handleEmployeeClick(employee)}
-                          className="p-1 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                          className="rounded-md p-1 text-slate-700 transition hover:bg-primary/10"
                           title="عرض/تعديل الموظف"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -1751,20 +1748,20 @@ export default function Employees() {
                     </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-gray-900 mb-2">{employee.name}</h3>
+                  <h3 className="mb-2 text-lg font-bold text-gray-900">{employee.name}</h3>
 
-                  <div className="space-y-1.5 text-xs mb-3">
+                  <div className="app-card-meta">
                     {employee.project?.name || employee.project_name ? (
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">المشروع:</span>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
+                      <div className="app-card-meta-row">
+                        <span className="app-card-meta-label">المشروع:</span>
+                        <span className="app-badge-brand text-[13px] font-medium">
                           {employee.project?.name || employee.project_name}
                         </span>
                       </div>
                     ) : null}
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">الشركة:</span>
-                      <span className="font-medium text-gray-900 text-left">
+                    <div className="app-card-meta-row">
+                      <span className="app-card-meta-label">الشركة:</span>
+                      <span className="app-card-meta-value">
                         {employee.company?.name || '-'}
                         {employee.company?.unified_number && (
                           <span className="text-gray-500 mr-1">({employee.company.unified_number})</span>
@@ -1772,21 +1769,21 @@ export default function Employees() {
                       </span>
                     </div>
                     {employee.residence_number && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">رقم الإقامة:</span>
-                        <span className="font-mono text-gray-900">{employee.residence_number}</span>
+                      <div className="app-card-meta-row">
+                        <span className="app-card-meta-label">رقم الإقامة:</span>
+                        <span className="app-card-meta-value font-mono">{employee.residence_number}</span>
                       </div>
                     )}
                     {employee.profession && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">المهنة:</span>
-                        <span className="font-medium text-gray-900">{employee.profession}</span>
+                      <div className="app-card-meta-row">
+                        <span className="app-card-meta-label">المهنة:</span>
+                        <span className="app-card-meta-value">{employee.profession}</span>
                       </div>
                     )}
                     {employee.nationality && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">الجنسية:</span>
-                        <span className="font-medium text-gray-900">{employee.nationality}</span>
+                      <div className="app-card-meta-row">
+                        <span className="app-card-meta-label">الجنسية:</span>
+                        <span className="app-card-meta-value">{employee.nationality}</span>
                       </div>
                     )}
                   </div>
@@ -1796,9 +1793,9 @@ export default function Employees() {
                     <div className="grid grid-cols-2 gap-2">
                       {/* حالة انتهاء العقد */}
                       <div>
-                        <div className="text-xs font-medium text-gray-600 mb-1">انتهاء العقد</div>
+                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء العقد</div>
                         {employee.contract_expiry ? (
-                          <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${contractStatus.color}`}>
+                          <div className={`rounded-lg border-2 px-2 py-1.5 text-sm font-medium ${contractStatus.color}`}>
                             <div className="flex items-center gap-1">
                               <div className="text-sm">{contractStatus.emoji}</div>
                               <div className="flex flex-col">
@@ -1816,7 +1813,7 @@ export default function Employees() {
 
                       {/* حالة انتهاء عقد أجير */}
                       <div>
-                        <div className="text-xs font-medium text-gray-600 mb-1">انتهاء عقد أجير</div>
+                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء عقد أجير</div>
                         {employee.hired_worker_contract_expiry ? (
                           <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${hiredWorkerStatus.color}`}>
                             <div className="flex items-center gap-1">
@@ -1836,7 +1833,7 @@ export default function Employees() {
 
                       {/* حالة انتهاء الإقامة */}
                       <div>
-                        <div className="text-xs font-medium text-gray-600 mb-1">انتهاء الإقامة</div>
+                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء الإقامة</div>
                         {employee.residence_expiry ? (
                           <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${residenceStatus.color}`}>
                             <div className="flex items-center gap-1">
@@ -1856,7 +1853,7 @@ export default function Employees() {
 
                       {/* حالة التأمين */}
                       <div>
-                        <div className="text-xs font-medium text-gray-600 mb-1">حالة التأمين</div>
+                        <div className="mb-1 text-[13px] font-semibold text-gray-600">حالة التأمين</div>
                         {employee.health_insurance_expiry ? (
                           <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${insuranceStatus.color}`}>
                             <div className="flex items-center gap-1">
@@ -1878,7 +1875,7 @@ export default function Employees() {
 
                   {/* الملاحظات */}
                   <div className="pt-3 border-t border-gray-200">
-                    <div className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-2">
+                    <div className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-gray-600">
                       <FileText className="w-3.5 h-3.5" />
                       الملاحظات
                     </div>
@@ -1895,7 +1892,7 @@ export default function Employees() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full" ref={tableRef}>
-                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <thead className="sticky top-0 z-[1] bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase w-10">
                       <button
@@ -1938,7 +1935,7 @@ export default function Employees() {
                       <tr 
                         key={employee.id} 
                         ref={(el) => { rowRefs.current[index] = el }}
-                        className={`hover:bg-gray-50 transition ${isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''}`}
+                        className={`transition hover:bg-gray-50 ${isSelected ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
                       >
                         <td className="px-3 py-2 text-center">
                           <button

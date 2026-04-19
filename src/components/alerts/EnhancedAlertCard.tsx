@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { 
   AlertTriangle, 
   Calendar, 
@@ -11,7 +12,8 @@ import {
   DollarSign,
   Users,
   FileText,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -237,6 +239,17 @@ export function EnhancedAlertCard({
   const priorityConfig = getPriorityConfig(alert.priority)
   const riskConfig = getComplianceRiskConfig(alert.compliance_risk)
   const impactConfig = getBusinessImpactConfig(alert.business_impact)
+  const [actionLoading, setActionLoading] = useState<'view' | 'renew' | 'read' | null>(null)
+  const isBusy = actionLoading !== null
+
+  const runAction = async (action: 'view' | 'renew' | 'read', callback: () => void | Promise<void>) => {
+    try {
+      setActionLoading(action)
+      await Promise.resolve(callback())
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   if (compact) {
     return (
@@ -324,11 +337,16 @@ export function EnhancedAlertCard({
 
         {!isRead && (
           <button
-            onClick={() => onMarkAsRead(alert.id)}
-            className="text-gray-400 hover:text-blue-600 transition-colors"
+            onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
+            disabled={isBusy}
+            className="text-gray-400 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
             title="تحديد كمقروء"
           >
-            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+            {actionLoading === 'read' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <div className="h-3 w-3 rounded-full bg-primary"></div>
+            )}
           </button>
         )}
       </div>
@@ -436,9 +454,9 @@ export function EnhancedAlertCard({
       )}
 
       {/* Action Required */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-        <h4 className="text-sm font-medium text-blue-900 mb-1">الإجراء المطلوب:</h4>
-        <p className="text-sm text-blue-700">{alert.action_required}</p>
+      <div className="app-info-block mb-4">
+        <h4 className="mb-1 text-sm font-semibold text-slate-900">الإجراء المطلوب:</h4>
+        <p className="text-sm text-slate-700">{alert.action_required}</p>
       </div>
 
       {/* Suggested Actions */}
@@ -451,7 +469,7 @@ export function EnhancedAlertCard({
           <ul className="space-y-1">
             {alert.suggested_actions.map((action, index) => (
               <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                <span className="text-blue-500 mt-1">•</span>
+                <span className="mt-1 text-primary">•</span>
                 <span>{action}</span>
               </li>
             ))}
@@ -480,31 +498,35 @@ export function EnhancedAlertCard({
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={() => onViewCompany(alert.company.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          onClick={() => void runAction('view', () => onViewCompany(alert.company.id))}
+          disabled={isBusy}
+          className="app-button-primary"
         >
-          <ExternalLink className="h-4 w-4" />
+          {actionLoading === 'view' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
           عرض المؤسسة
         </button>
 
         <button
-          onClick={() => onRenewAction(alert.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          onClick={() => void runAction('renew', () => onRenewAction(alert.id))}
+          disabled={isBusy}
+          className="app-button-success"
         >
-          <RefreshCw className="h-4 w-4" />
+          {actionLoading === 'renew' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           بدء التجديد
         </button>
 
         <button
-          onClick={() => onMarkAsRead(alert.id)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+          onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
+          disabled={isBusy}
+          className="app-button-secondary"
         >
+          {actionLoading === 'read' && <Loader2 className="h-4 w-4 animate-spin" />}
           تم الاطلاع
         </button>
 
         {alert.renewal_cost_estimate && (
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+            className="app-button-secondary"
             title="عرض تفاصيل التكلفة"
           >
             <DollarSign className="h-4 w-4" />

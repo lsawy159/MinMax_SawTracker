@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, Project } from '@/lib/supabase'
 import { Users, DollarSign, TrendingUp, Download } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
+import { loadXlsx } from '@/utils/lazyXlsx'
 
 interface ProjectStatistics {
   project: Project
@@ -82,7 +82,8 @@ export default function ProjectStatistics() {
     }
   }
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await loadXlsx()
     const excelData = statistics.map(stat => ({
       'اسم المشروع': stat.project.name,
       'الحالة': stat.project.status === 'active' ? 'نشط' : stat.project.status === 'inactive' ? 'متوقف' : 'مكتمل',

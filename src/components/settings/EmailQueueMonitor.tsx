@@ -113,7 +113,7 @@ export default function EmailQueueMonitor() {
         <button
           onClick={loadEmailQueue}
           disabled={isLoadingEmailQueue}
-          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+          className="app-button-secondary text-sm disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isLoadingEmailQueue ? 'animate-spin' : ''}`} />
           تحديث

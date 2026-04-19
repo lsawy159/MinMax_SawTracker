@@ -11,6 +11,7 @@ import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
 import { useLocation } from 'react-router-dom'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
+import { useCardColumns } from '@/hooks/useUiPreferences'
 import { normalizeArabic } from '@/utils/textUtils'
 import { 
   calculateCommercialRegistrationStatus, 
@@ -71,6 +72,7 @@ export default function Companies() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [currentPage, setCurrentPage] = useState(1)
+  const { cardColumns, setCardColumns, gridClass: companyGridClass } = useCardColumns('companies-card-columns', 3)
   
   // حالة التنقل بالسهام
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
@@ -886,29 +888,25 @@ export default function Companies() {
               ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
             })))
             return (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* إجمالي المؤسسات */}
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">{stats.totalCompanies}</div>
-                  <div className="text-sm text-gray-600">إجمالي المؤسسات</div>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="app-panel p-4 text-center">
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalCompanies}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">إجمالي المؤسسات</div>
                 </div>
-                
-                {/* ساري - جميع الحالات سارية */}
-                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-2xl font-bold text-green-700">{stats.totalValid}</div>
-                  <div className="text-sm text-green-600">ساري ({stats.totalValidPercentage}%)</div>
+
+                <div className="app-panel border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{stats.totalValid}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">ساري ({stats.totalValidPercentage}%)</div>
                 </div>
-                
-                {/* متوسطة الأهمية - حالة واحدة على الأقل متوسطة */}
-                <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="text-2xl font-bold text-yellow-700">{stats.totalMedium}</div>
-                  <div className="text-sm text-yellow-600">متوسط ({stats.totalMediumPercentage}%)</div>
+
+                <div className="app-panel border-amber-500/20 bg-amber-500/5 p-4 text-center">
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-300">{stats.totalMedium}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">متوسط ({stats.totalMediumPercentage}%)</div>
                 </div>
-                
-                {/* طارئ/منتهي - حالة واحدة على الأقل طارئة أو منتهية */}
-                <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-2xl font-bold text-red-700">{stats.totalCritical + stats.totalExpired}</div>
-                  <div className="text-sm text-red-600">طارئ/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)</div>
+
+                <div className="app-panel border-rose-500/20 bg-rose-500/5 p-4 text-center">
+                  <div className="text-2xl font-bold text-rose-600 dark:text-rose-300">{stats.totalCritical + stats.totalExpired}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">طارئ/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)</div>
                 </div>
               </div>
             )
@@ -916,7 +914,7 @@ export default function Companies() {
         </div>
 
         {/* Compact Search and Filter Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6">
+        <div className="app-filter-surface mb-6">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -926,14 +924,14 @@ export default function Companies() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="ابحث بالاسم أو رقم اشتراك التأمينات أو الرقم الموحد..."
-                className="w-full pr-10 pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 py-2 pr-10 pl-3 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* Filter Button with Badge */}
             <button
               onClick={() => setShowFiltersModal(true)}
-              className="relative px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+              className="app-button-primary relative"
             >
               <Filter className="w-4 h-4" />
               <span>الفلاتر</span>
@@ -993,8 +991,8 @@ export default function Companies() {
                           handleSort(field)
                           setShowSortDropdown(false)
                         }}
-                        className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-50 transition flex items-center justify-between ${
-                          sortField === field ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition hover:bg-gray-50 ${
+                          sortField === field ? 'bg-primary/10 text-slate-900' : 'text-gray-700'
                         }`}
                       >
                         <span>{label}</span>
@@ -1007,39 +1005,57 @@ export default function Companies() {
             </div>
 
             {/* View Mode and Items Per Page */}
-            <div className="flex items-center gap-3">
-              {/* View Mode Toggle */}
-              {!isMobileView && (
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="app-toggle-shell">
+                {!isMobileView && (
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    className={`app-toggle-button ${viewMode === 'grid' ? 'app-toggle-button-active' : ''}`}
                     title="عرض شبكي"
                   >
                     <Grid3X3 className="w-4 h-4" />
                   </button>
+                )}
+                {!isMobileView && (
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`p-1.5 rounded transition ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : ''}`}
                     title="عرض جدول"
                   >
                     <List className="w-4 h-4" />
                   </button>
-                </div>
-              )}
-              {isMobileView && (
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+                )}
+                {isMobileView && (
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    className="app-toggle-button app-toggle-button-active"
                     title="عرض شبكي"
                   >
                     <Grid3X3 className="w-4 h-4" />
                   </button>
+                )}
+              </div>
+
+              {viewMode === 'grid' && (
+                <div className="app-toggle-shell">
+                  <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
+                  {[
+                    { value: 2, label: 'كبير' },
+                    { value: 3, label: 'متوسط' },
+                    { value: 4, label: 'صغير' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
+                      className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               )}
 
-              {/* Items per page */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">عرض:</span>
                 <select
@@ -1048,7 +1064,7 @@ export default function Companies() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 >
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -1253,12 +1269,12 @@ export default function Companies() {
         {/* Companies Display */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : filteredCompanies.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+              <div className={companyGridClass}>
                 {paginatedCompanies.map((company) => (
                   <div
                     key={company.id}
@@ -1284,7 +1300,7 @@ export default function Companies() {
               <div className="bg-white border rounded-lg overflow-hidden">
                 {/* Bulk Action Toolbar */}
                 {selectedCompanyIds.length > 0 && (
-                  <div className="bg-blue-50 border-b border-blue-200 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center justify-between border-b border-primary/30 bg-primary/10 px-6 py-4">
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-medium text-gray-700">
                         تم تحديد {selectedCompanyIds.length} مؤسسة
@@ -1310,7 +1326,7 @@ export default function Companies() {
                 )}
                 <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
                   <table className="w-full text-sm" ref={tableRef}>
-                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                    <thead className="sticky top-0 z-[1] bg-gray-50 shadow-sm">
                       <tr>
                         <th className="px-4 py-3 text-right font-semibold text-gray-700 w-12">
                           <input
@@ -1343,7 +1359,7 @@ export default function Companies() {
                           <tr 
                             key={company.id} 
                             ref={(el) => { rowRefs.current[index] = el }}
-                            className={`border-t hover:bg-gray-50 transition cursor-pointer ${isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''}`}
+                            className={`cursor-pointer border-t transition hover:bg-gray-50 ${isSelected ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
                             onClick={() => handleCompanyCardClick(company)}
                           >
                             <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -1416,7 +1432,7 @@ export default function Companies() {
                                 {canEdit('companies') && (
                                   <button
                                     onClick={() => handleEditCompany(company)}
-                                    className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition text-sm"
+                                    className="rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-primary/10 text-sm"
                                   >
                                     تعديل
                                   </button>

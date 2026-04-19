@@ -3,6 +3,11 @@ import { supabase, Company, Project, Employee } from '@/lib/supabase'
 import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
+import {
+  HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
+  TRANSFER_STATUS_OPTIONS,
+  buildEmployeeBusinessAdditionalFields,
+} from '@/utils/employeeBusinessFields'
 
 interface AddEmployeeModalProps {
   isOpen: boolean
@@ -43,11 +48,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     project_id: '',
     project_name: '',
     bank_account: '',
+    bank_name: '',
     salary: '',
     health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
     residence_image_url: '',
     notes: '',
-    company_id: ''
+    company_id: '',
+    hired_worker_contract_status: 'بدون أجير',
+    transfer_status: 'ليس على الكفالة'
   })
 
   useEffect(() => {
@@ -71,11 +79,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         project_id: '',
         project_name: '',
         bank_account: '',
+        bank_name: '',
         salary: '',
         health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: '',
         notes: '',
-        company_id: ''
+        company_id: '',
+        hired_worker_contract_status: 'بدون أجير',
+        transfer_status: 'ليس على الكفالة'
       })
       setCompanySearchQuery('')
       setIsCompanyDropdownOpen(false)
@@ -326,7 +337,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+
+    setFormData(prev => {
+      if (name === 'hired_worker_contract_expiry' && value.trim()) {
+        return {
+          ...prev,
+          [name]: value,
+          hired_worker_contract_status: 'أجير',
+          transfer_status: 'منقول',
+        }
+      }
+
+      return { ...prev, [name]: value }
+    })
   }
 
   const validateForm = () => {
@@ -419,7 +442,13 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         health_insurance_expiry: normalizeDate(formData.health_insurance_expiry) ?? undefined,  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: formData.residence_image_url.trim() || undefined,
         notes: formData.notes.trim() || undefined,
-        company_id: formData.company_id
+        company_id: formData.company_id,
+        additional_fields: buildEmployeeBusinessAdditionalFields(undefined, {
+          bank_name: formData.bank_name,
+          hired_worker_contract_status: formData.hired_worker_contract_status,
+          transfer_status: formData.transfer_status,
+          hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+        })
       }
 
       // إضافة project_id إذا كان موجوداً
@@ -486,11 +515,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         project_id: '',
         project_name: '',
         bank_account: '',
+        bank_name: '',
         salary: '',
         health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: '',
         notes: '',
-        company_id: ''
+        company_id: '',
+        hired_worker_contract_status: 'بدون أجير',
+        transfer_status: 'ليس على الكفالة'
       })
       setProjectSearchQuery('')
       setIsProjectDropdownOpen(false)
@@ -510,13 +542,13 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="app-modal-surface max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="app-modal-header flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <UserPlus className="w-6 h-6 text-blue-600" />
+            <div className="rounded-xl bg-primary/15 p-2">
+              <UserPlus className="h-6 w-6 text-slate-900" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">إضافة موظف جديد</h2>
           </div>
@@ -530,7 +562,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 1. الاسم */}
             <div>
@@ -542,7 +574,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل اسم الموظف"
                 required
                 disabled={loading}
@@ -552,14 +584,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
             {/* 2. المهنة */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                المهنة
+                مهنة الإقامة
               </label>
               <input
                 type="text"
                 name="profession"
                 value={formData.profession}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل المهنة"
                 disabled={loading}
               />
@@ -575,7 +607,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="nationality"
                 value={formData.nationality}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل الجنسية"
                 disabled={loading}
               />
@@ -591,7 +623,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="residence_number"
                 value={formData.residence_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="app-input py-2.5 font-mono"
                 placeholder="أدخل رقم الإقامة"
                 required
                 disabled={loading}
@@ -608,7 +640,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="passport_number"
                 value={formData.passport_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="app-input py-2.5 font-mono"
                 placeholder="أدخل رقم جواز السفر"
                 disabled={loading}
               />
@@ -624,7 +656,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="app-input py-2.5 font-mono"
                 placeholder="05xxxxxxxx"
                 disabled={loading}
               />
@@ -640,13 +672,29 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="bank_account"
                 value={formData.bank_account}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="app-input py-2.5 font-mono"
                 placeholder="أدخل رقم الحساب البنكي"
                 disabled={loading}
               />
             </div>
 
-            {/* 8. الراتب */}
+            {/* 8. اسم البنك */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                اسم البنك
+              </label>
+              <input
+                type="text"
+                name="bank_name"
+                value={formData.bank_name}
+                onChange={handleChange}
+                className="app-input py-2.5"
+                placeholder="أدخل اسم البنك"
+                disabled={loading}
+              />
+            </div>
+
+            {/* 9. الراتب */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 الراتب
@@ -656,7 +704,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="salary"
                 value={formData.salary}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 placeholder="أدخل الراتب"
                 min="0"
                 step="0.01"
@@ -664,7 +712,46 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               />
             </div>
 
-            {/* 9. المشروع */}
+            {/* 10. حالة النقل */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                حالة النقل
+              </label>
+              <select
+                name="transfer_status"
+                value={formData.transfer_status}
+                onChange={handleChange}
+                className="app-input py-2.5"
+                disabled={loading || Boolean(formData.hired_worker_contract_expiry)}
+              >
+                {TRANSFER_STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              {formData.hired_worker_contract_expiry && (
+                <p className="mt-2 text-xs text-amber-700">عند وجود تاريخ انتهاء عقد أجير يتم اعتماد حالة النقل تلقائياً: منقول.</p>
+              )}
+            </div>
+
+            {/* 11. حالة عقد أجير */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                حالة عقد أجير
+              </label>
+              <select
+                name="hired_worker_contract_status"
+                value={formData.hired_worker_contract_status}
+                onChange={handleChange}
+                className="app-input py-2.5"
+                disabled={loading || Boolean(formData.hired_worker_contract_expiry)}
+              >
+                {HIRED_WORKER_CONTRACT_STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 12. المشروع */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                 <FolderKanban className="w-4 h-4" />
@@ -682,7 +769,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                     onFocus={() => setIsProjectDropdownOpen(true)}
                     placeholder="ابحث عن مشروع..."
                     disabled={loading}
-                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    className="app-input bg-white pr-10"
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <Search className="w-5 h-5 text-gray-400" />
@@ -791,7 +878,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                           handleCreateProject()
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="app-input"
                       placeholder="أدخل اسم المشروع"
                       autoFocus
                       disabled={creatingProject}
@@ -804,7 +891,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                         setShowCreateProjectModal(false)
                         setNewProjectName('')
                       }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                      className="app-button-secondary"
                       disabled={creatingProject}
                     >
                       إلغاء
@@ -813,7 +900,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                       type="button"
                       onClick={handleCreateProject}
                       disabled={creatingProject || !newProjectName.trim()}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="app-button-success"
                     >
                       {creatingProject ? (
                         <>
@@ -848,7 +935,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                     }}
                     onFocus={() => setIsCompanyDropdownOpen(true)}
                     placeholder="ابحث بالاسم أو الرقم الموحد..."
-                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    className="app-input bg-white pr-10"
                     disabled={loading}
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -973,7 +1060,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="birth_date"
                 value={formData.birth_date}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -988,7 +1075,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="joining_date"
                 value={formData.joining_date}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -1003,7 +1090,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="residence_expiry"
                 value={formData.residence_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -1018,7 +1105,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="contract_expiry"
                 value={formData.contract_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -1033,7 +1120,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="hired_worker_contract_expiry"
                 value={formData.hired_worker_contract_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -1048,7 +1135,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
                 name="health_insurance_expiry"
                 value={formData.health_insurance_expiry}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="app-input py-2.5"
                 disabled={loading}
               />
             </div>
@@ -1064,7 +1151,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               name="residence_image_url"
               value={formData.residence_image_url || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="app-input py-2.5"
               placeholder="أدخل رابط صورة الإقامة"
               disabled={loading}
             />
@@ -1080,22 +1167,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               value={formData.notes}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="app-input min-h-[110px] resize-none py-2.5"
               placeholder="أدخل أي ملاحظات إضافية عن الموظف..."
               disabled={loading}
             />
           </div>
 
           {/* Footer */}
-          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200">
+          <div className="app-modal-footer mt-8 flex items-center gap-4 border-t border-gray-200 pt-6">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+              className="app-button-primary flex-1 justify-center px-6 py-3"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   جاري الإضافة...
                 </>
               ) : (
@@ -1109,7 +1196,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="app-button-secondary flex-1 justify-center px-6 py-3"
             >
               إلغاء
             </button>

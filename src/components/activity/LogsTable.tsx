@@ -75,7 +75,7 @@ export function LogsTable(props: LogsTableProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="app-panel overflow-hidden">
       {/* Top pagination controls */}
       <div className="bg-white p-3 sm:p-4 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

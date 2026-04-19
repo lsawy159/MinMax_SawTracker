@@ -348,7 +348,7 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -356,14 +356,14 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
   return (
     <div className="space-y-3">
       {/* رأس الصفحة */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm p-3 text-white">
+      <div className="app-panel p-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-md">
+          <div className="app-icon-chip">
             <SettingsIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">إعدادات التنبيهات</h1>
-            <p className="text-[11px] text-indigo-100 mt-0.5">
+            <h1 className="text-lg font-bold text-gray-900">إعدادات التنبيهات</h1>
+            <p className="mt-0.5 text-[11px] text-slate-500">
               صفحة موحدة لإعدادات الحالات والتنبيهات وألوان الجداول
             </p>
           </div>
@@ -371,14 +371,14 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
       </div>
 
       {/* تبويبات الأقسام */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1.5">
-        <div className="flex gap-1.5">
+      <div className="app-toggle-shell p-1.5">
+        <div className="flex gap-1.5 w-full">
           <button
             onClick={() => setActiveTab('employees')}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${
               activeTab === 'employees'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'app-toggle-button-active'
+                : 'app-toggle-button'
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
@@ -390,8 +390,8 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
             onClick={() => setActiveTab('companies')}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${
               activeTab === 'companies'
-                ? 'bg-green-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'app-toggle-button-active'
+                : 'app-toggle-button'
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
@@ -407,8 +407,8 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
         <div className="space-y-3">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-md">
-                <Palette className="w-5 h-5 text-blue-600" />
+              <div className="app-icon-chip">
+                <Palette className="w-5 h-5" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-gray-900">إعدادات ألوان وتنبيهات الموظفين</h2>
@@ -508,7 +508,7 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
           {/* معاينة سريعة للموظفين */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
             <div className="flex items-center gap-1.5 mb-2.5">
-              <Sparkles className="w-4 h-4 text-blue-600" />
+              <Sparkles className="w-4 h-4 text-primary" />
               <h3 className="text-base font-semibold text-gray-900">معاينة سريعة - الموظفين</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -698,7 +698,7 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-1.5 shadow-md disabled:opacity-60 font-semibold"
+            className="app-button-primary text-sm disabled:opacity-60"
           >
             <Save className="w-4 h-4" />
             {saving ? 'جاري الحفظ...' : 'حفظ جميع التغييرات'}
@@ -707,12 +707,12 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
       )}
 
       {isReadOnly && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3">
+        <div className="app-info-block rounded-lg p-3">
           <div className="flex items-start gap-2.5">
             <Eye className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-blue-900">وضع العرض فقط</p>
-              <p className="text-xs text-blue-700 mt-0.5">ليس لديك صلاحية تعديل الإعدادات. اطلب من المدير إعطاء الصلاحية اللازمة.</p>
+              <p className="text-sm font-semibold text-slate-900">وضع العرض فقط</p>
+              <p className="text-xs text-slate-700 mt-0.5">ليس لديك صلاحية تعديل الإعدادات. اطلب من المدير إعطاء الصلاحية اللازمة.</p>
             </div>
           </div>
         </div>

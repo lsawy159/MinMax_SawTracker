@@ -388,7 +388,7 @@ export default function Users() {
           {isAdmin && (
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="app-button-primary"
             >
               <UserPlus className="w-5 h-5" />
               إضافة مستخدم جديد
@@ -396,7 +396,7 @@ export default function Users() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="app-panel mb-6 p-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -404,14 +404,14 @@ export default function Users() {
               placeholder="البحث بالاسم أو اسم المستخدم..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 py-2.5 pl-4 pr-10 focus:border-transparent focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
           </div>
         ) : (
           <>
@@ -439,10 +439,10 @@ export default function Users() {
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.full_name}</td>
                         <td className="px-6 py-4 text-sm text-gray-700">{user.username}</td>
                         <td className="px-6 py-4 text-sm">
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
                             user.role === 'admin'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-blue-100 text-blue-700'
+                              ? 'bg-slate-200 text-slate-800'
+                              : 'bg-primary/20 text-slate-900'
                           }`}>
                             <Shield className="w-3 h-3" />
                             {user.role === 'admin' ? 'مدير' : 'مستخدم'}
@@ -479,7 +479,7 @@ export default function Users() {
                                     e.stopPropagation()
                                     openEditModal(user)
                                   }}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                  className="rounded-lg p-2 text-slate-700 transition hover:bg-primary/10 hover:text-slate-900"
                                   title="تعديل"
                                 >
                                   <Edit2 className="w-4 h-4" />
@@ -560,7 +560,7 @@ export default function Users() {
                                   e.stopPropagation()
                                   openEditModal(user)
                                 }}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                                className="rounded p-2 text-slate-700 transition hover:bg-primary/10 hover:text-slate-900"
                                 title="تعديل"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -603,10 +603,10 @@ export default function Users() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">الدور:</span>
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
                           user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-blue-100 text-blue-700'
+                            ? 'bg-slate-200 text-slate-800'
+                            : 'bg-primary/20 text-slate-900'
                         }`}>
                           <Shield className="w-3 h-3" />
                           {user.role === 'admin' ? 'مدير' : 'مستخدم'}
@@ -643,14 +643,14 @@ export default function Users() {
 
         {showModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full border border-gray-100 my-8 max-h-[90vh] flex flex-col">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-3xl p-3 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-lg font-bold text-white">
+            <div className="app-modal-surface my-8 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-gray-100 bg-white shadow-2xl">
+              <div className="app-modal-header flex flex-shrink-0 items-center justify-between rounded-t-3xl p-3">
+                <h2 className="text-lg font-bold text-slate-950">
                   {editingUser ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition"
+                  className="rounded-lg p-1.5 text-slate-700 transition hover:bg-white/70 hover:text-slate-950"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -660,8 +660,8 @@ export default function Users() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* القسم الأيسر - المعلومات الأساسية */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                      <div className="h-4 w-1 rounded-full bg-primary"></div>
                       المعلومات الأساسية
                     </h3>
                     
@@ -746,7 +746,7 @@ export default function Users() {
                         <select
                           value={formData.role}
                           onChange={(e) => setRolePermissions(e.target.value as 'admin' | 'user')}
-                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm transition"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary"
                           disabled={editingUser && editingUser.role === 'admin' && users.filter(u => u.role === 'admin' && u.is_active).length === 1}
                         >
                           <option value="user">مستخدم</option>
@@ -762,7 +762,7 @@ export default function Users() {
                           id="is_active"
                           checked={!!formData.is_active}
                           onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                          className="w-4 h-4 text-blue-600 border-gray-200 rounded focus:ring-blue-500"
+                          className="h-4 w-4 rounded border-gray-200 text-primary focus:ring-primary"
                         />
                         <label htmlFor="is_active" className="text-xs font-medium text-gray-700 cursor-pointer">
                           المستخدم نشط
@@ -773,10 +773,14 @@ export default function Users() {
 
                   {/* القسم الأيمن - الصلاحيات (ديناميكية من PERMISSIONS_SCHEMA) */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-blue-600" />
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                      <Shield className="h-4 w-4 text-slate-900" />
                       الصلاحيات التفصيلية
                     </h3>
+
+                    <div className="app-info-block rounded-xl px-3 py-2 text-xs text-slate-800">
+                      صلاحية الرواتب والاستقطاعات أصبحت مستقلة عن صلاحية التقارير، ويمكن منحها أو منعها لكل مستخدم بشكل منفصل.
+                    </div>
 
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-3 space-y-2.5 border border-gray-200">
                       {/* Grid للصلاحيات - مولد ديناميكياً من PERMISSIONS_SCHEMA */}
@@ -784,9 +788,9 @@ export default function Users() {
                         {VALID_PERMISSION_SECTIONS.map((section) => (
                           <div
                             key={section}
-                            className="bg-white/60 rounded-lg p-2 border border-gray-200/50"
+                            className={`rounded-lg p-2 border ${section === 'payroll' ? 'bg-emerald-50 border-emerald-200' : 'bg-white/60 border-gray-200/50'}`}
                           >
-                            <h4 className="text-xs font-semibold text-gray-800 mb-1.5">
+                            <h4 className={`text-xs font-semibold mb-1.5 ${section === 'payroll' ? 'text-emerald-800' : 'text-gray-800'}`}>
                               {PERMISSION_SECTIONS[section].label}
                             </h4>
                             <div className="space-y-1">
@@ -805,7 +809,7 @@ export default function Users() {
                                     onChange={(e) =>
                                       updatePermission(section, action, e.target.checked)
                                     }
-                                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
                                   />
                                   <span className="text-xs text-gray-700">
                                     {ACTION_LABELS[action]}
@@ -832,7 +836,7 @@ export default function Users() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition disabled:from-blue-400 disabled:to-blue-400 disabled:cursor-not-allowed shadow-lg shadow-blue-500/30 font-medium"
+                    className="app-button-primary px-5 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'جاري الحفظ...' : editingUser ? 'حفظ التعديلات' : 'إضافة المستخدم'}
