@@ -116,7 +116,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       />
                     </div>
                     <span className="mt-2 text-[10px] font-semibold tracking-wide text-slate-500">
-                      PROFESSIONAL CONTROL HUB
+                      See What Others Don't
                     </span>
                   </Link>
                 ) : (
