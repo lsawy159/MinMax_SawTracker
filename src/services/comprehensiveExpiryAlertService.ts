@@ -10,6 +10,8 @@
 
 import { supabase } from '../lib/supabase'
 import { enqueueEmail } from '../lib/emailQueueService'
+import { getNotificationRecipients } from '@/lib/notificationRecipientService'
+import { PRIMARY_ADMIN_EMAIL } from '@/lib/notificationTypes'
 import { logger } from '../utils/logger'
 import { getNotificationThresholds } from '../utils/alerts'
 import { getEmployeeNotificationThresholdsPublic } from '../utils/employeeAlerts'
@@ -494,10 +496,30 @@ async function sendEmailNotifications(alerts: ExpiryAlert[]): Promise<void> {
   // تأخير 600ms احتراماً لمعدل Resend
   await new Promise(res => setTimeout(res, 600))
 
-  // إرسال بريد واحد إلى المسؤول الأساسي المطلوب
-  const adminEmail = 'ahmad.alsawy159@gmail.com'
+  // 🔐 NEW: استخدم نظام الإشعارات الجديد
+  let toEmails: string[] = []
+  try {
+    toEmails = await getNotificationRecipients({
+      notificationType: 'expiryAlerts',
+      timeout: 5000,
+      includeLogging: true
+    })
+  } catch (err) {
+    logger.error(`فشل الحصول على المستقبلين من النظام الجديد: ${err instanceof Error ? err.message : String(err)}`)
+    // 🔐 FALLBACK: استخدم البريد الأساسي فقط
+    toEmails = [PRIMARY_ADMIN_EMAIL]
+    logger.warn(`الرجوع إلى البريد الأساسي: ${PRIMARY_ADMIN_EMAIL}`)
+  }
+
+  if (toEmails.length === 0) {
+    logger.warn('لم يتم العثور على أي مستقبلين للإشعار')
+    toEmails = [PRIMARY_ADMIN_EMAIL]
+  }
+
+  logger.debug(`إرسال إشعار الملخص اليومي إلى ${toEmails.length} مستقبل: ${toEmails.join(', ')}`)
+
   const enqueueResult = await enqueueEmail({
-    toEmails: [adminEmail],
+    toEmails,
     subject,
     htmlContent,
     textContent,

@@ -321,14 +321,6 @@
     @apply sticky bottom-0 z-20 border-t border-border bg-white/95 backdrop-blur-md;
   }
 
-  .app-density-button {
-    @apply rounded-lg border border-border bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50;
-  }
-
-  .app-density-button-active {
-    @apply border-primary/50 bg-primary/15 text-slate-900 shadow-soft;
-  }
-
   .app-card-meta {
     @apply mb-3 space-y-2 text-sm;
   }
@@ -355,8 +347,7 @@
     @apply border-slate-700 bg-slate-900 text-slate-100;
   }
 
-  .dark .app-button-secondary,
-  .dark .app-density-button {
+  .dark .app-button-secondary {
     @apply border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800;
   }
 

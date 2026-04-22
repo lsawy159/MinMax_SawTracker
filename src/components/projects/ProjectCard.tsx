@@ -41,16 +41,18 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
   }
 
   return (
-    <div 
-      className="app-panel h-full cursor-pointer p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
+    <div
+      className="group relative h-full cursor-pointer overflow-hidden rounded-2xl border-2 border-sky-200 bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]"
       onClick={() => onView && onView(project)}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="app-icon-chip">
-          <FolderKanban className="w-6 h-6" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
+
+      <div className="mb-2.5 flex items-start justify-between gap-3">
+        <div className="app-icon-chip scale-90">
+          <FolderKanban className="h-4 w-4" />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status || 'active')}`}>
+          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusColor(project.status || 'active')}`}>
             {getStatusText(project.status || 'active')}
           </span>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -76,24 +78,24 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
         </div>
       </div>
       
-      <h3 className="text-lg font-bold text-gray-900 mb-2">{project.name}</h3>
-      
+      <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-gray-900">{project.name}</h3>
+
       {project.description && (
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+        <p className="mb-2.5 line-clamp-2 text-xs text-gray-600">{project.description}</p>
       )}
 
-      <div className="space-y-2 text-sm pt-4 border-t border-gray-200">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600 flex items-center gap-1">
-            <Users className="w-4 h-4" />
+      <div className="space-y-1.5 border-t border-gray-200 pt-2.5 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-gray-600">
+            <Users className="h-3.5 w-3.5" />
             عدد الموظفين:
           </span>
           <span className="font-bold text-gray-900">{project.employee_count || 0}</span>
         </div>
         {project.total_salaries !== undefined && (
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600 flex items-center gap-1">
-              <DollarSign className="w-4 h-4" />
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1 text-gray-600">
+              <DollarSign className="h-3.5 w-3.5" />
               إجمالي الرواتب:
             </span>
             <span className="font-bold text-gray-900">

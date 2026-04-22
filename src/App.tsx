@@ -15,6 +15,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Employees = lazy(() => import('./pages/Employees'))
 const Companies = lazy(() => import('./pages/Companies'))
 const Projects = lazy(() => import('./pages/Projects'))
+const TransferProcedures = lazy(() => import('./pages/TransferProcedures'))
 const Users = lazy(() => import('./pages/Users'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
@@ -120,6 +121,13 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <Projects />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/transfer-procedures" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <TransferProcedures />
             </Suspense>
           </ProtectedRoute>
         } />

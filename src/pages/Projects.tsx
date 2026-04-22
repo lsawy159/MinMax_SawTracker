@@ -36,7 +36,7 @@ export default function Projects() {
   // Sort states
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const { cardColumns, setCardColumns, gridClass: projectGridClass } = useCardColumns('projects-card-columns', 3)
+  const { gridClass: projectGridClass } = useCardColumns()
 
   const loadProjects = useCallback(async () => {
     try {
@@ -328,23 +328,6 @@ export default function Projects() {
                   </select>
                 </div>
 
-                <div className="app-toggle-shell">
-                  <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
-                  {[
-                    { value: 2, label: 'كبير' },
-                    { value: 3, label: 'متوسط' },
-                    { value: 4, label: 'صغير' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
-                      className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
-                      type="button"
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 

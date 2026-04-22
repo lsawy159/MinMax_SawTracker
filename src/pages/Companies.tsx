@@ -72,7 +72,7 @@ export default function Companies() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [currentPage, setCurrentPage] = useState(1)
-  const { cardColumns, setCardColumns, gridClass: companyGridClass } = useCardColumns('companies-card-columns', 3)
+  const { gridClass: companyGridClass } = useCardColumns()
   
   // حالة التنقل بالسهام
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
@@ -1036,26 +1036,6 @@ export default function Companies() {
                 )}
               </div>
 
-              {viewMode === 'grid' && (
-                <div className="app-toggle-shell">
-                  <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
-                  {[
-                    { value: 2, label: 'كبير' },
-                    { value: 3, label: 'متوسط' },
-                    { value: 4, label: 'صغير' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
-                      className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
-                      type="button"
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">عرض:</span>
                 <select
@@ -1279,7 +1259,7 @@ export default function Companies() {
                   <div
                     key={company.id}
                     onClick={() => handleCompanyCardClick(company)}
-                    className="cursor-pointer"
+                    className="group cursor-pointer transition-transform duration-300 hover:-translate-y-0.5"
                   >
                     <CompanyCard
                       company={company}

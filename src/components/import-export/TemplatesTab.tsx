@@ -20,9 +20,6 @@ export default function TemplatesTab() {
           'اسم البنك': 'مصرف الراجحي',
           'الراتب': '8000',
           'حالة عقد أجير': 'أجير',
-          'حالة النقل': 'ليس على الكفالة',
-          'رسوم النقل': '2500',
-          'رسوم التجديد': '1200',
           'المشروع': 'مشروع رقم 1',
           'الشركة أو المؤسسة': 'مؤسسة النجاح',
           'الرقم الموحد': '1234567890',
@@ -53,9 +50,6 @@ export default function TemplatesTab() {
         { wch: 20 }, // اسم البنك
         { wch: 15 }, // الراتب
         { wch: 18 }, // حالة عقد أجير
-        { wch: 16 }, // حالة النقل
-        { wch: 14 }, // رسوم النقل
-        { wch: 14 }, // رسوم التجديد
         { wch: 20 }, // المشروع
         { wch: 25 }, // الشركة أو المؤسسة
         { wch: 15 }, // الرقم الموحد
@@ -108,6 +102,46 @@ export default function TemplatesTab() {
       saveAs(data, 'قالب_الموظفين.xlsx')
 
       toast.success('تم تحميل قالب الموظفين')
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('فشل تحميل القالب')
+    }
+  }
+
+  const downloadTransferProceduresTemplate = async () => {
+    try {
+      const XLSX = await loadXlsx()
+      const templateData = [
+        {
+          'تاريخ الطلب': '2026-04-22',
+          'الاسم': 'أحمد علي',
+          'رقم الإقامة': '2987654321',
+          'الحالة': 'تحت إجراء النقل',
+          'الرقم الموحد الحالي': '7001234567',
+          'المشروع': 'مشروع رقم 1',
+          'ملاحظات': ''
+        }
+      ]
+
+      const ws = XLSX.utils.json_to_sheet(templateData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'قالب إجراءات النقل')
+
+      ws['!cols'] = [
+        { wch: 16 }, // تاريخ الطلب
+        { wch: 22 }, // الاسم
+        { wch: 16 }, // رقم الإقامة
+        { wch: 24 }, // الحالة
+        { wch: 20 }, // الرقم الموحد الحالي
+        { wch: 24 }, // المشروع
+        { wch: 30 }, // ملاحظات
+      ]
+
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      saveAs(data, 'قالب_إجراءات_النقل.xlsx')
+
+      toast.success('تم تحميل قالب إجراءات النقل')
     } catch (error) {
       console.error('Error:', error)
       toast.error('فشل تحميل القالب')
@@ -177,9 +211,6 @@ export default function TemplatesTab() {
         'اسم البنك',
         'الراتب',
         'حالة عقد أجير',
-        'حالة النقل',
-        'رسوم النقل',
-        'رسوم التجديد',
         'المشروع',
         'الشركة أو المؤسسة',
         'الرقم الموحد (اختياري - للتمييز بين المؤسسات المتشابهة)',
@@ -215,6 +246,23 @@ export default function TemplatesTab() {
       color: 'green',
       icon: '🏢',
       downloadFn: downloadCompanyTemplate
+    },
+    {
+      id: 'transfer-procedures',
+      title: 'قالب إجراءات النقل',
+      description: 'قالب Excel لرفع طلبات نقل جديدة إلى النظام',
+      fields: [
+        'تاريخ الطلب (مطلوب)',
+        'الاسم (مطلوب)',
+        'رقم الإقامة (مطلوب)',
+        'الحالة (مطلوب - لا تقبل منقول)',
+        'الرقم الموحد الحالي (مطلوب)',
+        'المشروع (مطلوب)',
+        'ملاحظات (اختياري)'
+      ],
+      color: 'amber',
+      icon: '🔄',
+      downloadFn: downloadTransferProceduresTemplate
     }
   ]
 

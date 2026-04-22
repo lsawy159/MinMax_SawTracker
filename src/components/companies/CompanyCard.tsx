@@ -59,18 +59,20 @@ function CompanyCard({
   }
 
   return (
-    <div className={`app-panel border-2 ${getBorderColor()} relative p-3 sm:p-4 transition hover:-translate-y-0.5 hover:shadow-lg`}>
+    <div className={`group relative overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
+
       {/* مؤشر حالة الأماكن الشاغرة */}
       {(getAvailableSlotsTextColor && getAvailableSlotsText) && (
         <div 
-          className={`absolute top-3 left-3 w-2.5 h-2.5 rounded-full ${getAvailableSlotsTextColor(company.available_slots || 0).replace('text-', 'bg-')}`} 
+          className={`absolute left-3 top-3 h-2.5 w-2.5 rounded-full ${getAvailableSlotsTextColor(company.available_slots || 0).replace('text-', 'bg-')}`} 
           title={getAvailableSlotsText(company.available_slots || 0)} 
         />
       )}
       
-      <div className="flex items-start justify-between mb-3">
-        <div className="app-icon-chip">
-          <Building2 className="h-5 w-5" />
+      <div className="mb-2.5 flex items-start justify-between">
+        <div className="app-icon-chip scale-90">
+          <Building2 className="h-4 w-4" />
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-gray-600">
@@ -104,9 +106,9 @@ function CompanyCard({
         </div>
       </div>
       
-      <h3 className="mb-2 text-lg font-bold text-slate-900">{company.name}</h3>
+      <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-slate-900">{company.name}</h3>
       
-      <div className="app-card-meta">
+      <div className="app-card-meta text-[12.5px]">
         <div className="app-card-meta-row">
           <span className="app-card-meta-label">الرقم الموحد:</span>
           <span className="app-card-meta-value font-mono">{company.unified_number}</span>
@@ -155,15 +157,15 @@ function CompanyCard({
       </div>
 
       {/* مربعات الحالات - grid من عمودين */}
-      <div className="pt-3 border-t border-gray-200">
+      <div className="pt-2.5 border-t border-gray-200">
         <div className="grid grid-cols-2 gap-2">
           {/* حالة السجل التجاري */}
           <div>
-            <div className="mb-1 text-[13px] font-semibold text-gray-600">حالة السجل التجاري</div>
+            <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة السجل التجاري</div>
             {company.commercial_registration_expiry ? (
-              <div className={`rounded-lg border-2 px-2 py-1.5 text-sm font-medium ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
+              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-xs">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{commercialRegStatus.status}</span>
                     <span className="text-xs opacity-75">{formatDaysText(commercialRegStatus.daysRemaining)}</span>
@@ -171,7 +173,7 @@ function CompanyCard({
                 </div>
               </div>
             ) : (
-              <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+              <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                 غير محدد
               </div>
             )}
@@ -179,11 +181,11 @@ function CompanyCard({
 
           {/* حالة اشتراك قوى */}
           <div>
-            <div className="text-xs font-medium text-gray-600 mb-1">حالة اشتراك قوى</div>
+            <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة اشتراك قوى</div>
             {company.ending_subscription_power_date ? (
-              <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
+              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{powerStatus.status === 'طارئ' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-xs">{powerStatus.status === 'طارئ' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{powerStatus.status}</span>
                     <span className="text-xs opacity-75">{formatDaysText(powerStatus.daysRemaining)}</span>
@@ -191,7 +193,7 @@ function CompanyCard({
                 </div>
               </div>
             ) : (
-              <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+              <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                 غير محدد
               </div>
             )}
@@ -199,11 +201,11 @@ function CompanyCard({
 
           {/* حالة اشتراك مقيم */}
           <div>
-            <div className="text-xs font-medium text-gray-600 mb-1">حالة اشتراك مقيم</div>
+            <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة اشتراك مقيم</div>
             {company.ending_subscription_moqeem_date ? (
-              <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
+              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
-                  <div className="text-sm">{moqeemStatus.status === 'طارئ' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
+                  <div className="text-xs">{moqeemStatus.status === 'طارئ' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
                     <span className="font-bold">{moqeemStatus.status}</span>
                     <span className="text-xs opacity-75">{formatDaysText(moqeemStatus.daysRemaining)}</span>
@@ -211,7 +213,7 @@ function CompanyCard({
                 </div>
               </div>
             ) : (
-              <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+              <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                 غير محدد
               </div>
             )}
@@ -220,12 +222,12 @@ function CompanyCard({
       </div>
 
       {/* الملاحظات */}
-      <div className="border-t border-border pt-3">
-        <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600">
+      <div className="border-t border-border pt-2.5">
+        <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-slate-600">
           <FileText className="w-3.5 h-3.5" />
           الملاحظات
         </div>
-        <div className="min-h-[50px] whitespace-pre-wrap rounded-xl border border-border bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        <div className="min-h-[42px] whitespace-pre-wrap rounded-xl border border-border bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
           {company.notes || 'لا توجد ملاحظات'}
         </div>
       </div>

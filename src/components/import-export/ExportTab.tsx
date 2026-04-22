@@ -22,8 +22,13 @@ interface CompanyWithStats extends Company {
   available_slots?: number
 }
 
-export default function ExportTab() {
-  const [exportType, setExportType] = useState<'employees' | 'companies'>('employees')
+interface ExportTabProps {
+  initialExportType?: 'employees' | 'companies'
+  hideTypeSelector?: boolean
+}
+
+export default function ExportTab({ initialExportType = 'employees', hideTypeSelector = false }: ExportTabProps = {}) {
+  const [exportType, setExportType] = useState<'employees' | 'companies'>(initialExportType)
   const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
   const [loading, setLoading] = useState(false)
@@ -537,9 +542,6 @@ export default function ExportTab() {
           'اسم البنك': businessFields.bank_name,
           'الراتب': emp.salary || '',
           'حالة عقد أجير': businessFields.hired_worker_contract_status,
-          'حالة النقل': businessFields.transfer_status,
-          'رسوم النقل': businessFields.transfer_fee,
-          'رسوم التجديد': businessFields.renewal_fee,
           'إجمالي رسوم نقل وتجديد': obligationTotals.transfer_renewal,
           'إجمالي جزاءات وغرامات': obligationTotals.penalty,
           'إجمالي السلف': obligationTotals.advance,
@@ -692,41 +694,42 @@ export default function ExportTab() {
 
   return (
     <div className="space-y-3 text-[13px] leading-5">
-      {/* Export Type Selection */}
-      <div>
-        <label className="block text-[12px] font-medium text-gray-700 mb-1">نوع البيانات المراد تصديرها</label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setExportType('employees')
-              setSelectedEmployees(new Set())
-              setSelectedCompanyIds(new Set())
-              setSearchQuery('')
-            }}
-            className={`flex-1 rounded-md border px-3 py-2 font-medium transition ${
-              exportType === 'employees'
-                ? 'border-primary bg-primary/15 text-slate-900'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-          >
-            موظفين
-          </button>
-          <button
-            onClick={() => {
-              setExportType('companies')
-              setSelectedCompanies(new Set())
-              setSearchQuery('')
-            }}
-            className={`flex-1 px-3 py-2 rounded-md border font-medium transition ${
-              exportType === 'companies'
-                ? 'border-green-600 bg-green-50 text-green-700'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-          >
-            مؤسسات
-          </button>
+      {!hideTypeSelector && (
+        <div>
+          <label className="block text-[12px] font-medium text-gray-700 mb-1">نوع البيانات المراد تصديرها</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setExportType('employees')
+                setSelectedEmployees(new Set())
+                setSelectedCompanyIds(new Set())
+                setSearchQuery('')
+              }}
+              className={`flex-1 rounded-md border px-3 py-2 font-medium transition ${
+                exportType === 'employees'
+                  ? 'border-primary bg-primary/15 text-slate-900'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              موظفين
+            </button>
+            <button
+              onClick={() => {
+                setExportType('companies')
+                setSelectedCompanies(new Set())
+                setSearchQuery('')
+              }}
+              className={`flex-1 px-3 py-2 rounded-md border font-medium transition ${
+                exportType === 'companies'
+                  ? 'border-green-600 bg-green-50 text-green-700'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              مؤسسات
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Export Employees Section */}
       {exportType === 'employees' && (
@@ -751,7 +754,7 @@ export default function ExportTab() {
               onChange={(e) => setEmployeeExportMode(e.target.value as 'basic' | 'monthly')}
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
             >
-              <option value="basic">تصدير أساسي مع رسوم النقل والتجديد</option>
+              <option value="basic">تصدير أساسي للموظفين</option>
               <option value="monthly">تصدير شهري بالتفاصيل المالية</option>
             </select>
           </div>

@@ -10,7 +10,6 @@ import {
   AlertCircle,
   XCircle,
   DollarSign,
-  Users,
   FileText,
   TrendingUp,
   Loader2
@@ -82,7 +81,7 @@ export function EnhancedAlertCard({
   const getPriorityConfig = (priority: EnhancedAlert['priority']) => {
     const configs = {
       urgent: {
-        borderColor: 'border-r-red-600',
+        borderColor: 'border-red-400',
         bgColor: 'bg-red-50',
         textColor: 'text-red-900',
         badgeColor: 'bg-red-100 text-red-800 border-red-200',
@@ -91,7 +90,7 @@ export function EnhancedAlertCard({
         progressColor: 'bg-red-500'
       },
       medium: {
-        borderColor: 'border-r-yellow-600', 
+        borderColor: 'border-yellow-400',
         bgColor: 'bg-yellow-50',
         textColor: 'text-yellow-900',
         badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -100,8 +99,8 @@ export function EnhancedAlertCard({
         progressColor: 'bg-yellow-500'
       },
       low: {
-        borderColor: 'border-r-green-600',
-        bgColor: 'bg-green-50', 
+        borderColor: 'border-green-400',
+        bgColor: 'bg-green-50',
         textColor: 'text-green-900',
         badgeColor: 'bg-green-100 text-green-800 border-green-200',
         iconColor: 'text-green-500',
@@ -228,14 +227,6 @@ export function EnhancedAlertCard({
     return formatDateWithHijri(dateString)
   }
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('ar-SA', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
   const priorityConfig = getPriorityConfig(alert.priority)
   const riskConfig = getComplianceRiskConfig(alert.compliance_risk)
   const impactConfig = getBusinessImpactConfig(alert.business_impact)
@@ -253,10 +244,8 @@ export function EnhancedAlertCard({
 
   if (compact) {
     return (
-      <div className={`
-        bg-white rounded-lg shadow-sm border-l-4 ${priorityConfig.borderColor} p-4
-        transition-all hover:shadow-md ${isRead ? 'opacity-75' : ''}
-      `}>
+      <div className={`group relative overflow-hidden rounded-2xl border-2 ${priorityConfig.borderColor} bg-white/95 p-3 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)] ${isRead ? 'opacity-75' : ''}`}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${priorityConfig.bgColor} ${priorityConfig.iconColor}`}>
@@ -296,42 +285,30 @@ export function EnhancedAlertCard({
   }
 
   return (
-    <div className={`
-      bg-white rounded-lg shadow-sm border-r-4 ${priorityConfig.borderColor} p-6
-      transition-all hover:shadow-md ${isRead ? 'opacity-75' : ''}
-      ${priorityConfig.bgColor} border border-gray-200
-    `}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+    <div className={`group relative overflow-hidden rounded-2xl border-2 ${priorityConfig.borderColor} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)] ${isRead ? 'opacity-75' : ''}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
+
+      <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${priorityConfig.bgColor} ${priorityConfig.iconColor}`}>
+          <div className={`rounded-lg p-2 ${priorityConfig.bgColor} ${priorityConfig.iconColor}`}>
             {getTypeIcon(alert.alert_type)}
           </div>
-          
+
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className={`font-semibold ${priorityConfig.textColor}`}>
-                {alert.title}
-              </h3>
-              <span className={`
-                inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-                ${priorityConfig.badgeColor}
-              `}>
+            <div className="mb-1 flex items-center gap-2">
+              <h3 className={`font-semibold ${priorityConfig.textColor}`}>{alert.title}</h3>
+              <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${priorityConfig.badgeColor}`}>
                 {priorityConfig.badgeText}
               </span>
             </div>
-            
-            <p className="text-gray-600 text-sm">
+
+            <p className="text-sm text-gray-600">
               {alert.company.name}
               {alert.company.commercial_registration_number && (
-                <span className="text-gray-500 mr-2">
-                  | رقم السجل: {alert.company.commercial_registration_number}
-                </span>
+                <span className="mr-2 text-gray-500">| رقم السجل: {alert.company.commercial_registration_number}</span>
               )}
             </p>
-            <p className="text-gray-500 text-xs">
-              {getTypeLabel(alert.alert_type)} | {getDocumentCategoryLabel(alert.document_category)}
-            </p>
+            <p className="text-xs text-gray-500">{getTypeLabel(alert.alert_type)} | {getDocumentCategoryLabel(alert.document_category)}</p>
           </div>
         </div>
 
@@ -342,54 +319,36 @@ export function EnhancedAlertCard({
             className="text-gray-400 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
             title="تحديد كمقروء"
           >
-            {actionLoading === 'read' ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <div className="h-3 w-3 rounded-full bg-primary"></div>
-            )}
+            {actionLoading === 'read' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <div className="h-3 w-3 rounded-full bg-primary"></div>}
           </button>
         )}
       </div>
 
-      {/* Message */}
-      <div className="mb-4">
-        <p className="text-gray-700 leading-relaxed">
-          {alert.message}
-        </p>
+      <div className="mb-3">
+        <p className="leading-relaxed text-gray-700">{alert.message}</p>
       </div>
 
-      {/* Enhanced Details Grid */}
       {showDetails && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          {/* Risk & Impact */}
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+        <div className="mb-3 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+          <div className="rounded-lg border border-gray-200 bg-white p-2.5">
+            <h4 className="mb-2 flex items-center gap-2 font-medium text-gray-900">
               <AlertTriangle className="h-4 w-4" />
               تقييم المخاطر
             </h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className={`p-1 rounded ${riskConfig.bgColor} ${riskConfig.color}`}>
-                  {riskConfig.icon}
-                </div>
-                <span className="text-sm text-gray-700">
-                  مخاطر الامتثال: <span className={`font-medium ${riskConfig.color}`}>{riskConfig.label}</span>
-                </span>
+                <div className={`rounded p-1 ${riskConfig.bgColor} ${riskConfig.color}`}>{riskConfig.icon}</div>
+                <span className="text-sm text-gray-700">مخاطر الامتثال: <span className={`font-medium ${riskConfig.color}`}>{riskConfig.label}</span></span>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`p-1 rounded ${impactConfig.bgColor} ${impactConfig.color}`}>
-                  {impactConfig.icon}
-                </div>
-                <span className="text-sm text-gray-700">
-                  التأثير على الأعمال: <span className={`font-medium ${impactConfig.color}`}>{impactConfig.label}</span>
-                </span>
+                <div className={`rounded p-1 ${impactConfig.bgColor} ${impactConfig.color}`}>{impactConfig.icon}</div>
+                <span className="text-sm text-gray-700">التأثير على الأعمال: <span className={`font-medium ${impactConfig.color}`}>{impactConfig.label}</span></span>
               </div>
             </div>
           </div>
 
-          {/* Timeline & Complexity */}
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+          <div className="rounded-lg border border-gray-200 bg-white p-2.5">
+            <h4 className="mb-2 flex items-center gap-2 font-medium text-gray-900">
               <Clock className="h-4 w-4" />
               الجدولة والتعقيد
             </h4>
@@ -397,78 +356,40 @@ export function EnhancedAlertCard({
               {alert.expiry_date && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <HijriDateDisplay date={alert.expiry_date}>
-                    تاريخ الانتهاء: {formatDate(alert.expiry_date)}
-                  </HijriDateDisplay>
+                  <HijriDateDisplay date={alert.expiry_date}>تاريخ الانتهاء: {formatDate(alert.expiry_date)}</HijriDateDisplay>
                 </div>
               )}
-              
+
               {alert.days_remaining !== undefined && (
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4" />
-                  <span className={
-                    alert.days_remaining < 0 ? 'text-red-600 font-medium' :
-                    alert.days_remaining <= 7 ? 'text-orange-600 font-medium' :
-                    'text-gray-600'
-                  }>
+                  <span className={alert.days_remaining < 0 ? 'font-medium text-red-600' : alert.days_remaining <= 7 ? 'font-medium text-orange-600' : 'text-gray-600'}>
                     {getDaysRemainingText(alert.days_remaining)}
                   </span>
                 </div>
               )}
-              
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">مستوى التعقيد:</span> {getComplexityLabel(alert.renewal_complexity)}
-              </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">الوقت المقدر:</span> {alert.estimated_renewal_time}
-              </div>
-            </div>
-          </div>
 
-          {/* Cost & Department */}
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              التكلفة والإدارة
-            </h4>
-            <div className="space-y-2">
-              {alert.renewal_cost_estimate && (
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="text-gray-600">
-                    التكلفة المقدرة: {formatCurrency(alert.renewal_cost_estimate.min, alert.renewal_cost_estimate.currency)} - 
-                    {formatCurrency(alert.renewal_cost_estimate.max, alert.renewal_cost_estimate.currency)}
-                  </span>
-                </div>
-              )}
-              
-              {alert.responsible_department && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>القسم المسؤول: {alert.responsible_department}</span>
-                </div>
-              )}
+              <div className="text-sm text-gray-600"><span className="font-medium">مستوى التعقيد:</span> {getComplexityLabel(alert.renewal_complexity)}</div>
+              <div className="text-sm text-gray-600"><span className="font-medium">الوقت المقدر:</span> {alert.estimated_renewal_time}</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Action Required */}
-      <div className="app-info-block mb-4">
+      <div className="app-info-block mb-3 p-2.5">
         <h4 className="mb-1 text-sm font-semibold text-slate-900">الإجراء المطلوب:</h4>
         <p className="text-sm text-slate-700">{alert.action_required}</p>
       </div>
 
-      {/* Suggested Actions */}
       {alert.suggested_actions.length > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+        <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <h4 className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-900">
             <CheckCircle className="h-4 w-4" />
             الإجراءات المقترحة:
           </h4>
           <ul className="space-y-1">
             {alert.suggested_actions.map((action, index) => (
-              <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+              <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
                 <span className="mt-1 text-primary">•</span>
                 <span>{action}</span>
               </li>
@@ -477,17 +398,16 @@ export function EnhancedAlertCard({
         </div>
       )}
 
-      {/* Related Documents */}
       {alert.related_documents.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-          <h4 className="text-sm font-medium text-yellow-900 mb-2 flex items-center gap-2">
+        <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 p-2.5">
+          <h4 className="mb-2 flex items-center gap-2 text-sm font-medium text-yellow-900">
             <FileText className="h-4 w-4" />
             الوثائق المطلوبة:
           </h4>
           <ul className="space-y-1">
             {alert.related_documents.map((document, index) => (
-              <li key={index} className="text-sm text-yellow-800 flex items-center gap-2">
-                <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+              <li key={index} className="flex items-center gap-2 text-sm text-yellow-800">
+                <span className="h-2 w-2 rounded-full bg-yellow-400"></span>
                 <span>{document}</span>
               </li>
             ))}
@@ -495,8 +415,7 @@ export function EnhancedAlertCard({
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <button
           onClick={() => void runAction('view', () => onViewCompany(alert.company.id))}
           disabled={isBusy}
@@ -525,25 +444,17 @@ export function EnhancedAlertCard({
         </button>
 
         {alert.renewal_cost_estimate && (
-          <button
-            className="app-button-secondary"
-            title="عرض تفاصيل التكلفة"
-          >
+          <button className="app-button-secondary" title="عرض تفاصيل التكلفة">
             <DollarSign className="h-4 w-4" />
             تفاصيل التكلفة
           </button>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-gray-200">
+      <div className="mt-3 border-t border-gray-200 pt-2.5">
         <p className="text-xs text-gray-500">
-          <HijriDateDisplay date={alert.created_at}>
-            تم الإنشاء: {formatDate(alert.created_at)}
-          </HijriDateDisplay>
-          {alert.responsible_department && (
-            <span className="mr-4">القسم: {alert.responsible_department}</span>
-          )}
+          <HijriDateDisplay date={alert.created_at}>تم الإنشاء: {formatDate(alert.created_at)}</HijriDateDisplay>
+          {alert.responsible_department && <span className="mr-4">القسم: {alert.responsible_department}</span>}
         </p>
       </div>
     </div>

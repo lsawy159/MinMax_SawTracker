@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { enqueueEmail } from '@/lib/emailQueueService'
+import { getNotificationRecipients } from '@/lib/notificationRecipientService'
+import { PRIMARY_ADMIN_EMAIL } from '@/lib/notificationTypes'
+import { logger } from '@/utils/logger'
 
 export interface BackupRecord {
   id: string
@@ -14,8 +17,59 @@ interface SystemSetting {
   setting_value: unknown
 }
 
-// إرسال إشعار النسخة الاحتياطية إذا كانت مفعّلة في system_settings
-export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
+// 🔐 NEW: إرسال إشعار النسخة الاحتياطية مع نظام الإشعارات المتقدم
+// استخدام new notification system مع fallback آمن
+async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
+  try {
+    // ✅ استخدم نظام الإشعارات الجديد
+    const recipients = await getNotificationRecipients({
+      notificationType: 'backupNotifications',
+      timeout: 5000,
+      includeLogging: true
+    })
+
+    if (recipients.length === 0) {
+      logger.warn('[BackupService] No recipients found for backup notification')
+      return
+    }
+
+    const storagePath = backup.file_path
+    const subject = 'تم إنشاء نسخة احتياطية جديدة للنظام'
+    const bodyText = `تم إنشاء نسخة احتياطية بنجاح.\nالمعرف: ${backup.id}\nالمسار: backups/${storagePath}\nالحالة: ${backup.status}\nالوقت: ${backup.completed_at || backup.started_at}`
+    const bodyHtml = `<p>تم إنشاء نسخة احتياطية بنجاح.</p>
+        <ul>
+          <li><strong>المعرف:</strong> ${backup.id}</li>
+          <li><strong>المسار:</strong> <code>backups/${storagePath}</code></li>
+          <li><strong>الحالة:</strong> ${backup.status}</li>
+          <li><strong>الوقت:</strong> ${backup.completed_at || backup.started_at}</li>
+        </ul>`
+
+    logger.debug(`[BackupService] Sending backup notification to ${recipients.length} recipient(s)`)
+
+    await enqueueEmail({
+      toEmails: recipients,
+      subject,
+      textContent: bodyText,
+      htmlContent: bodyHtml,
+      priority: 'high'
+    })
+
+    logger.info(`[BackupService] Backup notification sent successfully to ${recipients.join(', ')}`)
+  } catch (err) {
+    logger.error(`[BackupService] maybeNotifyBackupNew error: ${err instanceof Error ? err.message : String(err)}`)
+    // 🔐 FALLBACK: Try legacy system
+    try {
+      await maybeNotifyBackupLegacy(backup)
+      logger.warn('[BackupService] Fell back to legacy notification system')
+    } catch (legacyErr) {
+      logger.error(`[BackupService] Legacy notification also failed: ${legacyErr instanceof Error ? legacyErr.message : String(legacyErr)}`)
+    }
+  }
+}
+
+// 📦 LEGACY: إرسال إشعار النسخة الاحتياطية إذا كانت مفعّلة في system_settings
+// نحتفظ به للتوافقية والعودة الآمنة (fallback)
+async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
   try {
     const { data: settings, error } = await supabase
       .from('system_settings')
@@ -29,7 +83,7 @@ export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
     if (!enabled) return
 
     const recipientsRaw = (map.get('backup_email_notifications') as string) || ''
-    const adminEmail = (map.get('admin_email') as string) || ''
+    const adminEmail = (map.get('admin_email') as string) || PRIMARY_ADMIN_EMAIL
     const toList = [
       ...recipientsRaw.split(/[;,]/).map(s => s.trim()).filter(Boolean),
     ]
@@ -55,8 +109,14 @@ export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
       priority: 'high'
     })
   } catch (err) {
-    console.warn('[BackupService] maybeNotifyBackup error:', err)
+    logger.warn(`[BackupService] maybeNotifyBackupLegacy error: ${err instanceof Error ? err.message : String(err)}`)
   }
+}
+
+// ✅ PUBLIC EXPORT: استخدم هذه الدالة (توجه إلى النظام الجديد مع fallback)
+export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
+  // Try new system first, fall back to legacy if needed
+  await maybeNotifyBackupNew(backup)
 }
 
 // إنشاء نسخة احتياطية يدوية وإرسال إشعار عند النجاح

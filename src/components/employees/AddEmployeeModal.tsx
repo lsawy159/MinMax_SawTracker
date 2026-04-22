@@ -5,14 +5,36 @@ import { toast } from 'sonner'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
 import {
   HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
-  TRANSFER_STATUS_OPTIONS,
   buildEmployeeBusinessAdditionalFields,
 } from '@/utils/employeeBusinessFields'
 
 interface AddEmployeeModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (createdEmployee?: Employee & { company: Company; project?: Project }) => void
+  initialData?: Partial<{
+    name: string
+    profession: string
+    nationality: string
+    birth_date: string
+    phone: string
+    passport_number: string
+    residence_number: string | number
+    joining_date: string
+    contract_expiry: string
+    hired_worker_contract_expiry: string
+    residence_expiry: string
+    project_id: string
+    project_name: string
+    bank_account: string
+    bank_name: string
+    salary: string | number
+    health_insurance_expiry: string
+    residence_image_url: string
+    notes: string
+    company_id: string
+    hired_worker_contract_status: string
+  }>
 }
 
 interface CompanyWithStats extends Company {
@@ -20,7 +42,52 @@ interface CompanyWithStats extends Company {
   available_slots: number
 }
 
-export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmployeeModalProps) {
+const createDefaultFormData = () => ({
+  name: '',
+  profession: '',
+  nationality: '',
+  birth_date: '',
+  phone: '',
+  passport_number: '',
+  residence_number: '',
+  joining_date: '',
+  contract_expiry: '',
+  hired_worker_contract_expiry: '',
+  residence_expiry: '',
+  project_id: '',
+  project_name: '',
+  bank_account: '',
+  bank_name: '',
+  salary: '',
+  health_insurance_expiry: '',
+  residence_image_url: '',
+  notes: '',
+  company_id: '',
+  hired_worker_contract_status: 'بدون أجير'
+})
+
+const buildInitialFormData = (
+  initialData?: AddEmployeeModalProps['initialData']
+) => {
+  const defaults = createDefaultFormData()
+  if (!initialData) {
+    return defaults
+  }
+
+  return {
+    ...defaults,
+    ...initialData,
+    residence_number: initialData.residence_number !== undefined
+      ? String(initialData.residence_number)
+      : defaults.residence_number,
+    salary: initialData.salary !== undefined
+      ? String(initialData.salary)
+      : defaults.salary,
+    hired_worker_contract_status: initialData.hired_worker_contract_status || defaults.hired_worker_contract_status,
+  }
+}
+
+export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialData }: AddEmployeeModalProps) {
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
@@ -33,61 +100,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    profession: '',
-    nationality: '',
-    birth_date: '',
-    phone: '',
-    passport_number: '',
-    residence_number: '',
-    joining_date: '',
-    contract_expiry: '',
-    hired_worker_contract_expiry: '',
-    residence_expiry: '',
-    project_id: '',
-    project_name: '',
-    bank_account: '',
-    bank_name: '',
-    salary: '',
-    health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-    residence_image_url: '',
-    notes: '',
-    company_id: '',
-    hired_worker_contract_status: 'بدون أجير',
-    transfer_status: 'ليس على الكفالة'
-  })
+  const [formData, setFormData] = useState(buildInitialFormData(initialData))
 
   useEffect(() => {
     if (isOpen) {
       loadCompanies()
       loadProjects()
+      setFormData(buildInitialFormData(initialData))
     } else {
       // إعادة تعيين النموذج عند إغلاق المودال
-      setFormData({
-        name: '',
-        profession: '',
-        nationality: '',
-        birth_date: '',
-        phone: '',
-        passport_number: '',
-        residence_number: '',
-        joining_date: '',
-        contract_expiry: '',
-        hired_worker_contract_expiry: '',
-        residence_expiry: '',
-        project_id: '',
-        project_name: '',
-        bank_account: '',
-        bank_name: '',
-        salary: '',
-        health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-        residence_image_url: '',
-        notes: '',
-        company_id: '',
-        hired_worker_contract_status: 'بدون أجير',
-        transfer_status: 'ليس على الكفالة'
-      })
+      setFormData(createDefaultFormData())
       setCompanySearchQuery('')
       setIsCompanyDropdownOpen(false)
       setProjectSearchQuery('')
@@ -95,7 +117,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       setShowCreateProjectModal(false)
       setNewProjectName('')
     }
-  }, [isOpen])
+  }, [isOpen, initialData])
 
   // معالجة ESC لإغلاق المودال
   useEffect(() => {
@@ -344,7 +366,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
           ...prev,
           [name]: value,
           hired_worker_contract_status: 'أجير',
-          transfer_status: 'منقول',
         }
       }
 
@@ -446,7 +467,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         additional_fields: buildEmployeeBusinessAdditionalFields(undefined, {
           bank_name: formData.bank_name,
           hired_worker_contract_status: formData.hired_worker_contract_status,
-          transfer_status: formData.transfer_status,
           hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
         })
       }
@@ -480,9 +500,11 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
         }
       }
 
-      const { error } = await supabase
+      const { data: insertedEmployee, error } = await supabase
         .from('employees')
         .insert([employeeData])
+        .select('*, company:companies(*), project:projects(*)')
+        .single()
 
       if (error) {
         // Check if error is due to duplicate residence number
@@ -500,35 +522,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
       
       // إعادة تعيين النموذج
-      setFormData({
-        name: '',
-        profession: '',
-        nationality: '',
-        birth_date: '',
-        phone: '',
-        passport_number: '',
-        residence_number: '',
-        joining_date: '',
-        contract_expiry: '',
-        hired_worker_contract_expiry: '',
-        residence_expiry: '',
-        project_id: '',
-        project_name: '',
-        bank_account: '',
-        bank_name: '',
-        salary: '',
-        health_insurance_expiry: '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-        residence_image_url: '',
-        notes: '',
-        company_id: '',
-        hired_worker_contract_status: 'بدون أجير',
-        transfer_status: 'ليس على الكفالة'
-      })
+      setFormData(createDefaultFormData())
       setProjectSearchQuery('')
       setIsProjectDropdownOpen(false)
 
       // إغلاق المودال وإعادة تحميل البيانات
-      onSuccess()
+      onSuccess((insertedEmployee || undefined) as Employee & { company: Company; project?: Project } | undefined)
       onClose()
     } catch (error) {
       console.error('Error adding employee:', error)
@@ -712,28 +711,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               />
             </div>
 
-            {/* 10. حالة النقل */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                حالة النقل
-              </label>
-              <select
-                name="transfer_status"
-                value={formData.transfer_status}
-                onChange={handleChange}
-                className="app-input py-2.5"
-                disabled={loading || Boolean(formData.hired_worker_contract_expiry)}
-              >
-                {TRANSFER_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-              {formData.hired_worker_contract_expiry && (
-                <p className="mt-2 text-xs text-amber-700">عند وجود تاريخ انتهاء عقد أجير يتم اعتماد حالة النقل تلقائياً: منقول.</p>
-              )}
-            </div>
-
-            {/* 11. حالة عقد أجير */}
+            {/* 10. حالة عقد أجير */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 حالة عقد أجير
@@ -751,7 +729,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               </select>
             </div>
 
-            {/* 12. المشروع */}
+            {/* 11. المشروع */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                 <FolderKanban className="w-4 h-4" />

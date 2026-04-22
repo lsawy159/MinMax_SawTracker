@@ -70,7 +70,7 @@ export default function Employees() {
   // حالة نوع العرض
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   const isMobileView = useIsMobileView()
-  const { cardColumns, setCardColumns, gridClass: employeeGridClass } = useCardColumns('employees-card-columns', 4)
+  const { gridClass: employeeGridClass } = useCardColumns()
 
   // حالة التعديل السريع - تم إزالتها
   
@@ -1094,26 +1094,6 @@ export default function Employees() {
               </button>
             </div>
 
-            {viewMode === 'grid' && (
-              <div className="app-toggle-shell">
-                <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
-                {[
-                  { value: 2, label: 'كبير' },
-                  { value: 3, label: 'متوسط' },
-                  { value: 4, label: 'صغير' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
-                    className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {canCreate('employees') && (
               <>
                 <button
@@ -1717,11 +1697,13 @@ export default function Employees() {
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className={`app-panel border-2 ${getBorderColor()} relative cursor-pointer p-4 transition hover:-translate-y-0.5 hover:shadow-lg`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="app-icon-chip">
-                      <User className="h-5 w-5" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
+
+                  <div className="flex items-start justify-between mb-2.5">
+                    <div className="app-icon-chip scale-90">
+                      <User className="h-4 w-4" />
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       {canEdit('employees') && (
@@ -1748,9 +1730,9 @@ export default function Employees() {
                     </div>
                   </div>
 
-                  <h3 className="mb-2 text-lg font-bold text-gray-900">{employee.name}</h3>
+                  <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-gray-900">{employee.name}</h3>
 
-                  <div className="app-card-meta">
+                  <div className="app-card-meta text-[12.5px]">
                     {employee.project?.name || employee.project_name ? (
                       <div className="app-card-meta-row">
                         <span className="app-card-meta-label">المشروع:</span>
@@ -1789,15 +1771,15 @@ export default function Employees() {
                   </div>
 
                   {/* مربعات الحالات - grid من عمودين */}
-                  <div className="pt-3 border-t border-gray-200">
+                  <div className="pt-2.5 border-t border-gray-200">
                     <div className="grid grid-cols-2 gap-2">
                       {/* حالة انتهاء العقد */}
                       <div>
-                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء العقد</div>
+                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء العقد</div>
                         {employee.contract_expiry ? (
-                          <div className={`rounded-lg border-2 px-2 py-1.5 text-sm font-medium ${contractStatus.color}`}>
+                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${contractStatus.color}`}>
                             <div className="flex items-center gap-1">
-                              <div className="text-sm">{contractStatus.emoji}</div>
+                              <div className="text-xs">{contractStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{contractStatus.status}</span>
                                 <span className="text-xs opacity-75">{contractStatus.description}</span>
@@ -1805,7 +1787,7 @@ export default function Employees() {
                             </div>
                           </div>
                         ) : (
-                          <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                             غير محدد
                           </div>
                         )}
@@ -1813,11 +1795,11 @@ export default function Employees() {
 
                       {/* حالة انتهاء عقد أجير */}
                       <div>
-                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء عقد أجير</div>
+                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء عقد أجير</div>
                         {employee.hired_worker_contract_expiry ? (
-                          <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${hiredWorkerStatus.color}`}>
+                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${hiredWorkerStatus.color}`}>
                             <div className="flex items-center gap-1">
-                              <div className="text-sm">{hiredWorkerStatus.emoji}</div>
+                              <div className="text-xs">{hiredWorkerStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{hiredWorkerStatus.status}</span>
                                 <span className="text-xs opacity-75">{hiredWorkerStatus.description}</span>
@@ -1825,7 +1807,7 @@ export default function Employees() {
                             </div>
                           </div>
                         ) : (
-                          <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                             غير محدد
                           </div>
                         )}
@@ -1833,11 +1815,11 @@ export default function Employees() {
 
                       {/* حالة انتهاء الإقامة */}
                       <div>
-                        <div className="mb-1 text-[13px] font-semibold text-gray-600">انتهاء الإقامة</div>
+                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء الإقامة</div>
                         {employee.residence_expiry ? (
-                          <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${residenceStatus.color}`}>
+                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${residenceStatus.color}`}>
                             <div className="flex items-center gap-1">
-                              <div className="text-sm">{residenceStatus.emoji}</div>
+                              <div className="text-xs">{residenceStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{residenceStatus.status}</span>
                                 <span className="text-xs opacity-75">{residenceStatus.description}</span>
@@ -1845,7 +1827,7 @@ export default function Employees() {
                             </div>
                           </div>
                         ) : (
-                          <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                             غير محدد
                           </div>
                         )}
@@ -1853,11 +1835,11 @@ export default function Employees() {
 
                       {/* حالة التأمين */}
                       <div>
-                        <div className="mb-1 text-[13px] font-semibold text-gray-600">حالة التأمين</div>
+                        <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة التأمين</div>
                         {employee.health_insurance_expiry ? (
-                          <div className={`px-2 py-1.5 rounded-lg text-xs font-medium border-2 ${insuranceStatus.color}`}>
+                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${insuranceStatus.color}`}>
                             <div className="flex items-center gap-1">
-                              <div className="text-sm">{insuranceStatus.emoji}</div>
+                              <div className="text-xs">{insuranceStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{insuranceStatus.status}</span>
                                 <span className="text-xs opacity-75">{insuranceStatus.description}</span>
@@ -1865,7 +1847,7 @@ export default function Employees() {
                             </div>
                           </div>
                         ) : (
-                          <div className="px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
                             غير محدد
                           </div>
                         )}
@@ -1874,12 +1856,12 @@ export default function Employees() {
                   </div>
 
                   {/* الملاحظات */}
-                  <div className="pt-3 border-t border-gray-200">
-                    <div className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-gray-600">
+                  <div className="pt-2.5 border-t border-gray-200">
+                    <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-gray-600">
                       <FileText className="w-3.5 h-3.5" />
                       الملاحظات
                     </div>
-                    <div className="px-3 py-2 rounded-lg text-xs bg-gray-50 text-gray-700 border border-gray-200 whitespace-pre-wrap min-h-[50px]">
+                    <div className="min-h-[42px] whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
                       {employee.notes || 'لا توجد ملاحظات'}
                     </div>
                   </div>

@@ -20,7 +20,7 @@ import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import { usePermissions } from '@/utils/permissions'
-import { useCardColumns } from '@/hooks/useUiPreferences'
+
 
 interface AlertsProps {
   initialTab?: 'companies' | 'employees' | 'all'
@@ -50,7 +50,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company }) | null>(null)
   const navigate = useNavigate()
-  const { cardColumns, setCardColumns, gridClass: alertGridClass } = useCardColumns('alerts-card-columns', 3)
+  // شبكة خاصة بكروت التنبيهات - أعرض من الكروت العادية لاستيعاب المحتوى
+  const ALERT_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-3'
+  const alertGridClass = ALERT_GRID_CLASS
 
   useEffect(() => {
     fetchData()
@@ -590,23 +592,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 <option value="low">طفيف</option>
               </select>
 
-              <div className="app-toggle-shell">
-                <span className="px-2 text-xs text-slate-500">حجم الكروت</span>
-                {[
-                  { value: 2, label: 'كبير' },
-                  { value: 3, label: 'متوسط' },
-                  { value: 4, label: 'صغير' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setCardColumns(option.value as 2 | 3 | 4)}
-                    className={`app-density-button ${cardColumns === option.value ? 'app-density-button-active' : ''}`}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 

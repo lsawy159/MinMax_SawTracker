@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { AlertTriangle, Calendar, User, Shield, Clock, Eye, Mail, Loader2 } from 'lucide-react'
-import { formatDateWithHijri } from '@/utils/dateFormatter'
+import { AlertTriangle, Calendar, User, Shield, Clock, Eye, Mail, Loader2, CheckCheck } from 'lucide-react'
+import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 
 export interface EmployeeAlert {
   id: string
-  type: 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry' | 'hired_worker_contract_expiry'  // تحديث: insurance_expiry → health_insurance_expiry
+  type: 'contract_expiry' | 'residence_expiry' | 'health_insurance_expiry' | 'hired_worker_contract_expiry'
   priority: 'urgent' | 'high' | 'medium' | 'low'
   title: string
   message: string
@@ -33,259 +33,188 @@ interface EmployeeAlertCardProps {
   onViewEmployee: (employeeId: string) => void
   onMarkAsRead: (alertId: string) => void
   onMarkAsUnread?: (alertId: string) => void
-  isRead?: boolean // ← [NEW] الإضافة الجديدة
+  isRead?: boolean
 }
 
-export function EmployeeAlertCard({ 
-  alert, 
-  onViewEmployee, 
+const PRIORITY = {
+  urgent: {
+    accent: 'bg-red-500',
+    badge: 'bg-red-100 text-red-700 border-red-200',
+    icon: 'bg-red-100 text-red-600',
+    label: 'طارئ',
+  },
+  high: {
+    accent: 'bg-orange-500',
+    badge: 'bg-orange-100 text-orange-700 border-orange-200',
+    icon: 'bg-orange-100 text-orange-600',
+    label: 'عاجل',
+  },
+  medium: {
+    accent: 'bg-yellow-400',
+    badge: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    icon: 'bg-yellow-100 text-yellow-600',
+    label: 'متوسط',
+  },
+  low: {
+    accent: 'bg-emerald-500',
+    badge: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    icon: 'bg-emerald-100 text-emerald-600',
+    label: 'طفيف',
+  },
+} as const
+
+function getTypeIcon(type: EmployeeAlert['type']) {
+  switch (type) {
+    case 'contract_expiry': return <User className="h-4 w-4" />
+    case 'residence_expiry': return <Shield className="h-4 w-4" />
+    case 'health_insurance_expiry': return <Shield className="h-4 w-4" />
+    case 'hired_worker_contract_expiry': return <User className="h-4 w-4" />
+    default: return <AlertTriangle className="h-4 w-4" />
+  }
+}
+
+function getDaysChip(days: number) {
+  if (days < 0) return { text: `منتهي منذ ${Math.abs(days)} يوم`, cls: 'bg-red-50 text-red-700 border-red-200' }
+  if (days === 0) return { text: 'ينتهي اليوم', cls: 'bg-red-50 text-red-700 border-red-200' }
+  if (days <= 7) return { text: `باقي ${days} يوم`, cls: 'bg-orange-50 text-orange-700 border-orange-200' }
+  return { text: `باقي ${days} يوم`, cls: 'bg-slate-100 text-slate-600 border-slate-200' }
+}
+
+export function EmployeeAlertCard({
+  alert,
+  onViewEmployee,
   onMarkAsRead,
   onMarkAsUnread,
-  isRead = false  // ← [NEW] القيمة الافتراضية false
+  isRead = false,
 }: EmployeeAlertCardProps) {
-  const getPriorityConfig = (priority: EmployeeAlert['priority']) => {
-    const configs = {
-      urgent: {
-        borderColor: 'border-r-red-600',
-        bgColor: 'bg-red-50',
-        textColor: 'text-red-900',
-        badgeColor: 'bg-red-100 text-red-800 border-red-200',
-        iconColor: 'text-red-500',
-        badgeText: 'طارئ'
-      },
-      high: {
-        borderColor: 'border-r-orange-600',
-        bgColor: 'bg-orange-50',
-        textColor: 'text-orange-900',
-        badgeColor: 'bg-orange-100 text-orange-800 border-orange-200',
-        iconColor: 'text-orange-500',
-        badgeText: 'عاجل'
-      },
-      medium: {
-        borderColor: 'border-r-yellow-600', 
-        bgColor: 'bg-yellow-50',
-        textColor: 'text-yellow-900',
-        badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        iconColor: 'text-yellow-500',
-        badgeText: 'متوسط'
-      },
-      low: {
-        borderColor: 'border-r-green-600',
-        bgColor: 'bg-green-50', 
-        textColor: 'text-green-900',
-        badgeColor: 'bg-green-100 text-green-800 border-green-200',
-        iconColor: 'text-green-500',
-        badgeText: 'طفيف'
-      }
-    }
-    return configs[priority]
-  }
-
-  const getTypeIcon = (type: EmployeeAlert['type']) => {
-    switch (type) {
-      case 'contract_expiry':
-        return <User className="h-5 w-5" />
-      case 'residence_expiry':
-        return <Shield className="h-5 w-5" />
-      case 'health_insurance_expiry':  // تحديث: insurance_expiry → health_insurance_expiry
-        return <Shield className="h-5 w-5" />
-      case 'hired_worker_contract_expiry':
-        return <User className="h-5 w-5" />
-      default:
-        return <AlertTriangle className="h-5 w-5" />
-    }
-  }
-
-  const getTypeLabel = (type: EmployeeAlert['type']) => {
-    const labels = {
-      contract_expiry: 'انتهاء عقد',
-      residence_expiry: 'انتهاء إقامة',
-      health_insurance_expiry: 'انتهاء التأمين الصحي',  // تحديث: insurance_expiry → health_insurance_expiry
-      hired_worker_contract_expiry: 'انتهاء عقد أجير'
-    }
-    return labels[type] || type
-  }
-
-  const getDaysRemainingText = (days?: number) => {
-    if (!days) return ''
-    
-    if (days < 0) {
-      return `منتهي منذ ${Math.abs(days)} يوم`
-    } else if (days === 0) {
-      return 'ينتهي اليوم'
-    } else if (days === 1) {
-      return 'ينتهي غداً'
-    } else {
-      return `باقي ${days} يوم`
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return formatDateWithHijri(dateString)
-  }
-
-  const priorityConfig = getPriorityConfig(alert.priority)
   const [actionLoading, setActionLoading] = useState<'view' | 'read' | 'unread' | null>(null)
   const isBusy = actionLoading !== null
+  const p = PRIORITY[alert.priority]
 
-  const runAction = async (action: 'view' | 'read' | 'unread', callback: () => void | Promise<void>) => {
-    try {
-      setActionLoading(action)
-      await Promise.resolve(callback())
-    } finally {
-      setActionLoading(null)
-    }
+  const runAction = async (action: 'view' | 'read' | 'unread', cb: () => void | Promise<void>) => {
+    try { setActionLoading(action); await Promise.resolve(cb()) }
+    finally { setActionLoading(null) }
   }
 
+  const daysChip = alert.days_remaining !== undefined ? getDaysChip(alert.days_remaining) : null
+
   return (
-    <div className={`
-      bg-white rounded-lg shadow-sm border-r-4 ${priorityConfig.borderColor} p-6
-      transition-all hover:shadow-md
-      ${priorityConfig.bgColor} border border-gray-200
-      ${isRead ? 'opacity-60' : ''}
-    `}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${priorityConfig.bgColor} ${priorityConfig.iconColor}`}>
-            {getTypeIcon(alert.type)}
-          </div>
-          
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className={`font-semibold ${priorityConfig.textColor}`}>
-                {alert.title}
-              </h3>
-              <span className={`
-                inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-                ${priorityConfig.badgeColor}
-              `}>
-                {priorityConfig.badgeText}
-              </span>
-              {/* ← [NEW] شارة "مقروء" */}
-              {isRead && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
-                  <Eye className="h-3 w-3" />
-                  مقروء
-                </span>
-              )}
+    <div className={`group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 ${isRead ? 'opacity-55' : ''}`}>
+
+      {/* Priority accent bar */}
+      <div className={`h-1 w-full ${p.accent} shrink-0`} />
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col gap-3 p-4">
+
+        {/* Top row: icon + title + read dot */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5">
+            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${p.icon}`}>
+              {getTypeIcon(alert.type)}
             </div>
-            
-            <p className="text-gray-600 text-sm">
-              {alert.employee.name} - {alert.employee.profession}
-            </p>
-            <p className="text-gray-500 text-xs">
-              {alert.company.name} {alert.company.unified_number && `(${alert.company.unified_number})`}
-              {alert.company.commercial_registration_number && (
-                <span className="mr-2">
-                  | رقم السجل: {alert.company.commercial_registration_number}
-                </span>
-              )}
-            </p>
-            <p className="text-gray-500 text-xs">
-              {alert.employee.nationality} | {getTypeLabel(alert.type)}
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold leading-snug text-slate-900 line-clamp-2">{alert.title}</p>
+              <span className={`mt-1 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${p.badge}`}>
+                {p.label}
+              </span>
+            </div>
+          </div>
+          {isRead ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+              <Eye className="h-3 w-3" />
+              مقروء
+            </span>
+          ) : (
+            <button
+              onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
+              disabled={isBusy}
+              title="تحديد كمقروء"
+              className="mt-0.5 shrink-0 text-slate-300 transition hover:text-primary disabled:opacity-40"
+            >
+              {actionLoading === 'read'
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/30" />
+              }
+            </button>
+          )}
+        </div>
+
+        {/* Employee info */}
+        <div className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2">
+          <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <div className="min-w-0">
+            <p className="truncate text-[12px] font-semibold text-slate-800">{alert.employee.name}</p>
+            <p className="truncate text-[11px] text-slate-400">
+              {alert.employee.profession}
+              {alert.employee.nationality ? ` · ${alert.employee.nationality}` : ''}
             </p>
           </div>
         </div>
 
-        {/* ← [MODIFIED] زر تحديد كمقروء - يظهر فقط إذا لم يكن مقروءاً */}
-        {!isRead && (
-          <button
-            onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
-            disabled={isBusy}
-            className="text-gray-400 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-            title="تحديد كمقروء"
-          >
-            {actionLoading === 'read' ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <div className="h-3 w-3 rounded-full bg-primary"></div>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Message */}
-      <div className="mb-4">
-        <p className="text-gray-700 leading-relaxed">
-          {alert.message}
+        {/* Company */}
+        <p className="truncate text-[11px] text-slate-500">
+          <span className="font-medium text-slate-600">{alert.company.name}</span>
+          {alert.company.unified_number ? ` (${alert.company.unified_number})` : ''}
         </p>
-      </div>
 
-      {/* Details */}
-      <div className="space-y-2 mb-4">
-        {alert.expiry_date && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="h-4 w-4" />
+        {/* Expiry + Days chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          {alert.expiry_date && (
             <HijriDateDisplay date={alert.expiry_date}>
-              تاريخ انتهاء الصلاحية: {formatDate(alert.expiry_date)}
+              <span className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
+                <Calendar className="h-3 w-3 shrink-0" />
+                {formatDateShortWithHijri(alert.expiry_date)}
+              </span>
             </HijriDateDisplay>
-          </div>
-        )}
-        
-        {alert.days_remaining !== undefined && (
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4" />
-            <span className={
-              alert.days_remaining < 0 ? 'text-red-600 font-medium' :
-              alert.days_remaining <= 7 ? 'text-orange-600 font-medium' :
-              'text-gray-600'
-            }>
-              {getDaysRemainingText(alert.days_remaining)}
+          )}
+          {daysChip && (
+            <span className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold ${daysChip.cls}`}>
+              <Clock className="h-3 w-3 shrink-0" />
+              {daysChip.text}
             </span>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Action required */}
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800 border border-amber-100">
+          <span className="font-semibold">الإجراء: </span>{alert.action_required}
+        </p>
+
       </div>
 
-      {/* Action Required */}
-      <div className="app-info-block mb-4">
-        <h4 className="mb-1 text-sm font-semibold text-slate-900">الإجراء المطلوب:</h4>
-        <p className="text-sm text-slate-700">{alert.action_required}</p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Footer actions */}
+      <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-2.5">
         <button
           onClick={() => void runAction('view', () => onViewEmployee(alert.employee.id))}
           disabled={isBusy}
-          className="app-button-primary"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-[12px] font-semibold text-slate-900 transition hover:bg-primary/90 disabled:opacity-50"
         >
-          {actionLoading === 'view' ? <Loader2 className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
+          {actionLoading === 'view' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <User className="h-3.5 w-3.5" />}
           عرض الموظف
         </button>
 
-        {/* ← [MODIFIED] زر "تم الاطلاع" - يظهر فقط إذا لم يكن مقروءاً */}
         {!isRead && (
           <button
             onClick={() => void runAction('read', () => onMarkAsRead(alert.id))}
             disabled={isBusy}
-            className="app-button-secondary"
+            className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
           >
-            {actionLoading === 'read' && <Loader2 className="h-4 w-4 animate-spin" />}
-            تم الاطلاع
+            {actionLoading === 'read' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
+            اطلعت
           </button>
         )}
-        
-        {/* ← [NEW] زر "إعادة إلى غير مقروء" - يظهر إذا كان مقروءاً */}
+
         {isRead && onMarkAsUnread && (
           <button
             onClick={() => void runAction('unread', () => onMarkAsUnread(alert.id))}
             disabled={isBusy}
-            className="app-button-secondary"
+            className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
           >
-            {actionLoading === 'unread' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            إعادة إلى غير مقروء
+            {actionLoading === 'unread' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+            غير مقروء
           </button>
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-gray-200">
-        <HijriDateDisplay date={alert.created_at}>
-          <p className="text-xs text-gray-500">
-            تم الإنشاء: {formatDate(alert.created_at)}
-          </p>
-        </HijriDateDisplay>
       </div>
     </div>
   )

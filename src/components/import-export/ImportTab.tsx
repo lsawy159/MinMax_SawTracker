@@ -10,7 +10,6 @@ import DeleteConfirmationModal from './DeleteConfirmationModal'
 import { validateUnifiedNumber, validateLaborSubscription } from '@/utils/companyNumberValidation'
 import {
   HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
-  TRANSFER_STATUS_OPTIONS,
   buildEmployeeBusinessAdditionalFields,
 } from '@/utils/employeeBusinessFields'
 
@@ -40,9 +39,6 @@ const EMPLOYEE_COLUMNS_ORDER = [
   'اسم البنك',
   'الراتب',
   'حالة عقد أجير',
-  'حالة النقل',
-  'رسوم النقل',
-  'رسوم التجديد',
   'المشروع',
   'الشركة أو المؤسسة',
   'الرقم الموحد',
@@ -822,34 +818,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               severity: 'error'
             })
           }
-
-          const transferStatusValue = String(row['حالة النقل'] || 'ليس على الكفالة').trim() || 'ليس على الكفالة'
-          if (!TRANSFER_STATUS_OPTIONS.includes(transferStatusValue as (typeof TRANSFER_STATUS_OPTIONS)[number])) {
-            errors.push({
-              row: rowNum,
-              field: 'حالة النقل',
-              message: `القيمة غير صحيحة. القيم المسموحة: ${TRANSFER_STATUS_OPTIONS.join('، ')}`,
-              severity: 'error'
-            })
-          }
-
-          const feeFields = ['رسوم النقل', 'رسوم التجديد']
-          feeFields.forEach((fieldName) => {
-            const rawValue = row[fieldName]
-            if (rawValue === '' || rawValue === null || rawValue === undefined) {
-              return
-            }
-
-            const parsedValue = Number(String(rawValue).replace(/,/g, '').trim())
-            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-              errors.push({
-                row: rowNum,
-                field: fieldName,
-                message: 'يجب إدخال مبلغ رقمي صحيح أكبر من أو يساوي صفر',
-                severity: 'error'
-              })
-            }
-          })
 
           // Date validation using parseDate
           const dateFields = [
@@ -1735,9 +1703,6 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
               additional_fields: buildEmployeeBusinessAdditionalFields(undefined, {
                 bank_name: String(row['اسم البنك'] || '').trim(),
                 hired_worker_contract_status: String(row['حالة عقد أجير'] || 'بدون أجير').trim() || 'بدون أجير',
-                transfer_status: String(row['حالة النقل'] || 'ليس على الكفالة').trim() || 'ليس على الكفالة',
-                transfer_fee: row['رسوم النقل'] ? Number(row['رسوم النقل']) : 0,
-                renewal_fee: row['رسوم التجديد'] ? Number(row['رسوم التجديد']) : 0,
                 hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
               }),
               // التأكد من أن كل حقل تاريخ يُستورد في مكانه الصحيح

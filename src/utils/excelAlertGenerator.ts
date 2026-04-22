@@ -4,9 +4,10 @@
  * One sheet per alert type for easy organization
  */
 
-import * as XLSX from 'xlsx'
+import type { WorkBook } from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { logger } from './logger'
+import { loadXlsx } from './lazyXlsx'
 
 export interface AlertLogRecord {
   id: string
@@ -148,8 +149,9 @@ export async function fetchAlertsByType(alertType: string): Promise<AlertLogReco
  * Generate Excel workbook with alerts grouped by type
  * Each alert type gets its own sheet
  */
-export async function generateAlertExcelWorkbook(): Promise<XLSX.WorkBook | null> {
+export async function generateAlertExcelWorkbook(): Promise<WorkBook | null> {
   try {
+    const XLSX = await loadXlsx()
     const rawAlerts = await fetchTodayAlerts()
     const alerts = dedupeAlerts(rawAlerts)
 
@@ -263,8 +265,9 @@ function getPriorityArabic(priority: string): string {
 /**
  * Download workbook as file
  */
-export function downloadWorkbook(wb: XLSX.WorkBook, filename: string = 'التنبيهات_اليومية.xlsx'): void {
+export async function downloadWorkbook(wb: WorkBook, filename: string = 'التنبيهات_اليومية.xlsx'): Promise<void> {
   try {
+    const XLSX = await loadXlsx()
     XLSX.writeFile(wb, filename)
     logger.info('[Excel] File downloaded:', filename)
   } catch (err) {

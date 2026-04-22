@@ -27,6 +27,101 @@ export interface EmployeeAlert {
   created_at: string
 }
 
+const loggedEmployeeDigestKeys = new Set<string>()
+
+function getTodayEmployeeAlertDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getEmployeeDigestKey(alert: EmployeeAlert): string {
+  return `${alert.employee.id}:${alert.type}:${alert.expiry_date ?? getTodayEmployeeAlertDate()}`
+}
+
+function logEmployeeAlertsForDigest(alerts: EmployeeAlert[], employees: Employee[]) {
+  if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
+    return
+  }
+
+  const employeeMap = new Map(employees.map((employee) => [employee.id, employee]))
+
+  const logPromises = alerts
+    .filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
+    .map(async (alert) => {
+      const digestKey = getEmployeeDigestKey(alert)
+      if (loggedEmployeeDigestKeys.has(digestKey)) {
+        return
+      }
+
+      loggedEmployeeDigestKeys.add(digestKey)
+
+      try {
+        const employee = employeeMap.get(alert.employee.id)
+        const startOfToday = new Date()
+        startOfToday.setHours(0, 0, 0, 0)
+
+        const startOfTomorrow = new Date(startOfToday)
+        startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+
+        const { data: existingLog, error: lookupError } = await supabase
+          .from('daily_excel_logs')
+          .select('id')
+          .eq('employee_id', alert.employee.id)
+          .eq('alert_type', alert.type)
+          .gte('created_at', startOfToday.toISOString())
+          .lt('created_at', startOfTomorrow.toISOString())
+          .maybeSingle()
+
+        if (lookupError && lookupError.code !== 'PGRST116') {
+          loggedEmployeeDigestKeys.delete(digestKey)
+          logger.error(`Failed to check existing employee alert ${alert.id} in daily_excel_logs:`, lookupError)
+          return
+        }
+
+        if (existingLog) {
+          return
+        }
+
+        const { error } = await supabase
+          .from('daily_excel_logs')
+          .insert({
+            employee_id: alert.employee.id,
+            alert_type: alert.type,
+            priority: alert.priority,
+            title: alert.title,
+            message: alert.message,
+            action_required: alert.action_required,
+            expiry_date: alert.expiry_date,
+            details: {
+              employee_name: alert.employee.name,
+              employee_profession: alert.employee.profession,
+              employee_nationality: alert.employee.nationality,
+              residence_number: employee?.residence_number,
+              unified_number: alert.company?.unified_number,
+            },
+          })
+
+        if (error) {
+          if (error.code === '23505') {
+            return
+          }
+
+          loggedEmployeeDigestKeys.delete(digestKey)
+          logger.error(`Failed to log employee alert ${alert.id} to daily_excel_logs:`, error)
+          return
+        }
+
+        logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.employee.name}`)
+      } catch (logError) {
+        loggedEmployeeDigestKeys.delete(digestKey)
+        logger.error(`Exception logging employee alert ${alert.id}:`, logError)
+      }
+    })
+
+  void Promise.allSettled(logPromises).catch((err) => {
+    logger.error('Error settling employee log promises:', err)
+  })
+}
+
 /**
  * Generate alerts for employee document expirations
  * @param employees - List of employees to check
@@ -91,57 +186,7 @@ export async function generateEmployeeAlerts(employees: Employee[], companies: C
     }
   }
   
-  // 🚨 EMERGENCY: Save alerts to daily_excel_logs for consolidation into daily Excel digest
-  // Check for duplicates before inserting to prevent repeated alerts
-  
-  // Create a map of employee data for easier lookup
-  const employeeMap = new Map(employees.map(e => [e.id, e]))
-  
-  const logPromises = alerts
-    .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
-    .map(async alert => {
-      try {
-        const employee = employeeMap.get(alert.employee.id)
-        
-        // Insert alert - database unique constraint prevents duplicates
-        const { error } = await supabase
-          .from('daily_excel_logs')
-          .insert({
-            employee_id: alert.employee.id,
-            alert_type: alert.type,
-            priority: alert.priority,
-            title: alert.title,
-            message: alert.message,
-            action_required: alert.action_required,
-            expiry_date: alert.expiry_date,
-            details: {
-              employee_name: alert.employee.name,
-              employee_profession: alert.employee.profession,
-              employee_nationality: alert.employee.nationality,
-              residence_number: employee?.residence_number,
-              unified_number: alert.company?.unified_number,
-            },
-          })
-
-        if (error) {
-          // Check if it's a duplicate constraint error (code 23505)
-          if (error.code === '23505') {
-            logger.debug(`⏭️ Alert already exists: ${alert.type} for ${alert.employee.name}`)
-          } else {
-            logger.error(`Failed to log employee alert ${alert.id} to daily_excel_logs:`, error)
-          }
-        } else {
-          logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.employee.name}`)
-        }
-      } catch (logError) {
-        logger.error(`Exception logging employee alert ${alert.id}:`, logError)
-      }
-    });
-  
-  // Wait for all log promises to settle, but don't block the alert return
-  Promise.allSettled(logPromises).catch(err => {
-    logger.error('Error settling employee log promises:', err);
-  });
+  logEmployeeAlertsForDigest(alerts, employees)
   
   return alerts.sort((a, b) => {
     // Sort by priority (urgent first)

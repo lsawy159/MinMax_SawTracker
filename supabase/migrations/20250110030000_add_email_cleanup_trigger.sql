@@ -13,10 +13,9 @@ BEGIN
     RETURN NULL; -- Result is ignored since this is an AFTER trigger
 END;
 $$ LANGUAGE plpgsql;
-
 -- Trigger to run cleanup_old_emails function after each update or insert on email_queue
+DROP TRIGGER IF EXISTS trg_cleanup_old_emails ON email_queue;
 CREATE TRIGGER trg_cleanup_old_emails
 AFTER INSERT OR UPDATE ON email_queue
 FOR EACH STATEMENT
 EXECUTE FUNCTION cleanup_old_emails();
-

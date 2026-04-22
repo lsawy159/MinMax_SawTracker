@@ -32,6 +32,34 @@ import {
   ACTION_LABELS
 } from '@/utils/PERMISSIONS_SCHEMA'
 
+const PERMISSION_HIGHLIGHTS: Array<{
+  title: string
+  text: string
+  tone: 'emerald' | 'amber' | 'blue'
+}> = [
+  {
+    title: 'إجراءات النقل',
+    text: 'هذه صلاحية تشغيلية لصفحة مستقلة في السايد بار، وتشمل إدارة الطلب وتحديث الحالة والتحويل إلى موظف.',
+    tone: 'amber',
+  },
+  {
+    title: 'استيراد/تصدير',
+    text: 'هذه الصلاحية خاصة بملفات Excel فقط، ولا تمنح إدارة طلبات النقل داخل الصفحة المستقلة.',
+    tone: 'blue',
+  },
+  {
+    title: 'الرواتب والاستقطاعات',
+    text: 'هذه الصلاحية منفصلة عن التقارير، لذلك يمكن منحها أو منعها بشكل مستقل لكل مستخدم.',
+    tone: 'emerald',
+  },
+]
+
+const highlightToneClasses: Record<(typeof PERMISSION_HIGHLIGHTS)[number]['tone'], string> = {
+  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  amber: 'border-amber-200 bg-amber-50 text-amber-900',
+  blue: 'border-blue-200 bg-blue-50 text-blue-900',
+}
+
 type SupabaseError = {
   message?: string
   details?: string
@@ -779,7 +807,19 @@ export default function Users() {
                     </h3>
 
                     <div className="app-info-block rounded-xl px-3 py-2 text-xs text-slate-800">
-                      صلاحية الرواتب والاستقطاعات أصبحت مستقلة عن صلاحية التقارير، ويمكن منحها أو منعها لكل مستخدم بشكل منفصل.
+                      راجع الفرق بين الصفحات التشغيلية والملفات المساعدة قبل منح الصلاحية، حتى لا يُفتح للمستخدم مسار مختلف عن المطلوب.
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-3">
+                      {PERMISSION_HIGHLIGHTS.map((item) => (
+                        <div
+                          key={item.title}
+                          className={`rounded-xl border px-3 py-2 text-xs ${highlightToneClasses[item.tone]}`}
+                        >
+                          <div className="font-semibold">{item.title}</div>
+                          <p className="mt-1 leading-5">{item.text}</p>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-3 space-y-2.5 border border-gray-200">
@@ -793,6 +833,11 @@ export default function Users() {
                             <h4 className={`text-xs font-semibold mb-1.5 ${section === 'payroll' ? 'text-emerald-800' : 'text-gray-800'}`}>
                               {PERMISSION_SECTIONS[section].label}
                             </h4>
+                            {'description' in PERMISSION_SECTIONS[section] && PERMISSION_SECTIONS[section].description ? (
+                              <p className="mb-2 text-[11px] leading-4 text-gray-500">
+                                {PERMISSION_SECTIONS[section].description}
+                              </p>
+                            ) : null}
                             <div className="space-y-1">
                               {PERMISSION_SECTIONS[section].actions.map((action) => (
                                 <label

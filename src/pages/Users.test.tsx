@@ -101,7 +101,7 @@ describe('Users permissions modal', () => {
     })
   })
 
-  it('shows the standalone payroll permission section inside the edit modal', async () => {
+  it('shows the clearer standalone permissions guidance inside the edit modal', async () => {
     const user = userEvent.setup()
     render(<Users />)
 
@@ -113,7 +113,9 @@ describe('Users permissions modal', () => {
     await user.click(screen.getAllByTitle('تعديل')[0])
 
     expect(await screen.findByText('تعديل مستخدم')).toBeInTheDocument()
-    expect(screen.getByText('صلاحية الرواتب والاستقطاعات أصبحت مستقلة عن صلاحية التقارير، ويمكن منحها أو منعها لكل مستخدم بشكل منفصل.')).toBeInTheDocument()
-    expect(screen.getByText('الرواتب والاستقطاعات')).toBeInTheDocument()
+    expect(screen.getByText('هذه الصلاحية خاصة بملفات Excel فقط، ولا تمنح إدارة طلبات النقل داخل الصفحة المستقلة.')).toBeInTheDocument()
+    expect(screen.getByText('هذه الصلاحية منفصلة عن التقارير، لذلك يمكن منحها أو منعها بشكل مستقل لكل مستخدم.')).toBeInTheDocument()
+    expect(screen.getAllByText('الرواتب والاستقطاعات').length).toBeGreaterThan(0)
+    expect(screen.getByText('صفحة تشغيلية مستقلة لإدارة طلبات النقل، تحديث حالتها، ثم تحويل الطلب إلى موظف.')).toBeInTheDocument()
   })
 })

@@ -20,8 +20,20 @@ BEGIN
     END IF;
 END $$;
 
--- Update existing rows to sync retry_count with retries
-UPDATE email_queue SET retry_count = retries WHERE retry_count = 0 AND retries > 0;
+-- Update existing rows to sync retry_count with retries when the legacy column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'email_queue'
+          AND column_name = 'retries'
+    ) THEN
+        UPDATE email_queue
+        SET retry_count = retries
+        WHERE retry_count = 0 AND retries > 0;
+    END IF;
+END $$;
 
 -- Update existing rows to sync completed_at with sent_at
 UPDATE email_queue SET completed_at = sent_at WHERE completed_at IS NULL AND sent_at IS NOT NULL;
@@ -48,6 +60,10 @@ DROP POLICY IF EXISTS "Allow service role to manage email_queue" ON email_queue;
 DROP POLICY IF EXISTS "Allow authenticated admin users to manage email_queue" ON email_queue;
 DROP POLICY IF EXISTS "Allow users with adminSettings permission to read email_queue" ON email_queue;
 DROP POLICY IF EXISTS "Allow authenticated users to insert into email_queue" ON email_queue;
+DROP POLICY IF EXISTS "Admin users full access to email_queue" ON email_queue;
+DROP POLICY IF EXISTS "AdminSettings permission can read email_queue" ON email_queue;
+DROP POLICY IF EXISTS "Authenticated users can insert email_queue" ON email_queue;
+DROP POLICY IF EXISTS "Service role full access to email_queue" ON email_queue;
 
 -- Create RLS policy for admin users (full access)
 CREATE POLICY "Admin users full access to email_queue"
@@ -78,7 +94,8 @@ USING (
         WHERE users.id = auth.uid()
         AND (
             users.role = 'admin'
-            OR users.permissions->>'adminSettings' IN ('edit', 'view')
+            OR COALESCE((users.permissions->'adminSettings'->>'edit')::boolean, false)
+            OR COALESCE((users.permissions->'adminSettings'->>'view')::boolean, false)
         )
     )
 );

@@ -4,7 +4,6 @@
 -- Run in Supabase SQL Editor.
 
 BEGIN;
-
 -- Ensure the table exists
 CREATE TABLE IF NOT EXISTS public.system_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,10 +12,8 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
 -- Enable RLS
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
-
 -- Drop ALL existing policies on this table (cleanup)
 DO $$
 DECLARE pol RECORD;
@@ -29,7 +26,6 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.system_settings', pol.policyname);
   END LOOP;
 END$$;
-
 -- Ensure helper function exists (creates or replaces)
 CREATE OR REPLACE FUNCTION public.user_has_permission(section TEXT, action TEXT)
 RETURNS BOOLEAN
@@ -49,7 +45,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Minimal policy set
 
 -- 1) Read for authenticated users
@@ -58,7 +53,6 @@ ON public.system_settings
 FOR SELECT
 TO authenticated
 USING (true);
-
 -- 2) Admin: manage ALL (SELECT/INSERT/UPDATE/DELETE)
 CREATE POLICY "admin_manage_system_settings"
 ON public.system_settings
@@ -76,7 +70,6 @@ WITH CHECK (
     WHERE u.id = auth.uid() AND u.role = 'admin'
   )
 );
-
 -- 3) Edit by permission (requires INSERT + UPDATE for upsert)
 -- Note: Upsert requires both INSERT and UPDATE; thus two physical policies here
 CREATE POLICY "edit_system_settings_insert"
@@ -84,18 +77,15 @@ ON public.system_settings
 FOR INSERT
 TO authenticated
 WITH CHECK (public.user_has_permission('centralizedSettings', 'edit'));
-
 CREATE POLICY "edit_system_settings_update"
 ON public.system_settings
 FOR UPDATE
 TO authenticated
 USING (public.user_has_permission('centralizedSettings', 'edit'))
 WITH CHECK (public.user_has_permission('centralizedSettings', 'edit'));
-
 -- Verify
 SELECT tablename, policyname, cmd, qual
 FROM pg_policies
 WHERE schemaname = 'public' AND tablename = 'system_settings'
 ORDER BY policyname;
-
 COMMIT;

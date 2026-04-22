@@ -13,7 +13,6 @@ import {
 } from '@/hooks/useEmployeeObligations'
 import {
   HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
-  TRANSFER_STATUS_OPTIONS,
   buildEmployeeBusinessAdditionalFields,
   getEmployeeBusinessFields,
 } from '@/utils/employeeBusinessFields'
@@ -67,9 +66,10 @@ interface EmployeeCardProps {
   onClose: () => void
   onUpdate: () => void
   onDelete?: (employee: Employee & { company: Company }) => void
+  defaultFinancialOverlayOpen?: boolean
 }
 
-export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: EmployeeCardProps) {
+export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, defaultFinancialOverlayOpen = false }: EmployeeCardProps) {
   const { canEdit, canDelete } = usePermissions()
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
@@ -166,6 +166,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
+  const [showFinancialOverlay, setShowFinancialOverlay] = useState(defaultFinancialOverlayOpen)
   const [showObligationForm, setShowObligationForm] = useState(false)
   const [editingObligationLineId, setEditingObligationLineId] = useState<string | null>(null)
   const [obligationPaymentForm, setObligationPaymentForm] = useState({
@@ -1352,31 +1353,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </div>
               </div>
 
-              {/* 13. حالة النقل */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">حالة النقل</label>
-                <select
-                  value={String(employeeBusinessFields.transfer_status)}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    additional_fields: {
-                      ...formData.additional_fields,
-                      transfer_status: e.target.value,
-                    },
-                  })}
-                  disabled={!isEditMode || Boolean(formData.hired_worker_contract_expiry)}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                >
-                  {TRANSFER_STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                {formData.hired_worker_contract_expiry && (
-                  <p className="mt-2 text-xs text-amber-700">يتم ضبط حالة النقل تلقائياً إلى منقول عند وجود تاريخ انتهاء عقد أجير.</p>
-                )}
-              </div>
-
-              {/* 14. حالة عقد أجير */}
+              {/* 13. حالة عقد أجير */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">حالة عقد أجير</label>
                 <select
@@ -1397,7 +1374,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </select>
               </div>
 
-              {/* 12. تاريخ الالتحاق */}
+              {/* 14. تاريخ الالتحاق */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
@@ -1450,7 +1427,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                     additional_fields: e.target.value
                       ? {
                           ...formData.additional_fields,
-                          transfer_status: 'منقول',
                           hired_worker_contract_status: 'أجير',
                         }
                       : formData.additional_fields,
@@ -1522,7 +1498,27 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                 </div>
               </div>
 
-              <div className="border border-gray-200 rounded-xl p-5 bg-gray-50">
+              <div className="md:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFinancialOverlay(true)}
+                  className="app-button-primary px-4 py-2 text-sm"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  عرض الالتزامات المالية
+                </button>
+              </div>
+
+              {showFinancialOverlay && (
+                <div
+                  className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+                  onClick={() => setShowFinancialOverlay(false)}
+                >
+                  <div
+                    className="app-modal-surface relative isolate max-w-5xl max-h-[90vh] w-full overflow-y-auto p-5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="border border-gray-200 rounded-xl p-5 bg-gray-50">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">الالتزامات المالية</h3>
@@ -1544,6 +1540,14 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                         {showObligationForm ? 'إخفاء النموذج' : 'إضافة التزام'}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setShowFinancialOverlay(false)}
+                      className="app-button-secondary px-3 py-2 text-sm"
+                    >
+                      <X className="w-4 h-4" />
+                      إغلاق
+                    </button>
                   </div>
                 </div>
 
@@ -1839,7 +1843,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete }: 
                     </div>
                   </div>
                 )}
-              </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

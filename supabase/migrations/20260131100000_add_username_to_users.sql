@@ -19,11 +19,29 @@ ALTER TABLE public.users
 ADD CONSTRAINT username_format_check 
 CHECK (username ~ '^[a-zA-Z0-9_.-]+$');
 
--- ✅ Step 4: Populate existing users with username derived from email
--- For existing users, extract username from email (part before @)
-UPDATE public.users
-SET username = SPLIT_PART(email, '@', 1)
-WHERE username IS NULL;
+-- For existing users, derive safe unique usernames from email local-parts.
+WITH prepared_usernames AS (
+  SELECT
+    id,
+    COALESCE(
+      NULLIF(LEFT(REGEXP_REPLACE(SPLIT_PART(email, '@', 1), '[^a-zA-Z0-9_.-]', '_', 'g'), 40), ''),
+      'user'
+    ) AS base_username
+  FROM public.users
+  WHERE username IS NULL
+), ranked_usernames AS (
+  SELECT
+    id,
+    CASE
+      WHEN ROW_NUMBER() OVER (PARTITION BY base_username ORDER BY id) = 1 THEN base_username
+      ELSE LEFT(base_username, 35) || '_' || (ROW_NUMBER() OVER (PARTITION BY base_username ORDER BY id) - 1)::TEXT
+    END AS generated_username
+  FROM prepared_usernames
+)
+UPDATE public.users u
+SET username = r.generated_username
+FROM ranked_usernames r
+WHERE u.id = r.id;
 
 -- ✅ Step 5: Make username NOT NULL after populating existing data
 ALTER TABLE public.users

@@ -8,20 +8,83 @@
  * 1. Save this as: supabase/functions/send-daily-digest/index.ts
  * 2. Deploy: supabase functions deploy send-daily-digest
  * 3. Set cron: "0 3 * * *" (Every day at 03:00 AM)
+ * 
+ * 🔐 Security: Reads recipients from system_settings.notification_recipients JSON
+ * Fallback: Uses VITE_ADMIN_EMAIL if JSON parsing fails
  */
 
+// deno-lint-ignore-file no-explicit-any
+// @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// @ts-expect-error Deno global - valid in Deno runtime
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
+// @ts-expect-error Deno global - valid in Deno runtime
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// @ts-expect-error Deno global - valid in Deno runtime
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const ADMIN_EMAIL = Deno.env.get('VITE_ADMIN_EMAIL')
+const PRIMARY_ADMIN_EMAIL = 'ahmad.alsawy159@gmail.com'
 
-if (!ADMIN_EMAIL) {
-  throw new Error('VITE_ADMIN_EMAIL environment variable is required but not configured')
+if (!RESEND_API_KEY) {
+  throw new Error('RESEND_API_KEY environment variable is required')
+}
+
+// 🔐 Helper: Get recipients from notification_recipients JSON
+async function getDigestRecipients(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'notification_recipients')
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found - use fallback
+        console.warn('[getDigestRecipients] notification_recipients not found, using fallback')
+        return [PRIMARY_ADMIN_EMAIL]
+      }
+      throw error
+    }
+
+    // Parse JSON safely
+    const configJson = data?.setting_value as string | null
+    if (!configJson) {
+      console.warn('[getDigestRecipients] Empty config, using fallback')
+      return [PRIMARY_ADMIN_EMAIL]
+    }
+
+    const config = JSON.parse(configJson) as Record<string, unknown>
+    const recipients = new Set<string>()
+
+    // 🔐 ALWAYS add primary admin
+    recipients.add(PRIMARY_ADMIN_EMAIL)
+
+    // Add additional recipients with dailyDigest flag
+    const additionalRecipients = config.additional_recipients as unknown[]
+    if (Array.isArray(additionalRecipients)) {
+      additionalRecipients.forEach((r) => {
+        if (typeof r === 'object' && r !== null) {
+          const recipient = r as Record<string, unknown>
+          if (recipient.dailyDigest === true && typeof recipient.email === 'string') {
+            recipients.add(recipient.email)
+          }
+        }
+      })
+    }
+
+    const result = Array.from(recipients)
+    console.log(`[getDigestRecipients] Got ${result.length} recipient(s): ${result.join(', ')}`)
+    return result
+  } catch (err) {
+    console.error(`[getDigestRecipients] Error: ${err instanceof Error ? err.message : String(err)}`)
+    console.warn(`[getDigestRecipients] Falling back to primary admin: ${PRIMARY_ADMIN_EMAIL}`)
+    return [PRIMARY_ADMIN_EMAIL]
+  }
 }
 
 interface DailyAlert {
@@ -185,15 +248,52 @@ serve(async (req: Request) => {
     const html = buildDigestEmailHTML(alerts || [])
     const subject = `📬 الملخص اليومي: ${alertCount} تنبيه - ${new Date().toLocaleDateString('ar-SA')}`
 
-    // 3. Send email
-    const sent = await sendViaResend(ADMIN_EMAIL, subject, html)
-    if (!sent) {
-      throw new Error('Failed to send email via Resend')
+    // 3. Get recipients from notification_recipients JSON
+    const recipients = await getDigestRecipients()
+    
+    if (recipients.length === 0) {
+      console.warn('No recipients found for digest email')
+      return new Response('No recipients found', { status: 200 })
     }
 
-    console.log(`✅ Digest email sent to ${ADMIN_EMAIL}`)
+    // 4. Send email to all recipients
+    let successCount = 0
+    let failureCount = 0
 
-    // 4. Mark alerts as processed
+    for (const recipient of recipients) {
+      const sent = await sendViaResend(recipient, subject, html)
+      if (sent) {
+        successCount++
+      } else {
+        failureCount++
+      }
+    }
+
+    console.log(`✅ Digest email sent to ${successCount} recipient(s), ${failureCount} failure(s)`)
+
+    // 5. Log to email_queue for unified logging
+    const timestamp = new Date().toISOString()
+    const { error: queueError } = await supabase
+      .from('email_queue')
+      .insert({
+        to_emails: recipients,
+        subject,
+        status: 'completed',
+        priority: 'high',
+        created_at: timestamp,
+        processed_at: timestamp,
+        completed_at: timestamp,
+        retry_count: 0,
+        max_retries: 5,
+      })
+
+    if (queueError) {
+      console.warn('Failed to log to email_queue:', queueError)
+    } else {
+      console.log('✅ Logged digest email to email_queue')
+    }
+
+    // 5. Mark alerts as processed
     console.log(`🔄 Attempting to mark ${alerts?.length || 0} alerts as processed`)
     
     if ((alerts?.length || 0) > 0) {
@@ -215,7 +315,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // 5. Log the action
+    // 6. Log the action to activity_log
     const { error: logError } = await supabase
       .from('activity_log')
       .insert({
@@ -224,7 +324,7 @@ serve(async (req: Request) => {
         entity_id: 'daily-digest-' + new Date().toISOString().split('T')[0],
         details: {
           alert_count: alertCount,
-          recipient: ADMIN_EMAIL,
+          recipient_count: recipients.length,
           timestamp: new Date().toISOString()
         }
       })

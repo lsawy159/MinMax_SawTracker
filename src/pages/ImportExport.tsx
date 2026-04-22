@@ -4,13 +4,18 @@ import { FileDown, FileUp, FileText, Download } from 'lucide-react'
 import ExportTab from '@/components/import-export/ExportTab'
 import ImportTab from '@/components/import-export/ImportTab'
 import TemplatesTab from '@/components/import-export/TemplatesTab'
+import TransferProceduresExcelImport from '@/components/import-export/TransferProceduresExcelImport'
+import TransferProceduresExcelExport from '@/components/import-export/TransferProceduresExcelExport'
 import { usePermissions } from '@/utils/permissions'
 
 type TabType = 'export' | 'import' | 'templates'
+type DataEntityType = 'employees' | 'companies' | 'transferProcedures'
 
 export default function ImportExport() {
   const { canImport, canExport } = usePermissions()
   const [activeTab, setActiveTab] = useState<TabType>('export')
+  const [importEntityType, setImportEntityType] = useState<DataEntityType>('employees')
+  const [exportEntityType, setExportEntityType] = useState<DataEntityType>('employees')
 
   const tabs = [
     {
@@ -35,6 +40,50 @@ export default function ImportExport() {
       color: 'purple'
     }
   ]
+
+  const renderEntitySelector = (
+    current: DataEntityType,
+    setCurrent: (value: DataEntityType) => void
+  ) => (
+    <div className="mb-4">
+      <label className="mb-2 block text-xs font-medium text-gray-600">نوع البيانات</label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => setCurrent('employees')}
+          className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
+            current === 'employees'
+              ? 'border-primary bg-primary/15 text-slate-900'
+              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+          }`}
+        >
+          الموظفين
+        </button>
+        <button
+          type="button"
+          onClick={() => setCurrent('companies')}
+          className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
+            current === 'companies'
+              ? 'border-green-600 bg-green-50 text-green-700'
+              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+          }`}
+        >
+          المؤسسات
+        </button>
+        <button
+          type="button"
+          onClick={() => setCurrent('transferProcedures')}
+          className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
+            current === 'transferProcedures'
+              ? 'border-amber-500 bg-amber-50 text-amber-800'
+              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+          }`}
+        >
+          طلبات النقل
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <Layout>
@@ -87,8 +136,22 @@ export default function ImportExport() {
 
         {/* Tab Content */}
         <div className="app-panel p-3 sm:p-4">
-          {activeTab === 'export' && canExport('importExport') && <ExportTab />}
-          {activeTab === 'import' && canImport('importExport') && <ImportTab />}
+          {activeTab === 'export' && canExport('importExport') && (
+            <>
+              {renderEntitySelector(exportEntityType, setExportEntityType)}
+              {exportEntityType === 'employees' && <ExportTab key="export-employees" initialExportType="employees" hideTypeSelector />}
+              {exportEntityType === 'companies' && <ExportTab key="export-companies" initialExportType="companies" hideTypeSelector />}
+              {exportEntityType === 'transferProcedures' && <TransferProceduresExcelExport canExport={canExport('importExport')} />}
+            </>
+          )}
+          {activeTab === 'import' && canImport('importExport') && (
+            <>
+              {renderEntitySelector(importEntityType, setImportEntityType)}
+              {importEntityType === 'employees' && <ImportTab key="import-employees" initialImportType="employees" isInModal />}
+              {importEntityType === 'companies' && <ImportTab key="import-companies" initialImportType="companies" isInModal />}
+              {importEntityType === 'transferProcedures' && <TransferProceduresExcelImport canImport={canImport('importExport')} />}
+            </>
+          )}
           {activeTab === 'templates' && <TemplatesTab />}
         </div>
       </div>

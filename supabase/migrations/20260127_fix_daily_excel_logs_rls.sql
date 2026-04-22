@@ -12,6 +12,9 @@
 -- Step 1: Drop the old restrictive policies
 DROP POLICY IF EXISTS "Disable all access by default" ON public.daily_excel_logs;
 DROP POLICY IF EXISTS "Allow service role to manage daily_excel_logs" ON public.daily_excel_logs;
+DROP POLICY IF EXISTS "Allow authenticated users to insert alerts" ON public.daily_excel_logs;
+DROP POLICY IF EXISTS "Allow authenticated users to select alerts" ON public.daily_excel_logs;
+DROP POLICY IF EXISTS "Allow service role to update alert status" ON public.daily_excel_logs;
 
 -- Step 2: Create new policies that allow authenticated users
 

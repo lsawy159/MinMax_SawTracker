@@ -90,6 +90,96 @@ export interface Company {
   updated_at: string
 }
 
+const loggedCompanyDigestKeys = new Set<string>()
+
+function getTodayAlertDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getCompanyDigestKey(alert: Alert): string {
+  return `${alert.company?.id ?? 'unknown'}:${alert.type}:${alert.expiry_date ?? getTodayAlertDate()}`
+}
+
+function logCompanyAlertsForDigest(alerts: Alert[]) {
+  if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
+    return
+  }
+
+  const logPromises = alerts
+    .filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
+    .map(async (alert) => {
+      const digestKey = getCompanyDigestKey(alert)
+      if (loggedCompanyDigestKeys.has(digestKey)) {
+        return
+      }
+
+      loggedCompanyDigestKeys.add(digestKey)
+
+      try {
+        const startOfToday = new Date()
+        startOfToday.setHours(0, 0, 0, 0)
+
+        const startOfTomorrow = new Date(startOfToday)
+        startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+
+        const { data: existingLog, error: lookupError } = await supabase
+          .from('daily_excel_logs')
+          .select('id')
+          .eq('company_id', alert.company?.id || '')
+          .eq('alert_type', alert.type)
+          .gte('created_at', startOfToday.toISOString())
+          .lt('created_at', startOfTomorrow.toISOString())
+          .maybeSingle()
+
+        if (lookupError && lookupError.code !== 'PGRST116') {
+          loggedCompanyDigestKeys.delete(digestKey)
+          logger.error(`Failed to check existing company alert ${alert.id} in daily_excel_logs:`, lookupError)
+          return
+        }
+
+        if (existingLog) {
+          return
+        }
+
+        const { error } = await supabase
+          .from('daily_excel_logs')
+          .insert({
+            company_id: alert.company?.id || null,
+            alert_type: alert.type,
+            priority: alert.priority,
+            title: alert.title,
+            message: alert.message,
+            action_required: alert.action_required,
+            expiry_date: alert.expiry_date,
+            details: {
+              company_name: alert.company?.name,
+              company_commercial_id: alert.company?.commercial_registration_number,
+              unified_number: alert.company?.unified_number,
+            },
+          })
+
+        if (error) {
+          if (error.code === '23505') {
+            return
+          }
+
+          loggedCompanyDigestKeys.delete(digestKey)
+          logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
+          return
+        }
+
+        logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
+      } catch (logError) {
+        loggedCompanyDigestKeys.delete(digestKey)
+        logger.error(`Exception logging company alert ${alert.id}:`, logError)
+      }
+    })
+
+  void Promise.allSettled(logPromises).catch((err) => {
+    logger.error('Error settling company log promises:', err)
+  })
+}
+
 /**
  * دالة مساعدة لإنشاء جميع تنبيهات المؤسسات
  */
@@ -116,49 +206,7 @@ export async function generateCompanyAlerts(companies: Company[]): Promise<Alert
     }
   }
   
-  // 🚨 EMERGENCY: Save alerts to daily_excel_logs for consolidation into daily Excel digest
-  // Check for duplicates before inserting to prevent repeated alerts
-  const logPromises = alerts
-    .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
-    .map(async alert => {
-      try {
-        // Insert alert - database unique constraint prevents duplicates
-        const { error } = await supabase
-          .from('daily_excel_logs')
-          .insert({
-            company_id: alert.company?.id || null,
-            alert_type: alert.type,
-            priority: alert.priority,
-            title: alert.title,
-            message: alert.message,
-            action_required: alert.action_required,
-            expiry_date: alert.expiry_date,
-            details: {
-              company_name: alert.company?.name,
-              company_commercial_id: alert.company?.commercial_registration_number,
-              unified_number: alert.company?.unified_number,
-            },
-          })
-
-        if (error) {
-          // Check if it's a duplicate constraint error (code 23505)
-          if (error.code === '23505') {
-            logger.debug(`⏭️ Company alert already exists: ${alert.type} for ${alert.company?.name}`)
-          } else {
-            logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
-          }
-        } else {
-          logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
-        }
-      } catch (logError) {
-        logger.error(`Exception logging company alert ${alert.id}:`, logError)
-      }
-    });
-  
-  // Wait for all log promises to settle, but don't block the alert return
-  Promise.allSettled(logPromises).catch(err => {
-    logger.error('Error settling company log promises:', err);
-  });
+  logCompanyAlertsForDigest(alerts)
   
   return alerts.sort((a, b) => {
     // ترتيب حسب الأولوية (عاجل أولاً)
@@ -330,51 +378,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
       }
   })
   
-  // 🚨 EMERGENCY: Save alerts to daily_excel_logs for consolidation into daily Excel digest
-  // Check for duplicates before inserting to prevent repeated alerts
-  if (import.meta.env.MODE !== 'test' && !import.meta.env.VITEST) {
-    const logPromises = alerts
-      .filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
-      .map(async alert => {
-        try {
-          // Insert alert - database unique constraint prevents duplicates
-          const { error } = await supabase
-            .from('daily_excel_logs')
-            .insert({
-              company_id: alert.company?.id || null,
-              alert_type: alert.type,
-              priority: alert.priority,
-              title: alert.title,
-              message: alert.message,
-              action_required: alert.action_required,
-              expiry_date: alert.expiry_date,
-              details: {
-                company_name: alert.company?.name,
-                company_commercial_id: alert.company?.commercial_registration_number,
-                unified_number: alert.company?.unified_number,
-              },
-            })
-
-          if (error) {
-            // Check if it's a duplicate constraint error (code 23505)
-            if (error.code === '23505') {
-              logger.debug(`⏭️ Company alert already exists: ${alert.type} for ${alert.company?.name}`)
-            } else {
-              logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
-            }
-          } else {
-            logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
-          }
-        } catch (logError) {
-          logger.error(`Exception logging company alert ${alert.id}:`, logError)
-        }
-      })
-
-    // Wait for all log promises to settle, but don't block the alert return
-    Promise.allSettled(logPromises).catch(err => {
-      logger.error('Error settling company log promises:', err)
-    })
-  }
+  logCompanyAlertsForDigest(alerts)
 
   return alerts.sort((a, b) => {
     const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }

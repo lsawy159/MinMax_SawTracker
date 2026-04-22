@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Bell, Menu, X, ChevronRight, LogOut, Mail, Wallet, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Bell, Menu, X, ChevronRight, LogOut, Mail, Wallet, Moon, Sun, RefreshCcw } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
@@ -53,6 +53,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
     { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
     { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: { section: 'projects' as const, action: 'view' }, badge: null },
+    { path: '/transfer-procedures', icon: RefreshCcw, label: 'إجراءات النقل', permission: { section: 'transferProcedures' as const, action: 'view' }, badge: null },
     { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: { section: 'alerts' as const, action: 'view' }, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
     { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: { section: 'advancedSearch' as const, action: 'view' }, badge: null },
     { path: '/payroll-deductions', icon: Wallet, label: 'الرواتب والاستقطاعات', permission: { section: 'payroll' as const, action: 'view' }, badge: null },

@@ -28,7 +28,6 @@ END $$;
 -- Step 2: Update all users with normalized permissions
 -- Strategy: Build complete permission structure based on role
 
--- For Admin users: Grant all permissions
 UPDATE public.users
 SET permissions = jsonb_build_object(
   'dashboard', jsonb_build_object('view', true),
@@ -45,7 +44,8 @@ SET permissions = jsonb_build_object(
   'adminSettings', jsonb_build_object('view', true, 'edit', true),
   'centralizedSettings', jsonb_build_object('view', true, 'edit', true)
 )
-WHERE role = 'admin';
+WHERE role = 'admin'
+  AND COALESCE(permissions, '{}'::jsonb) = '{}'::jsonb;
 
 -- For regular users: Start with deny-by-default and merge any existing permissions
 UPDATE public.users
@@ -153,7 +153,8 @@ SET permissions = COALESCE(
     'centralizedSettings', jsonb_build_object('view', false, 'edit', false)
   )
 )
-WHERE role = 'user';
+WHERE role = 'user'
+  AND COALESCE(permissions, '{}'::jsonb) = '{}'::jsonb;
 
 -- Step 3: Verify migration results
 DO $$

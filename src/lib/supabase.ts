@@ -91,6 +91,20 @@ export interface Employee {
   updated_at: string
 }
 
+export interface TransferProcedure {
+  id: string
+  request_date: string
+  name: string
+  iqama: number
+  status: string
+  current_unified_number: number
+  project_id: string
+  created_by_user_id?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type ObligationType = 'transfer' | 'renewal' | 'penalty' | 'advance' | 'other'
 
 export type ObligationPlanStatus = 'draft' | 'active' | 'completed' | 'cancelled' | 'superseded'

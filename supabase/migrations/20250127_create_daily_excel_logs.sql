@@ -33,46 +33,36 @@ CREATE TABLE IF NOT EXISTS public.daily_excel_logs (
     (employee_id IS NULL AND company_id IS NOT NULL)
   )
 );
-
 -- ================================================================
 -- Create indexes for efficient querying
 -- ================================================================
 
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_created_at 
 ON public.daily_excel_logs(created_at DESC);
-
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_priority 
 ON public.daily_excel_logs(priority DESC);
-
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_alert_type 
 ON public.daily_excel_logs(alert_type);
-
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_employee_id 
 ON public.daily_excel_logs(employee_id);
-
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_company_id 
 ON public.daily_excel_logs(company_id);
-
 CREATE INDEX IF NOT EXISTS idx_daily_excel_logs_processed_at 
 ON public.daily_excel_logs(processed_at);
-
 -- ================================================================
 -- Enable RLS
 -- ================================================================
 
 ALTER TABLE public.daily_excel_logs ENABLE ROW LEVEL SECURITY;
-
 -- Disable all access by default
 CREATE POLICY "Disable all access by default"
 ON public.daily_excel_logs FOR ALL
 USING (FALSE);
-
 -- Allow authenticated users (service role) to manage logs
 CREATE POLICY "Allow service role to manage daily_excel_logs"
 ON public.daily_excel_logs FOR ALL
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
-
 -- ================================================================
 -- Create view for today's unprocessed alerts (useful for UI)
 -- ================================================================
@@ -83,7 +73,6 @@ FROM public.daily_excel_logs
 WHERE DATE(created_at AT TIME ZONE 'Asia/Riyadh') = CURRENT_DATE AT TIME ZONE 'Asia/Riyadh'
   AND processed_at IS NULL
 ORDER BY priority DESC, created_at DESC;
-
 -- ================================================================
 -- Summary comment
 -- ================================================================

@@ -4,7 +4,7 @@
  * This Supabase Edge Function:
  * 1. Fetches all unprocessed alerts from daily_excel_logs (created today)
  * 2. Generates a consolidated XLSX file with multiple sheets
- * 3. Emails the Excel file to admin at 03:00 AM
+ * 3. Emails the Excel file to recipients from notification_recipients JSON
  * 4. Marks alerts as processed
  * 
  * Deployment:
@@ -15,15 +15,22 @@
  * - SUPABASE_URL
  * - SUPABASE_SERVICE_ROLE_KEY
  * - RESEND_API_KEY
- * - VITE_ADMIN_EMAIL
+ * - VITE_ADMIN_EMAIL (fallback only)
+ * 
+ * 🔐 Security: Reads recipients from system_settings.notification_recipients JSON
  */
 
+// deno-lint-ignore-file no-explicit-any
+// @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @deno-types="npm:@types/node"
 import * as XLSX from "npm:xlsx@0.18.5"
 
+// @ts-expect-error Deno global - valid in Deno runtime
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
+// @ts-expect-error Deno global - valid in Deno runtime
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 if (!supabaseUrl || !supabaseServiceKey) {
@@ -32,12 +39,9 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
 
+// @ts-expect-error Deno global - valid in Deno runtime
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const ADMIN_EMAIL = Deno.env.get('VITE_ADMIN_EMAIL')
-
-if (!ADMIN_EMAIL) {
-  throw new Error('VITE_ADMIN_EMAIL environment variable is required but not configured')
-}
+const PRIMARY_ADMIN_EMAIL = 'ahmad.alsawy159@gmail.com'
 
 interface DailyExcelLog {
   id: string
@@ -403,6 +407,62 @@ function buildEmailHTML(alerts: DailyExcelLog[]): string {
 }
 
 /**
+ * 🔐 Helper: Get recipients from notification_recipients JSON
+ */
+async function getExcelDigestRecipients(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'notification_recipients')
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found - use fallback
+        console.warn('[getExcelDigestRecipients] notification_recipients not found, using fallback')
+        return [PRIMARY_ADMIN_EMAIL]
+      }
+      throw error
+    }
+
+    // Parse JSON safely
+    const configJson = data?.setting_value as string | null
+    if (!configJson) {
+      console.warn('[getExcelDigestRecipients] Empty config, using fallback')
+      return [PRIMARY_ADMIN_EMAIL]
+    }
+
+    const config = JSON.parse(configJson) as Record<string, unknown>
+    const recipients = new Set<string>()
+
+    // 🔐 ALWAYS add primary admin
+    recipients.add(PRIMARY_ADMIN_EMAIL)
+
+    // Add additional recipients with dailyDigest flag
+    const additionalRecipients = config.additional_recipients as unknown[]
+    if (Array.isArray(additionalRecipients)) {
+      additionalRecipients.forEach((r) => {
+        if (typeof r === 'object' && r !== null) {
+          const recipient = r as Record<string, unknown>
+          if (recipient.dailyDigest === true && typeof recipient.email === 'string') {
+            recipients.add(recipient.email)
+          }
+        }
+      })
+    }
+
+    const result = Array.from(recipients)
+    console.log(`[getExcelDigestRecipients] Got ${result.length} recipient(s): ${result.join(', ')}`)
+    return result
+  } catch (err) {
+    console.error(`[getExcelDigestRecipients] Error: ${err instanceof Error ? err.message : String(err)}`)
+    console.warn(`[getExcelDigestRecipients] Falling back to primary admin: ${PRIMARY_ADMIN_EMAIL}`)
+    return [PRIMARY_ADMIN_EMAIL]
+  }
+}
+
+/**
  * Send email via Resend with Excel attachment
  */
 async function sendDigestEmail(alerts: DailyExcelLog[]): Promise<boolean> {
@@ -423,38 +483,52 @@ async function sendDigestEmail(alerts: DailyExcelLog[]): Promise<boolean> {
       day: '2-digit'
     }).replace(/\//g, '-')
 
-    console.log('[Daily Digest] Sending email to:', ADMIN_EMAIL)
+    // 🔐 Get recipients from notification_recipients JSON
+    const recipients = await getExcelDigestRecipients()
     
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'onboarding@resend.dev',
-        to: ADMIN_EMAIL,
-        subject: `📊 تقرير التنبيهات اليومي - ${today}`,
-        html: htmlContent,
-        attachments: [
-          {
-            filename: `التنبيهات_اليومية_${today}.xlsx`,
-            content: excelBase64,
-            content_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          },
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('[Daily Digest] Resend API error:', response.status, error)
+    if (recipients.length === 0) {
+      console.warn('[Daily Digest] No recipients found')
       return false
     }
 
-    const result = await response.json()
-    console.log('[Daily Digest] Email sent successfully:', result.id)
-    return true
+    console.log(`[Daily Digest] Sending email to ${recipients.length} recipient(s): ${recipients.join(', ')}`)
+    
+    let successCount = 0
+
+    // Send to each recipient
+    for (const recipient of recipients) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'onboarding@resend.dev',
+          to: recipient,
+          subject: `📊 تقرير التنبيهات اليومي - ${today}`,
+          html: htmlContent,
+          attachments: [
+            {
+              filename: `التنبيهات_اليومية_${today}.xlsx`,
+              content: excelBase64,
+              content_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          ],
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.text()
+        console.error(`[Daily Digest] Resend API error for ${recipient}:`, response.status, error)
+      } else {
+        const result = await response.json()
+        console.log(`[Daily Digest] Email sent successfully to ${recipient}:`, result.id)
+        successCount++
+      }
+    }
+
+    return successCount > 0
   } catch (err) {
     console.error('[Daily Digest] Error sending email:', err)
     return false

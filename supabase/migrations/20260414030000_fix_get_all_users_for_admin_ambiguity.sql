@@ -1,10 +1,9 @@
--- Fix get_all_users_for_admin to include username
--- Date: 2026-01-31
+-- Fix ambiguous column reference in get_all_users_for_admin()
+-- The RETURNS TABLE output column names become visible inside PL/pgSQL,
+-- so unqualified references like "id" can conflict with table columns.
 
--- Drop existing function
 DROP FUNCTION IF EXISTS public.get_all_users_for_admin();
 
--- Recreate with username field
 CREATE OR REPLACE FUNCTION public.get_all_users_for_admin()
 RETURNS TABLE (
   id UUID,
@@ -22,14 +21,21 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Check if user is authenticated
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
-  -- Return all users (admin can see all users)
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.users AS admin_user
+    WHERE admin_user.id = auth.uid()
+      AND admin_user.role = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
   RETURN QUERY
-  SELECT 
+  SELECT
     u.id,
     u.username,
     u.email,
@@ -39,8 +45,8 @@ BEGIN
     u.is_active,
     u.last_login,
     u.created_at,
-    u.updated_at
-  FROM public.users u
+    u.created_at AS updated_at
+  FROM public.users AS u
   ORDER BY u.created_at DESC;
 END;
 $$;

@@ -23,7 +23,6 @@ DROP POLICY IF EXISTS "Admins can view all audit logs" ON public.audit_log;
 CREATE POLICY "Admins can view all audit logs" ON public.audit_log FOR SELECT USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin'));
 DROP POLICY IF EXISTS "Allow creating audit logs" ON public.audit_log;
 CREATE POLICY "Allow creating audit logs" ON public.audit_log FOR INSERT WITH CHECK (true);
-
 -- security_events
 CREATE TABLE IF NOT EXISTS public.security_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,7 +44,6 @@ DROP POLICY IF EXISTS "Allow creating security events" ON public.security_events
 CREATE POLICY "Allow creating security events" ON public.security_events FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Only admins can update security events" ON public.security_events;
 CREATE POLICY "Only admins can update security events" ON public.security_events FOR UPDATE USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin')) WITH CHECK (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin'));
-
 -- security_settings
 CREATE TABLE IF NOT EXISTS public.security_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,7 +59,6 @@ DROP POLICY IF EXISTS "Only admins can view security settings" ON public.securit
 CREATE POLICY "Only admins can view security settings" ON public.security_settings FOR SELECT USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin'));
 DROP POLICY IF EXISTS "Only admins can update security settings" ON public.security_settings;
 CREATE POLICY "Only admins can update security settings" ON public.security_settings FOR UPDATE USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin')) WITH CHECK (EXISTS (SELECT 1 FROM public.users u WHERE u.id=auth.uid() AND u.role='admin'));
-
 -- trigger function
 CREATE OR REPLACE FUNCTION public.audit_trigger_function()
 RETURNS TRIGGER AS $$
@@ -78,6 +75,5 @@ BEGIN
   END IF;
   RETURN NULL;
 END;$$ LANGUAGE plpgsql SECURITY DEFINER;
-
 DROP TRIGGER IF EXISTS audit_security_settings_trigger ON public.security_settings;
 CREATE TRIGGER audit_security_settings_trigger AFTER INSERT OR UPDATE OR DELETE ON public.security_settings FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
