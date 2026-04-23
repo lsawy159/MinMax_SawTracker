@@ -85,7 +85,7 @@ export default function Users() {
     full_name: '',
     password: '',
     new_password: '', // كلمة المرور الجديدة عند التعديل
-    role: 'user' as 'admin' | 'user',
+    role: 'user' as 'admin' | 'manager' | 'user',
     permissions: defaultPermissions,
     is_active: true
   })
@@ -130,7 +130,7 @@ export default function Users() {
       const normalizedUsers = (data || []).map((user: User) => ({
         ...user,
         username: user.username || user.email?.split('@')[0] || 'unknown',
-        permissions: normalizePermissions(user.permissions, user.role as 'admin' | 'user')
+        permissions: normalizePermissions(user.permissions, user.role as 'admin' | 'manager' | 'user')
       }))
       
       setUsers(normalizedUsers)
@@ -243,6 +243,10 @@ export default function Users() {
 
         toast.success('تم تحديث المستخدم بنجاح')
       } else {
+        if (formData.role === 'admin') {
+          throw new Error('لا يمكن إنشاء مدير نظام جديد. يوجد مدير واحد فقط.')
+        }
+
         // تحويل username إلى email وهمي
         const emailToSend = formData.username.includes('@') 
           ? formData.username 
@@ -255,7 +259,7 @@ export default function Users() {
             email: emailToSend,
             password: formData.password,
             full_name: formData.full_name,
-            role: 'user', // دائماً user عند الإنشاء
+            role: formData.role,
             permissions: formData.permissions,
             is_active: formData.is_active
           }
@@ -395,7 +399,7 @@ export default function Users() {
     })
   }
 
-  const setRolePermissions = (role: 'admin' | 'user') => {
+  const setRolePermissions = (role: 'admin' | 'manager' | 'user') => {
     setFormData(prev => ({
       ...prev,
       role,
@@ -473,7 +477,7 @@ export default function Users() {
                               : 'bg-primary/20 text-slate-900'
                           }`}>
                             <Shield className="w-3 h-3" />
-                            {user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                            {user.role === 'admin' ? 'مدير النظام' : user.role === 'manager' ? 'مدير' : 'مستخدم'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm">
@@ -637,7 +641,7 @@ export default function Users() {
                             : 'bg-primary/20 text-slate-900'
                         }`}>
                           <Shield className="w-3 h-3" />
-                          {user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                          {user.role === 'admin' ? 'مدير النظام' : user.role === 'manager' ? 'مدير' : 'مستخدم'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -773,13 +777,14 @@ export default function Users() {
                         </label>
                         <select
                           value={formData.role}
-                          onChange={(e) => setRolePermissions(e.target.value as 'admin' | 'user')}
+                          onChange={(e) => setRolePermissions(e.target.value as 'admin' | 'manager' | 'user')}
                           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm transition focus:border-primary focus:ring-2 focus:ring-primary"
                           disabled={editingUser && editingUser.role === 'admin' && users.filter(u => u.role === 'admin' && u.is_active).length === 1}
                         >
                           <option value="user">مستخدم</option>
+                          <option value="manager">مدير</option>
                           {editingUser && editingUser.role === 'admin' && (
-                            <option value="admin">مدير</option>
+                            <option value="admin">مدير النظام</option>
                           )}
                         </select>
                       </div>
@@ -919,7 +924,7 @@ export default function Users() {
                     <span className="font-medium">اسم المستخدم:</span> {deletingUser.username}
                   </p>
                   <p className="text-sm text-gray-700">
-                    <span className="font-medium">الدور:</span> {deletingUser.role === 'admin' ? 'مدير' : 'مستخدم'}
+                    <span className="font-medium">الدور:</span> {deletingUser.role === 'admin' ? 'مدير النظام' : deletingUser.role === 'manager' ? 'مدير' : 'مستخدم'}
                   </p>
                 </div>
 

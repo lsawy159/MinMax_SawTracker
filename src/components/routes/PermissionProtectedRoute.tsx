@@ -1,8 +1,9 @@
 import { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { usePermissions, PermissionMatrix } from '@/utils/permissions'
+import { PermissionMatrix } from '@/utils/permissions'
 import { Shield } from 'lucide-react'
 import Layout from '@/components/layout/Layout'
+import PermissionGuard from '@/components/PermissionGuard'
 
 interface PermissionProtectedRouteProps {
   children: ReactNode
@@ -23,16 +24,24 @@ export default function PermissionProtectedRoute({
   redirectTo = '/dashboard',
   showMessage = true
 }: PermissionProtectedRouteProps) {
-  const { hasPermission } = usePermissions()
+  const permissionKey = `${section}.${action}`
 
-  // التحقق من الصلاحية
-  const hasAccess = hasPermission(section, action)
+  if (!showMessage) {
+    return (
+      <PermissionGuard
+        permissions={[permissionKey]}
+        showMessage={false}
+        fallback={<Navigate to={redirectTo} replace />}
+      >
+        {children}
+      </PermissionGuard>
+    )
+  }
 
-  // إذا لم يكن لديه الصلاحية
-  if (!hasAccess) {
-    // إذا كان showMessage = true، عرض رسالة "غير مصرح"
-    if (showMessage) {
-      return (
+  return (
+    <PermissionGuard
+      permissions={[permissionKey]}
+      fallback={(
         <Layout>
           <div className="flex items-center justify-center h-screen">
             <div className="text-center">
@@ -50,14 +59,10 @@ export default function PermissionProtectedRoute({
             </div>
           </div>
         </Layout>
-      )
-    }
-
-    // إذا كان showMessage = false، إعادة توجيه
-    return <Navigate to={redirectTo} replace />
-  }
-
-  // إذا كان لديه الصلاحية، عرض المحتوى
-  return <>{children}</>
+      )}
+    >
+      {children}
+    </PermissionGuard>
+  )
 }
 

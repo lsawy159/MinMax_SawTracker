@@ -11,9 +11,7 @@ interface NavItem {
   icon: typeof LayoutDashboard
   label: string
   badge?: { count: number; color: string } | null
-  adminOnly?: boolean
-  hidden?: boolean
-  permission?: { section: string; action: string } | null
+  permission?: { section: string; action: string | readonly string[] } | null
 }
 
 interface MobileBottomNavProps {

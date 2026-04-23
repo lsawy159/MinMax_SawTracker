@@ -80,7 +80,7 @@ export const PERMISSION_SECTIONS = {
   users: {
     label: 'المستخدمين',
     description: 'الوصول إلى شاشة إدارة المستخدمين وصلاحياتهم.',
-    actions: ['view'] as const
+    actions: ['view', 'create', 'edit', 'delete'] as const
   },
   settings: {
     label: 'حدود الشركات',

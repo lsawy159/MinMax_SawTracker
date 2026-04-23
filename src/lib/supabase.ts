@@ -228,8 +228,8 @@ export interface User {
   email: string
   username: string
   full_name: string
-  role: 'admin' | 'user'
-  permissions: Record<string, unknown>
+  role: 'admin' | 'manager' | 'user'
+  permissions: Record<string, unknown> | string[] // دعم النسختين: JSON object و string[]
   is_active: boolean
   created_at: string
   last_login?: string

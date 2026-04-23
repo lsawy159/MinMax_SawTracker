@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import { Settings, Globe, Shield, FileText, Clock, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, BarChart3, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -10,6 +11,7 @@ import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import SessionsManager from '@/components/settings/SessionsManager'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
+import { PermissionsPanel } from '@/pages/Permissions'
 
 interface GeneralSetting {
   id?: string
@@ -29,11 +31,12 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
-type TabType = 'system' | 'fields' | 'sessions' | 'audit' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
+type TabType = 'system' | 'fields' | 'sessions' | 'audit' | 'permissions' | 'ui' | 'reports' | 'advanced-notifications' | 'unified'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
   const { canView, canEdit } = usePermissions()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState<TabType>('system')
   // Settings can be string, number, boolean, or object
   const [settings, setSettings] = useState<Record<string, string | number | boolean | Record<string, unknown> | null>>({})
@@ -44,10 +47,7 @@ export default function GeneralSettings() {
 
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('adminSettings')
-  const hasEditPermission = canEdit('adminSettings') || user?.role === 'admin'
-  // Reserved for future use: isAdmin
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isAdmin = user?.role === 'admin'
+  const hasEditPermission = canEdit('adminSettings')
 
   const loadSettings = async () => {
     setIsLoading(true)
@@ -81,6 +81,23 @@ export default function GeneralSettings() {
       setIsLoading(false)
     }
   }, [user, hasViewPermission])
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (!tab) {
+      return
+    }
+
+    const allowedTabs: TabType[] = ['system', 'fields', 'sessions', 'audit', 'permissions', 'ui', 'reports', 'advanced-notifications', 'unified']
+    if (allowedTabs.includes(tab as TabType)) {
+      setActiveTab(tab as TabType)
+    }
+  }, [searchParams])
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab)
+    setSearchParams({ tab })
+  }
 
   // Check if user has view permission
   if (!user || !hasViewPermission) {
@@ -169,6 +186,12 @@ export default function GeneralSettings() {
       label: 'لوحة المراجعة والتدقيق',
       icon: BarChart3,
       component: AuditDashboard
+    },
+    {
+      key: 'permissions',
+      label: 'إدارة الصلاحيات',
+      icon: Shield,
+      component: PermissionsPanel
     },
     {
       key: 'ui',
@@ -567,7 +590,7 @@ export default function GeneralSettings() {
                   return (
                     <button
                       key={category.key}
-                      onClick={() => setActiveTab(category.key as TabType)}
+                      onClick={() => handleTabChange(category.key as TabType)}
                       className={`flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-right text-xs transition-all duration-200 ${
                         activeTab === category.key
                           ? 'bg-primary/15 text-slate-900 shadow-soft ring-1 ring-primary/40'

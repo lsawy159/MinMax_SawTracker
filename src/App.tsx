@@ -232,6 +232,13 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/permissions" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <Navigate to="/admin-settings?tab=permissions" replace />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
   )
