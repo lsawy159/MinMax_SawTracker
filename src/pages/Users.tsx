@@ -214,12 +214,12 @@ export default function Users() {
         // تحديث مستخدم موجود باستخدام RPC function
         const { error } = await supabase
           .rpc('update_user_as_admin', {
-            user_id: editingUser.id,
-            new_email: desiredEmail,
-            new_full_name: formData.full_name,
-            new_role: formData.role,
-            new_permissions: formData.permissions,
-            new_is_active: formData.is_active
+            p_user_id: editingUser.id,
+            p_new_email: desiredEmail,
+            p_new_full_name: formData.full_name,
+            p_new_role: formData.role,
+            p_new_permissions: formData.permissions,
+            p_new_is_active: formData.is_active
           })
 
         if (error) throw error
@@ -314,7 +314,7 @@ export default function Users() {
       // حذف المستخدم باستخدام RPC function
       const { data, error } = await supabase
         .rpc('delete_user_as_admin', {
-          user_id: deletingUser.id
+          p_user_id: deletingUser.id
         })
 
       if (error) {

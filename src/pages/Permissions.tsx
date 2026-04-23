@@ -68,8 +68,8 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
       }
 
       const { error } = await supabase.rpc('update_user_as_admin', {
-        user_id: payload.userId,
-        new_permissions: payload.permissions,
+        p_user_id: payload.userId,
+        p_new_permissions: payload.permissions,
       })
 
       if (error) {

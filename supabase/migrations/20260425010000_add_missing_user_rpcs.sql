@@ -8,12 +8,12 @@
 -- 1. RPC: update_user_as_admin
 -- الغرض: تحديث بيانات المستخدم (الاسم، الدور، الصلاحيات) من قِبل الأدمن فقط
 CREATE OR REPLACE FUNCTION public.update_user_as_admin(
-  user_id UUID,
-  new_email TEXT DEFAULT NULL,
-  new_full_name TEXT DEFAULT NULL,
-  new_role TEXT DEFAULT NULL,
-  new_permissions JSONB DEFAULT NULL,
-  new_is_active BOOLEAN DEFAULT NULL
+  p_user_id UUID,
+  p_new_email TEXT DEFAULT NULL,
+  p_new_full_name TEXT DEFAULT NULL,
+  p_new_role TEXT DEFAULT NULL,
+  p_new_permissions JSONB DEFAULT NULL,
+  p_new_is_active BOOLEAN DEFAULT NULL
 ) RETURNS TABLE (
   id UUID,
   email TEXT,
@@ -46,32 +46,32 @@ BEGIN
   END IF;
 
   -- Prevent creating additional admins
-  IF new_role = 'admin' THEN
+  IF p_new_role = 'admin' THEN
     RAISE EXCEPTION 'Cannot promote user to admin. Only one admin is allowed.';
   END IF;
 
   -- Validate role if provided
-  IF new_role IS NOT NULL AND new_role NOT IN ('admin', 'manager', 'user') THEN
-    RAISE EXCEPTION 'Invalid role: %', new_role;
+  IF p_new_role IS NOT NULL AND p_new_role NOT IN ('admin', 'manager', 'user') THEN
+    RAISE EXCEPTION 'Invalid role: %', p_new_role;
   END IF;
 
   -- Normalize incoming permissions to a flat JSON array format for consistency
-  IF new_permissions IS NULL THEN
+  IF p_new_permissions IS NULL THEN
     v_effective_permissions := NULL;
-  ELSIF jsonb_typeof(new_permissions) = 'array' THEN
+  ELSIF jsonb_typeof(p_new_permissions) = 'array' THEN
     SELECT COALESCE(jsonb_agg(to_jsonb(value) ORDER BY value), '[]'::jsonb)
     INTO v_effective_permissions
     FROM (
       SELECT DISTINCT value
-      FROM jsonb_array_elements_text(new_permissions)
+      FROM jsonb_array_elements_text(p_new_permissions)
       WHERE value ~ '^[a-zA-Z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_]*$'
     ) dedup;
-  ELSIF jsonb_typeof(new_permissions) = 'object' THEN
+  ELSIF jsonb_typeof(p_new_permissions) = 'object' THEN
     SELECT COALESCE(jsonb_agg(to_jsonb(permission_key) ORDER BY permission_key), '[]'::jsonb)
     INTO v_effective_permissions
     FROM (
       SELECT DISTINCT format('%s.%s', section.key, action.key) AS permission_key
-      FROM jsonb_each(new_permissions) AS section(key, value)
+      FROM jsonb_each(p_new_permissions) AS section(key, value)
       CROSS JOIN LATERAL jsonb_each(section.value) AS action(key, value)
       WHERE jsonb_typeof(section.value) = 'object'
         AND action.value = 'true'::jsonb
@@ -84,13 +84,13 @@ BEGIN
   RETURN QUERY
   UPDATE public.users
   SET
-    email = COALESCE(new_email, email),
-    full_name = COALESCE(new_full_name, full_name),
-    role = COALESCE(new_role, role),
+    email = COALESCE(p_new_email, email),
+    full_name = COALESCE(p_new_full_name, full_name),
+    role = COALESCE(p_new_role, role),
     permissions = COALESCE(v_effective_permissions, permissions),
-    is_active = COALESCE(new_is_active, is_active),
+    is_active = COALESCE(p_new_is_active, is_active),
     updated_at = NOW()
-  WHERE id = user_id
+  WHERE id = p_user_id
   RETURNING
     public.users.id,
     public.users.email,
@@ -108,7 +108,7 @@ $$;
 -- الغرض: حذف مستخدم من قِبل الأدمن فقط
 -- ملاحظة: يحذف من جداول auth و public معاً
 CREATE OR REPLACE FUNCTION public.delete_user_as_admin(
-  user_id UUID
+  p_user_id UUID
 ) RETURNS TABLE (
   success BOOLEAN,
   message TEXT
@@ -135,7 +135,7 @@ BEGIN
   END IF;
 
   -- Get role of user to delete
-  SELECT role INTO v_user_role FROM public.users WHERE id = user_id;
+  SELECT role INTO v_user_role FROM public.users WHERE id = p_user_id;
 
   IF v_user_role IS NULL THEN
     RAISE EXCEPTION 'User not found';
@@ -153,7 +153,7 @@ BEGIN
   END IF;
 
   -- Delete from public.users
-  DELETE FROM public.users WHERE id = user_id;
+  DELETE FROM public.users WHERE id = p_user_id;
 
   -- Delete from auth.users (cascades from public.users foreign key)
   -- Note: This is handled by the foreign key constraint with ON DELETE CASCADE
