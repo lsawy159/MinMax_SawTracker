@@ -9,6 +9,26 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': 'false'
 }
 
+function hasPermission(permissions: unknown, key: string): boolean {
+  if (!permissions) {
+    return false
+  }
+
+  if (Array.isArray(permissions)) {
+    return permissions.includes(key)
+  }
+
+  if (typeof permissions === 'object' && permissions !== null) {
+    const [section, action] = key.split('.')
+    const sectionValue = (permissions as Record<string, unknown>)[section]
+    if (typeof sectionValue === 'object' && sectionValue !== null) {
+      return (sectionValue as Record<string, unknown>)[action] === true
+    }
+  }
+
+  return false
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
@@ -58,8 +78,7 @@ serve(async (req) => {
     
     // إذا لم يكن مدير → التحقق من الصلاحية
     if (!isAdmin) {
-      const permissions = currentUserData.permissions || {}
-      const canEdit = permissions?.users?.edit === true
+      const canEdit = hasPermission(currentUserData.permissions, 'users.edit')
       if (!canEdit) {
         return new Response(
           JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to update user emails' } }),

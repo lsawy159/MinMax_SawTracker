@@ -9,6 +9,57 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': 'false'
 }
 
+function hasPermission(permissions: unknown, key: string): boolean {
+  if (!permissions) {
+    return false
+  }
+
+  if (Array.isArray(permissions)) {
+    return permissions.includes(key)
+  }
+
+  if (typeof permissions === 'object' && permissions !== null) {
+    const [section, action] = key.split('.')
+    const sectionValue = (permissions as Record<string, unknown>)[section]
+    if (typeof sectionValue === 'object' && sectionValue !== null) {
+      return (sectionValue as Record<string, unknown>)[action] === true
+    }
+  }
+
+  return false
+}
+
+function normalizePermissionsPayload(input: unknown): string[] {
+  if (!input) {
+    return []
+  }
+
+  if (Array.isArray(input)) {
+    return input
+      .filter((value): value is string => typeof value === 'string')
+      .filter((value) => /^[a-zA-Z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_]*$/.test(value))
+  }
+
+  if (typeof input === 'object' && input !== null) {
+    const flattened: string[] = []
+    for (const [section, value] of Object.entries(input as Record<string, unknown>)) {
+      if (typeof value !== 'object' || value === null) {
+        continue
+      }
+
+      for (const [action, enabled] of Object.entries(value as Record<string, unknown>)) {
+        if (enabled === true) {
+          flattened.push(`${section}.${action}`)
+        }
+      }
+    }
+
+    return flattened
+  }
+
+  return []
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
@@ -58,8 +109,7 @@ serve(async (req) => {
     
     // إذا لم يكن مدير → التحقق من الصلاحية
     if (!isAdmin) {
-      const permissions = currentUserData.permissions || {}
-      const canCreate = permissions?.users?.create === true
+      const canCreate = hasPermission(currentUserData.permissions, 'users.create')
       if (!canCreate) {
         return new Response(
           JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to create users' } }),
@@ -116,6 +166,13 @@ serve(async (req) => {
       )
     }
 
+    if (role && role !== 'user' && role !== 'manager') {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Invalid role. Allowed roles: user, manager' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // التحقق من عدم وجود مدير آخر (للأمان الإضافي)
     const { error: adminCheckError } = await supabase
       .from('users')
@@ -159,7 +216,7 @@ serve(async (req) => {
       email,
       full_name,
       role: role || 'user',
-      permissions: permissions || {},
+      permissions: normalizePermissionsPayload(permissions),
       is_active: is_active !== undefined ? is_active : true
     }
 
