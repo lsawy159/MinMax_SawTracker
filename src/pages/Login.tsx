@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { LogIn, Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { useThemeMode } from '@/hooks/useUiPreferences'
+import { Button } from '@/components/ui/Button'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -137,13 +138,13 @@ export default function Login() {
                 </div>
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="app-button-primary w-full justify-center py-3.5 text-base disabled:opacity-50"
+                className="w-full justify-center py-3.5 text-base"
               >
                 {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

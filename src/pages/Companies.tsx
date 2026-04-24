@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react' // [FIX] تم إضافة useCallback و useMemo
+import { useEffect, useState, useCallback, useRef, useMemo, type CSSProperties } from 'react' // [FIX] تم إضافة useCallback و useMemo
 import { supabase, Company } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
-import { Building2, AlertCircle, Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { Building2, AlertCircle, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Grid3X3, List, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
@@ -13,6 +13,10 @@ import { useLocation } from 'react-router-dom'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { useCardColumns } from '@/hooks/useUiPreferences'
 import { normalizeArabic } from '@/utils/textUtils'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
 import { 
   calculateCommercialRegistrationStatus, 
   calculatePowerSubscriptionStatus,
@@ -843,33 +847,22 @@ export default function Companies() {
   return (
     <Layout>
       <div className="p-6">
-        {/* Header with Actions */}
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">المؤسسات</h1>
-            <p className="text-sm text-gray-600">
-              عرض {filteredCompanies.length} من {companies.length} مؤسسة
-              {activeFiltersCount > 0 && (
-                <span className="mr-2 text-blue-600 font-medium">
-                  ({activeFiltersCount} فلتر نشط)
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {canCreate('companies') && (
-              <>
-                <button
-                  onClick={handleAddCompany}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-2"
-                >
-                  <Building2 className="w-4 h-4" />
-                  إضافة مؤسسة
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="المؤسسات"
+          description={`عرض ${filteredCompanies.length} من ${companies.length} مؤسسة${
+            activeFiltersCount > 0 ? ` (${activeFiltersCount} فلتر نشط)` : ''
+          }`}
+          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'المؤسسات' }]}
+          className="mb-4"
+          actions={
+            canCreate('companies') ? (
+              <Button onClick={handleAddCompany} variant="success">
+                <Building2 className="w-4 h-4" />
+                إضافة مؤسسة
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Company Status Statistics Section - إحصائيات موحدة تشمل جميع الحالات */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -913,58 +906,47 @@ export default function Companies() {
           })()}
         </div>
 
-        {/* Compact Search and Filter Bar */}
-        <div className="app-filter-surface mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ابحث بالاسم أو رقم اشتراك التأمينات أو الرقم الموحد..."
-                className="w-full rounded-xl border border-gray-300 py-2 pr-10 pl-3 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+        <FilterBar className="mb-6">
+          <SearchInput
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="ابحث بالاسم أو رقم اشتراك التأمينات أو الرقم الموحد..."
+            wrapperClassName="min-w-[260px] flex-1"
+          />
 
-            {/* Filter Button with Badge */}
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              className="app-button-primary relative"
-            >
-              <Filter className="w-4 h-4" />
-              <span>الفلاتر</span>
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-
-            {/* Alerts quick filter */}
-            <button
-              onClick={() => setShowAlertsOnly(prev => !prev)}
-              className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
-              title="عرض المؤسسات ذات التنبيهات فقط"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">تنبيهات</span>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {companyAlertsCount}
+          <Button onClick={() => setShowFiltersModal(true)} className="relative">
+            <Filter className="w-4 h-4" />
+            <span>الفلاتر</span>
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                {activeFiltersCount}
               </span>
-            </button>
+            )}
+          </Button>
 
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-2 border border-gray-300"
-              >
-                {getSortIcon(sortField)}
-                <span className="hidden sm:inline">الترتيب</span>
-                <ArrowUpDown className="w-4 h-4" />
-              </button>
+          <Button
+            onClick={() => setShowAlertsOnly(prev => !prev)}
+            variant="outline"
+            className={`relative border-red-200 text-red-700 ${showAlertsOnly ? 'bg-red-50' : ''}`}
+            title="عرض المؤسسات ذات التنبيهات فقط"
+          >
+            <AlertCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">تنبيهات</span>
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+              {companyAlertsCount}
+            </span>
+          </Button>
+
+          <div className="relative">
+            <Button
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              variant="secondary"
+            >
+              {getSortIcon(sortField)}
+              <span className="hidden sm:inline">الترتيب</span>
+              <ArrowUpDown className="w-4 h-4" />
+            </Button>
 
               {/* Sort Dropdown Menu */}
               {showSortDropdown && (
@@ -1002,10 +984,10 @@ export default function Companies() {
                   </div>
                 </>
               )}
-            </div>
+          </div>
 
             {/* View Mode and Items Per Page */}
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
               <div className="app-toggle-shell">
                 {!isMobileView && (
                   <button
@@ -1052,22 +1034,21 @@ export default function Companies() {
                   <option value={150}>150</option>
                 </select>
               </div>
-            </div>
           </div>
-        </div>
+        </FilterBar>
 
         {/* Filters Modal */}
         {showFiltersModal && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+              className="fixed inset-0 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)]"
               onClick={() => setShowFiltersModal(false)}
             />
             
             {/* Modal Content */}
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all">
+            <div className="fixed inset-0 flex items-end justify-center p-0 md:items-center md:p-4">
+              <div className="w-full max-h-[92vh] max-w-4xl overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl motion-safe-enter md:rounded-2xl">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                   <div>
@@ -1080,7 +1061,7 @@ export default function Companies() {
                   </div>
                   <button
                     onClick={() => setShowFiltersModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="touch-feedback rounded-lg p-2 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -1095,7 +1076,7 @@ export default function Companies() {
                       <select
                         value={commercialRegStatus}
                         onChange={(e) => setCommercialRegStatus(e.target.value as CommercialRegStatus)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="expired">منتهي</option>
@@ -1110,7 +1091,7 @@ export default function Companies() {
                       <select
                         value={powerSubscriptionStatus}
                         onChange={(e) => setPowerSubscriptionStatus(e.target.value as PowerSubscriptionStatus)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="expired">منتهي</option>
@@ -1125,7 +1106,7 @@ export default function Companies() {
                       <select
                         value={moqeemSubscriptionStatus}
                         onChange={(e) => setMoqeemSubscriptionStatus(e.target.value as MoqeemSubscriptionStatus)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="expired">منتهي</option>
@@ -1140,7 +1121,7 @@ export default function Companies() {
                       <select
                         value={employeeCountFilter}
                         onChange={(e) => setEmployeeCountFilter(e.target.value as EmployeeCountFilter)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="1">موظف واحد</option>
@@ -1156,7 +1137,7 @@ export default function Companies() {
                       <select
                         value={availableSlotsFilter}
                         onChange={(e) => setAvailableSlotsFilter(e.target.value as AvailableSlotsFilter)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="0">المؤسسات المكتملة</option>
@@ -1173,7 +1154,7 @@ export default function Companies() {
                       <select
                         value={dateRangeFilter}
                         onChange={(e) => setDateRangeFilter(e.target.value as DateRange)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="last_month">آخر شهر</option>
@@ -1189,7 +1170,7 @@ export default function Companies() {
                       <select
                         value={exemptionsFilter}
                         onChange={(e) => setExemptionsFilter(e.target.value as ExemptionsFilter)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="all">الكل</option>
                         <option value="تم الاعفاء">تم الاعفاء</option>
@@ -1207,7 +1188,7 @@ export default function Companies() {
                             type="date"
                             value={customStartDate}
                             onChange={(e) => setCustomStartDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                           />
                         </div>
                         <div>
@@ -1216,7 +1197,7 @@ export default function Companies() {
                             type="date"
                             value={customEndDate}
                             onChange={(e) => setCustomEndDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                           />
                         </div>
                       </>
@@ -1225,18 +1206,18 @@ export default function Companies() {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between border-t border-border bg-muted/30 p-6">
                   <button
                     onClick={clearFilters}
                     disabled={activeFiltersCount === 0}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    className="touch-feedback flex items-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <X className="w-4 h-4" />
                     مسح جميع الفلاتر
                   </button>
                   <button
                     onClick={() => setShowFiltersModal(false)}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                    className="touch-feedback rounded-md bg-primary px-6 py-2 font-medium text-primary-foreground transition-[transform,filter] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:brightness-95"
                   >
                     تطبيق الفلاتر
                   </button>
@@ -1255,11 +1236,12 @@ export default function Companies() {
           <>
             {viewMode === 'grid' ? (
               <div className={companyGridClass}>
-                {paginatedCompanies.map((company) => (
+                {paginatedCompanies.map((company, index) => (
                   <div
                     key={company.id}
                     onClick={() => handleCompanyCardClick(company)}
-                    className="group cursor-pointer transition-transform duration-300 hover:-translate-y-0.5"
+                    className="stagger-item group cursor-pointer transition-transform duration-300 hover:-translate-y-0.5"
+                    style={{ '--i': Math.min(index, 11) } as CSSProperties}
                   >
                     <CompanyCard
                       company={company}
@@ -1287,19 +1269,21 @@ export default function Companies() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
                         onClick={() => setSelectedCompanyIds([])}
-                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition text-sm border border-gray-300"
+                        variant="outline"
+                        size="sm"
                       >
                         إلغاء التحديد
-                      </button>
+                      </Button>
                       {canDelete('companies') && (
-                        <button
+                        <Button
                           onClick={() => setShowBulkDeleteModal(true)}
-                          className="px-4 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm"
+                          variant="destructive"
+                          size="sm"
                         >
                           حذف المحدد
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1410,20 +1394,22 @@ export default function Companies() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 {canEdit('companies') && (
-                                  <button
+                                  <Button
                                     onClick={() => handleEditCompany(company)}
-                                    className="rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-primary/10 text-sm"
+                                    variant="outline"
+                                    size="sm"
                                   >
                                     تعديل
-                                  </button>
+                                  </Button>
                                 )}
                                 {canDelete('companies') && (
-                                  <button
+                                  <Button
                                     onClick={() => handleDeleteCompany(company)}
-                                    className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md transition text-sm"
+                                    variant="destructive"
+                                    size="sm"
                                   >
                                     حذف
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             </td>
@@ -1444,35 +1430,35 @@ export default function Companies() {
                 </div>
                 
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
                     onClick={goToPreviousPage}
                     disabled={currentPage === 1}
-                    className="p-2 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    variant="outline"
+                    size="icon"
                   >
                     <ChevronRight className="w-4 h-4" />
-                  </button>
+                  </Button>
 
                   {getPageNumbers().map(pageNum => (
-                    <button
+                    <Button
                       key={pageNum}
                       onClick={() => goToPage(pageNum)}
-                      className={`px-3 py-1 border rounded-md text-sm transition ${
-                        currentPage === pageNum 
-                          ? 'bg-blue-600 text-white border-blue-600' 
-                          : 'hover:bg-gray-50 text-gray-700'
-                      }`}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      className="min-w-9"
                     >
                       {pageNum}
-                    </button>
+                    </Button>
                   ))}
 
-                  <button
+                  <Button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
-                    className="p-2 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    variant="outline"
+                    size="icon"
                   >
                     <ChevronLeft className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1482,12 +1468,14 @@ export default function Companies() {
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600">لا توجد مؤسسات تطابق معايير البحث</p>
             {activeFiltersCount > 0 && (
-              <button
+              <Button
                 onClick={clearFilters}
-                className="mt-4 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition"
+                variant="outline"
+                size="sm"
+                className="mt-4"
               >
                 مسح الفلاتر وعرض الكل
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -1518,7 +1506,7 @@ export default function Companies() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -1541,18 +1529,20 @@ export default function Companies() {
                   </span>
                 </p>
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={handleDeleteConfirm}
-                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+                    variant="destructive"
+                    className="flex-1"
                   >
                     نعم، احذف
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleModalClose}
-                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                    variant="secondary"
+                    className="flex-1"
                   >
                     إلغاء
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1561,7 +1551,7 @@ export default function Companies() {
 
         {/* Bulk Delete Confirmation Modal */}
         {showBulkDeleteModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -1584,20 +1574,22 @@ export default function Companies() {
                   </span>
                 </p>
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={handleBulkDelete}
                     disabled={loading}
-                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="destructive"
+                    className="flex-1"
                   >
                     {loading ? 'جاري الحذف...' : 'نعم، احذف الكل'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setShowBulkDeleteModal(false)}
                     disabled={loading}
-                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="secondary"
+                    className="flex-1"
                   >
                     إلغاء
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

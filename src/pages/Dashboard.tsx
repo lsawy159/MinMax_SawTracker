@@ -4,6 +4,11 @@ import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, 
 import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MetricCard } from '@/components/ui/MetricCard'
+import { useScrollReveal } from '@/hooks/useScrollReveal'
 import { 
   enrichEmployeeAlertsWithCompanyData,
   getEmployeeNotificationThresholdsPublic,
@@ -79,6 +84,9 @@ export default function Dashboard() {
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
   const navigate = useNavigate()
+  const headerRevealRef = useScrollReveal<HTMLDivElement>()
+  const statsRevealRef = useScrollReveal<HTMLDivElement>()
+  const metricsRevealRef = useScrollReveal<HTMLDivElement>()
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     totalCompanies: 0,
@@ -542,67 +550,62 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            {/* الكروت الإحصائية الرئيسية */}
-            <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
-              <div className="app-panel p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">عدد المؤسسات</p>
-                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300">{stats.totalCompanies}</p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">مؤسسة مسجلة</p>
-                  </div>
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2">
-                    <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
-                  </div>
-                </div>
-              </div>
+            <div ref={headerRevealRef} className="scroll-reveal mb-3">
+              <PageHeader
+                title="لوحة التحكم"
+                description="ملخص فوري للإحصائيات والتنبيهات مع مؤشرات الأداء الحالية."
+                breadcrumbs={[{ label: 'الرئيسية' }]}
+                actions={
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/alerts')}>
+                      جميع التنبيهات
+                    </Button>
+                    <Button size="sm" onClick={() => navigate('/reports')}>
+                      التقارير
+                    </Button>
+                  </>
+                }
+                className="mb-0"
+              />
+            </div>
 
-              <div className="app-panel p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">عدد الموظفين</p>
-                    <p className="text-xl font-bold text-primary">{stats.totalEmployees}</p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">موظف مسجل</p>
-                  </div>
-                  <div className="rounded-xl border border-primary/30 bg-primary/10 p-2">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </div>
+            <div ref={statsRevealRef} className="scroll-reveal mb-3 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="عدد المؤسسات"
+                value={stats.totalCompanies}
+                trendLabel="مؤسسة مسجلة"
+                icon={<Building2 className="h-5 w-5" />}
+                accent="success"
+              />
+              <StatCard
+                title="عدد الموظفين"
+                value={stats.totalEmployees}
+                trendLabel="موظف مسجل"
+                icon={<Users className="h-5 w-5" />}
+                accent="info"
+              />
+              <StatCard
+                title="تنبيهات المؤسسات"
+                value={companyUrgentAndHighAlerts}
+                trendLabel="طارئة وعاجلة"
+                icon={<AlertTriangle className="h-5 w-5" />}
+                accent="warning"
+                onClick={() => navigate('/alerts?tab=companies')}
+              />
+              <StatCard
+                title="تنبيهات الموظفين"
+                value={employeeUrgentAndHighAlerts}
+                trendLabel="طارئة وعاجلة"
+                icon={<Bell className="h-5 w-5" />}
+                accent="danger"
+                onClick={() => navigate('/alerts?tab=employees')}
+              />
+            </div>
 
-              <div className="app-panel cursor-pointer p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg" onClick={() => navigate('/alerts?tab=companies')}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">تنبيهات المؤسسات</p>
-                    <p className="text-xl font-bold text-rose-600 dark:text-rose-300">{companyUrgentAndHighAlerts}</p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">طارئة وعاجلة</p>
-                  </div>
-                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-2">
-                    <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-300" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
-                  <span>عرض التفاصيل</span>
-                  <ArrowRight className="h-3 w-3" />
-                </div>
-              </div>
-
-              <div className="app-panel cursor-pointer p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg" onClick={() => navigate('/alerts?tab=employees')}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs text-slate-500 dark:text-slate-400">تنبيهات الموظفين</p>
-                    <p className="text-xl font-bold text-sky-600 dark:text-sky-300">{employeeUrgentAndHighAlerts}</p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">طارئة وعاجلة</p>
-                  </div>
-                  <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2">
-                    <Bell className="h-5 w-5 text-sky-600 dark:text-sky-300" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
-                  <span>عرض التفاصيل</span>
-                  <ArrowRight className="h-3 w-3" />
-                </div>
-              </div>
+            <div ref={metricsRevealRef} className="scroll-reveal mb-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+              <MetricCard title="معدل الاستفادة" value={`${stats.utilizationRate}%`} subtitle="من السعة المتاحة" trend={stats.utilizationRate >= 75 ? 4 : -3} icon={<TrendingUp className="h-4 w-4" />} />
+              <MetricCard title="أماكن شاغرة" value={stats.totalAvailableSlots.toString()} subtitle="مكان متاح للإضافة" icon={<MapPin className="h-4 w-4" />} />
+              <MetricCard title="متوسط الموظفين" value={(stats.totalCompanies > 0 ? Math.round(stats.totalEmployees / stats.totalCompanies) : 0).toString()} subtitle="لكل مؤسسة" icon={<Users className="h-4 w-4" />} />
             </div>
 
             {/* نظام التبويبات */}
@@ -639,40 +642,31 @@ export default function Dashboard() {
                   <div className="space-y-3">
                     {/* إحصائيات عامة للمؤسسات */}
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
-                      <div className="app-panel border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-300">مؤسسات مكتملة</span>
-                          <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                        </div>
-                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-300">{stats.fullCompanies}</p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">لا يمكن إضافة موظفين</p>
-                      </div>
-                      <div className="app-panel border-sky-500/20 bg-sky-500/5 p-2.5">
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-300">أماكن شاغرة</span>
-                          <MapPin className="h-3.5 w-3.5 text-sky-500" />
-                        </div>
-                        <p className="text-lg font-bold text-sky-600 dark:text-sky-300">{stats.totalAvailableSlots}</p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">مكان متاح للإضافة</p>
-                      </div>
-                      <div className="app-panel border-violet-500/20 bg-violet-500/5 p-2.5">
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-300">معدل الاستفادة</span>
-                          <TrendingUp className="h-3.5 w-3.5 text-violet-500" />
-                        </div>
-                        <p className="text-lg font-bold text-violet-600 dark:text-violet-300">{stats.utilizationRate}%</p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">من السعة المتاحة</p>
-                      </div>
-                      <div className="app-panel border-slate-500/20 bg-slate-500/5 p-2.5">
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-300">متوسط الموظفين</span>
-                          <Users className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
-                        </div>
-                        <p className="text-lg font-bold text-slate-900 dark:text-white">
-                          {stats.totalCompanies > 0 ? Math.round(stats.totalEmployees / stats.totalCompanies) : 0}
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">لكل مؤسسة</p>
-                      </div>
+                      <MetricCard
+                        title="مؤسسات مكتملة"
+                        value={stats.fullCompanies.toString()}
+                        subtitle="لا يمكن إضافة موظفين"
+                        icon={<XCircle className="h-4 w-4" />}
+                      />
+                      <MetricCard
+                        title="أماكن شاغرة"
+                        value={stats.totalAvailableSlots.toString()}
+                        subtitle="مكان متاح للإضافة"
+                        icon={<MapPin className="h-4 w-4" />}
+                      />
+                      <MetricCard
+                        title="معدل الاستفادة"
+                        value={`${stats.utilizationRate}%`}
+                        subtitle="من السعة المتاحة"
+                        trend={stats.utilizationRate >= 75 ? 4 : -3}
+                        icon={<TrendingUp className="h-4 w-4" />}
+                      />
+                      <MetricCard
+                        title="متوسط الموظفين"
+                        value={(stats.totalCompanies > 0 ? Math.round(stats.totalEmployees / stats.totalCompanies) : 0).toString()}
+                        subtitle="لكل مؤسسة"
+                        icon={<Users className="h-4 w-4" />}
+                      />
                     </div>
 
                     {/* مربعات الإحصائيات في تنسيق 2×2 */}

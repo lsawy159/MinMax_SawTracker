@@ -13,6 +13,17 @@ import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
 import { usePermissions } from '@/utils/permissions'
 import { SearchIcon } from 'lucide-react'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '@/components/ui/Select'
 import { 
   calculateCommercialRegistrationStatus
 } from '@/utils/autoCompanyStatus'
@@ -1076,49 +1087,42 @@ export default function AdvancedSearch() {
   return (
     <Layout>
       <div className="w-full p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">البحث المتقدم</h1>
-            <p className="text-sm text-gray-600">
-              النتائج المطابقة: <span className="font-bold text-slate-900">{resultsCount}</span>
-              {activeFiltersCount > 0 && (
-                <span className="mr-2 text-gray-500">
-                  ({activeFiltersCount} فلتر نشط)
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              className="app-button-primary relative"
-            >
-              <Filter className="w-4 h-4" />
-              <span>الفلاتر</span>
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={saveSearch}
-              className="app-button-secondary"
-            >
-              <Save className="w-4 h-4" />
-              <span>حفظ البحث</span>
-            </button>
-            <button
-              onClick={exportResults}
-              disabled={resultsCount === 0}
-              className="app-button-success disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              <span>تصدير ({resultsCount})</span>
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="البحث المتقدم"
+          description={`النتائج المطابقة: ${resultsCount}${activeFiltersCount > 0 ? ` (${activeFiltersCount} فلتر نشط)` : ''}`}
+          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'البحث المتقدم' }]}
+          className="mb-6"
+          actions={
+            <>
+              <Button
+                onClick={() => setShowFiltersModal(true)}
+                className="relative"
+              >
+                <Filter className="w-4 h-4" />
+                <span>الفلاتر</span>
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+
+              <Button onClick={saveSearch} variant="secondary">
+                <Save className="w-4 h-4" />
+                <span>حفظ البحث</span>
+              </Button>
+
+              <Button
+                onClick={exportResults}
+                disabled={resultsCount === 0}
+                variant="success"
+              >
+                <Download className="w-4 h-4" />
+                <span>تصدير ({resultsCount})</span>
+              </Button>
+            </>
+          }
+        />
 
         {/* Tabs Navigation */}
         <div className="app-panel mb-6">
@@ -1155,58 +1159,56 @@ export default function AdvancedSearch() {
         </div>
 
         {/* Search Bar */}
-        <div className="app-filter-surface mb-6 p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={currentSearchQuery}
-                onChange={(e) => {
-                  if (activeTab === 'employees') {
-                    setEmployeeSearchQuery(e.target.value)
-                  } else {
-                    setCompanySearchQuery(e.target.value)
-                  }
-                }}
-                placeholder={activeTab === 'employees' 
-                  ? "ابحث بالاسم، المهنة، الجنسية، رقم الجوال، أو أي حقل إضافي..."
-                  : "ابحث باسم المؤسسة، الرقم الموحد، الرقم التأميني، أو أي حقل إضافي..."}
-                className="w-full rounded-md border border-gray-300 py-2.5 pl-4 pr-11 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+        <FilterBar className="mb-6">
+            <SearchInput
+              type="text"
+              value={currentSearchQuery}
+              onChange={(e) => {
+                if (activeTab === 'employees') {
+                  setEmployeeSearchQuery(e.target.value)
+                } else {
+                  setCompanySearchQuery(e.target.value)
+                }
+              }}
+              placeholder={activeTab === 'employees' 
+                ? 'ابحث بالاسم، المهنة، الجنسية، رقم الجوال، أو أي حقل إضافي...'
+                : 'ابحث باسم المؤسسة، الرقم الموحد، الرقم التأميني، أو أي حقل إضافي...'}
+              wrapperClassName="min-w-[260px] flex-1"
+            />
 
             {/* View Mode and Items Per Page */}
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
               {!isMobileView && (
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
-                  <button
+                <div className="app-toggle-shell">
+                  <Button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    size="icon"
                     title="عرض شبكي"
                   >
                     <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setViewMode('table')}
-                    className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : 'text-gray-600 hover:bg-gray-100'}`}
+                    variant={viewMode === 'table' ? 'default' : 'outline'}
+                    size="icon"
                     title="عرض جدول"
                   >
                     <List className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               )}
               {isMobileView && (
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
-                  <button
+                <div className="app-toggle-shell">
+                  <Button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'}`}
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    size="icon"
                     title="عرض شبكي"
                   >
                     <Grid3X3 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -1219,7 +1221,7 @@ export default function AdvancedSearch() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="focus-ring-brand rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                 >
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -1228,7 +1230,7 @@ export default function AdvancedSearch() {
                 </select>
               </div>
             </div>
-          </div>
+
 
           {/* Active Filters Chips */}
           {activeFiltersCount > 0 && (
@@ -1387,7 +1389,7 @@ export default function AdvancedSearch() {
               </div>
             </div>
           )}
-        </div>
+        </FilterBar>
 
         {/* Filters Modal */}
         {showFiltersModal && (
@@ -1435,62 +1437,62 @@ export default function AdvancedSearch() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">الجنسية</label>
-                            <select
-                              value={selectedNationality}
-                              onChange={(e) => setSelectedNationality(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              {nationalities && nationalities.map(nat => (
-                                <option key={nat} value={nat}>{nat}</option>
-                              ))}
-                            </select>
+                            <Select value={selectedNationality} onValueChange={setSelectedNationality}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                {nationalities && nationalities.map(nat => (
+                                  <SelectItem key={nat} value={nat}>{nat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">المؤسسة</label>
-                            <select
-                              value={selectedCompanyFilter}
-                              onChange={(e) => setSelectedCompanyFilter(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              {companyList && companyList.length > 0 ? (
-                                companyList.map(comp => (
-                                  <option key={comp.id} value={comp.id}>{comp.name}</option>
-                                ))
-                              ) : (
-                                <option value="all" disabled>لا توجد مؤسسات</option>
-                              )}
-                            </select>
+                            <Select value={selectedCompanyFilter} onValueChange={setSelectedCompanyFilter}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                {companyList && companyList.map(comp => (
+                                  <SelectItem key={comp.id} value={comp.id}>{comp.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">المهنة</label>
-                            <select
-                              value={selectedProfession}
-                              onChange={(e) => setSelectedProfession(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              {professions && professions.map(prof => (
-                                <option key={prof} value={prof}>{prof}</option>
-                              ))}
-                            </select>
+                            <Select value={selectedProfession} onValueChange={setSelectedProfession}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                {professions && professions.map(prof => (
+                                  <SelectItem key={prof} value={prof}>{prof}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">المشروع</label>
-                            <select
-                              value={selectedProject}
-                              onChange={(e) => setSelectedProject(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              {projects && projects.map(project => (
-                                <option key={project} value={project}>{project}</option>
-                              ))}
-                            </select>
+                            <Select value={selectedProject} onValueChange={setSelectedProject}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                {projects && projects.map(project => (
+                                  <SelectItem key={project} value={project}>{project}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1506,45 +1508,48 @@ export default function AdvancedSearch() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة الإقامة</label>
-                            <select
-                              value={residenceStatus}
-                              onChange={(e) => setResidenceStatus(e.target.value as ResidenceStatus)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهية</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">سارية</option>
-                            </select>
+                            <Select value={residenceStatus} onValueChange={(val) => setResidenceStatus(val as ResidenceStatus)}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهية</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">سارية</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة العقد</label>
-                            <select
-                              value={contractStatus}
-                              onChange={(e) => setContractStatus(e.target.value as ContractStatus)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهي</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">ساري</option>
-                            </select>
+                            <Select value={contractStatus} onValueChange={(val) => setContractStatus(val as ContractStatus)}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهي</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">ساري</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة انتهاء التأمين الصحي</label>
-                            <select
-                              value={healthInsuranceExpiryStatus}
-                              onChange={(e) => setHealthInsuranceExpiryStatus(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهي</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">ساري</option>
-                              <option value="no_expiry">غير محدد</option>
-                            </select>
+                            <Select value={healthInsuranceExpiryStatus} onValueChange={setHealthInsuranceExpiryStatus}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهي</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">ساري</SelectItem>
+                                <SelectItem value="no_expiry">غير محدد</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1598,30 +1603,32 @@ export default function AdvancedSearch() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة السجل التجاري</label>
-                            <select
-                              value={commercialRegStatus}
-                              onChange={(e) => setCommercialRegStatus(e.target.value as CommercialRegStatus)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهي</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">ساري</option>
-                            </select>
+                            <Select value={commercialRegStatus} onValueChange={(val) => setCommercialRegStatus(val as CommercialRegStatus)}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهي</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">ساري</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">الاعفاءات</label>
-                            <select
-                              value={exemptionsFilter}
-                              onChange={(e) => setExemptionsFilter(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="تم الاعفاء">تم الاعفاء</option>
-                              <option value="لم يتم الاعفاء">لم يتم الاعفاء</option>
-                              <option value="أخرى">أخرى</option>
-                            </select>
+                            <Select value={exemptionsFilter} onValueChange={setExemptionsFilter}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="تم الاعفاء">تم الاعفاء</SelectItem>
+                                <SelectItem value="لم يتم الاعفاء">لم يتم الاعفاء</SelectItem>
+                                <SelectItem value="أخرى">أخرى</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1637,32 +1644,34 @@ export default function AdvancedSearch() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة اشتراك قوى</label>
-                            <select
-                              value={powerSubscriptionStatus}
-                              onChange={(e) => setPowerSubscriptionStatus(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهي</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">ساري</option>
-                              <option value="no_expiry">غير محدد</option>
-                            </select>
+                            <Select value={powerSubscriptionStatus} onValueChange={setPowerSubscriptionStatus}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهي</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">ساري</SelectItem>
+                                <SelectItem value="no_expiry">غير محدد</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">حالة اشتراك مقيم</label>
-                            <select
-                              value={moqeemSubscriptionStatus}
-                              onChange={(e) => setMoqeemSubscriptionStatus(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="expired">منتهي</option>
-                              <option value="expiring_soon">عاجل</option>
-                              <option value="valid">ساري</option>
-                              <option value="no_expiry">غير محدد</option>
-                            </select>
+                            <Select value={moqeemSubscriptionStatus} onValueChange={setMoqeemSubscriptionStatus}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="expired">منتهي</SelectItem>
+                                <SelectItem value="expiring_soon">عاجل</SelectItem>
+                                <SelectItem value="valid">ساري</SelectItem>
+                                <SelectItem value="no_expiry">غير محدد</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1722,15 +1731,16 @@ export default function AdvancedSearch() {
 
                           <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">فلتر الملاحظات</label>
-                            <select
-                              value={notesFilter}
-                              onChange={(e) => setNotesFilter(e.target.value as 'all' | 'has_notes' | 'no_notes')}
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <option value="all">الكل</option>
-                              <option value="has_notes">يوجد ملاحظات</option>
-                              <option value="no_notes">لا توجد ملاحظات</option>
-                            </select>
+                            <Select value={notesFilter} onValueChange={(val) => setNotesFilter(val as 'all' | 'has_notes' | 'no_notes')}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">الكل</SelectItem>
+                                <SelectItem value="has_notes">يوجد ملاحظات</SelectItem>
+                                <SelectItem value="no_notes">لا توجد ملاحظات</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1772,20 +1782,21 @@ export default function AdvancedSearch() {
 
               {/* Modal Footer */}
               <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/20 bg-gradient-to-r from-white/40 to-white/20 backdrop-blur-sm">
-                <button
+                <Button
                   onClick={clearFilters}
                   disabled={activeFiltersCount === 0}
-                  className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg hover:bg-white/80 transition-all duration-200 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-sm hover:shadow-md disabled:hover:shadow-sm"
+                  variant="outline"
+                  size="sm"
                 >
                   <X className="w-3.5 h-3.5" />
                   مسح جميع الفلاتر
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowFiltersModal(false)}
-                  className="app-button-primary px-5 py-2 text-xs font-semibold"
+                  size="sm"
                 >
                   تطبيق الفلاتر
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1813,7 +1824,7 @@ export default function AdvancedSearch() {
                           <div 
                             key={emp.id} 
                             onClick={() => handleEmployeeClick(emp)}
-                            className="bg-white border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                            className="card-interactive rounded-xl border border-border bg-card p-3 cursor-pointer transition-[transform,border-color,box-shadow,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-neutral-300 hover:shadow-md"
                           >
                             <h3 className="font-bold text-base mb-1.5">{emp.name}</h3>
                             <div className="space-y-0.5 text-xs">

@@ -10,7 +10,6 @@ import {
   UserX, 
   X,
   Save,
-  Search,
   Clock,
   AlertCircle
 } from 'lucide-react'
@@ -31,6 +30,10 @@ import {
   VALID_PERMISSION_SECTIONS,
   ACTION_LABELS
 } from '@/utils/PERMISSIONS_SCHEMA'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
 
 const PERMISSION_HIGHLIGHTS: Array<{
   title: string
@@ -415,31 +418,29 @@ export default function Users() {
   return (
     <Layout>
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">إدارة المستخدمين</h1>
-          {isAdmin && (
-            <button
-              onClick={openAddModal}
-              className="app-button-primary"
-            >
-              <UserPlus className="w-5 h-5" />
-              إضافة مستخدم جديد
-            </button>
-          )}
-        </div>
+        <PageHeader
+          title="إدارة المستخدمين"
+          description={`عدد النتائج: ${filteredUsers.length}`}
+          className="mb-6"
+          actions={
+            isAdmin ? (
+              <Button onClick={openAddModal}>
+                <UserPlus className="h-5 w-5" />
+                إضافة مستخدم جديد
+              </Button>
+            ) : undefined
+          }
+        />
 
-        <div className="app-panel mb-6 p-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="البحث بالاسم أو اسم المستخدم..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2.5 pl-4 pr-10 focus:border-transparent focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
+        <FilterBar className="mb-6">
+          <SearchInput
+            type="text"
+            placeholder="البحث بالاسم أو اسم المستخدم..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            wrapperClassName="min-w-[260px] flex-1"
+          />
+        </FilterBar>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -707,7 +708,7 @@ export default function Users() {
                           required
                           value={formData.full_name}
                           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition focus-ring-brand"
                         />
                       </div>
 
@@ -720,7 +721,7 @@ export default function Users() {
                           required
                           value={formData.username || ''}
                           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition focus-ring-brand"
                           dir="ltr"
                           placeholder="username"
                           minLength={3}
@@ -749,7 +750,7 @@ export default function Users() {
                             required={!editingUser}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition focus-ring-brand"
                             minLength={6}
                           />
                         </div>
@@ -764,7 +765,7 @@ export default function Users() {
                             type="password"
                             value={formData.new_password}
                             onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
-                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition focus-ring-brand"
                             minLength={6}
                             placeholder="اتركها فارغة إذا لم ترد التغيير"
                           />
@@ -875,22 +876,23 @@ export default function Users() {
                 </div>
 
                 <div className="flex gap-2 justify-end border-t border-gray-200 pt-3 mt-4 bg-white sticky bottom-0 flex-shrink-0">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-sm border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                    variant="outline"
+                    size="sm"
                     disabled={saving}
                   >
                     إلغاء
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={saving}
-                    className="app-button-primary px-5 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    size="sm"
                   >
                     <Save className="w-4 h-4" />
                     {saving ? 'جاري الحفظ...' : editingUser ? 'حفظ التعديلات' : 'إضافة المستخدم'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -904,7 +906,7 @@ export default function Users() {
           const canDelete = !isLastAdmin && !isCurrentUser
 
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -957,26 +959,24 @@ export default function Users() {
                 )}
 
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={() => {
                       setShowDeleteModal(false)
                       setDeleteingUser(null)
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                    className="flex-1"
+                    variant="outline"
                   >
                     إلغاء
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleDelete}
                     disabled={!canDelete}
-                    className={`flex-1 px-4 py-2 rounded-lg transition ${
-                      canDelete
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
+                    className="flex-1"
+                    variant="destructive"
                   >
                     حذف
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

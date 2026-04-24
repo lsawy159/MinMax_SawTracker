@@ -51,17 +51,17 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
                 onClick={() => setIsMoreOpen(false)}
                 className={`
                   relative flex-1 flex flex-col items-center justify-center rounded-2xl px-1 py-2.5
-                  transition-colors duration-200
-                  ${
-                    isActive
-                      ? 'bg-primary/20 text-slate-950'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }
+                  transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]
+                  ${isActive ? 'bg-primary/20 text-slate-950' : 'text-slate-600 hover:text-slate-900'}
                 `}
                 title={item.label}
               >
                 <div className="relative">
-                  <Icon className="w-6 h-6 mb-1" />
+                  <Icon
+                    className={`w-6 h-6 mb-1 transition-transform duration-[var(--motion-fast)] ease-[var(--ease-spring)] ${
+                      isActive ? 'scale-110' : ''
+                    }`}
+                  />
                   {item.badge && item.badge.count > 0 && (
                     <span
                       className={`
@@ -76,9 +76,7 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-center line-clamp-1">
-                  {item.label}
-                </span>
+                <span className="text-[11px] text-center line-clamp-1">{item.label}</span>
                 {isActive && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
                 )}
@@ -91,14 +89,18 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
             onClick={() => setIsMoreOpen(!isMoreOpen)}
             className={`
               relative flex-1 flex flex-col items-center justify-center rounded-2xl px-1 py-2.5
-              transition-colors duration-200
+              transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]
               ${isMoreOpen ? 'bg-primary/20 text-slate-950' : 'text-slate-600 hover:text-slate-900'}
             `}
             title="المزيد"
             aria-label="فتح قائمة المزيد"
             aria-expanded={isMoreOpen}
           >
-            <Menu className="w-6 h-6 mb-1" />
+            <Menu
+              className={`w-6 h-6 mb-1 transition-transform duration-[var(--motion-fast)] ease-[var(--ease-spring)] ${
+                isMoreOpen ? 'scale-110' : ''
+              }`}
+            />
             <span className="text-[11px] text-center">المزيد</span>
             {isMoreOpen && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
@@ -112,13 +114,13 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+            className="fixed inset-0 bg-black/30 z-30 lg:hidden animate-[app-page-enter-fade_var(--motion-fast)_var(--ease-out)_both]"
             onClick={() => setIsMoreOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Menu Container */}
-          <div className="fixed bottom-16 left-0 right-0 z-40 max-h-96 overflow-y-auto rounded-t-2xl border-t border-border bg-white shadow-[0_-12px_35px_-20px_rgba(17,24,39,0.3)] lg:hidden">
+          {/* Menu Container — slide-up bottom sheet */}
+          <div className="fixed bottom-16 left-0 right-0 z-40 max-h-96 overflow-y-auto rounded-t-2xl border-t border-border bg-white shadow-[0_-12px_35px_-20px_rgba(17,24,39,0.3)] lg:hidden animate-[app-slide-up_var(--motion-base)_var(--ease-emphasize)_both]">
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md">
               <h3 className="font-semibold text-gray-900 text-sm">
                 المزيد من الخيارات
@@ -146,12 +148,8 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
                       onClick={() => setIsMoreOpen(false)}
                       className={`
                         flex items-center gap-3 px-4 py-3
-                        transition-colors duration-200
-                        ${
-                          isActive
-                            ? 'bg-primary/15 text-slate-950'
-                            : 'text-slate-700 hover:bg-slate-50'
-                        }
+                        transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]
+                        ${isActive ? 'bg-primary/15 text-slate-950' : 'text-slate-700 hover:bg-slate-50'}
                       `}
                     >
                       <Icon className="w-5 h-5 flex-shrink-0" />

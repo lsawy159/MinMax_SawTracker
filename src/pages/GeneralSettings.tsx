@@ -12,6 +12,9 @@ import SessionsManager from '@/components/settings/SessionsManager'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 interface GeneralSetting {
   id?: string
@@ -487,23 +490,23 @@ export default function GeneralSettings() {
     switch (setting.setting_type) {
       case 'text':
         return (
-          <input
+          <Input
             type="text"
             value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
             disabled={disabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="disabled:cursor-not-allowed disabled:bg-gray-100"
           />
         )
 
       case 'number':
         return (
-          <input
+          <Input
             type="number"
             value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, Number(e.target.value))}
             disabled={disabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="disabled:cursor-not-allowed disabled:bg-gray-100"
           />
         )
 
@@ -525,26 +528,54 @@ export default function GeneralSettings() {
 
       case 'select':
         return (
-          <select
+          <Select
             value={getInputValue(value)}
-            onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
+            onValueChange={(selectedValue) => updateSetting(setting.setting_key, selectedValue)}
             disabled={disabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
-            {setting.options?.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
+            <SelectTrigger className="disabled:cursor-not-allowed disabled:bg-gray-100">
+              <SelectValue placeholder="اختر قيمة" />
+            </SelectTrigger>
+            <SelectContent>
+              {setting.options?.map((option) => {
+                if (option === null || option === undefined) {
+                  return null
+                }
+
+                if (typeof option === 'object') {
+                  const optionObject = option as { label?: string; value?: unknown } | null
+                  if (!optionObject) {
+                    return null
+                  }
+
+                  const optionValue = String(optionObject.value ?? '')
+                  const optionLabel = String(optionObject.label ?? optionValue)
+
+                  return (
+                    <SelectItem key={optionValue} value={optionValue}>
+                      {optionLabel}
+                    </SelectItem>
+                  )
+                }
+
+                return (
+                  <SelectItem key={String(option)} value={String(option)}>
+                    {String(option)}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
         )
 
       case 'time':
         return (
-          <input
+          <Input
             type="time"
             value={getInputValue(value)}
             onChange={(e) => updateSetting(setting.setting_key, e.target.value)}
             disabled={disabled}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="disabled:cursor-not-allowed disabled:bg-gray-100"
           />
         )
 
@@ -553,7 +584,10 @@ export default function GeneralSettings() {
     }
   }
 
-  if (isLoading) {
+  const activeCategory = settingsCategories.find(cat => cat.key === activeTab)
+  const shouldBlockForLoading = isLoading && Boolean(activeCategory?.settings)
+
+  if (shouldBlockForLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -562,8 +596,6 @@ export default function GeneralSettings() {
       </Layout>
     )
   }
-
-  const activeCategory = settingsCategories.find(cat => cat.key === activeTab)
 
   return (
     <Layout>
@@ -624,21 +656,24 @@ export default function GeneralSettings() {
                     </div>
                     {hasEditPermission && activeCategory.settings && (
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
                           onClick={() => resetToDefaults(activeTab)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition font-medium"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                           استعادة
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={saveActiveTabSettings}
                           disabled={isSaving}
-                          className="app-button-primary px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50"
+                          size="sm"
+                          className="text-xs"
                         >
                           <Save className="w-3.5 h-3.5" />
                           {isSaving ? 'جاري...' : 'حفظ هذا التبويب'}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>

@@ -16,6 +16,8 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { triggerManualBackupAndNotify } from '@/lib/backupService'
 import { logger } from '@/utils/logger'
 import { NotificationRecipientsConfig, AdditionalRecipient, createDefaultConfig } from '@/lib/notificationTypes'
+import { Button } from '@/components/ui/Button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 interface EmailConfig {
   admin_email: string
@@ -769,10 +771,10 @@ export default function BackupSettingsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">الإجراءات السريعة</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button
+                  <Button
                     onClick={handleManualBackup}
                     disabled={manualBackupLoading}
-                    className="app-button-primary w-full justify-center disabled:opacity-60"
+                    className="w-full justify-center"
                   >
                     {manualBackupLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -780,21 +782,23 @@ export default function BackupSettingsPage() {
                       <HardDrive className="w-5 h-5" />
                     )}
                     {manualBackupLoading ? 'جاري إنشاء النسخة...' : 'نسخة احتياطية يدوية'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={sendTestEmail}
-                    className="app-button-success w-full justify-center"
+                    variant="success"
+                    className="w-full justify-center"
                   >
                     <Mail className="w-5 h-5" />
                     بريد اختبار
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={retryAllFailed}
-                    className="app-button-warning w-full justify-center"
+                    variant="warning"
+                    className="w-full justify-center"
                   >
                     <RefreshCw className="w-5 h-5" />
                     إعادة محاولة الفاشلة
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -806,16 +810,20 @@ export default function BackupSettingsPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       فترة التحديث التلقائي لمراقبة البريد
                     </label>
-                    <select
-                      value={refreshInterval}
-                      onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                    <Select
+                      value={String(refreshInterval)}
+                      onValueChange={(value) => setRefreshInterval(Number(value))}
                       disabled={!hasEditPermission}
-                      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100"
                     >
-                      {REFRESH_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full rounded-xl disabled:bg-gray-100">
+                        <SelectValue placeholder="اختر فترة التحديث" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REFRESH_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-sm text-gray-600 mt-2">
                       كلما قلّ الرقم، كلما كانت التحديثات أسرع لكن تزيد ضغط الخادم
                     </p>
@@ -852,10 +860,10 @@ export default function BackupSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={handleSendDigestNow}
                     disabled={isSendingDigest}
-                    className="app-button-primary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+                    className="whitespace-nowrap"
                   >
                     {isSendingDigest ? (
                       <span className="flex items-center gap-2">
@@ -865,7 +873,7 @@ export default function BackupSettingsPage() {
                     ) : (
                       'إرسال الآن'
                     )}
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Message */}
@@ -1004,16 +1012,16 @@ export default function BackupSettingsPage() {
                           onChange={(e) => setNewRecipientEmail(e.target.value)}
                           disabled={!hasEditPermission}
                           placeholder="أضف بريد إلكتروني جديد..."
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus-ring-brand disabled:bg-gray-100"
                           onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
                         />
-                        <button
+                        <Button
                           onClick={addRecipient}
                           disabled={!hasEditPermission || !newRecipientEmail.trim()}
-                          className="app-button-primary px-4 py-2 font-semibold disabled:opacity-60"
+                          size="sm"
                         >
                           إضافة
-                        </button>
+                        </Button>
                       </div>
                       <p className="text-xs text-gray-500">سيتمكن المستقبل الجديد من تلقي الإشعارات بناءً على الصناديق المختارة</p>
                     </div>
@@ -1050,14 +1058,13 @@ export default function BackupSettingsPage() {
 
                   {/* Save Button */}
                   <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
-                    <button
+                    <Button
                       onClick={saveEmailSettings}
                       disabled={saving || !hasEditPermission}
-                      className="app-button-primary px-6 py-2 font-semibold disabled:opacity-60"
                     >
                       {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                       {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1073,14 +1080,14 @@ export default function BackupSettingsPage() {
                     <h2 className="text-xl font-bold text-gray-900">سجل النسخ الاحتياطية</h2>
                     <p className="text-sm text-gray-600 mt-1">جميع النسخ الاحتياطية المحفوظة مع إمكانية التحميل والحذف</p>
                   </div>
-                  <button
+                  <Button
                     onClick={loadBackups}
                     disabled={backupsLoading}
-                    className="app-button-secondary"
+                    variant="outline"
                   >
                     <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
                     تحديث
-                  </button>
+                  </Button>
                 </div>
 
                 {backupsLoading ? (

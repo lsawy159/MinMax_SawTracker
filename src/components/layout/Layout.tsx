@@ -74,7 +74,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Mobile Backdrop */}
           {isMobileOpen && (
             <div
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
+              className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)] lg:hidden"
               onClick={() => setIsMobileOpen(false)}
               aria-hidden="true"
             />
@@ -87,10 +87,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               ${isCollapsed ? 'w-16' : 'w-72'}
               ${isMobileOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
               h-screen lg:h-auto lg:min-h-screen
-              bg-white/95 backdrop-blur-md border-l border-border
+              app-sidebar border-l border-border bg-white/95 backdrop-blur-md
               shadow-[0_18px_50px_-24px_rgba(17,24,39,0.28)]
               z-50 lg:z-auto
-              transition-all duration-300 ease-in-out
+              transition-all duration-[var(--motion-base)] ease-[var(--ease-in-out)]
               flex flex-col
             `}
           >
@@ -167,7 +167,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                         group relative flex items-center justify-between
                         ${isCollapsed ? 'px-2.5 justify-center' : 'px-3.5'}
                         py-2.5 rounded-xl border
-                        transition-all duration-200 ease-in-out
+                        transition-all duration-[var(--motion-fast)] ease-[var(--ease-out)]
                         ${
                           isActive
                             ? 'border-primary/60 bg-primary text-slate-950 font-semibold shadow-soft'

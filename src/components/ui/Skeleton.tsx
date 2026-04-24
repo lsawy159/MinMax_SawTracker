@@ -8,7 +8,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'animate-pulse rounded-md bg-gray-200',
+        'skeleton-shimmer rounded-md bg-muted',
         className
       )}
     />
@@ -19,7 +19,7 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="app-panel rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-8 w-20" />
@@ -35,7 +35,7 @@ export function CardSkeleton() {
 
 export function TableRowSkeleton() {
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-gray-200">
+    <div className="flex items-center gap-4 border-b border-border p-4">
       <Skeleton className="h-10 w-10 rounded-full" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-48" />
@@ -49,7 +49,7 @@ export function TableRowSkeleton() {
 
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="app-panel rounded-xl p-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-24" />
@@ -77,7 +77,7 @@ export function DashboardSkeleton() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div key={i} className="app-panel rounded-xl p-6">
             <Skeleton className="h-6 w-32 mb-4" />
             <Skeleton className="h-48 w-full" />
           </div>
@@ -99,8 +99,8 @@ export function CompanyListSkeleton() {
 
 export function EmployeeListSkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-      <div className="p-4 border-b border-gray-200">
+    <div className="app-panel rounded-xl">
+      <div className="border-b border-border p-4">
         <Skeleton className="h-6 w-40" />
       </div>
       <div>

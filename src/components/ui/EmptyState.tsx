@@ -20,24 +20,21 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   return (
-    <div className="app-panel flex flex-col items-center justify-center border-2 border-dashed border-gray-300 p-12">
-      <div className="flex flex-col items-center text-center max-w-md gap-4">
-        {/* Icon */}
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+    <div className="app-panel card-interactive flex flex-col items-center justify-center border border-dashed border-border p-10 md:p-12">
+      <div className="flex max-w-md flex-col items-center gap-4 text-center">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
           {icon}
         </div>
 
-        {/* Text */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm">{description}</p>
+          <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
-        {/* Action or Custom Content */}
         {action ? (
           <button
             onClick={action.onClick}
-            className="app-button-primary"
+            className="touch-feedback inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-[transform,filter] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:brightness-95 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             {action.label}
@@ -61,7 +58,7 @@ export function NoDataEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
@@ -71,8 +68,8 @@ export function NoDataEmptyState({
           />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 text-sm">{description}</p>
+      <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }
@@ -86,7 +83,7 @@ export function NoSearchResultsEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
@@ -99,12 +96,12 @@ export function NoSearchResultsEmptyState({
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
         لا توجد نتائج لـ "{searchQuery}"
       </h3>
-      <p className="text-gray-600 text-sm mb-4">
+      <p className="mb-4 text-sm text-muted-foreground">
         جرب استخدام كلمات مختلفة أو تحقق من الإملاء
       </p>
       <button
         onClick={onClear}
-        className="app-button-secondary text-sm"
+        className="touch-feedback inline-flex min-h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-foreground transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted"
       >
         مسح البحث
       </button>

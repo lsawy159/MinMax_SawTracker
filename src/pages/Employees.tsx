@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, type CSSProperties } from 'react'
 import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
@@ -15,6 +15,10 @@ import { logger } from '@/utils/logger'
 import { getEmployeeNotificationThresholdsPublic, type EmployeeNotificationThresholds } from '@/utils/employeeAlerts'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { useCardColumns } from '@/hooks/useUiPreferences'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -1059,170 +1063,153 @@ export default function Employees() {
   return (
     <Layout>
       <div className="p-6">
-        {/* Header with Actions */}
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">الموظفين</h1>
-            <p className="text-sm text-gray-600">
-              عرض {sortedAndFilteredEmployees.length} من {employees.length} موظف
-              {activeFiltersCount > 0 && (
-                <span className="mr-2 text-blue-600 font-medium">
-                  ({activeFiltersCount} فلتر نشط)
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="app-toggle-shell">
-              {!isMobileView && (
+        <PageHeader
+          title="الموظفين"
+          description={`عرض ${sortedAndFilteredEmployees.length} من ${employees.length} موظف${
+            activeFiltersCount > 0 ? ` (${activeFiltersCount} فلتر نشط)` : ''
+          }`}
+          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'الموظفين' }]}
+          className="mb-4"
+          actions={
+            <>
+              <div className="app-toggle-shell">
+                {!isMobileView && (
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : ''}`}
+                    title="عرض الجدول"
+                  >
+                    <Table className="w-4 h-4" />
+                    <span className="hidden sm:inline">جدول</span>
+                  </button>
+                )}
                 <button
-                  onClick={() => setViewMode('table')}
-                  className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : ''}`}
-                  title="عرض الجدول"
+                  onClick={() => setViewMode('grid')}
+                  className={`app-toggle-button ${viewMode === 'grid' ? 'app-toggle-button-active' : ''}`}
+                  title="عرض الكروت"
                 >
-                  <Table className="w-4 h-4" />
-                  <span className="hidden sm:inline">جدول</span>
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">كروت</span>
                 </button>
-              )}
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`app-toggle-button ${viewMode === 'grid' ? 'app-toggle-button-active' : ''}`}
-                title="عرض الكروت"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span className="hidden sm:inline">كروت</span>
-              </button>
-            </div>
+              </div>
 
-            {canCreate('employees') && (
-              <>
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="app-button-primary"
-                >
+              {canCreate('employees') && (
+                <Button onClick={() => setIsAddModalOpen(true)}>
                   <UserPlus className="w-4 h-4" />
                   إضافة موظف
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Compact Search and Filter Bar */}
-        <div className="app-filter-surface mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ابحث بالاسم أو رقم الإقامة أو رقم الجواز أو المهنة أو الجنسية..."
-                className="w-full pr-10 pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Filter Button with Badge */}
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              className="app-button-primary relative"
-            >
-              <Filter className="w-4 h-4" />
-              <span>الفلاتر</span>
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
+                </Button>
               )}
-            </button>
+            </>
+          }
+        />
 
-            {/* Alerts quick filter */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setShowAlertsOnly(prev => !prev)}
-                  className={`relative px-4 py-2 rounded-md border transition flex items-center gap-2 ${showAlertsOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}
-                  title="عرض الموظفين ذوي التنبيهات فقط"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline">تنبيهات</span>
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {alertsCount}
+        <FilterBar
+          className="mb-6"
+          actions={
+            <>
+              <Button onClick={() => setShowFiltersModal(true)} className="relative">
+                <Filter className="w-4 h-4" />
+                <span>الفلاتر</span>
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                    {activeFiltersCount}
                   </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="bg-gray-900 text-white">
-                تحسب طارئ وعاجل ومتوسط
-              </TooltipContent>
-            </Tooltip>
+                )}
+              </Button>
 
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="app-button-secondary"
-              >
-                {getSortIcon(sortField)}
-                <span className="hidden sm:inline">الترتيب</span>
-                <ArrowUpDown className="w-4 h-4" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setShowAlertsOnly(prev => !prev)}
+                    variant="outline"
+                    className={`relative border-red-200 text-red-700 ${showAlertsOnly ? 'bg-red-50' : ''}`}
+                    title="عرض الموظفين ذوي التنبيهات فقط"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="hidden sm:inline">تنبيهات</span>
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                      {alertsCount}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-gray-900 text-white">
+                  تحسب طارئ وعاجل ومتوسط
+                </TooltipContent>
+              </Tooltip>
 
-              {/* Sort Dropdown Menu */}
-              {showSortDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowSortDropdown(false)}
-                  />
-                  <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-200">
-                      الترتيب حسب:
+              <div className="relative">
+                <Button
+                  onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  variant="secondary"
+                >
+                  {getSortIcon(sortField)}
+                  <span className="hidden sm:inline">الترتيب</span>
+                  <ArrowUpDown className="w-4 h-4" />
+                </Button>
+
+                {showSortDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowSortDropdown(false)}
+                    />
+                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                      <div className="border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500">
+                        الترتيب حسب:
+                      </div>
+                      {[
+                        { field: 'name' as typeof sortField, label: 'الاسم' },
+                        { field: 'profession' as typeof sortField, label: 'المهنة' },
+                        { field: 'nationality' as typeof sortField, label: 'الجنسية' },
+                        { field: 'company' as typeof sortField, label: 'الشركة' },
+                        { field: 'project' as typeof sortField, label: 'المشروع' },
+                        { field: 'contract_expiry' as typeof sortField, label: 'تاريخ انتهاء العقد' },
+                        { field: 'hired_worker_contract_expiry' as typeof sortField, label: 'تاريخ انتهاء عقد أجير' },
+                        { field: 'residence_expiry' as typeof sortField, label: 'تاريخ انتهاء الإقامة' },
+                        { field: 'health_insurance_expiry' as typeof sortField, label: 'تاريخ انتهاء التأمين الصحي' }
+                      ].map(({ field, label }) => (
+                        <button
+                          key={field}
+                          onClick={() => {
+                            handleSort(field)
+                            setShowSortDropdown(false)
+                          }}
+                          className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition ${
+                            sortField === field ? 'bg-primary/10 text-slate-900' : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {sortField === field && getSortIcon(field)}
+                        </button>
+                      ))}
                     </div>
-                    {[
-                      { field: 'name' as typeof sortField, label: 'الاسم' },
-                      { field: 'profession' as typeof sortField, label: 'المهنة' },
-                      { field: 'nationality' as typeof sortField, label: 'الجنسية' },
-                      { field: 'company' as typeof sortField, label: 'الشركة' },
-                      { field: 'project' as typeof sortField, label: 'المشروع' },
-                      { field: 'contract_expiry' as typeof sortField, label: 'تاريخ انتهاء العقد' },
-                      { field: 'hired_worker_contract_expiry' as typeof sortField, label: 'تاريخ انتهاء عقد أجير' },
-                      { field: 'residence_expiry' as typeof sortField, label: 'تاريخ انتهاء الإقامة' },
-                      { field: 'health_insurance_expiry' as typeof sortField, label: 'تاريخ انتهاء التأمين الصحي' }
-                    ].map(({ field, label }) => (
-                      <button
-                        key={field}
-                        onClick={() => {
-                          handleSort(field)
-                          setShowSortDropdown(false)
-                        }}
-                        className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-50 transition flex items-center justify-between ${
-                          sortField === field ? 'bg-primary/10 text-slate-900' : 'text-gray-700'
-                        }`}
-                      >
-                        <span>{label}</span>
-                        {sortField === field && getSortIcon(field)}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+                  </>
+                )}
+              </div>
+            </>
+          }
+        >
+          <SearchInput
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="ابحث بالاسم أو رقم الإقامة أو رقم الجواز أو المهنة أو الجنسية..."
+            wrapperClassName="min-w-[260px] flex-1"
+          />
+        </FilterBar>
 
         {/* Filters Modal */}
         {showFiltersModal && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+              className="fixed inset-0 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)]"
               onClick={() => setShowFiltersModal(false)}
             />
             
             {/* Modal Content */}
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col transform transition-all">
+            <div className="fixed inset-0 flex items-end justify-center p-0 md:items-center md:p-4">
+              <div className="w-full max-h-[92vh] max-w-4xl overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl motion-safe-enter md:rounded-2xl">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                   <div>
@@ -1235,7 +1222,7 @@ export default function Employees() {
                   </div>
                   <button
                     onClick={() => setShowFiltersModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    className="touch-feedback rounded-lg p-2 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -1254,7 +1241,7 @@ export default function Employees() {
                           placeholder="ابحث برقم الإقامة..."
                           value={residenceNumberSearch}
                           onChange={(e) => setResidenceNumberSearch(e.target.value)}
-                          className="w-full pr-10 pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="focus-ring-brand w-full rounded-md border border-input bg-surface py-2 pr-10 pl-3 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                         />
                       </div>
                     </div>
@@ -1273,7 +1260,7 @@ export default function Employees() {
                             }}
                             onFocus={() => setCompanyDropdownOpen(true)}
                             placeholder="ابحث بالاسم أو الرقم الموحد..."
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            className="focus-ring-brand w-full rounded-md border border-input bg-surface py-2 pr-10 pl-3 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                             <Search className="w-4 h-4 text-gray-400" />
@@ -1336,7 +1323,7 @@ export default function Employees() {
                       <select
                         value={nationalityFilter}
                         onChange={(e) => setNationalityFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع الجنسيات</option>
                         {nationalities.map(nationality => (
@@ -1351,7 +1338,7 @@ export default function Employees() {
                       <select
                         value={professionFilter}
                         onChange={(e) => setProfessionFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع المهن</option>
                         {professions.map(profession => (
@@ -1366,7 +1353,7 @@ export default function Employees() {
                       <select
                         value={projectFilter}
                         onChange={(e) => setProjectFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع المشاريع</option>
                         {projects.map(project => (
@@ -1381,7 +1368,7 @@ export default function Employees() {
                       <select
                         value={contractFilter}
                         onChange={(e) => setContractFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع العقود</option>
                         <option value="منتهي">عقود منتهية</option>
@@ -1398,7 +1385,7 @@ export default function Employees() {
                       <select
                         value={hiredWorkerContractFilter}
                         onChange={(e) => setHiredWorkerContractFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع الحالات</option>
                         <option value="منتهي">منتهي</option>
@@ -1415,7 +1402,7 @@ export default function Employees() {
                       <select
                         value={residenceFilter}
                         onChange={(e) => setResidenceFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع الإقامات</option>
                         <option value="منتهي">إقامات منتهية</option>
@@ -1432,7 +1419,7 @@ export default function Employees() {
                       <select
                         value={healthInsuranceFilter}
                         onChange={(e) => setHealthInsuranceFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع الموظفين</option>
                         <option value="ساري">التأمين ساري</option>
@@ -1454,7 +1441,7 @@ export default function Employees() {
                             البحث: {searchTerm}
                             <button
                               onClick={() => setSearchTerm('')}
-                              className="hover:bg-blue-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1465,7 +1452,7 @@ export default function Employees() {
                             رقم الإقامة: {residenceNumberSearch}
                             <button
                               onClick={() => setResidenceNumberSearch('')}
-                              className="hover:bg-cyan-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1476,7 +1463,7 @@ export default function Employees() {
                             الشركة: {companyFilter}
                             <button
                               onClick={() => setCompanyFilter('')}
-                              className="hover:bg-green-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1487,7 +1474,7 @@ export default function Employees() {
                             الجنسية: {nationalityFilter}
                             <button
                               onClick={() => setNationalityFilter('')}
-                              className="hover:bg-purple-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1498,7 +1485,7 @@ export default function Employees() {
                             المهنة: {professionFilter}
                             <button
                               onClick={() => setProfessionFilter('')}
-                              className="hover:bg-orange-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1509,7 +1496,7 @@ export default function Employees() {
                             المشروع: {projectFilter}
                             <button
                               onClick={() => setProjectFilter('')}
-                              className="hover:bg-indigo-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1520,7 +1507,7 @@ export default function Employees() {
                             العقد: {contractFilter}
                             <button
                               onClick={() => setContractFilter('')}
-                              className="hover:bg-red-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1531,7 +1518,7 @@ export default function Employees() {
                             عقد أجير: {hiredWorkerContractFilter}
                             <button
                               onClick={() => setHiredWorkerContractFilter('')}
-                              className="hover:bg-indigo-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1542,7 +1529,7 @@ export default function Employees() {
                             الإقامة: {residenceFilter}
                             <button
                               onClick={() => setResidenceFilter('')}
-                              className="hover:bg-rose-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1553,7 +1540,7 @@ export default function Employees() {
                             التأمين الصحي: {healthInsuranceFilter}
                             <button
                                 onClick={() => setHealthInsuranceFilter('')}
-                              className="hover:bg-emerald-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1564,7 +1551,7 @@ export default function Employees() {
                             تنبيهات فقط
                             <button
                               onClick={() => setShowAlertsOnly(false)}
-                              className="hover:bg-red-100 rounded-full p-0.5"
+                              className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1576,21 +1563,22 @@ export default function Employees() {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-                  <button
+                <div className="flex items-center justify-between border-t border-border bg-muted/30 p-6">
+                  <Button
                     onClick={clearFilters}
                     disabled={activeFiltersCount === 0}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    variant="outline"
+                    size="sm"
                   >
                     <X className="w-4 h-4" />
                     مسح جميع الفلاتر
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setShowFiltersModal(false)}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                    size="sm"
                   >
                     تطبيق الفلاتر
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1605,46 +1593,52 @@ export default function Employees() {
                 <div className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-slate-950">
                   {selectedEmployees.size} موظف محدد
                 </div>
-                <button
+                <Button
                   onClick={clearSelection}
-                  className="text-xs text-gray-600 hover:text-gray-900 underline"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
                 >
                   إلغاء التحديد
-                </button>
+                </Button>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button
+                <Button
                   onClick={() => setShowBulkResidenceModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-xs font-medium"
+                  variant="success"
+                  size="sm"
                   title="تعديل تاريخ انتهاء الإقامة"
                 >
                   <Calendar className="w-3 h-3" />
                   تعديل تاريخ الإقامة
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowBulkInsuranceModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition text-xs font-medium"
+                  variant="warning"
+                  size="sm"
                   title="تعديل تاريخ انتهاء التأمين"
                 >
                   <Calendar className="w-3 h-3" />
                   تعديل تاريخ التأمين
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowBulkContractModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition text-xs font-medium"
+                  variant="warning"
+                  size="sm"
                   title="تعديل تاريخ انتهاء العقد"
                 >
                   <Calendar className="w-3 h-3" />
                   تعديل تاريخ العقد
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowBulkDeleteModal(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-xs font-medium"
+                  variant="destructive"
+                  size="sm"
                   title="حذف الموظفين المحددين"
                 >
                   <Trash2 className="w-3 h-3" />
                   حذف المحددين
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1657,7 +1651,7 @@ export default function Employees() {
         ) : viewMode === 'grid' ? (
           // Grid View
           <div className={employeeGridClass}>
-            {sortedAndFilteredEmployees.map((employee) => {
+            {sortedAndFilteredEmployees.map((employee, index) => {
               const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
               const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
               const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
@@ -1697,7 +1691,8 @@ export default function Employees() {
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}
+                  className={`stagger-item group relative cursor-pointer overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}
+                  style={{ '--i': Math.min(index, 11) } as CSSProperties}
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
 
@@ -2147,7 +2142,7 @@ export default function Employees() {
 
       {/* مودال تأكيد حذف الموظف */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -2167,21 +2162,23 @@ export default function Employees() {
                 </span>
               </p>
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={confirmDeleteEmployee}
-                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+                  className="flex-1"
+                  variant="destructive"
                 >
                   نعم، احذف
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     setShowDeleteModal(false)
                     setEmployeeToDelete(null)
                   }}
-                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                  className="flex-1"
+                  variant="outline"
                 >
                   إلغاء
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -2259,7 +2256,7 @@ function BulkDeleteModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" onClick={handleCancel}>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4" onClick={handleCancel}>
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -2302,14 +2299,11 @@ function BulkDeleteModal({
             </ul>
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={handleConfirm}
               disabled={isDeleting}
-              className={`flex-1 px-4 py-2 rounded-md transition flex items-center justify-center gap-2 ${
-                isDeleting
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-red-600 text-white hover:bg-red-700'
-              }`}
+              className="flex-1"
+              variant="destructive"
             >
               {isDeleting ? (
                 <>
@@ -2319,18 +2313,15 @@ function BulkDeleteModal({
               ) : (
                 `نعم، احذف (${selectedCount})`
               )}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleCancel}
               disabled={isDeleting}
-              className={`flex-1 px-4 py-2 rounded-md transition ${
-                isDeleting
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className="flex-1"
+              variant="outline"
             >
               إلغاء
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -2360,7 +2351,7 @@ function BulkDateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -2381,25 +2372,26 @@ function BulkDateModal({
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus-ring-brand"
                 required
               />
             </div>
             <div className="flex gap-3">
-              <button
+              <Button
                 type="submit"
                 disabled={!selectedDate}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1"
               >
                 تأكيد التعديل
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
+                className="flex-1"
+                variant="outline"
               >
                 إلغاء
-              </button>
+              </Button>
             </div>
           </form>
         </div>

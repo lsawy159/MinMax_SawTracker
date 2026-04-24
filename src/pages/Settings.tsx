@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext' // [PATH FIX] Reverted to alias path
 import { usePermissions } from '@/utils/permissions'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 interface CompanyLimit {
   company_id: string
@@ -273,12 +275,13 @@ export default function Settings() {
         {/* علامات التبويب */}
         <div className="app-panel mb-6">
           <div className="flex border-b border-border">
-            <button
+            <Button
               onClick={() => {
                 setActiveTab('companies');
                 loadCompanyLimits();
               }}
-              className={`app-tab-button border-b-2 ${
+              variant="ghost"
+              className={`app-tab-button border-b-2 rounded-none ${
                 activeTab === 'companies'
                   ? 'app-tab-button-active'
                   : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900'
@@ -286,13 +289,14 @@ export default function Settings() {
             >
               <Building2 className="w-5 h-5" />
               حدود الشركات
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setActiveTab('nationalities');
                 loadNationalities();
               }}
-              className={`app-tab-button border-b-2 ${
+              variant="ghost"
+              className={`app-tab-button border-b-2 rounded-none ${
                 activeTab === 'nationalities'
                   ? 'app-tab-button-active'
                   : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900'
@@ -300,7 +304,7 @@ export default function Settings() {
             >
               <Globe className="w-5 h-5" />
               إدارة الجنسيات
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -375,12 +379,12 @@ export default function Settings() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex justify-center">
-                                <input
+                                <Input
                                   type="number"
                                   min="1"
                                   value={limit.max_employees}
                                   onChange={(e) => updateLimit(limit.company_id, parseInt(e.target.value) || 1)}
-                                  className="w-20 px-3 py-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-semibold"
+                                  className="h-9 w-20 text-center text-sm font-semibold"
                                 />
                               </div>
                             </td>
@@ -433,12 +437,12 @@ export default function Settings() {
                           </div>
                           <div className="flex justify-between items-center">
                             <label className="text-xs text-gray-600">الحد الأقصى:</label>
-                            <input
+                            <Input
                               type="number"
                               min="1"
                               value={limit.max_employees}
                               onChange={(e) => updateLimit(limit.company_id, parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-semibold"
+                              className="h-8 w-16 px-2 py-1 text-center text-sm font-semibold"
                             />
                           </div>
                           <div className={`px-3 py-1.5 rounded-lg border text-xs font-medium text-center ${getStatusColor(limit.current_employees, limit.max_employees)}`}>
@@ -489,14 +493,13 @@ export default function Settings() {
 
                   {isAdmin && (
                     <div className="flex justify-end">
-                      <button
+                      <Button
                         onClick={handleSave}
                         disabled={saving}
-                        className="app-button-primary disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Save className="w-5 h-5" />
                         {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -520,13 +523,15 @@ export default function Settings() {
                   </div>
                 </div>
                 {isAdmin && (
-                  <button
+                  <Button
                     onClick={() => openNationalityModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition"
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 text-white hover:bg-white/30"
                   >
                     <Plus className="w-4 h-4" />
                     تعديل
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -562,20 +567,24 @@ export default function Settings() {
                           </div>
                           {isAdmin ? (
                             <div className="flex items-center gap-1">
-                              <button
+                              <Button
                                 onClick={() => openNationalityModal(nationality)}
-                                className="rounded-lg p-2 text-slate-700 transition hover:bg-primary/10 hover:text-slate-900"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg p-2 text-slate-700 hover:bg-primary/10 hover:text-slate-900"
                                 title="تعديل"
                               >
                                 <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => handleDeleteNationality(nationality)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg p-2 text-red-600 hover:bg-red-50"
                                 title="حذف"
                               >
                                 <Trash2 className="w-4 h-4" />
-                              </button>
+                              </Button>
                             </div>
                           ) : (
                             <span className="text-gray-400 text-xs">عرض فقط</span>
@@ -592,7 +601,7 @@ export default function Settings() {
 
         {/* مودال إدارة الجنسية */}
         {showNationalityModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -605,34 +614,33 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     اسم الجنسية *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={nationalityName}
                     onChange={(e) => setNationalityName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="مثال: سعودية"
                   />
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       setShowNationalityModal(false)
                       setNationalityName('')
                       setEditingNationality(null)
                     }}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                    variant="outline"
                   >
                     إلغاء
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                    variant="success"
                   >
                     {editingNationality ? 'حفظ التعديلات' : 'إضافة'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

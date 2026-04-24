@@ -8,6 +8,9 @@ import { saveAs } from 'file-saver'
 import { loadXlsx } from '@/utils/lazyXlsx'
 import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
+import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 interface SubscriptionItem {
   type: string
@@ -269,27 +272,25 @@ export default function Reports() {
   return (
     <Layout>
       <div className="p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">التقارير</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={loadData}
-              className="app-button-primary"
-            >
-              <RefreshCw className="w-4 h-4" />
-              تحديث البيانات
-            </button>
-            {canExport('reports') && (
-              <button
-                onClick={exportExpiryReportToExcel}
-                className="app-button-success"
-              >
-                <Download className="w-4 h-4" />
-                تصدير Excel
-              </button>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="التقارير"
+          description={`عدد النتائج: ${filteredItems.length}`}
+          className="mb-6"
+          actions={
+            <div className="flex gap-2">
+              <Button onClick={loadData}>
+                <RefreshCw className="w-4 h-4" />
+                تحديث البيانات
+              </Button>
+              {canExport('reports') && (
+                <Button onClick={exportExpiryReportToExcel} variant="success">
+                  <Download className="w-4 h-4" />
+                  تصدير Excel
+                </Button>
+              )}
+            </div>
+          }
+        />
 
         <div className="app-panel mb-6">
           <div className="flex border-b border-border">
@@ -369,27 +370,29 @@ export default function Reports() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold">الاشتراكات القريبة من الانتهاء</h2>
             <div className="flex gap-2">
-              <select
-                value={filterType}
-                onChange={(event) => setFilterType(event.target.value)}
-                className="px-3 py-2 border rounded-md text-sm"
-              >
-                <option value="all">جميع الأنواع</option>
-                {typeOptions.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value)}
-                className="px-3 py-2 border rounded-md text-sm"
-              >
-                <option value="all">جميع الحالات</option>
-                <option value="expired">منتهي</option>
-                <option value="urgent">عاجل</option>
-                <option value="medium">متوسط</option>
-                <option value="valid">ساري</option>
-              </select>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="جميع الأنواع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأنواع</SelectItem>
+                  {typeOptions.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="جميع الحالات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="expired">منتهي</SelectItem>
+                  <SelectItem value="urgent">عاجل</SelectItem>
+                  <SelectItem value="medium">متوسط</SelectItem>
+                  <SelectItem value="valid">ساري</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

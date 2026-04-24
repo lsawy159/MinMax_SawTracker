@@ -1,6 +1,6 @@
 // Import specific React types and helpers only
 import { ReactNode, Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
@@ -24,6 +24,7 @@ const Reports = lazy(() => import('./pages/Reports'))
 const PayrollDeductions = lazy(() => import('./pages/PayrollDeductions'))
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
+const DesignSystem = lazy(() => import('./pages/DesignSystem'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
 const AlertSettings = lazy(() => import('./pages/AlertSettings'))
@@ -87,8 +88,10 @@ function PublicRoute({ children }: { children: ReactNode }) {
 }
 
 function AppRoutes() {
+  const location = useLocation()
   return (
-    <Routes>
+    <div key={location.pathname} className="page-enter">
+      <Routes>
         <Route path="/login" element={
           <PublicRoute>
             <Suspense fallback={<PageLoader />}>
@@ -218,6 +221,13 @@ function AppRoutes() {
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/design-system" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <DesignSystem />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path="/security-management" element={
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
@@ -241,6 +251,7 @@ function AppRoutes() {
         } />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+    </div>
   )
 }
 

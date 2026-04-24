@@ -18,6 +18,9 @@ import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 type FilterType = 'all' | 'unread' | 'read'
 type PriorityFilter = 'all' | 'urgent' | 'high' | 'medium' | 'low'
@@ -273,14 +276,13 @@ export default function Notifications() {
               </p>
             </div>
           </div>
-          <button
+          <Button
             onClick={handleGenerateNotifications}
             disabled={generating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-blue-400"
           >
             <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
             {generating ? 'جاري التوليد...' : 'توليد تنبيهات جديدة'}
-          </button>
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -314,73 +316,84 @@ export default function Notifications() {
             <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
+                <Input
                   type="text"
                   placeholder="البحث في التنبيهات..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-4 pr-10"
                 />
               </div>
             </div>
 
             {/* Filter by Read Status */}
             <div>
-              <select
+              <Select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value as FilterType)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                onValueChange={(value) => setFilterType(value as FilterType)}
               >
-                <option value="all">جميع التنبيهات</option>
-                <option value="unread">غير مقروء</option>
-                <option value="read">مقروء</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="حالة القراءة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع التنبيهات</SelectItem>
+                  <SelectItem value="unread">غير مقروء</SelectItem>
+                  <SelectItem value="read">مقروء</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Filter by Priority */}
             <div>
-              <select
+              <Select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                onValueChange={(value) => setPriorityFilter(value as PriorityFilter)}
               >
-                <option value="all">جميع الأولويات</option>
-                <option value="urgent">عاجل فقط</option>
-                <option value="high">عاجل فقط</option>
-                <option value="medium">متوسط فقط</option>
-                <option value="low">منخفض فقط</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="الأولوية" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأولويات</SelectItem>
+                  <SelectItem value="urgent">عاجل فقط</SelectItem>
+                  <SelectItem value="high">عاجل فقط</SelectItem>
+                  <SelectItem value="medium">متوسط فقط</SelectItem>
+                  <SelectItem value="low">منخفض فقط</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-4">
             {unreadCount > 0 && (
-              <button
+              <Button
                 onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm font-medium"
+                variant="success"
+                size="sm"
               >
                 <Check className="w-4 h-4" />
                 تحديد الكل كمقروء
-              </button>
+              </Button>
             )}
             {readCount > 0 && (
-              <button
+              <Button
                 onClick={handleMarkAllAsUnread}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium"
+                variant="secondary"
+                size="sm"
               >
                 <Mail className="w-4 h-4" />
                 تحديد الكل كغير مقروء
-              </button>
+              </Button>
             )}
             {notifications.length > 0 && (
-              <button
+              <Button
                 onClick={handleDeleteAll}
-                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+                variant="destructive"
+                size="sm"
               >
                 <Trash2 className="w-4 h-4" />
                 حذف الكل
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -470,29 +483,32 @@ export default function Notifications() {
                     {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
                       {!notification.is_read ? (
-                        <button
+                        <Button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-700 bg-green-100 hover:bg-green-200 rounded-lg transition"
+                          variant="success"
+                          size="sm"
                         >
                           <Check className="w-4 h-4" />
                           تحديد كمقروء
-                        </button>
+                        </Button>
                       ) : (
-                        <button
+                        <Button
                           onClick={() => handleMarkAsUnread(notification.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition"
+                          variant="secondary"
+                          size="sm"
                         >
                           <Mail className="w-4 h-4" />
                           تحديد كغير مقروء
-                        </button>
+                        </Button>
                       )}
-                      <button
+                      <Button
                         onClick={() => handleDelete(notification)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition"
+                        variant="destructive"
+                        size="sm"
                       >
                         <Trash2 className="w-4 h-4" />
                         حذف
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

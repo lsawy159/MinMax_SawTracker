@@ -16,6 +16,7 @@ import { LogsFilters } from '@/components/activity/LogsFilters'
 import { DeleteConfirmModal } from '@/components/activity/DeleteConfirmModal'
 import { LogDetailsModal } from '@/components/activity/LogDetailsModal'
 import { LogsTable } from '@/components/activity/LogsTable'
+import { Button } from '@/components/ui/Button'
 
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
@@ -1035,39 +1036,46 @@ export default function ActivityLogs() {
           </div>
           <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
             {isAdmin && selectedLogIds.size > 0 && (
-              <button
+              <Button
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 text-white rounded hover:bg-red-700 transition whitespace-nowrap text-xs"
+                size="sm"
+                variant="destructive"
+                className="text-xs"
               >
                 <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
                 <span className="hidden sm:inline">حذف ({selectedLogIds.size})</span>
                 <span className="sm:hidden">حذف</span>
-              </button>
+              </Button>
             )}
             {isAdmin && (
-              <button
+              <Button
                 onClick={handleDeleteAll}
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 text-white rounded hover:bg-red-700 transition whitespace-nowrap text-xs"
+                size="sm"
+                variant="destructive"
+                className="text-xs"
               >
                 <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
                 <span className="hidden sm:inline">حذف الكل</span>
                 <span className="sm:hidden">حذف</span>
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               onClick={loadLogs}
-              className="app-button-secondary text-xs"
+              size="sm"
+              variant="outline"
+              className="text-xs"
             >
               <RefreshCw className="w-3 sm:w-4 h-3 sm:h-4" />
               <span className="hidden sm:inline">تحديث</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={exportToExcel}
-              className="app-button-primary text-xs"
+              size="sm"
+              className="text-xs"
             >
               <Download className="w-3 sm:w-4 h-3 sm:h-4" />
               <span className="hidden sm:inline">Excel</span>
-            </button>
+            </Button>
           </div>
         </div>
 

@@ -5,10 +5,14 @@ import ProjectModal from '@/components/projects/ProjectModal'
 import ProjectCard from '@/components/projects/ProjectCard'
 import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
 import ProjectStatistics from '@/components/projects/ProjectStatistics'
-import { FolderKanban, Plus, Search, Shield } from 'lucide-react'
+import { FolderKanban, Plus, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { useCardColumns } from '@/hooks/useUiPreferences'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
 
 type SortField = 'name' | 'created_at' | 'status' | 'employee_count' | 'total_salaries'
 type SortDirection = 'asc' | 'desc'
@@ -238,16 +242,19 @@ export default function Projects() {
         </div>
       ) : (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="app-panel flex items-center gap-3 p-4">
-          <div className="app-icon-chip">
-            <FolderKanban className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">المشاريع</h1>
-            <p className="text-sm text-slate-500">إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة.</p>
-          </div>
-        </div>
+        <PageHeader
+          title="المشاريع"
+          description="إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة."
+          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'المشاريع' }]}
+          actions={
+            canCreate('projects') ? (
+              <Button onClick={handleAddProject}>
+                <Plus className="w-4 h-4" />
+                إضافة مشروع جديد
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Tabs */}
         <div className="app-toggle-shell w-fit">
@@ -269,36 +276,20 @@ export default function Projects() {
         {activeTab === 'list' ? (
           <div className="space-y-6">
             {/* Filters */}
-            <div className="app-filter-surface">
-              <div className="flex flex-wrap items-center gap-4">
-                {canCreate('projects') && (
-                  <button
-                    onClick={handleAddProject}
-                    className="app-button-primary"
-                  >
-                    <Plus className="w-4 h-4" />
-                    إضافة مشروع جديد
-                  </button>
-                )}
-
-                <div className="min-w-[220px] flex-1">
-                  <div className="relative">
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="ابحث عن مشروع..."
-                      className="w-full rounded-lg border border-gray-300 py-2 pl-4 pr-10 focus:border-transparent focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                </div>
+            <FilterBar>
+                <SearchInput
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ابحث عن مشروع..."
+                  wrapperClassName="min-w-[220px] flex-1"
+                />
 
                 <div className="min-w-[150px]">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ProjectStatus)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-primary/40"
+                    className="focus-ring-brand w-full rounded-lg border border-input bg-surface px-4 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                   >
                     <option value="all">جميع الحالات</option>
                     <option value="active">نشط</option>
@@ -315,7 +306,7 @@ export default function Projects() {
                       setSortField(field as SortField)
                       setSortDirection(direction as SortDirection)
                     }}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-primary/40"
+                    className="focus-ring-brand w-full rounded-lg border border-input bg-surface px-4 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                   >
                     <option value="name_asc">الاسم (أ-ي)</option>
                     <option value="name_desc">الاسم (ي-أ)</option>
@@ -328,8 +319,7 @@ export default function Projects() {
                   </select>
                 </div>
 
-              </div>
-            </div>
+            </FilterBar>
 
             {/* Projects Grid */}
             {filteredProjects.length === 0 ? (
@@ -340,12 +330,12 @@ export default function Projects() {
                   <p className="text-sm text-gray-500 mt-2">جرب تغيير الفلاتر</p>
                 ) : (
                   canCreate('projects') && (
-                    <button
+                    <Button
                       onClick={handleAddProject}
-                      className="app-button-primary mt-4"
+                      className="mt-4"
                     >
                       إضافة مشروع جديد
-                    </button>
+                    </Button>
                   )
                 )}
               </div>
@@ -398,7 +388,7 @@ export default function Projects() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && selectedProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">تأكيد الحذف</h3>
               <p className="text-gray-600 mb-6">
@@ -407,18 +397,18 @@ export default function Projects() {
                 <span className="text-sm text-red-600">لا يمكن التراجع عن هذا الإجراء</span>
               </p>
               <div className="flex items-center justify-end gap-3">
-                <button
+                <Button
                   onClick={handleModalClose}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  variant="outline"
                 >
                   إلغاء
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleDeleteConfirm}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  variant="destructive"
                 >
                   حذف
-                </button>
+                </Button>
               </div>
             </div>
           </div>

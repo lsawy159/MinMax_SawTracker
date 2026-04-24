@@ -13,13 +13,18 @@ import {
   getEmployeeAlertsStats,
   filterEmployeeAlertsByPriority
 } from '@/utils/employeeAlerts'
-import { Bell, Search, AlertTriangle, Building2, Users, X, CheckCircle2, Mail } from 'lucide-react'
+import { Bell, AlertTriangle, Building2, Users, X, CheckCircle2, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import { usePermissions } from '@/utils/permissions'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { Button } from '@/components/ui/Button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 
 interface AlertsProps {
@@ -477,6 +482,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   return (
     <Layout>
       <div className="p-6">
+        <PageHeader
+          title="التنبيهات"
+          description={`عرض ذكي للتنبيهات بحسب الأولوية وحالة القراءة. الحالي: ${totalAlerts} جديد و ${totalReadAlerts} مقروء.`}
+          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'التنبيهات' }]}
+          className="mb-6"
+        />
+
         {/* إحصائيات سريعة (تبقى كما هي، تعرض غير المقروء فقط لهذه الصفحة) */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
           <div className="app-panel p-6">
@@ -531,7 +543,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         {/* فلاتر البحث والتنقل */}
         <div className="app-panel mb-8 p-6">
           {/* تبويبات (المؤسسات / الموظفين) */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="app-toggle-shell w-fit">
               <button
                 onClick={() => setActiveTab('all')}
@@ -566,33 +578,31 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
             </div>
 
             {/* البحث والفلاتر */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* البحث */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="البحث في التنبيهات..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent"
-                />
-              </div>
+            <FilterBar>
+              <SearchInput
+                type="text"
+                placeholder="البحث في التنبيهات..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                wrapperClassName="min-w-[220px] flex-1"
+              />
 
-              {/* فلتر الأولوية */}
-              <select
+              <Select
                 value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value as 'all' | 'urgent' | 'high' | 'medium' | 'low')}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent"
+                onValueChange={(value) => setActiveFilter(value as 'all' | 'urgent' | 'high' | 'medium' | 'low')}
               >
-                <option value="all">جميع الأولويات (طارئ وعاجل)</option>
-                <option value="urgent">طارئ</option>
-                <option value="high">عاجل</option>
-                <option value="medium">متوسط</option>
-                <option value="low">طفيف</option>
-              </select>
-
-            </div>
+                <SelectTrigger className="min-w-[220px]">
+                  <SelectValue placeholder="جميع الأولويات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأولويات (طارئ وعاجل)</SelectItem>
+                  <SelectItem value="urgent">طارئ</SelectItem>
+                  <SelectItem value="high">عاجل</SelectItem>
+                  <SelectItem value="medium">متوسط</SelectItem>
+                  <SelectItem value="low">طفيف</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterBar>
           </div>
 
           {/* [NEW] تبويبات (جديد / مقروء) */}
@@ -623,24 +633,24 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
               {/* [NEW] زر تم الاطلاع على الكل */}
               {readFilterTab === 'new' && totalAlerts > 0 && (
-                <button
+                <Button
                   onClick={handleMarkAllAsRead}
-                  className="app-button-success"
+                  variant="success"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                   <span>تم الاطلاع على الكل</span>
-                </button>
+                </Button>
               )}
               
               {/* [NEW] زر إعادة الكل إلى غير مقروء */}
               {readFilterTab === 'read' && totalReadAlerts > 0 && (
-                <button
+                <Button
                   onClick={handleMarkAllAsUnread}
-                  className="app-button-secondary"
+                  variant="secondary"
                 >
                   <Mail className="w-5 h-5" />
                   <span>إعادة الكل إلى غير مقروء</span>
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -729,12 +739,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between px-6 py-4">
               <h2 className="text-xl font-bold text-gray-900">تفاصيل المؤسسة</h2>
-              <button
+              <Button
                 onClick={() => setShowCompanyCard(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                variant="ghost"
+                size="icon"
               >
                 <X className="w-6 h-6 text-gray-500" />
-              </button>
+              </Button>
             </div>
             
             {/* Company Card */}
