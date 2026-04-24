@@ -13,7 +13,7 @@ export const SearchInput = ({ className, wrapperClassName, hint, ...props }: Sea
       <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         className={cn(
-          'focus-ring-brand h-11 w-full rounded-xl border border-input bg-surface pr-10 pl-3 text-sm text-foreground shadow-xs transition-[border-color,box-shadow,background-color] duration-[var(--motion-base)] ease-[var(--ease-out)] placeholder:text-muted-foreground',
+          'focus-ring-brand h-12 w-full rounded-xl border border-input bg-surface pr-11 pl-4 text-sm text-foreground shadow-xs transition-[border-color,box-shadow,background-color] duration-[var(--motion-base)] ease-[var(--ease-out)] placeholder:text-muted-foreground',
           className
         )}
         {...props}

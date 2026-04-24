@@ -1022,7 +1022,7 @@ export default function ActivityLogs() {
           </div>
         </div>
       ) : (
-      <div className="p-3 sm:p-4 lg:p-6">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3">

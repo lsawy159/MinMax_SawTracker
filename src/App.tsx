@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Toaster } from 'sonner'
 import { queryClient } from './lib/queryClient'
 import AuthLoading from './components/AuthLoading'
-import { useThemeMode } from './hooks/useUiPreferences'
+import { useFontMode, useThemeMode } from './hooks/useUiPreferences'
 import './App.css'
 
 // Lazy load all pages for code splitting
@@ -257,6 +257,7 @@ function AppRoutes() {
 
 function App() {
   useThemeMode()
+  useFontMode()
 
   return (
     <QueryClientProvider client={queryClient}>

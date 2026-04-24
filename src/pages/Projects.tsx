@@ -241,7 +241,7 @@ export default function Projects() {
           </div>
         </div>
       ) : (
-      <div className="space-y-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="المشاريع"
           description="إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة."
@@ -274,7 +274,7 @@ export default function Projects() {
 
         {/* Tab Content */}
         {activeTab === 'list' ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Filters */}
             <FilterBar>
                 <SearchInput

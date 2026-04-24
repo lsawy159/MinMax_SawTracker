@@ -120,3 +120,6 @@ docs-local/
 # Development files and old fixes
 .dev-files/
 # Note: .dev-files/old-migrations/ contains dangerous or outdated migration files that should not be applied
+
+# Local Claude worktrees (keep locally, never commit)
+.claude/worktrees/

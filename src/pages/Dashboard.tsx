@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MetricCard } from '@/components/ui/MetricCard'
-import { useScrollReveal } from '@/hooks/useScrollReveal'
 import { 
   enrichEmployeeAlertsWithCompanyData,
   getEmployeeNotificationThresholdsPublic,
@@ -84,9 +83,6 @@ export default function Dashboard() {
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
   const navigate = useNavigate()
-  const headerRevealRef = useScrollReveal<HTMLDivElement>()
-  const statsRevealRef = useScrollReveal<HTMLDivElement>()
-  const metricsRevealRef = useScrollReveal<HTMLDivElement>()
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     totalCompanies: 0,
@@ -525,7 +521,7 @@ export default function Dashboard() {
           </div>
         </div>
       ) : (
-      <div className="p-2.5">
+      <div className="app-page app-tech-grid">
         {loading ? (
           <div className="space-y-3">
             <div className="app-panel p-4">
@@ -538,7 +534,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map((item) => (
                 <div key={item} className="app-panel animate-pulse p-3">
                   <div className="mb-3 h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
@@ -550,7 +546,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <div ref={headerRevealRef} className="scroll-reveal mb-3">
+            <div className="mb-2 motion-safe-enter">
               <PageHeader
                 title="لوحة التحكم"
                 description="ملخص فوري للإحصائيات والتنبيهات مع مؤشرات الأداء الحالية."
@@ -569,7 +565,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <div ref={statsRevealRef} className="scroll-reveal mb-3 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="عدد المؤسسات"
                 value={stats.totalCompanies}
@@ -602,7 +598,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <div ref={metricsRevealRef} className="scroll-reveal mb-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-3">
               <MetricCard title="معدل الاستفادة" value={`${stats.utilizationRate}%`} subtitle="من السعة المتاحة" trend={stats.utilizationRate >= 75 ? 4 : -3} icon={<TrendingUp className="h-4 w-4" />} />
               <MetricCard title="أماكن شاغرة" value={stats.totalAvailableSlots.toString()} subtitle="مكان متاح للإضافة" icon={<MapPin className="h-4 w-4" />} />
               <MetricCard title="متوسط الموظفين" value={(stats.totalCompanies > 0 ? Math.round(stats.totalEmployees / stats.totalCompanies) : 0).toString()} subtitle="لكل مؤسسة" icon={<Users className="h-4 w-4" />} />

@@ -20,7 +20,7 @@ export default function TransferProcedures() {
 
   return (
     <Layout>
-      <div className="p-3 sm:p-4 lg:p-6 space-y-4">
+      <div className="app-page app-tech-grid space-y-4">
         <div className="mb-4 flex items-start gap-2 sm:mb-6 sm:items-center sm:gap-3">
           <div className="app-icon-chip flex-shrink-0">
             <RefreshCcw className="h-4 w-4 sm:h-5 sm:w-5" />

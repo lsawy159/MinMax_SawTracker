@@ -1,13 +1,13 @@
-import { ReactNode, useState, useEffect } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Bell, Menu, X, ChevronRight, LogOut, Mail, Wallet, Moon, Sun, RefreshCcw } from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
-import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
 import { usePermissions } from '@/utils/permissions'
-import { useThemeMode } from '@/hooks/useUiPreferences'
+import { useThemeMode, useFontMode, useDensityMode } from '@/hooks/useUiPreferences'
 import { MobileBottomNav } from './MobileBottomNav'
+import { PillHeader } from './PillHeader'
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -47,6 +47,64 @@ export default function Layout({ children }: { children: ReactNode }) {
   // استخدام usePermissions hook للتحقق من الصلاحيات
   const { hasPermission } = usePermissions()
   const { isDark, toggleTheme } = useThemeMode()
+  const { fontMode, setFontMode } = useFontMode()
+  const { densityMode, setDensityMode } = useDensityMode()
+
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
+  }
+
+
+
+  useEffect(() => {
+    const handleRipple = (event: MouseEvent) => {
+      const ripple = document.createElement('span')
+      ripple.className = 'app-click-ripple'
+      ripple.style.left = `${event.clientX}px`
+      ripple.style.top = `${event.clientY}px`
+      document.body.appendChild(ripple)
+      window.setTimeout(() => {
+        ripple.remove()
+      }, 700)
+    }
+
+    window.addEventListener('click', handleRipple)
+    return () => window.removeEventListener('click', handleRipple)
+  }, [])
+
+  useEffect(() => {
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('.parallax-card'))
+    const cleanup: Array<() => void> = []
+
+    cards.forEach((card) => {
+      const handleMove = (event: MouseEvent) => {
+        const rect = card.getBoundingClientRect()
+        const x = ((event.clientX - rect.left) / rect.width) * 100
+        const y = ((event.clientY - rect.top) / rect.height) * 100
+        card.style.setProperty('--mouse-x', `${x}%`)
+        card.style.setProperty('--mouse-y', `${y}%`)
+        card.style.setProperty('--tilt-x', `${((y - 50) / 50) * -3}deg`)
+        card.style.setProperty('--tilt-y', `${((x - 50) / 50) * 3}deg`)
+      }
+
+      const handleLeave = () => {
+        card.style.setProperty('--tilt-x', '0deg')
+        card.style.setProperty('--tilt-y', '0deg')
+      }
+
+      card.addEventListener('mousemove', handleMove)
+      card.addEventListener('mouseleave', handleLeave)
+      cleanup.push(() => {
+        card.removeEventListener('mousemove', handleMove)
+        card.removeEventListener('mouseleave', handleLeave)
+      })
+    })
+
+    return () => {
+      cleanup.forEach((dispose) => dispose())
+    }
+  }, [location.pathname])
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: { section: 'dashboard' as const, action: 'view' }, badge: null },
@@ -67,9 +125,45 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
   ]
 
+  const quickSearchItems = useMemo(
+    () =>
+      navItems
+        .filter((item) => !item.permission || hasPermission(item.permission.section, item.permission.action as string))
+        .map((item) => ({
+          path: item.path,
+          label: item.label,
+          description: `الانتقال إلى ${item.label}`,
+          keywords: [
+            item.label,
+            item.path,
+            item.path.replace('/', ''),
+            item.path.includes('employees') ? 'موظف' : '',
+            item.path.includes('companies') ? 'مؤسسة' : '',
+            item.path.includes('alerts') ? 'تنبيه' : '',
+            item.path.includes('transfer') ? 'نقل' : '',
+            item.path.includes('payroll') ? 'راتب' : '',
+          ].filter(Boolean),
+        })),
+    [navItems, hasPermission]
+  )
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="min-h-screen bg-background text-foreground" dir="rtl">
+        <PillHeader
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+          alertsCount={alertsStats.total}
+          userName={user?.full_name || user?.email || 'مستخدم'}
+          userRole={user?.role === 'admin' ? 'مدير' : 'مستخدم'}
+          onSignOut={handleSignOut}
+          fontMode={fontMode}
+          onFontChange={setFontMode}
+          densityMode={densityMode}
+          onDensityChange={setDensityMode}
+          quickSearchItems={quickSearchItems}
+        />
+
         <div className="flex relative">
           {/* Mobile Backdrop */}
           {isMobileOpen && (
@@ -274,30 +368,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                 })}
             </nav>
 
-            {/* User Section at Bottom */}
+            {/* User Actions Section at Bottom */}
             <div className="mt-auto border-t border-border bg-white/80 p-2">
               {!isCollapsed ? (
                 <div className="space-y-1">
-                  <div className="px-3 py-2 flex items-center gap-2.5">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-gradient-to-br from-primary via-yellow-300 to-amber-400 text-slate-950 text-xs font-bold">
-                        {user?.full_name
-                          ?.split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate">
-                        {user?.full_name || user?.email || 'مستخدم'}
-                      </p>
-                      <p className="text-[10px] text-slate-500 truncate">
-                        {user?.role === 'admin' ? 'مدير' : 'مستخدم'}
-                      </p>
-                    </div>
-                  </div>
                   <button
                     onClick={toggleTheme}
                     className="w-full group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 transition-all duration-200 ease-in-out hover:bg-primary/10 hover:text-slate-950"
@@ -308,8 +382,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </button>
                   <button
                     onClick={async () => {
-                      await signOut()
-                      window.location.href = '/login'
+                      await handleSignOut()
                     }}
                     className="w-full group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 transition-all duration-200 ease-in-out hover:bg-red-50 hover:text-red-600"
                     data-testid="logout-btn-mobile"
@@ -320,28 +393,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 py-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="px-2 py-1">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-gradient-to-br from-primary via-yellow-300 to-amber-400 text-slate-950 text-xs font-bold">
-                            {user?.full_name
-                              ?.split(' ')
-                              .map(n => n[0])
-                              .join('')
-                              .toUpperCase()
-                              .slice(0, 2) || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 text-white">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{user?.full_name || user?.email || 'مستخدم'}</span>
-                        <span className="text-xs text-gray-300">{user?.role === 'admin' ? 'مدير' : 'مستخدم'}</span>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -360,8 +411,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <TooltipTrigger asChild>
                       <button
                         onClick={async () => {
-                          await signOut()
-                          window.location.href = '/login'
+                          await handleSignOut()
                         }}
                         className="rounded-xl p-2 text-slate-700 transition-colors hover:bg-red-50 hover:text-red-600"
                         data-testid="logout-btn"
@@ -379,7 +429,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </aside>
 
           {/* Main Content */}
-          <main className={`flex-1 pb-20 lg:pb-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}>
+          <main className={`flex-1 pb-20 pt-16 lg:pb-0 lg:pt-16 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}>
             {children}
           </main>
         </div>

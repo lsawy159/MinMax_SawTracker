@@ -846,14 +846,14 @@ export default function Companies() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="المؤسسات"
           description={`عرض ${filteredCompanies.length} من ${companies.length} مؤسسة${
             activeFiltersCount > 0 ? ` (${activeFiltersCount} فلتر نشط)` : ''
           }`}
           breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'المؤسسات' }]}
-          className="mb-4"
+          className="mb-6"
           actions={
             canCreate('companies') ? (
               <Button onClick={handleAddCompany} variant="success">
@@ -865,7 +865,7 @@ export default function Companies() {
         />
 
         {/* Company Status Statistics Section - إحصائيات موحدة تشمل جميع الحالات */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="app-panel mb-6 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
@@ -881,7 +881,7 @@ export default function Companies() {
               ending_subscription_moqeem_date: c.ending_subscription_moqeem_date
             })))
             return (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                 <div className="app-panel p-4 text-center">
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalCompanies}</div>
                   <div className="text-sm text-slate-600 dark:text-slate-300">إجمالي المؤسسات</div>
@@ -1018,7 +1018,7 @@ export default function Companies() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-white/70 px-3 py-1.5 dark:bg-slate-900/70">
                 <span className="text-sm text-gray-600">عرض:</span>
                 <select
                   value={itemsPerPage}
@@ -1026,7 +1026,7 @@ export default function Companies() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 >
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -1259,7 +1259,7 @@ export default function Companies() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white border rounded-lg overflow-hidden">
+              <div className="app-panel overflow-hidden">
                 {/* Bulk Action Toolbar */}
                 {selectedCompanyIds.length > 0 && (
                   <div className="flex items-center justify-between border-b border-primary/30 bg-primary/10 px-6 py-4">
@@ -1424,7 +1424,7 @@ export default function Companies() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between bg-white border rounded-lg p-4 mt-6">
+              <div className="app-panel mt-6 flex items-center justify-between p-4">
                 <div className="text-sm text-gray-600">
                   عرض {startIndex + 1}-{Math.min(endIndex, totalResults)} من {totalResults} مؤسسة
                 </div>
@@ -1464,7 +1464,7 @@ export default function Companies() {
             )}
           </>
         ) : (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+          <div className="app-panel py-12 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600">لا توجد مؤسسات تطابق معايير البحث</p>
             {activeFiltersCount > 0 && (

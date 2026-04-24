@@ -23,7 +23,7 @@ export default function AdminSettings() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">

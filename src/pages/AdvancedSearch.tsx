@@ -1086,7 +1086,7 @@ export default function AdvancedSearch() {
 
   return (
     <Layout>
-      <div className="w-full p-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="البحث المتقدم"
           description={`النتائج المطابقة: ${resultsCount}${activeFiltersCount > 0 ? ` (${activeFiltersCount} فلتر نشط)` : ''}`}

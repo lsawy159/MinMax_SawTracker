@@ -87,7 +87,7 @@ export default function ImportExport() {
 
   return (
     <Layout>
-      <div className="p-3 sm:p-4 lg:p-6">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-4 flex items-start gap-2 sm:mb-6 sm:items-center sm:gap-3">
           <div className="app-icon-chip flex-shrink-0">

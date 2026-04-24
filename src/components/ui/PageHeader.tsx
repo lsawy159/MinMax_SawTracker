@@ -17,7 +17,7 @@ interface PageHeaderProps {
 
 export const PageHeader = ({ title, description, breadcrumbs, actions, className }: PageHeaderProps) => {
   return (
-    <header className={cn('app-panel motion-safe-enter space-y-4 p-5 md:p-6', className)}>
+    <header className={cn('app-panel app-page-header motion-safe-enter space-y-3 p-4 md:p-5', className)}>
       {breadcrumbs && breadcrumbs.length > 0 ? (
         <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           {breadcrumbs.map((item, index) => (
@@ -35,10 +35,10 @@ export const PageHeader = ({ title, description, breadcrumbs, actions, className
         </nav>
       ) : null}
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl">{title}</h1>
-          {description ? <p className="text-sm leading-6 text-muted-foreground md:text-base">{description}</p> : null}
+          <h1 className="text-xl font-bold text-foreground md:text-2xl">{title}</h1>
+          {description ? <p className="text-sm leading-5 text-muted-foreground">{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>

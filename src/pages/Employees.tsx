@@ -5,8 +5,6 @@ import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
 import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText, Shield } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
-import { formatDateShortWithHijri } from '@/utils/dateFormatter'
-import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -68,8 +66,7 @@ export default function Employees() {
   
   // حالة التنقل بالسهام
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
-  const tableRef = useRef<HTMLTableElement>(null)
-  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
+  const rowRefs = useRef<(HTMLElement | null)[]>([])
 
   // حالة نوع العرض
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
@@ -397,31 +394,6 @@ export default function Employees() {
     return statuses.some(status => ['منتهي', 'طارئ', 'عاجل', 'متوسط'].includes(status))
   }
 
-  const getStatusColor = (
-    days: number | null,
-    thresholds: EmployeeNotificationThresholds | null,
-    fieldType: 'residence' | 'contract' | 'health_insurance' | 'hired_worker_contract' = 'residence'
-  ) => {
-    // إذا كان null (لا يوجد تاريخ انتهاء)، يعتبر ساري
-    if (days === null) return 'text-green-600 bg-green-50'
-
-    const resolvedThresholds = thresholds || COLOR_THRESHOLD_FALLBACK
-
-    const urgentDays = resolvedThresholds[`${fieldType}_urgent_days` as keyof EmployeeNotificationThresholds] as number
-    const highDays = resolvedThresholds[`${fieldType}_high_days` as keyof EmployeeNotificationThresholds] as number
-    const mediumDays = resolvedThresholds[`${fieldType}_medium_days` as keyof EmployeeNotificationThresholds] as number
-
-    // منتهي أو أقل من أو يساوي الحد الطارئ: أحمر (طارئ)
-    if (days < 0) return 'text-red-600 bg-red-50'
-    if (days <= urgentDays) return 'text-red-600 bg-red-50'
-    // بين الطارئ والعاجل: برتقالي (عاجل)
-    if (days <= highDays) return 'text-orange-600 bg-orange-50'
-    // بين العاجل والمتوسط: أصفر (تحذير)
-    if (days <= mediumDays) return 'text-yellow-600 bg-yellow-50'
-    // أكثر من المتوسط: أخضر (ساري)
-    return 'text-green-600 bg-green-50'
-  }
-
   // دالة للحصول على لون خلفية الخلية بناءً على حالة الانتهاء
   const getCellBackgroundColor = (days: number | null) => {
     // إذا كان null (لا يوجد تاريخ انتهاء)، لا لون خلفية
@@ -447,14 +419,6 @@ export default function Employees() {
     const textStr = String(text)
     if (textStr.length <= maxLength) return textStr
     return textStr.substring(0, maxLength)
-  }
-
-  // دالة لتقليص الأرقام
-  const truncateNumber = (num: number | null | undefined, maxDigits: number): string => {
-    if (!num) return '-'
-    const numStr = num.toString()
-    if (numStr.length <= maxDigits) return numStr
-    return numStr.substring(0, maxDigits)
   }
 
   // دالة لتنسيق حالة التاريخ (عدد الأيام)
@@ -1062,7 +1026,7 @@ export default function Employees() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="الموظفين"
           description={`عرض ${sortedAndFilteredEmployees.length} من ${employees.length} موظف${
@@ -1077,10 +1041,10 @@ export default function Employees() {
                   <button
                     onClick={() => setViewMode('table')}
                     className={`app-toggle-button ${viewMode === 'table' ? 'app-toggle-button-active' : ''}`}
-                    title="عرض الجدول"
+                    title="عرض الشرائط"
                   >
                     <Table className="w-4 h-4" />
-                    <span className="hidden sm:inline">جدول</span>
+                    <span className="hidden sm:inline">شرائط</span>
                   </button>
                 )}
                 <button
@@ -1865,253 +1829,110 @@ export default function Employees() {
             })}
           </div>
         ) : (
-          // Table View
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full" ref={tableRef}>
-                <thead className="sticky top-0 z-[1] bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase w-10">
+          <div className="space-y-3">
+            <div className="app-data-strip flex items-center justify-between">
+              <button
+                onClick={toggleSelectAll}
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-100"
+                title={selectedEmployees.size === filteredEmployees.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+              >
+                {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
+                  <CheckSquare className="w-4 h-4 text-blue-600" />
+                ) : (
+                  <Square className="w-4 h-4 text-slate-400" />
+                )}
+                تحديد الكل
+              </button>
+              <span className="text-xs text-slate-600 dark:text-slate-300">{sortedAndFilteredEmployees.length} نتيجة</span>
+            </div>
+
+            {sortedAndFilteredEmployees.map((employee, index) => {
+              const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
+              const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
+              const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null
+              const isSelected = selectedRowIndex === index
+
+              return (
+                <div
+                  key={employee.id}
+                  ref={(el) => {
+                    rowRefs.current[index] = el
+                  }}
+                  className={`app-data-strip ${isSelected ? 'border-blue-500/80 ring-2 ring-blue-500/20' : ''}`}
+                >
+                  <div className="flex min-h-fit flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-3">
                       <button
-                        onClick={toggleSelectAll}
-                        className="flex items-center justify-center w-4 h-4"
-                        title={selectedEmployees.size === filteredEmployees.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleEmployeeSelection(employee.id)
+                        }}
+                        className="mt-1 flex h-5 w-5 items-center justify-center"
                       >
-                        {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
+                        {selectedEmployees.has(employee.id) ? (
                           <CheckSquare className="w-4 h-4 text-blue-600" />
                         ) : (
-                          <Square className="w-4 h-4 text-gray-400" />
+                          <Square className="w-4 h-4 text-slate-400" />
                         )}
                       </button>
-                    </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">الاسم</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">المهنة</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">الجنسية</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">الشركة</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">المشروع</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">رقم الإقامة</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">تاريخ الميلاد</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">تاريخ الالتحاق</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">الراتب</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">انتهاء العقد</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">انتهاء عقد أجير</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">انتهاء الإقامة</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 uppercase">حالة التأمين</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {sortedAndFilteredEmployees.map((employee, index) => {
-                    const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
-                    const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
-                    const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
-                    const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null
-                    const isSelected = selectedRowIndex === index
 
-                    return (
-                      <tr 
-                        key={employee.id} 
-                        ref={(el) => { rowRefs.current[index] = el }}
-                        className={`transition hover:bg-gray-50 ${isSelected ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
+                      <div className="cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{employee.name}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                          {employee.profession || '-'} • {employee.nationality || '-'}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {employee.company?.name || '-'}
+                          {employee.company?.unified_number ? ` (${employee.company.unified_number})` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3 lg:max-w-[560px]">
+                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(contractDays)}`}>
+                        <p className="mb-1 text-[11px] text-slate-500">العقد</p>
+                        <p className={getTextColor(contractDays)}>{formatDateStatus(contractDays, 'منتهي')}</p>
+                      </div>
+                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(residenceDays)}`}>
+                        <p className="mb-1 text-[11px] text-slate-500">الإقامة</p>
+                        <p className={getTextColor(residenceDays)}>{formatDateStatus(residenceDays, 'منتهية')}</p>
+                      </div>
+                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(healthInsuranceDays)}`}>
+                        <p className="mb-1 text-[11px] text-slate-500">التأمين</p>
+                        <p className={getTextColor(healthInsuranceDays)}>{formatDateStatus(healthInsuranceDays, 'منتهي')}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEmployeeClick(employee)
+                        }}
+                        size="sm"
                       >
-                        <td className="px-3 py-2 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleEmployeeSelection(employee.id)
-                            }}
-                            className="flex items-center justify-center w-4 h-4"
-                          >
-                            {selectedEmployees.has(employee.id) ? (
-                              <CheckSquare className="w-4 h-4 text-blue-600" />
-                            ) : (
-                              <Square className="w-4 h-4 text-gray-400" />
-                            )}
-                          </button>
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs font-medium text-gray-900 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
+                        <Eye className="w-3.5 h-3.5" />
+                        عرض
+                      </Button>
+                      {canDelete('employees') && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteEmployee(employee)
+                          }}
+                          variant="destructive"
+                          size="sm"
                         >
-                          {truncateText(employee.name, 17)}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {truncateText(employee.profession, 10)}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {truncateText(employee.nationality, 10)}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {(() => {
-                            const companyName = employee.company?.name || ''
-                            const unifiedNumber = employee.company?.unified_number
-                            // أخذ أول 3 كلمات من اسم الشركة
-                            const words = companyName.split(' ').slice(0, 3).join(' ')
-                            const displayText = unifiedNumber 
-                              ? `${words}${companyName.split(' ').length > 3 ? '...' : ''} (${unifiedNumber})`
-                              : words
-                            return displayText || '-'
-                          })()}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {employee.project?.name || employee.project_name ? (
-                            <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
-                              {truncateText(employee.project?.name || employee.project_name, 20)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs font-mono text-gray-900 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {truncateText(employee.residence_number, 10)}
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <HijriDateDisplay date={employee.birth_date}>
-                            {truncateText(formatDateShortWithHijri(employee.birth_date), 10)}
-                          </HijriDateDisplay>
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs text-gray-700 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <HijriDateDisplay date={employee.joining_date}>
-                            {truncateText(formatDateShortWithHijri(employee.joining_date), 10)}
-                          </HijriDateDisplay>
-                        </td>
-                        <td 
-                          className="px-3 py-2 text-xs font-medium text-gray-900 cursor-pointer"
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          {employee.salary ? truncateNumber(employee.salary, 5) : '-'}
-                        </td>
-                        <td 
-                          className={`px-3 py-2 text-xs cursor-pointer text-center ${getCellBackgroundColor(contractDays)}`}
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <div className="flex flex-col gap-0.5 items-center">
-                            <span className={getTextColor(contractDays)}>
-                              {employee.contract_expiry ? (
-                                <HijriDateDisplay date={employee.contract_expiry}>
-                                  {truncateText(formatDateShortWithHijri(employee.contract_expiry), 10)}
-                                </HijriDateDisplay>
-                              ) : '-'}
-                            </span>
-                            {employee.contract_expiry && (
-                              <span className={`text-xs ${getStatusColor(contractDays, colorThresholds, 'contract')}`}>
-                                {formatDateStatus(contractDays, 'منتهي')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td 
-                          className={`px-3 py-2 text-xs cursor-pointer text-center ${getCellBackgroundColor(hiredWorkerContractDays)}`}
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <div className="flex flex-col gap-0.5 items-center">
-                            <span className={getTextColor(hiredWorkerContractDays)}>
-                              {employee.hired_worker_contract_expiry ? (
-                                <HijriDateDisplay date={employee.hired_worker_contract_expiry}>
-                                  {truncateText(formatDateShortWithHijri(employee.hired_worker_contract_expiry), 10)}
-                                </HijriDateDisplay>
-                              ) : '-'}
-                            </span>
-                            {employee.hired_worker_contract_expiry && (
-                              <span className={`text-xs ${getStatusColor(hiredWorkerContractDays, colorThresholds, 'hired_worker_contract')}`}>
-                                {formatDateStatus(hiredWorkerContractDays, 'منتهي')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td 
-                          className={`px-3 py-2 text-xs cursor-pointer text-center ${getCellBackgroundColor(residenceDays)}`}
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <div className="flex flex-col gap-0.5 items-center">
-                            <span className={getTextColor(residenceDays)}>
-                              {employee.residence_expiry ? (
-                                <HijriDateDisplay date={employee.residence_expiry}>
-                                  {truncateText(formatDateShortWithHijri(employee.residence_expiry), 10)}
-                                </HijriDateDisplay>
-                              ) : '-'}
-                            </span>
-                            {employee.residence_expiry && (
-                              <span className={`text-xs ${getStatusColor(residenceDays, colorThresholds, 'residence')}`}>
-                                {formatDateStatus(residenceDays, 'منتهية')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td 
-                          className={`px-3 py-2 text-xs cursor-pointer text-center ${getCellBackgroundColor(healthInsuranceDays)}`}
-                          onClick={() => handleEmployeeClick(employee)}
-                        >
-                          <div className="flex flex-col gap-0.5 items-center">
-                            <span className={getTextColor(healthInsuranceDays)}>
-                              {employee.health_insurance_expiry ? (
-                                <HijriDateDisplay date={employee.health_insurance_expiry}>
-                                  {truncateText(formatDateShortWithHijri(employee.health_insurance_expiry), 10)}
-                                </HijriDateDisplay>
-                              ) : '-'}
-                            </span>
-                            {employee.health_insurance_expiry && (
-                              <span className={`text-xs ${getStatusColor(healthInsuranceDays, colorThresholds, 'health_insurance')}`}>
-                                {formatDateStatus(healthInsuranceDays, 'منتهي')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEmployeeClick(employee)
-                              }}
-                              className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition"
-                              title="عرض التفاصيل وتعديل البيانات"
-                            >
-                              <Eye className="w-3 h-3" />
-                              عرض
-                            </button>
-                            {canDelete('employees') && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteEmployee(employee)  // تحديث: تمرير employee كامل بدلاً من employee.id
-                                }}
-                                className="flex items-center gap-0.5 px-2 py-0.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
-                                title="حذف الموظف"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                حذف
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          حذف
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
             {sortedAndFilteredEmployees.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />

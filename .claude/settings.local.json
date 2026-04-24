@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm type-check *)",
+      "Bash(pnpm lint *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat\\(permissions\\): phase 1 - foundation for flat permissions system *)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__get_edge_function",
+      "mcp__claude_ai_Supabase__deploy_edge_function",
+      "Bash(git commit -m 'feat\\(permissions\\): phase 2 - database and backend updates *)"
+    ]
+  }
+}

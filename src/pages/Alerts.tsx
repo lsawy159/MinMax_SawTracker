@@ -481,7 +481,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="التنبيهات"
           description={`عرض ذكي للتنبيهات بحسب الأولوية وحالة القراءة. الحالي: ${totalAlerts} جديد و ${totalReadAlerts} مقروء.`}

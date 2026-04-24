@@ -78,7 +78,7 @@ export default function AlertSettings() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
           <div className="app-icon-chip">

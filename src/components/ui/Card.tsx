@@ -5,12 +5,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const cardVariants = cva(
-  "rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-[transform,border-color,box-shadow,background-color] duration-[var(--motion-base)] ease-[var(--ease-out)]",
+  "h-auto min-h-fit rounded-2xl border border-border bg-card/70 p-0 text-card-foreground shadow-sm backdrop-blur-xl transition-[transform,border-color,box-shadow,background-color] duration-[var(--motion-base)] ease-[var(--ease-out)]",
   {
     variants: {
       variant: {
         default: "",
-        interactive: "card-interactive cursor-pointer hover:border-neutral-300 hover:shadow-md",
+        interactive: "card-interactive parallax-card cursor-pointer hover:border-blue-400/40 hover:shadow-md",
         elevated: "shadow-md",
       },
     },

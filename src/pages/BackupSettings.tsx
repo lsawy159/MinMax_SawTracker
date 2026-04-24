@@ -666,7 +666,7 @@ export default function BackupSettingsPage() {
 
   return (
     <Layout>
-      <div className="p-6 space-y-6" dir="rtl">
+      <div className="app-page app-tech-grid" dir="rtl">
         {/* Header */}
         <div className="app-panel border-primary/30 bg-primary/10 p-6 text-slate-900">
           <div className="flex items-center justify-between">

@@ -1636,7 +1636,7 @@ export default function PayrollDeductions() {
 
   return (
     <Layout>
-      <div className="p-4 md:p-6">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="app-panel mb-5 p-5">
           <div className="flex items-center gap-3">

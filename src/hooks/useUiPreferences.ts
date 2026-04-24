@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 
 export type ThemeMode = 'light' | 'dark'
+export type FontMode = 'ibm-plex' | 'cairo' | 'noto' | 'tajawal'
+export type DensityMode = 'compact' | 'balanced' | 'comfortable'
 
 const THEME_STORAGE_KEY = 'sawtracker-theme-mode'
+const FONT_STORAGE_KEY = 'sawtracker-font-mode'
+const DENSITY_STORAGE_KEY = 'sawtracker-density-mode'
 
-const UNIFIED_CARD_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5'
+const UNIFIED_CARD_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3.5 md:gap-4'
 
 function readStoredTheme(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -17,6 +21,32 @@ function readStoredTheme(): ThemeMode {
   }
 
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function readStoredFont(): FontMode {
+  if (typeof window === 'undefined') {
+    return 'ibm-plex'
+  }
+
+  const savedFont = window.localStorage.getItem(FONT_STORAGE_KEY)
+  if (savedFont === 'ibm-plex' || savedFont === 'cairo' || savedFont === 'noto' || savedFont === 'tajawal') {
+    return savedFont
+  }
+
+  return 'ibm-plex'
+}
+
+function readStoredDensity(): DensityMode {
+  if (typeof window === 'undefined') {
+    return 'balanced'
+  }
+
+  const savedDensity = window.localStorage.getItem(DENSITY_STORAGE_KEY)
+  if (savedDensity === 'compact' || savedDensity === 'balanced' || savedDensity === 'comfortable') {
+    return savedDensity
+  }
+
+  return 'balanced'
 }
 
 export function useThemeMode() {
@@ -37,6 +67,36 @@ export function useThemeMode() {
     setTheme,
     toggleTheme,
     isDark: theme === 'dark',
+  }
+}
+
+export function useFontMode() {
+  const [fontMode, setFontMode] = useState<FontMode>(readStoredFont)
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-font-mode', fontMode)
+    window.localStorage.setItem(FONT_STORAGE_KEY, fontMode)
+  }, [fontMode])
+
+  return {
+    fontMode,
+    setFontMode,
+  }
+}
+
+export function useDensityMode() {
+  const [densityMode, setDensityMode] = useState<DensityMode>(readStoredDensity)
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-density-mode', densityMode)
+    window.localStorage.setItem(DENSITY_STORAGE_KEY, densityMode)
+  }, [densityMode])
+
+  return {
+    densityMode,
+    setDensityMode,
   }
 }
 

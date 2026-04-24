@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,29 +6,29 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --surface: 0 0% 100%;
-    --surface-elevated: 0 0% 96%;
+    --surface-elevated: 210 35% 96%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 48 99% 54%;
-    --primary-hover: 45 92% 47%;
-    --primary-subtle: 55 97% 88%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 25%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-hover: 221 80% 46%;
+    --primary-subtle: 214 95% 93%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 30% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 30% 96%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 32%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 48 99% 54%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 221 83% 53%;
     --radius: 0.75rem;
     --success: 158 64% 40%;
     --success-subtle: 152 81% 96%;
@@ -38,14 +38,17 @@
     --danger-subtle: 0 86% 97%;
     --info: 217 91% 60%;
     --info-subtle: 214 100% 97%;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 48 99% 54%;
-    --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 25%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 48 99% 54%;
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 95% 93%;
+    --sidebar-accent-foreground: 221 83% 32%;
+    --sidebar-border: 214 32% 88%;
+    --sidebar-ring: 221 83% 53%;
+    --main-font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --heading-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --body-font: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
     --motion-instant: 80ms;
     --motion-fast: 150ms;
     --motion-base: 220ms;
@@ -58,29 +61,29 @@
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --surface: 0 0% 9%;
-    --surface-elevated: 0 0% 15%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 48 99% 54%;
-    --primary-hover: 45 92% 47%;
-    --primary-subtle: 45 50% 22%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --background: 220 52% 5%;
+    --foreground: 213 31% 91%;
+    --surface: 221 43% 10%;
+    --surface-elevated: 221 38% 13%;
+    --card: 221 43% 10%;
+    --card-foreground: 213 31% 91%;
+    --popover: 221 43% 10%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 217 91% 60%;
+    --primary-hover: 217 89% 65%;
+    --primary-subtle: 217 69% 22%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 221 32% 16%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 221 32% 16%;
+    --muted-foreground: 214 16% 71%;
+    --accent: 221 32% 16%;
+    --accent-foreground: 213 31% 91%;
     --destructive: 0 63% 46%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 48 99% 54%;
+    --border: 220 20% 24%;
+    --input: 220 20% 24%;
+    --ring: 217 91% 60%;
     --success: 158 64% 40%;
     --success-subtle: 160 84% 14%;
     --warning: 38 92% 50%;
@@ -89,14 +92,62 @@
     --danger-subtle: 0 62% 18%;
     --info: 217 91% 60%;
     --info-subtle: 217 65% 18%;
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 48 99% 54%;
-    --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 48 99% 54%;
+    --sidebar-background: 221 43% 10%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 221 32% 16%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 220 20% 24%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  [data-font-mode='ibm-plex'] {
+    --main-font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --heading-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --body-font: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+  }
+
+  [data-font-mode='cairo'] {
+    --main-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --heading-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --body-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+  }
+
+  [data-font-mode='noto'] {
+    --main-font: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --heading-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --body-font: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+  }
+
+  [data-font-mode='tajawal'] {
+    --main-font: 'Tajawal', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --heading-font: 'Tajawal', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+    --body-font: 'Tajawal', 'Segoe UI', Tahoma, sans-serif, 'Times New Roman', serif;
+  }
+
+  [data-density-mode='compact'] {
+    --density-page-gap: 0.75rem;
+    --density-page-padding: 0.9rem;
+    --density-page-padding-md: 1rem;
+    --density-page-padding-lg: 1.2rem;
+    --density-surface-padding: 0.75rem;
+  }
+
+  [data-density-mode='balanced'] {
+    --density-page-gap: 1rem;
+    --density-page-padding: 1rem;
+    --density-page-padding-md: 1.25rem;
+    --density-page-padding-lg: 1.5rem;
+    --density-surface-padding: 0.95rem;
+  }
+
+  [data-density-mode='comfortable'] {
+    --density-page-gap: 1.25rem;
+    --density-page-padding: 1.15rem;
+    --density-page-padding-md: 1.5rem;
+    --density-page-padding-lg: 1.75rem;
+    --density-surface-padding: 1.15rem;
   }
 
   * {
@@ -121,20 +172,20 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
+    font-family: var(--main-font);
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(circle at top, rgba(254, 206, 20, 0.12) 0%, transparent 28%),
-      radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.06) 0%, transparent 22%),
-      linear-gradient(180deg, rgba(250, 250, 250, 0.98) 0%, rgba(245, 245, 245, 1) 100%);
+      radial-gradient(circle at 15% -10%, rgba(37, 99, 235, 0.14) 0%, transparent 36%),
+      radial-gradient(circle at 85% 0%, rgba(14, 165, 233, 0.1) 0%, transparent 30%),
+      linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 1) 100%);
   }
 
   .dark body {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(circle at top, rgba(254, 206, 20, 0.14) 0%, transparent 24%),
-      radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.06) 0%, transparent 20%),
-      linear-gradient(180deg, rgba(10, 10, 10, 0.98) 0%, rgba(18, 18, 18, 1) 100%);
+      radial-gradient(circle at 20% -10%, rgba(59, 130, 246, 0.2) 0%, transparent 36%),
+      radial-gradient(circle at 80% -6%, rgba(14, 165, 233, 0.14) 0%, transparent 34%),
+      linear-gradient(180deg, rgba(6, 10, 19, 0.99) 0%, rgba(10, 15, 28, 1) 100%);
   }
 
   h1,
@@ -143,9 +194,16 @@
   h4,
   h5,
   h6 {
-    font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
+    font-family: var(--heading-font);
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  p,
+  li,
+  span,
+  label {
+    font-family: var(--body-font);
   }
 
   code,
@@ -167,18 +225,46 @@
   select:focus-visible,
   textarea:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(254, 206, 20, 0.3);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
   }
 
   ::selection {
-    background: rgba(254, 206, 20, 0.4);
-    color: #111827;
+    background: rgba(59, 130, 246, 0.35);
+    color: #0f172a;
   }
 }
 
 @layer components {
+  .app-tech-grid {
+    position: relative;
+  }
+
+  .app-tech-grid::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at center, black 30%, transparent 95%);
+  }
+
   .app-panel {
-    @apply rounded-2xl border border-border bg-white shadow-soft;
+    @apply rounded-2xl border border-slate-200/80 bg-white/70 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1628]/70;
+  }
+
+  .app-page-header {
+    gap: calc(var(--density-page-gap, 1rem) * 0.75);
+    padding: var(--density-surface-padding, 0.95rem);
+  }
+
+  .app-pill-nav {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      0 22px 65px -32px rgba(2, 8, 23, 0.72);
   }
 
   .motion-safe-enter {
@@ -202,6 +288,12 @@
       border-color var(--motion-fast) var(--ease-out),
       background-color var(--motion-fast) var(--ease-out),
       box-shadow var(--motion-fast) var(--ease-out);
+  }
+
+  .parallax-card {
+    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transform-style: preserve-3d;
+    will-change: transform;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -314,7 +406,8 @@
   }
 
   .app-filter-surface {
-    @apply rounded-2xl border border-border bg-white/95 p-3 shadow-soft;
+    @apply rounded-2xl border border-border bg-white/95 p-3 md:p-4 shadow-soft;
+    padding: var(--density-surface-padding, 0.95rem);
   }
 
   .app-input {
@@ -511,7 +604,24 @@
   }
 
   .app-page {
-    @apply p-4 md:p-6;
+    @apply mx-auto flex w-full max-w-none flex-col gap-4 md:gap-5 p-6;
+    padding: 1.5rem;
+  }
+
+  .app-data-strip {
+    @apply min-h-fit rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-[#0d1628]/70;
+    transition:
+      transform var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out),
+      box-shadow var(--motion-fast) var(--ease-out),
+      background-color var(--motion-fast) var(--ease-out);
+  }
+
+  .app-data-strip:hover {
+    transform: scale(1.01);
+    border-left-width: 4px;
+    border-left-color: rgb(59 130 246 / 0.9);
+    box-shadow: 0 18px 45px -30px rgba(59, 130, 246, 0.62);
   }
 
   .app-select {
@@ -690,6 +800,19 @@
   }
 }
 
+.app-click-ripple {
+  position: fixed;
+  z-index: 59;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  pointer-events: none;
+  border: 1px solid rgba(125, 211, 252, 0.8);
+  background: rgba(59, 130, 246, 0.16);
+  transform: translate(-50%, -50%);
+  animation: app-water-ripple 700ms var(--ease-out) forwards;
+}
+
 @keyframes app-float {
   0%,
   100% {
@@ -760,6 +883,17 @@ img {
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes app-water-ripple {
+  from {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(8.5);
   }
 }
 

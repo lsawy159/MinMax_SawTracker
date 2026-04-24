@@ -59,7 +59,7 @@ function CompanyCard({
   }
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}>
+    <div className={`group relative h-full overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-4 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)] md:p-5`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
 
       {/* مؤشر حالة الأماكن الشاغرة */}
@@ -70,7 +70,7 @@ function CompanyCard({
         />
       )}
       
-      <div className="mb-2.5 flex items-start justify-between">
+      <div className="mb-3 flex items-start justify-between">
         <div className="app-icon-chip scale-90">
           <Building2 className="h-4 w-4" />
         </div>
@@ -106,23 +106,23 @@ function CompanyCard({
         </div>
       </div>
       
-      <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-slate-900">{company.name}</h3>
+      <h3 className="mb-2 line-clamp-1 text-lg font-bold text-slate-900">{company.name}</h3>
       
       <div className="app-card-meta text-[12.5px]">
         <div className="app-card-meta-row">
           <span className="app-card-meta-label">الرقم الموحد:</span>
-          <span className="app-card-meta-value font-mono">{company.unified_number}</span>
+            <span className="app-card-meta-value font-mono [direction:ltr] text-left">{company.unified_number}</span>
         </div>
         {company.social_insurance_number && (
           <div className="app-card-meta-row">
             <span className="app-card-meta-label">رقم اشتراك التأمينات الاجتماعية:</span>
-            <span className="app-card-meta-value font-mono">{company.social_insurance_number}</span>
+            <span className="app-card-meta-value font-mono [direction:ltr] text-left">{company.social_insurance_number}</span>
           </div>
         )}
         {company.labor_subscription_number && (
           <div className="app-card-meta-row">
             <span className="app-card-meta-label">رقم اشتراك قوى:</span>
-            <span className="app-card-meta-value font-mono">{company.labor_subscription_number}</span>
+            <span className="app-card-meta-value font-mono [direction:ltr] text-left">{company.labor_subscription_number}</span>
           </div>
         )}
         <div className="app-card-meta-row">
@@ -157,13 +157,13 @@ function CompanyCard({
       </div>
 
       {/* مربعات الحالات - grid من عمودين */}
-      <div className="pt-2.5 border-t border-gray-200">
-        <div className="grid grid-cols-2 gap-2">
+      <div className="border-t border-gray-200 pt-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {/* حالة السجل التجاري */}
           <div>
             <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة السجل التجاري</div>
             {company.commercial_registration_expiry ? (
-              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
+              <div className={`min-h-[74px] rounded-lg border-2 px-2 py-1 text-xs font-medium ${commercialRegStatus.color.backgroundColor} ${commercialRegStatus.color.textColor} ${commercialRegStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
                   <div className="text-xs">{commercialRegStatus.status === 'طارئ' ? '🚨' : commercialRegStatus.status === 'عاجل' ? '🔥' : commercialRegStatus.status === 'متوسط' ? '⚠️' : commercialRegStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
@@ -183,7 +183,7 @@ function CompanyCard({
           <div>
             <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة اشتراك قوى</div>
             {company.ending_subscription_power_date ? (
-              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
+              <div className={`min-h-[74px] rounded-lg border-2 px-2 py-1 text-xs font-medium ${powerStatus.color.backgroundColor} ${powerStatus.color.textColor} ${powerStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
                   <div className="text-xs">{powerStatus.status === 'طارئ' ? '🚨' : powerStatus.status === 'عاجل' ? '🔥' : powerStatus.status === 'متوسط' ? '⚠️' : powerStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">
@@ -203,7 +203,7 @@ function CompanyCard({
           <div>
             <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة اشتراك مقيم</div>
             {company.ending_subscription_moqeem_date ? (
-              <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
+              <div className={`min-h-[74px] rounded-lg border-2 px-2 py-1 text-xs font-medium ${moqeemStatus.color.backgroundColor} ${moqeemStatus.color.textColor} ${moqeemStatus.color.borderColor}`}>
                 <div className="flex items-center gap-1">
                   <div className="text-xs">{moqeemStatus.status === 'طارئ' ? '🚨' : moqeemStatus.status === 'عاجل' ? '🔥' : moqeemStatus.status === 'متوسط' ? '⚠️' : moqeemStatus.status === 'ساري' ? '✅' : '❌'}</div>
                   <div className="flex flex-col">

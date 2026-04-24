@@ -599,7 +599,7 @@ export default function GeneralSettings() {
 
   return (
     <Layout>
-      <div className="p-3">
+      <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-3 flex items-center gap-2">
           <div className="app-icon-chip p-2">

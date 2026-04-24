@@ -417,7 +417,7 @@ export default function Users() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="app-page app-tech-grid">
         <PageHeader
           title="إدارة المستخدمين"
           description={`عدد النتائج: ${filteredUsers.length}`}

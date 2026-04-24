@@ -6,13 +6,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "touch-feedback inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:shadow-focus active:scale-[0.98]",
+  "touch-feedback inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:shadow-focus active:scale-[0.98]",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow-sm",
-        secondary: "bg-secondary text-foreground shadow-xs",
-        outline: "border border-border bg-surface text-foreground",
+        secondary: "border border-border bg-white/70 text-foreground shadow-xs dark:bg-slate-900/70",
+        outline: "border border-border bg-surface/70 text-foreground backdrop-blur",
         ghost: "text-foreground",
         destructive: "bg-danger text-white shadow-sm",
         success: "bg-success text-white shadow-sm",
@@ -20,7 +20,7 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-11 px-4 py-2",
-        sm: "h-9 rounded-sm px-3 text-xs",
+        sm: "h-9 rounded-lg px-3 text-xs",
         lg: "h-12 rounded-lg px-6",
         icon: "h-11 w-11",
       },
