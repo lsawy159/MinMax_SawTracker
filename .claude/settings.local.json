@@ -8,7 +8,10 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "mcp__claude_ai_Supabase__get_edge_function",
       "mcp__claude_ai_Supabase__deploy_edge_function",
-      "Bash(git commit -m 'feat\\(permissions\\): phase 2 - database and backend updates *)"
+      "Bash(git commit -m 'feat\\(permissions\\): phase 2 - database and backend updates *)",
+      "Bash(pwsh -Command \".specify\\\\scripts\\\\powershell\\\\speckit.git.initialize.ps1\")",
+      "Bash(xargs wc *)",
+      "Bash(git checkout *)"
     ]
   }
 }
