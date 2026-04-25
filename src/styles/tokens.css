@@ -1,53 +1,153 @@
-﻿/* Design System v2 Tokens */
-/* https://sawtracker.example.com/design-system */
+﻿/* Design System v2 Tokens - Complete Implementation */
+/* Reference: contracts/design-tokens.md */
 
 :root {
-  /* Typography - Placeholder for design system v2 */
-  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-family-serif: 'Merriweather', Georgia, serif;
+  /* ═══════════════════════════════════════════════════════ */
+  /* PRIMARY COLOR SCALE (Brand - 217° hue) */
+  /* ═══════════════════════════════════════════════════════ */
+  --color-primary-50: hsl(217 100% 97%);
+  --color-primary-100: hsl(217 95% 93%);
+  --color-primary-200: hsl(217 91% 86%);
+  --color-primary-300: hsl(217 88% 75%);
+  --color-primary-400: hsl(217 85% 65%);
+  --color-primary-500: hsl(217 85% 55%);
+  --color-primary-600: hsl(217 85% 45%);
+  --color-primary-700: hsl(217 85% 36%);
+  --color-primary-800: hsl(217 85% 28%);
+  --color-primary-900: hsl(217 85% 20%);
+  --color-primary-950: hsl(217 85% 12%);
 
-  /* Colors - Placeholder, will be updated with design system v2 palette */
-  --color-primary: #4f46e5;
-  --color-secondary: #06b6d4;
-  --color-accent: #f59e0b;
+  /* ═══════════════════════════════════════════════════════ */
+  /* NEUTRAL COLOR SCALE (Surface, Border, Text) */
+  /* ═══════════════════════════════════════════════════════ */
+  --color-neutral-50: hsl(210 40% 98%);
+  --color-neutral-100: hsl(210 40% 96%);
+  --color-neutral-200: hsl(214 32% 91%);
+  --color-neutral-300: hsl(213 27% 84%);
+  --color-neutral-400: hsl(215 20% 65%);
+  --color-neutral-500: hsl(215 16% 47%);
+  --color-neutral-600: hsl(215 19% 35%);
+  --color-neutral-700: hsl(215 25% 27%);
+  --color-neutral-800: hsl(217 33% 17%);
+  --color-neutral-900: hsl(222 47% 11%);
+  --color-neutral-950: hsl(222 84% 5%);
 
-  --color-neutral-50: #f9fafb;
-  --color-neutral-100: #f3f4f6;
-  --color-neutral-200: #e5e7eb;
-  --color-neutral-300: #d1d5db;
-  --color-neutral-400: #9ca3af;
-  --color-neutral-500: #6b7280;
-  --color-neutral-600: #4b5563;
-  --color-neutral-700: #374151;
-  --color-neutral-800: #1f2937;
-  --color-neutral-900: #111827;
+  /* ═══════════════════════════════════════════════════════ */
+  /* SEMANTIC COLORS */
+  /* ═══════════════════════════════════════════════════════ */
+  --color-success-50: hsl(142 71% 95%);
+  --color-success-500: hsl(142 71% 45%);
+  --color-success-700: hsl(142 71% 28%);
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  --color-warning-50: hsl(38 92% 95%);
+  --color-warning-500: hsl(38 92% 50%);
+  --color-warning-700: hsl(38 92% 25%);
 
-  /* Border Radius */
-  --radius-sm: 0.375rem;
+  --color-danger-50: hsl(0 84% 95%);
+  --color-danger-500: hsl(0 84% 60%);
+  --color-danger-700: hsl(0 84% 35%);
+
+  --color-info-50: hsl(199 89% 95%);
+  --color-info-500: hsl(199 89% 48%);
+  --color-info-700: hsl(199 89% 28%);
+
+  /* ═══════════════════════════════════════════════════════ */
+  /* TYPOGRAPHY */
+  /* ═══════════════════════════════════════════════════════ */
+  --font-family-display: 'Cairo', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-family-body: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-family-mono: ui-monospace, 'Cascadia Mono', 'Fira Code', monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ═══════════════════════════════════════════════════════ */
+  /* SPACING (4px base) */
+  /* ═══════════════════════════════════════════════════════ */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ═══════════════════════════════════════════════════════ */
+  /* BORDER RADIUS */
+  /* ═══════════════════════════════════════════════════════ */
+  --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  /* ═══════════════════════════════════════════════════════ */
+  /* SHADOWS */
+  /* ═══════════════════════════════════════════════════════ */
+  --shadow-sm: 0 1px 2px hsl(217 30% 15% / 0.05);
+  --shadow-md: 0 4px 8px hsl(217 30% 15% / 0.08);
+  --shadow-lg: 0 12px 24px hsl(217 30% 15% / 0.10);
+  --shadow-xl: 0 24px 48px hsl(217 30% 15% / 0.12);
 
-  /* Transitions */
-  --transition-fast: 150ms ease-in-out;
-  --transition-base: 250ms ease-in-out;
-  --transition-slow: 350ms ease-in-out;
+  /* ═══════════════════════════════════════════════════════ */
+  /* MOTION / TRANSITIONS */
+  /* ═══════════════════════════════════════════════════════ */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* RTL Support */
+/* ═══════════════════════════════════════════════════════ */
+/* DARK MODE TOKENS */
+/* ═══════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Primary scale shifts +10-15% lightness for dark mode */
+    --color-primary-50: hsl(217 100% 90%);
+    --color-primary-100: hsl(217 95% 85%);
+    --color-primary-200: hsl(217 91% 75%);
+    --color-primary-300: hsl(217 88% 65%);
+    --color-primary-400: hsl(217 85% 55%);
+    --color-primary-500: hsl(217 85% 50%);
+    --color-primary-600: hsl(217 85% 45%);
+    --color-primary-700: hsl(217 85% 38%);
+    --color-primary-800: hsl(217 85% 32%);
+    --color-primary-900: hsl(217 85% 22%);
+    --color-primary-950: hsl(217 85% 15%);
+
+    /* Shadows with higher opacity on deeper hue */
+    --shadow-sm: 0 1px 2px hsl(217 50% 5% / 0.15);
+    --shadow-md: 0 4px 8px hsl(217 50% 5% / 0.20);
+    --shadow-lg: 0 12px 24px hsl(217 50% 5% / 0.25);
+    --shadow-xl: 0 24px 48px hsl(217 50% 5% / 0.30);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* RTL SUPPORT */
+/* ═══════════════════════════════════════════════════════ */
 [dir="rtl"] {
   direction: rtl;
   text-align: right;
@@ -57,10 +157,3 @@
   direction: ltr;
   text-align: left;
 }
-
-/* TODO: Add design system v2 token mappings */
-/* - Typography scales (h1-h6, body, caption) */
-/* - Color palette (primary, success, warning, danger, info) */
-/* - Breakpoints for responsive design */
-/* - Motion/animation tokens */
-/* - Accessibility tokens (focus states, contrast ratios) */
