@@ -11,12 +11,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* Sidebar */}
-      <div className="hidden md:block flex-shrink-0 w-64">
-        <Sidebar isOpen={true} />
-      </div>
-
-      {/* Mobile Sidebar */}
+      {/* Sidebar (handles both desktop & mobile) */}
       <Sidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
 
       {/* Main Content */}
