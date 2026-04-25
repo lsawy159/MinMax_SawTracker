@@ -1,6 +1,6 @@
 /**
  * Accessibility Audit and Utilities
- * 
+ *
  * Comprehensive accessibility testing and implementation tools:
  * - WCAG 2.1 AA compliance checking
  * - Contrast ratio validation
@@ -19,14 +19,14 @@ export const AccessibilityStandards = {
   wcag: {
     level: 'AA',
     version: '2.1',
-    url: 'https://www.w3.org/WAI/WCAG21/quickref/'
+    url: 'https://www.w3.org/WAI/WCAG21/quickref/',
   },
 
   principles: [
     'Perceivable - Information and user interface components must be presentable',
     'Operable - User interface components and navigation must be operable',
     'Understandable - Information and operation of user interface must be clear',
-    'Robust - Content must be compatible with assistive technologies'
+    'Robust - Content must be compatible with assistive technologies',
   ],
 
   guidelines: [
@@ -34,8 +34,8 @@ export const AccessibilityStandards = {
     '2.1.1 Keyboard - All functionality must be operable via keyboard',
     '2.4.3 Focus Order - Navigation order makes sense',
     '3.2.4 Consistent Identification - Patterns are consistent',
-    '4.1.2 Name, Role, Value - Elements have proper semantics'
-  ]
+    '4.1.2 Name, Role, Value - Elements have proper semantics',
+  ],
 }
 
 /**
@@ -47,7 +47,7 @@ export class ContrastValidator {
    * Calculate relative luminance (WCAG formula)
    */
   private static getLuminance(r: number, g: number, b: number): number {
-    const [rs, gs, bs] = [r, g, b].map(x => {
+    const [rs, gs, bs] = [r, g, b].map((x) => {
       x = x / 255
       return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
     })
@@ -84,7 +84,7 @@ export class ContrastValidator {
       ? {
           r: parseInt(result[1], 16),
           g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16)
+          b: parseInt(result[3], 16),
         }
       : null
   }
@@ -107,7 +107,7 @@ export class ContrastValidator {
    * Validate all text-background combinations
    */
   static validateDesignSystem(colorPairs: Array<{ name: string; text: string; bg: string }>) {
-    const results = colorPairs.map(pair => {
+    const results = colorPairs.map((pair) => {
       const ratio = this.getContrastRatio(pair.text, pair.bg)
       const isAACompliant = this.isWCAG_AA(pair.text, pair.bg)
       const isAAACompliant = this.isWCAG_AAA(pair.text, pair.bg)
@@ -117,7 +117,7 @@ export class ContrastValidator {
         ratio: ratio.toFixed(2),
         isAACompliant,
         isAAACompliant,
-        status: isAAACompliant ? '✅ AAA' : isAACompliant ? '⚠️ AA' : '❌ FAIL'
+        status: isAAACompliant ? '✅ AAA' : isAACompliant ? '⚠️ AA' : '❌ FAIL',
       }
     })
 
@@ -138,7 +138,7 @@ export class KeyboardNavigationValidator {
     'input',
     'select',
     'textarea',
-    '[tabindex]'
+    '[tabindex]',
   ]
 
   /**
@@ -146,9 +146,7 @@ export class KeyboardNavigationValidator {
    */
   static isKeyboardAccessible(element: Element): boolean {
     // Check if element is interactive
-    const isInteractive = this.focusableElements.some(selector =>
-      element.matches(selector)
-    )
+    const isInteractive = this.focusableElements.some((selector) => element.matches(selector))
 
     if (!isInteractive) return false
 
@@ -165,7 +163,7 @@ export class KeyboardNavigationValidator {
    */
   static getKeyboardAccessibleElements(): Element[] {
     const elements = document.querySelectorAll(this.focusableElements.join(', '))
-    return Array.from(elements).filter(el => this.isKeyboardAccessible(el))
+    return Array.from(elements).filter((el) => this.isKeyboardAccessible(el))
   }
 
   /**
@@ -180,21 +178,19 @@ export class KeyboardNavigationValidator {
 
     const tabindexElements = document.querySelectorAll('[tabindex]')
 
-    tabindexElements.forEach(element => {
+    tabindexElements.forEach((element) => {
       const tabindex = parseInt(element.getAttribute('tabindex') || '0', 10)
 
       if (tabindex > 0) {
         issues.push(
           `Element with positive tabindex (${tabindex}): ${element.tagName}. ` +
-          'Positive tabindex values should be avoided.'
+            'Positive tabindex values should be avoided.'
         )
         recommendations.push('Use DOM order for tab navigation instead of positive tabindex')
       }
 
       if (tabindex < -1) {
-        issues.push(
-          `Element with invalid tabindex (${tabindex}): ${element.tagName}`
-        )
+        issues.push(`Element with invalid tabindex (${tabindex}): ${element.tagName}`)
       }
     })
 
@@ -213,7 +209,7 @@ export class KeyboardNavigationValidator {
 
     // Check for outline: none without alternative focus indicator
     const elements = document.querySelectorAll('*')
-    elements.forEach(element => {
+    elements.forEach((element) => {
       const style = window.getComputedStyle(element)
       if (style.outline === 'none' && style.boxShadow === 'none') {
         // This might be a focus visibility issue
@@ -254,9 +250,10 @@ export class ARIAValidator {
 
     // Check for aria-label or aria-labelledby
     if (this.isInteractive(element)) {
-      const hasLabel = element.hasAttribute('aria-label') ||
-                      element.hasAttribute('aria-labelledby') ||
-                      element.textContent?.trim()
+      const hasLabel =
+        element.hasAttribute('aria-label') ||
+        element.hasAttribute('aria-labelledby') ||
+        element.textContent?.trim()
 
       if (!hasLabel) {
         issues.push(`Interactive element missing accessible name`)
@@ -276,7 +273,7 @@ export class ARIAValidator {
     return {
       valid: issues.length === 0,
       issues,
-      suggestions
+      suggestions,
     }
   }
 
@@ -287,8 +284,10 @@ export class ARIAValidator {
     const interactiveRole = element.getAttribute('role')
     const interactiveTags = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA']
 
-    return interactiveTags.includes(element.tagName) ||
-           (interactiveRole && !['img', 'doc-pagebreak'].includes(interactiveRole))
+    return (
+      interactiveTags.includes(element.tagName) ||
+      (interactiveRole && !['img', 'doc-pagebreak'].includes(interactiveRole))
+    )
   }
 
   /**
@@ -301,10 +300,13 @@ export class ARIAValidator {
     hasContentinfo: boolean
     issues: string[]
   } {
-    const hasBanner = !!document.querySelector('[role="banner"]') || !!document.querySelector('header')
-    const hasNavigation = !!document.querySelector('[role="navigation"]') || !!document.querySelector('nav')
+    const hasBanner =
+      !!document.querySelector('[role="banner"]') || !!document.querySelector('header')
+    const hasNavigation =
+      !!document.querySelector('[role="navigation"]') || !!document.querySelector('nav')
     const hasMain = !!document.querySelector('[role="main"]') || !!document.querySelector('main')
-    const hasContentinfo = !!document.querySelector('[role="contentinfo"]') || !!document.querySelector('footer')
+    const hasContentinfo =
+      !!document.querySelector('[role="contentinfo"]') || !!document.querySelector('footer')
 
     const issues: string[] = []
 
@@ -318,7 +320,7 @@ export class ARIAValidator {
       hasNavigation,
       hasMain,
       hasContentinfo,
-      issues
+      issues,
     }
   }
 }
@@ -351,11 +353,7 @@ export class ScreenReaderTester {
   static getScreenReaderText(): string {
     const text: string[] = []
 
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      null
-    )
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null)
 
     let node = walker.nextNode() as Node | null
     while (node) {
@@ -383,18 +381,18 @@ export class ScreenReaderTester {
     const issues: Array<{ src: string; message: string }> = []
     const images = document.querySelectorAll('img')
 
-    images.forEach(img => {
+    images.forEach((img) => {
       const alt = img.getAttribute('alt')
 
       if (!alt) {
         issues.push({
           src: img.src,
-          message: 'Missing alt attribute'
+          message: 'Missing alt attribute',
         })
       } else if (alt.length < 5) {
         issues.push({
           src: img.src,
-          message: `Alt text too short: "${alt}"`
+          message: `Alt text too short: "${alt}"`,
         })
       }
 
@@ -403,7 +401,7 @@ export class ScreenReaderTester {
         if (alt && alt !== '') {
           issues.push({
             src: img.src,
-            message: 'Spacer image should have empty alt attribute'
+            message: 'Spacer image should have empty alt attribute',
           })
         }
       }
@@ -411,7 +409,7 @@ export class ScreenReaderTester {
 
     return {
       valid: issues.length === 0,
-      issues
+      issues,
     }
   }
 }
@@ -427,10 +425,30 @@ export class AccessibilityAudit {
       failed: number
       score: string
     }
-    contrast: Array<{ name: string; text: string; bg: string; ratio: string; isAACompliant: boolean; isAAACompliant: boolean; status: string }>
+    contrast: Array<{
+      name: string
+      text: string
+      bg: string
+      ratio: string
+      isAACompliant: boolean
+      isAAACompliant: boolean
+      status: string
+    }>
     keyboard: { issues: string[]; recommendations: string[] }
-    aria: { hasBanner: boolean; hasNavigation: boolean; hasMain: boolean; hasContentinfo: boolean; issues: string[] }
-    landmarks: { hasBanner: boolean; hasNavigation: boolean; hasMain: boolean; hasContentinfo: boolean; issues: string[] }
+    aria: {
+      hasBanner: boolean
+      hasNavigation: boolean
+      hasMain: boolean
+      hasContentinfo: boolean
+      issues: string[]
+    }
+    landmarks: {
+      hasBanner: boolean
+      hasNavigation: boolean
+      hasMain: boolean
+      hasContentinfo: boolean
+      issues: string[]
+    }
     images: { valid: boolean; issues: Array<{ src: string; message: string }> }
   } {
     logger.info('[AccessibilityAudit] Running comprehensive accessibility audit...')
@@ -443,7 +461,7 @@ export class AccessibilityAudit {
       { name: 'Success Text', text: '#ffffff', bg: '#16a34a' },
     ]
     const contrastResults = ContrastValidator.validateDesignSystem(designSystem)
-    const contrastFailed = contrastResults.filter(r => !r.isAACompliant).length
+    const contrastFailed = contrastResults.filter((r) => !r.isAACompliant).length
 
     // Keyboard Navigation
     const keyboardResults = KeyboardNavigationValidator.validateFocusVisibility()
@@ -454,20 +472,24 @@ export class AccessibilityAudit {
     // Screen Reader
     const images = ScreenReaderTester.validateImages()
 
-    const totalFailed = contrastFailed + keyboardResults.issues.length + landmarks.issues.length + images.issues.length
+    const totalFailed =
+      contrastFailed +
+      keyboardResults.issues.length +
+      landmarks.issues.length +
+      images.issues.length
     const totalChecks = 4
 
     return {
       summary: {
         passed: totalChecks - (totalFailed > 0 ? 1 : 0),
         failed: totalFailed > 0 ? 1 : 0,
-        score: totalFailed === 0 ? '✅ PASS (AA Compliant)' : '⚠️ ISSUES FOUND'
+        score: totalFailed === 0 ? '✅ PASS (AA Compliant)' : '⚠️ ISSUES FOUND',
       },
       contrast: contrastResults,
       keyboard: keyboardResults,
       aria: landmarks,
       landmarks: landmarks,
-      images: images
+      images: images,
     }
   }
 
@@ -525,7 +547,7 @@ export const AccessibilityAuditing = {
   ARIAValidator,
   ScreenReaderTester,
   AccessibilityAudit,
-  
+
   // Quick access methods
   validateContrast: (c1: string, c2: string) => ContrastValidator.getContrastRatio(c1, c2),
   isWCAG_AA: (c1: string, c2: string) => ContrastValidator.isWCAG_AA(c1, c2),

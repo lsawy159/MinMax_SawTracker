@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
 import Layout from '@/components/layout/Layout'
-import { Search, Filter, X, Save, Download, Star, Grid3X3, List, ChevronLeft, ChevronRight, Users, Building2, User, Calendar, Hash } from 'lucide-react'
+import {
+  Search,
+  Filter,
+  X,
+  Save,
+  Download,
+  Star,
+  Grid3X3,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Building2,
+  User,
+  Calendar,
+  Hash,
+} from 'lucide-react'
 import { supabase, Company as CompanyType, Employee as EmployeeType } from '@/lib/supabase'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
@@ -24,9 +40,7 @@ import {
   SelectItem,
   SelectValue,
 } from '@/components/ui/Select'
-import { 
-  calculateCommercialRegistrationStatus
-} from '@/utils/autoCompanyStatus'
+import { calculateCommercialRegistrationStatus } from '@/utils/autoCompanyStatus'
 import { normalizeArabic } from '@/utils/textUtils'
 
 interface SavedSearchFilters {
@@ -82,7 +96,9 @@ type CommercialRegStatus = 'all' | 'expired' | 'expiring_soon' | 'valid'
 type ViewMode = 'grid' | 'table'
 
 // Helper function to get company name from employee
-const getCompanyName = (emp: EmployeeType & { companies?: CompanyType | CompanyType[] }): string => {
+const getCompanyName = (
+  emp: EmployeeType & { companies?: CompanyType | CompanyType[] }
+): string => {
   if (!emp.companies) return ''
   if (Array.isArray(emp.companies)) {
     return emp.companies[0]?.name || ''
@@ -104,7 +120,7 @@ export default function AdvancedSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
-  
+
   // View and Pagination State
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [currentPage, setCurrentPage] = useState(1)
@@ -117,16 +133,16 @@ export default function AdvancedSearch() {
   const [selectedProject, setSelectedProject] = useState<string>('all')
   const [residenceStatus, setResidenceStatus] = useState<ResidenceStatus>('all')
   const [contractStatus, setContractStatus] = useState<ContractStatus>('all')
-  
+
   // فلاتر جديدة للموظفين
-  const [hasHealthInsuranceExpiry, setHasHealthInsuranceExpiry] = useState<string>('all')  // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
-  const [healthInsuranceExpiryStatus, setHealthInsuranceExpiryStatus] = useState<string>('all')  // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
+  const [hasHealthInsuranceExpiry, setHasHealthInsuranceExpiry] = useState<string>('all') // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
+  const [healthInsuranceExpiryStatus, setHealthInsuranceExpiryStatus] = useState<string>('all') // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
   const [hasPassport, setHasPassport] = useState<string>('all')
 
   const [hasBankAccount, setHasBankAccount] = useState<string>('all')
   const [birthDateRange, setBirthDateRange] = useState<string>('all')
   const [joiningDateRange, setJoiningDateRange] = useState<string>('all')
-  
+
   // فلاتر البحث النصي للموظفين
   const [passportNumberSearch, setPassportNumberSearch] = useState<string>('')
   const [residenceNumberSearch, setResidenceNumberSearch] = useState<string>('')
@@ -134,7 +150,7 @@ export default function AdvancedSearch() {
   // Filter states for companies
   const [commercialRegStatus, setCommercialRegStatus] = useState<CommercialRegStatus>('all')
   const [companyDateFilter, setCompanyDateFilter] = useState<'all' | 'commercial_expiring'>('all')
-  
+
   // فلاتر جديدة للشركات
   const [powerSubscriptionStatus, setPowerSubscriptionStatus] = useState<string>('all')
   const [moqeemSubscriptionStatus, setMoqeemSubscriptionStatus] = useState<string>('all')
@@ -142,7 +158,7 @@ export default function AdvancedSearch() {
   const [employeeCountFilter, setEmployeeCountFilter] = useState<string>('all')
   const [availableSlotsFilter, setAvailableSlotsFilter] = useState<string>('all')
   const [exemptionsFilter, setExemptionsFilter] = useState<string>('all')
-  
+
   // فلاتر إضافية للمؤسسات
   const [unifiedNumberSearch, setUnifiedNumberSearch] = useState<string>('')
   const [taxNumberSearch, setTaxNumberSearch] = useState<string>('')
@@ -151,7 +167,7 @@ export default function AdvancedSearch() {
   const [companyCreatedDateRange, setCompanyCreatedDateRange] = useState<string>('all')
   const [companyCreatedStartDate, setCompanyCreatedStartDate] = useState<string>('')
   const [companyCreatedEndDate, setCompanyCreatedEndDate] = useState<string>('')
-  
+
   // Notes search filter
   const [notesSearch, setNotesSearch] = useState<string>('')
   const [notesFilter, setNotesFilter] = useState<'all' | 'has_notes' | 'no_notes'>('all')
@@ -163,7 +179,9 @@ export default function AdvancedSearch() {
   const [projects, setProjects] = useState<string[]>([])
 
   // Modal states for cards
-  const [selectedEmployee, setSelectedEmployee] = useState<(EmployeeType & { company: CompanyType }) | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<
+    (EmployeeType & { company: CompanyType }) | null
+  >(null)
   const [isEmployeeCardOpen, setIsEmployeeCardOpen] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<CompanyType | null>(null)
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
@@ -181,7 +199,7 @@ export default function AdvancedSearch() {
   // Get paginated results
   const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex)
   const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex)
-  
+
   // Get current search query based on active tab
   const currentSearchQuery = activeTab === 'employees' ? employeeSearchQuery : companySearchQuery
 
@@ -192,33 +210,42 @@ export default function AdvancedSearch() {
       // Load employees with additional_fields
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(name)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(name)'
+        )
         .order('name')
 
       if (employeesData) {
         setEmployees(employeesData)
-        
+
         // Extract unique values for filters
-        const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))]
+        const uniqueNationalities = [
+          ...new Set(employeesData.map((e) => e.nationality).filter(Boolean)),
+        ]
         setNationalities(uniqueNationalities.sort())
-        
-        const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))]
+
+        const uniqueProfessions = [
+          ...new Set(employeesData.map((e) => e.profession).filter(Boolean)),
+        ]
         setProfessions(uniqueProfessions.sort())
-        
-        const uniqueProjects = [...new Set(employeesData.map(e => e.project_name).filter(Boolean))]
+
+        const uniqueProjects = [
+          ...new Set(employeesData.map((e) => e.project_name).filter(Boolean)),
+        ]
         setProjects(uniqueProjects.sort())
       }
 
       // Load companies with additional_fields
       const { data: companiesData } = await supabase
         .from('companies')
-        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
+        .select(
+          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+        )
         .order('name')
 
       if (companiesData) {
         setCompanies(companiesData)
-        setCompanyList(companiesData.map(c => ({ id: c.id, name: c.name })))
-        
+        setCompanyList(companiesData.map((c) => ({ id: c.id, name: c.name })))
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -231,18 +258,18 @@ export default function AdvancedSearch() {
   // [FIX] تم تغليف الدالة بـ useCallback
   const loadSavedSearches = useCallback(async () => {
     if (!user?.id) return
-    
+
     const { data, error } = await supabase
       .from('saved_searches')
       .select('id,user_id,name,search_query,search_type,filters,created_at,updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error loading saved searches:', error)
       return
     }
-    
+
     if (data) setSavedSearches(data)
   }, [user]) // <-- [FIX] تعتمد على user
 
@@ -254,81 +281,78 @@ export default function AdvancedSearch() {
     // Apply employee search query using Fuse.js for fuzzy search
     if (employeeSearchQuery.trim()) {
       // Create searchable data
-      const searchableEmployees = filteredEmps.map(emp => ({
+      const searchableEmployees = filteredEmps.map((emp) => ({
         ...emp,
-        searchableText: [
-          emp.name,
-          emp.profession,
-          emp.nationality,
-          emp.phone
-        ].filter(Boolean).join(' ')
+        searchableText: [emp.name, emp.profession, emp.nationality, emp.phone]
+          .filter(Boolean)
+          .join(' '),
       }))
 
       const fuseEmployees = new Fuse(searchableEmployees, {
         keys: ['name', 'profession', 'nationality', 'phone', 'searchableText'],
         threshold: 0.3,
-        includeScore: true
+        includeScore: true,
       })
       const employeeResults = fuseEmployees.search(employeeSearchQuery)
-      filteredEmps = employeeResults.map(result => result.item)
+      filteredEmps = employeeResults.map((result) => result.item)
     }
 
     // Apply company search query
     if (companySearchQuery.trim()) {
       const searchQuery = companySearchQuery.trim()
-      
+
       // Check if the search query is a number (unified number or insurance number)
       const isNumericSearch = /^\d+$/.test(searchQuery)
-      
+
       if (isNumericSearch) {
         // For numeric searches, use exact matching
         // First, try exact match on unified_number
-        let exactMatches = filteredComps.filter(comp => 
-          comp.unified_number?.toString() === searchQuery
+        let exactMatches = filteredComps.filter(
+          (comp) => comp.unified_number?.toString() === searchQuery
         )
-        
+
         // If no exact match on unified_number, try social_insurance_number
         if (exactMatches.length === 0) {
-          exactMatches = filteredComps.filter(comp => 
-            comp.social_insurance_number?.toString() === searchQuery
+          exactMatches = filteredComps.filter(
+            (comp) => comp.social_insurance_number?.toString() === searchQuery
           )
         }
-        
+
         filteredComps = exactMatches
       } else {
         // For text searches (company names), use Fuse.js for fuzzy search
         // Only search in name field, not in numbers
-        const searchableCompanies = filteredComps.map(comp => ({
+        const searchableCompanies = filteredComps.map((comp) => ({
           ...comp,
-          searchableText: comp.name || ''
+          searchableText: comp.name || '',
         }))
 
         const fuseCompanies = new Fuse(searchableCompanies, {
           keys: ['name', 'searchableText'],
           threshold: 0.3,
-          includeScore: true
+          includeScore: true,
         })
         const companyResults = fuseCompanies.search(searchQuery)
-        filteredComps = companyResults.map(result => result.item)
+        filteredComps = companyResults.map((result) => result.item)
       }
     }
 
     // Apply employee filters
     {
       if (selectedNationality !== 'all') {
-        filteredEmps = filteredEmps.filter(e => e.nationality === selectedNationality)
+        filteredEmps = filteredEmps.filter((e) => e.nationality === selectedNationality)
       }
 
       if (selectedCompanyFilter !== 'all') {
-        filteredEmps = filteredEmps.filter(e => e.company_id === selectedCompanyFilter)
+        filteredEmps = filteredEmps.filter((e) => e.company_id === selectedCompanyFilter)
       }
 
       if (selectedProfession !== 'all') {
-        filteredEmps = filteredEmps.filter(e => e.profession === selectedProfession)
+        filteredEmps = filteredEmps.filter((e) => e.profession === selectedProfession)
       }
 
       if (selectedProject !== 'all') {
-        filteredEmps = filteredEmps.filter(e => e.project_name === selectedProject)
+        filteredEmps = filteredEmps.filter((e) => e.project_name === selectedProject)
       }
 
       // Residence status filter
@@ -336,12 +360,13 @@ export default function AdvancedSearch() {
         const today = new Date()
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           if (!e.residence_expiry) return false
           const expiryDate = new Date(e.residence_expiry)
-          
+
           if (residenceStatus === 'expired') return expiryDate < today
-          if (residenceStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (residenceStatus === 'expiring_soon')
+            return expiryDate >= today && expiryDate <= thirtyDaysLater
           if (residenceStatus === 'valid') return expiryDate > thirtyDaysLater
           return true
         })
@@ -352,36 +377,40 @@ export default function AdvancedSearch() {
         const today = new Date()
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           if (!e.contract_expiry) return false
           const expiryDate = new Date(e.contract_expiry)
-          
+
           if (contractStatus === 'expired') return expiryDate < today
-          if (contractStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (contractStatus === 'expiring_soon')
+            return expiryDate >= today && expiryDate <= thirtyDaysLater
           if (contractStatus === 'valid') return expiryDate > thirtyDaysLater
           return true
         })
       }
 
       // فلاتر جديدة للموظفين - التأمين الصحي
-      if (hasHealthInsuranceExpiry !== 'all') {  // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
-        filteredEmps = filteredEmps.filter(e => {
-          const hasExpiry = e.health_insurance_expiry  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+      if (hasHealthInsuranceExpiry !== 'all') {
+        // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
+        filteredEmps = filteredEmps.filter((e) => {
+          const hasExpiry = e.health_insurance_expiry // تحديث: ending_subscription_insurance_date → health_insurance_expiry
           return hasHealthInsuranceExpiry === 'yes' ? !!hasExpiry : !hasExpiry
         })
       }
 
       // حالة انتهاء التأمين الصحي (محسّن)
-      if (healthInsuranceExpiryStatus !== 'all') {  // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
+      if (healthInsuranceExpiryStatus !== 'all') {
+        // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
         const today = new Date()
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
-        
-        filteredEmps = filteredEmps.filter(e => {
-          if (!e.health_insurance_expiry) return healthInsuranceExpiryStatus === 'no_expiry'  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+
+        filteredEmps = filteredEmps.filter((e) => {
+          if (!e.health_insurance_expiry) return healthInsuranceExpiryStatus === 'no_expiry' // تحديث: ending_subscription_insurance_date → health_insurance_expiry
           const expiryDate = new Date(e.health_insurance_expiry)
-          
+
           if (healthInsuranceExpiryStatus === 'expired') return expiryDate < today
-          if (healthInsuranceExpiryStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (healthInsuranceExpiryStatus === 'expiring_soon')
+            return expiryDate >= today && expiryDate <= thirtyDaysLater
           if (healthInsuranceExpiryStatus === 'valid') return expiryDate > thirtyDaysLater
           if (healthInsuranceExpiryStatus === 'no_expiry') return false
           return true
@@ -390,30 +419,27 @@ export default function AdvancedSearch() {
 
       // حالة رقم الجواز
       if (hasPassport !== 'all') {
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           const hasPassportNum = e.passport_number
           return hasPassport === 'yes' ? !!hasPassportNum : !hasPassportNum
         })
       }
 
-
       // فلاتر البحث النصي
       if (passportNumberSearch.trim()) {
-        filteredEmps = filteredEmps.filter(e => 
+        filteredEmps = filteredEmps.filter((e) =>
           e.passport_number?.toLowerCase().includes(passportNumberSearch.toLowerCase().trim())
         )
       }
 
       if (residenceNumberSearch.trim()) {
-        filteredEmps = filteredEmps.filter(e => 
+        filteredEmps = filteredEmps.filter((e) =>
           e.residence_number?.toString().includes(residenceNumberSearch.trim())
         )
       }
 
-
-
       if (hasBankAccount !== 'all') {
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           const hasAccount = e.bank_account
           return hasBankAccount === 'yes' ? !!hasAccount : !hasAccount
         })
@@ -421,11 +447,11 @@ export default function AdvancedSearch() {
 
       if (birthDateRange !== 'all') {
         const today = new Date()
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           if (!e.birth_date) return false
           const birthDate = new Date(e.birth_date)
           const age = today.getFullYear() - birthDate.getFullYear()
-          
+
           if (birthDateRange === 'under_25') return age < 25
           if (birthDateRange === '25_35') return age >= 25 && age <= 35
           if (birthDateRange === '35_45') return age >= 35 && age <= 45
@@ -436,11 +462,13 @@ export default function AdvancedSearch() {
 
       if (joiningDateRange !== 'all') {
         const today = new Date()
-        filteredEmps = filteredEmps.filter(e => {
+        filteredEmps = filteredEmps.filter((e) => {
           if (!e.joining_date) return false
           const joiningDate = new Date(e.joining_date)
-          const monthsDiff = (today.getFullYear() - joiningDate.getFullYear()) * 12 + (today.getMonth() - joiningDate.getMonth())
-          
+          const monthsDiff =
+            (today.getFullYear() - joiningDate.getFullYear()) * 12 +
+            (today.getMonth() - joiningDate.getMonth())
+
           if (joiningDateRange === 'less_than_6_months') return monthsDiff < 6
           if (joiningDateRange === '6_months_1_year') return monthsDiff >= 6 && monthsDiff < 12
           if (joiningDateRange === '1_2_years') return monthsDiff >= 12 && monthsDiff < 24
@@ -452,14 +480,15 @@ export default function AdvancedSearch() {
 
     // Apply company filters
     {
-
       // Commercial registration status filter
       if (commercialRegStatus !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           const status = calculateCommercialRegistrationStatus(c.commercial_registration_expiry)
           if (commercialRegStatus === 'expired') return status.status === 'منتهي'
-          if (commercialRegStatus === 'expiring_soon') return status.status === 'عاجل' || status.status === 'طارئ'
-          if (commercialRegStatus === 'valid') return status.status === 'ساري' || status.status === 'متوسط'
+          if (commercialRegStatus === 'expiring_soon')
+            return status.status === 'عاجل' || status.status === 'طارئ'
+          if (commercialRegStatus === 'valid')
+            return status.status === 'ساري' || status.status === 'متوسط'
           return true
         })
       }
@@ -470,7 +499,7 @@ export default function AdvancedSearch() {
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
         if (companyDateFilter === 'commercial_expiring') {
-          filteredComps = filteredComps.filter(c => {
+          filteredComps = filteredComps.filter((c) => {
             if (!c.commercial_registration_expiry) return false
             const expiryDate = new Date(c.commercial_registration_expiry)
             return expiryDate >= today && expiryDate <= thirtyDaysLater
@@ -483,12 +512,13 @@ export default function AdvancedSearch() {
         const today = new Date()
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           if (!c.ending_subscription_power_date) return powerSubscriptionStatus === 'no_expiry'
           const expiryDate = new Date(c.ending_subscription_power_date)
-          
+
           if (powerSubscriptionStatus === 'expired') return expiryDate < today
-          if (powerSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (powerSubscriptionStatus === 'expiring_soon')
+            return expiryDate >= today && expiryDate <= thirtyDaysLater
           if (powerSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
           if (powerSubscriptionStatus === 'no_expiry') return false
           return true
@@ -499,22 +529,21 @@ export default function AdvancedSearch() {
         const today = new Date()
         const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           if (!c.ending_subscription_moqeem_date) return moqeemSubscriptionStatus === 'no_expiry'
           const expiryDate = new Date(c.ending_subscription_moqeem_date)
-          
+
           if (moqeemSubscriptionStatus === 'expired') return expiryDate < today
-          if (moqeemSubscriptionStatus === 'expiring_soon') return expiryDate >= today && expiryDate <= thirtyDaysLater
+          if (moqeemSubscriptionStatus === 'expiring_soon')
+            return expiryDate >= today && expiryDate <= thirtyDaysLater
           if (moqeemSubscriptionStatus === 'valid') return expiryDate > thirtyDaysLater
           if (moqeemSubscriptionStatus === 'no_expiry') return false
           return true
         })
       }
 
-
-
       if (employeeCountFilter !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           const count = c.employee_count || 0
           if (employeeCountFilter === '1') return count === 1
           if (employeeCountFilter === '2') return count === 2
@@ -525,7 +554,7 @@ export default function AdvancedSearch() {
       }
 
       if (availableSlotsFilter !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           const slots = (c as CompanyType & { available_slots?: number }).available_slots || 0
           if (availableSlotsFilter === '1') return slots === 1
           if (availableSlotsFilter === '2') return slots === 2
@@ -536,7 +565,7 @@ export default function AdvancedSearch() {
       }
 
       if (exemptionsFilter !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           const targetPhrase = normalizeArabic('تم الاعفاء')
           const normalizedValue = normalizeArabic(c.exemptions)
           const isExempt = normalizedValue.includes(targetPhrase)
@@ -552,26 +581,28 @@ export default function AdvancedSearch() {
 
       // فلاتر البحث النصي للمؤسسات
       if (unifiedNumberSearch.trim()) {
-        filteredComps = filteredComps.filter(c => 
+        filteredComps = filteredComps.filter((c) =>
           c.unified_number?.toString().includes(unifiedNumberSearch.trim())
         )
       }
 
       if (taxNumberSearch.trim()) {
-        filteredComps = filteredComps.filter(c => 
+        filteredComps = filteredComps.filter((c) =>
           c.social_insurance_number?.toString().includes(taxNumberSearch.trim())
         )
       }
 
       if (laborSubscriptionNumberSearch.trim()) {
-        filteredComps = filteredComps.filter(c => 
-          c.labor_subscription_number?.toLowerCase().includes(laborSubscriptionNumberSearch.toLowerCase().trim())
+        filteredComps = filteredComps.filter((c) =>
+          c.labor_subscription_number
+            ?.toLowerCase()
+            .includes(laborSubscriptionNumberSearch.toLowerCase().trim())
         )
       }
 
       // فلتر الحد الأقصى للموظفين
       if (maxEmployeesRange !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           const maxEmp = c.max_employees || 0
           if (maxEmployeesRange === '1_2') return maxEmp >= 1 && maxEmp <= 2
           if (maxEmployeesRange === '3_4') return maxEmp >= 3 && maxEmp <= 4
@@ -596,30 +627,32 @@ export default function AdvancedSearch() {
         } else if (companyCreatedDateRange === 'last_year') {
           startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
           endDate = today
-        } else if (companyCreatedDateRange === 'custom' && companyCreatedStartDate && companyCreatedEndDate) {
+        } else if (
+          companyCreatedDateRange === 'custom' &&
+          companyCreatedStartDate &&
+          companyCreatedEndDate
+        ) {
           startDate = new Date(companyCreatedStartDate)
           endDate = new Date(companyCreatedEndDate)
         }
 
         if (startDate && endDate) {
-          filteredComps = filteredComps.filter(c => {
+          filteredComps = filteredComps.filter((c) => {
             if (!c.created_at) return false
             const createdDate = new Date(c.created_at)
             return createdDate >= startDate! && createdDate <= endDate!
           })
         }
       }
-      
+
       // Notes filter
       if (notesSearch.trim()) {
         const searchLower = notesSearch.toLowerCase().trim()
-        filteredComps = filteredComps.filter(c => 
-          c.notes?.toLowerCase().includes(searchLower)
-        )
+        filteredComps = filteredComps.filter((c) => c.notes?.toLowerCase().includes(searchLower))
       }
-      
+
       if (notesFilter !== 'all') {
-        filteredComps = filteredComps.filter(c => {
+        filteredComps = filteredComps.filter((c) => {
           if (notesFilter === 'has_notes') return c.notes && c.notes.trim().length > 0
           if (notesFilter === 'no_notes') return !c.notes || c.notes.trim().length === 0
           return true
@@ -629,30 +662,31 @@ export default function AdvancedSearch() {
 
     setFilteredEmployees(filteredEmps)
     setFilteredCompanies(filteredComps)
-  }, [ // [FIX] مصفوفة الاعتماديات لـ useCallback
-    employees, 
-    companies, 
+  }, [
+    // [FIX] مصفوفة الاعتماديات لـ useCallback
+    employees,
+    companies,
     employeeSearchQuery,
-    companySearchQuery, 
-    selectedNationality, 
-    selectedCompanyFilter, 
-    selectedProfession, 
-    selectedProject, 
-    residenceStatus, 
-    contractStatus, 
-    hasHealthInsuranceExpiry,  // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
-    healthInsuranceExpiryStatus,  // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
+    companySearchQuery,
+    selectedNationality,
+    selectedCompanyFilter,
+    selectedProfession,
+    selectedProject,
+    residenceStatus,
+    contractStatus,
+    hasHealthInsuranceExpiry, // تحديث: hasInsuranceExpiry → hasHealthInsuranceExpiry
+    healthInsuranceExpiryStatus, // تحديث: insuranceExpiryStatus → healthInsuranceExpiryStatus
     hasPassport,
-    hasBankAccount, 
-    birthDateRange, 
+    hasBankAccount,
+    birthDateRange,
     joiningDateRange,
     passportNumberSearch,
     residenceNumberSearch,
     commercialRegStatus,
-    companyDateFilter, 
-    powerSubscriptionStatus, 
-    moqeemSubscriptionStatus, 
-    employeeCountFilter, 
+    companyDateFilter,
+    powerSubscriptionStatus,
+    moqeemSubscriptionStatus,
+    employeeCountFilter,
     availableSlotsFilter,
     exemptionsFilter,
     unifiedNumberSearch,
@@ -663,7 +697,7 @@ export default function AdvancedSearch() {
     companyCreatedStartDate,
     companyCreatedEndDate,
     notesSearch,
-    notesFilter
+    notesFilter,
   ])
 
   useEffect(() => {
@@ -698,11 +732,11 @@ export default function AdvancedSearch() {
   // Calculate active filters count based on active tab
   const calculateActiveFiltersCount = () => {
     let count = 0
-    
+
     if (activeTab === 'employees') {
       // Employee search query
       if (employeeSearchQuery.trim()) count++
-      
+
       // Employee filters
       if (selectedNationality !== 'all') count++
       if (selectedCompanyFilter !== 'all') count++
@@ -721,7 +755,7 @@ export default function AdvancedSearch() {
     } else {
       // Company search query
       if (companySearchQuery.trim()) count++
-      
+
       // Company filters
       if (commercialRegStatus !== 'all') count++
       if (companyDateFilter !== 'all') count++
@@ -736,7 +770,7 @@ export default function AdvancedSearch() {
       if (maxEmployeesRange !== 'all') count++
       if (companyCreatedDateRange !== 'all') count++
     }
-    
+
     return count
   }
 
@@ -778,7 +812,7 @@ export default function AdvancedSearch() {
       setCompanyCreatedStartDate('')
       setCompanyCreatedEndDate('')
     }
-    
+
     setCurrentPage(1)
   }
 
@@ -792,9 +826,10 @@ export default function AdvancedSearch() {
     if (!searchName || !searchName.trim()) return
 
     try {
-      const currentSearchQuery = activeTab === 'employees' ? employeeSearchQuery : companySearchQuery
+      const currentSearchQuery =
+        activeTab === 'employees' ? employeeSearchQuery : companySearchQuery
       const filters: SavedSearchFilters = {}
-      
+
       if (activeTab === 'employees') {
         filters.nationality = selectedNationality
         filters.company = selectedCompanyFilter
@@ -834,14 +869,14 @@ export default function AdvancedSearch() {
         name: searchName.trim(),
         search_type: activeTab,
         search_query: currentSearchQuery,
-        filters
+        filters,
       })
 
       if (error) {
         console.error('Error saving search:', error)
         throw error
       }
-      
+
       toast.success('تم حفظ البحث بنجاح')
       loadSavedSearches() // [FIX] نستخدم الدالة المغلفة
     } catch (error) {
@@ -854,13 +889,13 @@ export default function AdvancedSearch() {
   const loadSavedSearch = (saved: SavedSearch) => {
     const savedType = saved.search_type === 'both' ? 'employees' : (saved.search_type as TabType)
     setActiveTab(savedType)
-    
+
     if (savedType === 'employees') {
       setEmployeeSearchQuery(saved.search_query || '')
     } else {
       setCompanySearchQuery(saved.search_query || '')
     }
-    
+
     if (saved.filters) {
       if (savedType === 'employees') {
         setSelectedNationality(saved.filters.nationality || 'all')
@@ -879,7 +914,9 @@ export default function AdvancedSearch() {
         setResidenceNumberSearch(saved.filters.residenceNumberSearch || '')
       } else {
         setCommercialRegStatus((saved.filters.commercialRegStatus as CommercialRegStatus) || 'all')
-        setCompanyDateFilter((saved.filters.companyDateFilter as 'all' | 'commercial_expiring') || 'all')
+        setCompanyDateFilter(
+          (saved.filters.companyDateFilter as 'all' | 'commercial_expiring') || 'all'
+        )
         setPowerSubscriptionStatus(saved.filters.powerSubscriptionStatus || 'all')
         setMoqeemSubscriptionStatus(saved.filters.moqeemSubscriptionStatus || 'all')
         setEmployeeCountFilter(saved.filters.employeeCountFilter || 'all')
@@ -915,17 +952,17 @@ export default function AdvancedSearch() {
     const XLSX = await loadXlsx()
 
     if (activeTab === 'employees') {
-      const employeeData = filteredEmployees.map(emp => {
+      const employeeData = filteredEmployees.map((emp) => {
         const basicData = {
-          'الاسم': emp.name,
-          'المهنة': emp.profession,
-          'الجنسية': emp.nationality,
-          'الجوال': emp.phone,
+          الاسم: emp.name,
+          المهنة: emp.profession,
+          الجنسية: emp.nationality,
+          الجوال: emp.phone,
           'انتهاء الإقامة': emp.residence_expiry,
           'انتهاء العقد': emp.contract_expiry,
-          'المؤسسة': getCompanyName(emp)
+          المؤسسة: getCompanyName(emp),
         }
-        
+
         return basicData
       })
 
@@ -933,17 +970,19 @@ export default function AdvancedSearch() {
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'نتائج البحث - موظفين')
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
       saveAs(blob, `نتائج_البحث_موظفين_${new Date().toISOString().split('T')[0]}.xlsx`)
     } else {
-      const companyData = filteredCompanies.map(comp => {
+      const companyData = filteredCompanies.map((comp) => {
         const basicData = {
           'اسم المؤسسة': comp.name,
           'رقم اشتراك التأمينات الاجتماعية': comp.social_insurance_number || '',
           'رقم موحد': comp.unified_number,
-          'انتهاء السجل التجاري': comp.commercial_registration_expiry
+          'انتهاء السجل التجاري': comp.commercial_registration_expiry,
         }
-        
+
         return basicData
       })
 
@@ -951,14 +990,17 @@ export default function AdvancedSearch() {
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'نتائج البحث - مؤسسات')
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
       saveAs(blob, `نتائج_البحث_مؤسسات_${new Date().toISOString().split('T')[0]}.xlsx`)
     }
 
     toast.success('تم تصدير النتائج بنجاح')
   }
 
-  const resultsCount = activeTab === 'employees' ? filteredEmployees.length : filteredCompanies.length
+  const resultsCount =
+    activeTab === 'employees' ? filteredEmployees.length : filteredCompanies.length
 
   // Pagination helper functions
   const goToPage = (page: number) => {
@@ -980,7 +1022,7 @@ export default function AdvancedSearch() {
     const maxVisiblePages = 5
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
     const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1)
     }
@@ -988,7 +1030,7 @@ export default function AdvancedSearch() {
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i)
     }
-    
+
     return pageNumbers
   }
 
@@ -997,7 +1039,9 @@ export default function AdvancedSearch() {
     try {
       const { data, error } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count)'
+        )
         .eq('id', employee.id)
         .single()
 
@@ -1007,16 +1051,18 @@ export default function AdvancedSearch() {
         // Convert companies array to company object (EmployeeCard expects company, not companies)
         const employeeWithCompany = {
           ...data,
-          company: Array.isArray(data.companies) && data.companies.length > 0 
-            ? data.companies[0] 
-            : (data.companies || null)
+          company:
+            Array.isArray(data.companies) && data.companies.length > 0
+              ? data.companies[0]
+              : data.companies || null,
         }
-        
+
         // Remove companies array as we now have company object
         if ('companies' in employeeWithCompany) {
-          delete (employeeWithCompany as EmployeeType & { companies?: CompanyType | CompanyType[] }).companies
+          delete (employeeWithCompany as EmployeeType & { companies?: CompanyType | CompanyType[] })
+            .companies
         }
-        
+
         if (employeeWithCompany.company) {
           setSelectedEmployee(employeeWithCompany as EmployeeType & { company: CompanyType })
           setIsEmployeeCardOpen(true)
@@ -1083,7 +1129,6 @@ export default function AdvancedSearch() {
     handleCloseCompanyModal()
   }
 
-
   return (
     <Layout>
       <div className="app-page app-tech-grid">
@@ -1094,10 +1139,7 @@ export default function AdvancedSearch() {
           className="mb-6"
           actions={
             <>
-              <Button
-                onClick={() => setShowFiltersModal(true)}
-                className="relative"
-              >
+              <Button onClick={() => setShowFiltersModal(true)} className="relative">
                 <Filter className="w-4 h-4" />
                 <span>الفلاتر</span>
                 {activeFiltersCount > 0 && (
@@ -1112,11 +1154,7 @@ export default function AdvancedSearch() {
                 <span>حفظ البحث</span>
               </Button>
 
-              <Button
-                onClick={exportResults}
-                disabled={resultsCount === 0}
-                variant="success"
-              >
+              <Button onClick={exportResults} disabled={resultsCount === 0} variant="success">
                 <Download className="w-4 h-4" />
                 <span>تصدير ({resultsCount})</span>
               </Button>
@@ -1160,77 +1198,78 @@ export default function AdvancedSearch() {
 
         {/* Search Bar */}
         <FilterBar className="mb-6">
-            <SearchInput
-              type="text"
-              value={currentSearchQuery}
-              onChange={(e) => {
-                if (activeTab === 'employees') {
-                  setEmployeeSearchQuery(e.target.value)
-                } else {
-                  setCompanySearchQuery(e.target.value)
-                }
-              }}
-              placeholder={activeTab === 'employees' 
+          <SearchInput
+            type="text"
+            value={currentSearchQuery}
+            onChange={(e) => {
+              if (activeTab === 'employees') {
+                setEmployeeSearchQuery(e.target.value)
+              } else {
+                setCompanySearchQuery(e.target.value)
+              }
+            }}
+            placeholder={
+              activeTab === 'employees'
                 ? 'ابحث بالاسم، المهنة، الجنسية، رقم الجوال، أو أي حقل إضافي...'
-                : 'ابحث باسم المؤسسة، الرقم الموحد، الرقم التأميني، أو أي حقل إضافي...'}
-              wrapperClassName="min-w-[260px] flex-1"
-            />
+                : 'ابحث باسم المؤسسة، الرقم الموحد، الرقم التأميني، أو أي حقل إضافي...'
+            }
+            wrapperClassName="min-w-[260px] flex-1"
+          />
 
-            {/* View Mode and Items Per Page */}
-            <div className="flex items-center gap-3">
-              {/* View Mode Toggle */}
-              {!isMobileView && (
-                <div className="app-toggle-shell">
-                  <Button
-                    onClick={() => setViewMode('grid')}
-                    variant={viewMode === 'grid' ? 'default' : 'secondary'}
-                    size="icon"
-                    title="عرض شبكي"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => setViewMode('table')}
-                    variant={viewMode === 'table' ? 'default' : 'secondary'}
-                    size="icon"
-                    title="عرض جدول"
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              {isMobileView && (
-                <div className="app-toggle-shell">
-                  <Button
-                    onClick={() => setViewMode('grid')}
-                    variant={viewMode === 'grid' ? 'default' : 'secondary'}
-                    size="icon"
-                    title="عرض شبكي"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-
-              {/* Items per page */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">عرض:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                  className="focus-ring-brand rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
+          {/* View Mode and Items Per Page */}
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            {!isMobileView && (
+              <div className="app-toggle-shell">
+                <Button
+                  onClick={() => setViewMode('grid')}
+                  variant={viewMode === 'grid' ? 'default' : 'secondary'}
+                  size="icon"
+                  title="عرض شبكي"
                 >
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value={150}>150</option>
-                </select>
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => setViewMode('table')}
+                  variant={viewMode === 'table' ? 'default' : 'secondary'}
+                  size="icon"
+                  title="عرض جدول"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
               </div>
-            </div>
+            )}
+            {isMobileView && (
+              <div className="app-toggle-shell">
+                <Button
+                  onClick={() => setViewMode('grid')}
+                  variant={viewMode === 'grid' ? 'default' : 'secondary'}
+                  size="icon"
+                  title="عرض شبكي"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
 
+            {/* Items per page */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">عرض:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="focus-ring-brand rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={150}>150</option>
+              </select>
+            </div>
+          </div>
 
           {/* Active Filters Chips */}
           {activeFiltersCount > 0 && (
@@ -1250,71 +1289,83 @@ export default function AdvancedSearch() {
                       </span>
                     )}
                     {selectedNationality !== 'all' && (
-                  <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm rounded-full flex items-center gap-2">
-                    الجنسية: {selectedNationality}
-                    <button
-                      onClick={() => setSelectedNationality('all')}
-                      className="hover:bg-purple-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedCompanyFilter !== 'all' && companyList && (
-                  <span className="px-3 py-1.5 bg-green-50 text-green-700 text-sm rounded-full flex items-center gap-2">
-                    المؤسسة: {companyList.find(c => c.id === selectedCompanyFilter)?.name || selectedCompanyFilter}
-                    <button
-                      onClick={() => setSelectedCompanyFilter('all')}
-                      className="hover:bg-green-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedProfession !== 'all' && (
-                  <span className="px-3 py-1.5 bg-orange-50 text-orange-700 text-sm rounded-full flex items-center gap-2">
-                    المهنة: {selectedProfession}
-                    <button
-                      onClick={() => setSelectedProfession('all')}
-                      className="hover:bg-orange-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {residenceStatus !== 'all' && (
-                  <span className="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-full flex items-center gap-2">
-                    حالة الإقامة: {residenceStatus === 'expired' ? 'منتهي' : residenceStatus === 'expiring_soon' ? 'عاجل' : 'ساري'}
-                    <button
-                      onClick={() => setResidenceStatus('all')}
-                      className="hover:bg-red-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {contractStatus !== 'all' && (
-                  <span className="px-3 py-1.5 bg-yellow-50 text-yellow-700 text-sm rounded-full flex items-center gap-2">
-                    حالة العقد: {contractStatus === 'expired' ? 'منتهي' : contractStatus === 'expiring_soon' ? 'عاجل' : 'ساري'}
-                    <button
-                      onClick={() => setContractStatus('all')}
-                      className="hover:bg-yellow-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {residenceNumberSearch && (
-                  <span className="px-3 py-1.5 bg-cyan-50 text-cyan-700 text-sm rounded-full flex items-center gap-2">
-                    رقم الإقامة: {residenceNumberSearch}
-                    <button
-                      onClick={() => setResidenceNumberSearch('')}
-                      className="hover:bg-cyan-100 rounded-full p-0.5 transition"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
+                      <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm rounded-full flex items-center gap-2">
+                        الجنسية: {selectedNationality}
+                        <button
+                          onClick={() => setSelectedNationality('all')}
+                          className="hover:bg-purple-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {selectedCompanyFilter !== 'all' && companyList && (
+                      <span className="px-3 py-1.5 bg-green-50 text-green-700 text-sm rounded-full flex items-center gap-2">
+                        المؤسسة:{' '}
+                        {companyList.find((c) => c.id === selectedCompanyFilter)?.name ||
+                          selectedCompanyFilter}
+                        <button
+                          onClick={() => setSelectedCompanyFilter('all')}
+                          className="hover:bg-green-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {selectedProfession !== 'all' && (
+                      <span className="px-3 py-1.5 bg-orange-50 text-orange-700 text-sm rounded-full flex items-center gap-2">
+                        المهنة: {selectedProfession}
+                        <button
+                          onClick={() => setSelectedProfession('all')}
+                          className="hover:bg-orange-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {residenceStatus !== 'all' && (
+                      <span className="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-full flex items-center gap-2">
+                        حالة الإقامة:{' '}
+                        {residenceStatus === 'expired'
+                          ? 'منتهي'
+                          : residenceStatus === 'expiring_soon'
+                            ? 'عاجل'
+                            : 'ساري'}
+                        <button
+                          onClick={() => setResidenceStatus('all')}
+                          className="hover:bg-red-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {contractStatus !== 'all' && (
+                      <span className="px-3 py-1.5 bg-yellow-50 text-yellow-700 text-sm rounded-full flex items-center gap-2">
+                        حالة العقد:{' '}
+                        {contractStatus === 'expired'
+                          ? 'منتهي'
+                          : contractStatus === 'expiring_soon'
+                            ? 'عاجل'
+                            : 'ساري'}
+                        <button
+                          onClick={() => setContractStatus('all')}
+                          className="hover:bg-yellow-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {residenceNumberSearch && (
+                      <span className="px-3 py-1.5 bg-cyan-50 text-cyan-700 text-sm rounded-full flex items-center gap-2">
+                        رقم الإقامة: {residenceNumberSearch}
+                        <button
+                          onClick={() => setResidenceNumberSearch('')}
+                          className="hover:bg-cyan-100 rounded-full p-0.5 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
                     {passportNumberSearch && (
                       <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm rounded-full flex items-center gap-2">
                         رقم الجواز: {passportNumberSearch}
@@ -1342,7 +1393,14 @@ export default function AdvancedSearch() {
                     )}
                     {commercialRegStatus !== 'all' && (
                       <span className="px-3 py-1.5 bg-pink-50 text-pink-700 text-sm rounded-full flex items-center gap-2">
-                        حالة السجل التجاري: {commercialRegStatus === 'expired' ? 'منتهي' : commercialRegStatus === 'expiring_soon' ? 'عاجل' : commercialRegStatus === 'valid' ? 'ساري' : commercialRegStatus}
+                        حالة السجل التجاري:{' '}
+                        {commercialRegStatus === 'expired'
+                          ? 'منتهي'
+                          : commercialRegStatus === 'expiring_soon'
+                            ? 'عاجل'
+                            : commercialRegStatus === 'valid'
+                              ? 'ساري'
+                              : commercialRegStatus}
                         <button
                           onClick={() => setCommercialRegStatus('all')}
                           className="hover:bg-pink-100 rounded-full p-0.5 transition"
@@ -1399,7 +1457,7 @@ export default function AdvancedSearch() {
               className="fixed inset-0 bg-gradient-to-br from-gray-900/60 via-gray-800/50 to-gray-900/60 backdrop-blur-md transition-opacity"
               onClick={() => setShowFiltersModal(false)}
             />
-            
+
             {/* Modal Content with Glass Morphism */}
             <div className="fixed inset-0 flex items-center justify-center p-4">
               <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-300">
@@ -1408,9 +1466,7 @@ export default function AdvancedSearch() {
                   <div>
                     <h2 className="text-lg font-bold text-gray-800">الفلاتر والبحث المتقدم</h2>
                     {activeFiltersCount > 0 && (
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        {activeFiltersCount} فلتر نشط
-                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">{activeFiltersCount} فلتر نشط</p>
                     )}
                   </div>
                   <button
@@ -1436,61 +1492,90 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">الجنسية</label>
-                            <Select value={selectedNationality} onValueChange={setSelectedNationality}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              الجنسية
+                            </label>
+                            <Select
+                              value={selectedNationality}
+                              onValueChange={setSelectedNationality}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="all">الكل</SelectItem>
-                                {nationalities && nationalities.map(nat => (
-                                  <SelectItem key={nat} value={nat}>{nat}</SelectItem>
-                                ))}
+                                {nationalities &&
+                                  nationalities.map((nat) => (
+                                    <SelectItem key={nat} value={nat}>
+                                      {nat}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">المؤسسة</label>
-                            <Select value={selectedCompanyFilter} onValueChange={setSelectedCompanyFilter}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              المؤسسة
+                            </label>
+                            <Select
+                              value={selectedCompanyFilter}
+                              onValueChange={setSelectedCompanyFilter}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="all">الكل</SelectItem>
-                                {companyList && companyList.map(comp => (
-                                  <SelectItem key={comp.id} value={comp.id}>{comp.name}</SelectItem>
-                                ))}
+                                {companyList &&
+                                  companyList.map((comp) => (
+                                    <SelectItem key={comp.id} value={comp.id}>
+                                      {comp.name}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">المهنة</label>
-                            <Select value={selectedProfession} onValueChange={setSelectedProfession}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              المهنة
+                            </label>
+                            <Select
+                              value={selectedProfession}
+                              onValueChange={setSelectedProfession}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="all">الكل</SelectItem>
-                                {professions && professions.map(prof => (
-                                  <SelectItem key={prof} value={prof}>{prof}</SelectItem>
-                                ))}
+                                {professions &&
+                                  professions.map((prof) => (
+                                    <SelectItem key={prof} value={prof}>
+                                      {prof}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">المشروع</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              المشروع
+                            </label>
                             <Select value={selectedProject} onValueChange={setSelectedProject}>
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="all">الكل</SelectItem>
-                                {projects && projects.map(project => (
-                                  <SelectItem key={project} value={project}>{project}</SelectItem>
-                                ))}
+                                {projects &&
+                                  projects.map((project) => (
+                                    <SelectItem key={project} value={project}>
+                                      {project}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -1507,8 +1592,13 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة الإقامة</label>
-                            <Select value={residenceStatus} onValueChange={(val) => setResidenceStatus(val as ResidenceStatus)}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة الإقامة
+                            </label>
+                            <Select
+                              value={residenceStatus}
+                              onValueChange={(val) => setResidenceStatus(val as ResidenceStatus)}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1522,8 +1612,13 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة العقد</label>
-                            <Select value={contractStatus} onValueChange={(val) => setContractStatus(val as ContractStatus)}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة العقد
+                            </label>
+                            <Select
+                              value={contractStatus}
+                              onValueChange={(val) => setContractStatus(val as ContractStatus)}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1537,8 +1632,13 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة انتهاء التأمين الصحي</label>
-                            <Select value={healthInsuranceExpiryStatus} onValueChange={setHealthInsuranceExpiryStatus}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة انتهاء التأمين الصحي
+                            </label>
+                            <Select
+                              value={healthInsuranceExpiryStatus}
+                              onValueChange={setHealthInsuranceExpiryStatus}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1564,7 +1664,9 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث رقم الجواز</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث رقم الجواز
+                            </label>
                             <input
                               type="text"
                               value={passportNumberSearch}
@@ -1575,7 +1677,9 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث رقم الإقامة</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث رقم الإقامة
+                            </label>
                             <input
                               type="text"
                               value={residenceNumberSearch}
@@ -1602,8 +1706,15 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة السجل التجاري</label>
-                            <Select value={commercialRegStatus} onValueChange={(val) => setCommercialRegStatus(val as CommercialRegStatus)}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة السجل التجاري
+                            </label>
+                            <Select
+                              value={commercialRegStatus}
+                              onValueChange={(val) =>
+                                setCommercialRegStatus(val as CommercialRegStatus)
+                              }
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1617,7 +1728,9 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">الاعفاءات</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              الاعفاءات
+                            </label>
                             <Select value={exemptionsFilter} onValueChange={setExemptionsFilter}>
                               <SelectTrigger className="w-full">
                                 <SelectValue />
@@ -1643,8 +1756,13 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة اشتراك قوى</label>
-                            <Select value={powerSubscriptionStatus} onValueChange={setPowerSubscriptionStatus}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة اشتراك قوى
+                            </label>
+                            <Select
+                              value={powerSubscriptionStatus}
+                              onValueChange={setPowerSubscriptionStatus}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1659,8 +1777,13 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">حالة اشتراك مقيم</label>
-                            <Select value={moqeemSubscriptionStatus} onValueChange={setMoqeemSubscriptionStatus}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              حالة اشتراك مقيم
+                            </label>
+                            <Select
+                              value={moqeemSubscriptionStatus}
+                              onValueChange={setMoqeemSubscriptionStatus}
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1686,7 +1809,9 @@ export default function AdvancedSearch() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث الرقم الموحد</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث الرقم الموحد
+                            </label>
                             <input
                               type="text"
                               value={unifiedNumberSearch}
@@ -1697,7 +1822,9 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث الرقم التأميني</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث الرقم التأميني
+                            </label>
                             <input
                               type="text"
                               value={taxNumberSearch}
@@ -1708,7 +1835,9 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث رقم اشتراك العمل</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث رقم اشتراك العمل
+                            </label>
                             <input
                               type="text"
                               value={laborSubscriptionNumberSearch}
@@ -1719,7 +1848,9 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">بحث في الملاحظات</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              بحث في الملاحظات
+                            </label>
                             <input
                               type="text"
                               value={notesSearch}
@@ -1730,8 +1861,15 @@ export default function AdvancedSearch() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">فلتر الملاحظات</label>
-                            <Select value={notesFilter} onValueChange={(val) => setNotesFilter(val as 'all' | 'has_notes' | 'no_notes')}>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                              فلتر الملاحظات
+                            </label>
+                            <Select
+                              value={notesFilter}
+                              onValueChange={(val) =>
+                                setNotesFilter(val as 'all' | 'has_notes' | 'no_notes')
+                              }
+                            >
                               <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1755,8 +1893,11 @@ export default function AdvancedSearch() {
                         البحوث المحفوظة
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {savedSearches.map(saved => (
-                          <div key={saved.id} className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/30 shadow-sm hover:shadow-md transition-all duration-200">
+                        {savedSearches.map((saved) => (
+                          <div
+                            key={saved.id}
+                            className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/30 shadow-sm hover:shadow-md transition-all duration-200"
+                          >
                             <button
                               onClick={() => {
                                 loadSavedSearch(saved)
@@ -1791,229 +1932,264 @@ export default function AdvancedSearch() {
                   <X className="w-3.5 h-3.5" />
                   مسح جميع الفلاتر
                 </Button>
-                <Button
-                  onClick={() => setShowFiltersModal(false)}
-                  size="sm"
-                >
+                <Button onClick={() => setShowFiltersModal(false)} size="sm">
                   تطبيق الفلاتر
                 </Button>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Results Area */}
         <div className="w-full mt-6">
           {/* Loading State */}
-            {isLoading && (
-              <div className="text-center py-8">
-                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                <p className="mt-3 text-sm text-gray-600">جاري تحميل البيانات...</p>
-              </div>
-            )}
+          {isLoading && (
+            <div className="text-center py-8">
+              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+              <p className="mt-3 text-sm text-gray-600">جاري تحميل البيانات...</p>
+            </div>
+          )}
 
-            {/* Results Display */}
-            {!isLoading && resultsCount > 0 && (
-              <>
-                {/* Employee Results */}
-                {activeTab === 'employees' && paginatedEmployees.length > 0 && (
-                  <div className="mb-4">
-                    {viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                        {paginatedEmployees.map(emp => (
-                          <div 
-                            key={emp.id} 
-                            onClick={() => handleEmployeeClick(emp)}
-                            className="card-interactive rounded-xl border border-border bg-card p-3 cursor-pointer transition-[transform,border-color,box-shadow,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-neutral-300 hover:shadow-md"
-                          >
-                            <h3 className="font-bold text-base mb-1.5">{emp.name}</h3>
-                            <div className="space-y-0.5 text-xs">
-                              <p><span className="text-gray-600">المهنة:</span> {emp.profession}</p>
-                              <p><span className="text-gray-600">الجنسية:</span> {emp.nationality}</p>
-                              <p><span className="text-gray-600">الجوال:</span> {emp.phone}</p>
-                              <p><span className="text-gray-600">المؤسسة:</span> {getCompanyName(emp) || 'غير محدد'}</p>
-                              {emp.project_name && (
-                                <p><span className="text-gray-600">المشروع:</span> 
-                                  <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full mr-1">
-                                    {emp.project_name}
-                                  </span>
-                                </p>
-                              )}
-                              {emp.residence_expiry && (
-                                <p><span className="text-gray-600">انتهاء الإقامة:</span> {emp.residence_expiry}</p>
-                              )}
-                              {emp.contract_expiry && (
-                                <p><span className="text-gray-600">انتهاء العقد:</span> {emp.contract_expiry}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-white border rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-3 py-1.5 text-right">الاسم</th>
-                                <th className="px-3 py-1.5 text-right">المهنة</th>
-                                <th className="px-3 py-1.5 text-right">الجنسية</th>
-                                <th className="px-3 py-1.5 text-right">الجوال</th>
-                                <th className="px-3 py-1.5 text-right">المؤسسة</th>
-                                <th className="px-3 py-1.5 text-right">المشروع</th>
-                                <th className="px-3 py-1.5 text-right">انتهاء الإقامة</th>
-                                <th className="px-3 py-1.5 text-right">انتهاء العقد</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedEmployees.map(emp => (
-                                <tr 
-                                  key={emp.id} 
-                                  onClick={() => handleEmployeeClick(emp)}
-                                  className="border-t hover:bg-gray-50 cursor-pointer"
-                                >
-                                  <td className="px-3 py-1.5 font-medium">{emp.name}</td>
-                                  <td className="px-3 py-1.5">{emp.profession}</td>
-                                  <td className="px-3 py-1.5">{emp.nationality}</td>
-                                  <td className="px-3 py-1.5">{emp.phone}</td>
-                                  <td className="px-3 py-1.5">{getCompanyName(emp) || 'غير محدد'}</td>
-                                  <td className="px-3 py-1.5">
-                                    {emp.project_name ? (
-                                      <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                                        {emp.project_name}
-                                      </span>
-                                    ) : (
-                                      <span className="text-gray-400">-</span>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-1.5">{emp.residence_expiry || '-'}</td>
-                                  <td className="px-3 py-1.5">{emp.contract_expiry || '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Company Results */}
-                {activeTab === 'companies' && paginatedCompanies.length > 0 && (
-                  <div className="mb-4">
-                    {viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                        {paginatedCompanies.map(comp => (
-                          <div 
-                            key={comp.id} 
-                            onClick={() => handleCompanyClick(comp)}
-                            className="bg-white border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
-                          >
-                            <h3 className="font-bold text-base mb-1.5">{comp.name}</h3>
-                            <div className="space-y-0.5 text-xs">
-                              <p><span className="text-gray-600">رقم اشتراك التأمينات:</span> {comp.social_insurance_number}</p>
-                              <p><span className="text-gray-600">رقم موحد:</span> {comp.unified_number}</p>
-                              {comp.commercial_registration_expiry && (
-                                <p><span className="text-gray-600">انتهاء السجل:</span> {comp.commercial_registration_expiry}</p>
-                              )}
-                              {comp.ending_subscription_power_date && (
-                                <p><span className="text-gray-600">انتهاء اشتراك قوى:</span> {comp.ending_subscription_power_date}</p>
-                              )}
-                              {comp.ending_subscription_moqeem_date && (
-                                <p><span className="text-gray-600">انتهاء اشتراك مقيم:</span> {comp.ending_subscription_moqeem_date}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-white border rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-3 py-1.5 text-right">اسم المؤسسة</th>
-                                <th className="px-3 py-1.5 text-right">رقم اشتراك التأمينات</th>
-                                <th className="px-3 py-1.5 text-right">رقم موحد</th>
-                                <th className="px-3 py-1.5 text-right">انتهاء السجل</th>
-                                <th className="px-3 py-1.5 text-right">انتهاء اشتراك قوى</th>
-                                <th className="px-3 py-1.5 text-right">انتهاء اشتراك مقيم</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedCompanies.map(comp => (
-                                <tr 
-                                  key={comp.id} 
-                                  onClick={() => handleCompanyClick(comp)}
-                                  className="border-t hover:bg-gray-50 cursor-pointer"
-                                >
-                                  <td className="px-3 py-1.5 font-medium">{comp.name}</td>
-                                  <td className="px-3 py-1.5">{comp.social_insurance_number || '-'}</td>
-                                  <td className="px-3 py-1.5">{comp.unified_number}</td>
-                                  <td className="px-3 py-1.5">{comp.commercial_registration_expiry || '-'}</td>
-                                  <td className="px-3 py-1.5">{comp.ending_subscription_power_date || '-'}</td>
-                                  <td className="px-3 py-1.5">{comp.ending_subscription_moqeem_date || '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between bg-white border rounded-lg p-3">
-                    <div className="text-xs text-gray-600">
-                      عرض {startIndex + 1}-{Math.min(endIndex, totalResults)} من {totalResults} نتيجة
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={goToPreviousPage}
-                        disabled={currentPage === 1}
-                        className="p-1.5 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-
-                      {getPageNumbers().map(pageNum => (
-                        <button
-                          key={pageNum}
-                          onClick={() => goToPage(pageNum)}
-                          className={`px-2 py-1 border rounded-md text-xs ${
-                            currentPage === pageNum 
-                              ? 'border-primary bg-primary text-slate-950' 
-                              : 'hover:bg-gray-50'
-                          }`}
+          {/* Results Display */}
+          {!isLoading && resultsCount > 0 && (
+            <>
+              {/* Employee Results */}
+              {activeTab === 'employees' && paginatedEmployees.length > 0 && (
+                <div className="mb-4">
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                      {paginatedEmployees.map((emp) => (
+                        <div
+                          key={emp.id}
+                          onClick={() => handleEmployeeClick(emp)}
+                          className="card-interactive rounded-xl border border-border bg-card p-3 cursor-pointer transition-[transform,border-color,box-shadow,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-neutral-300 hover:shadow-md"
                         >
-                          {pageNum}
-                        </button>
+                          <h3 className="font-bold text-base mb-1.5">{emp.name}</h3>
+                          <div className="space-y-0.5 text-xs">
+                            <p>
+                              <span className="text-gray-600">المهنة:</span> {emp.profession}
+                            </p>
+                            <p>
+                              <span className="text-gray-600">الجنسية:</span> {emp.nationality}
+                            </p>
+                            <p>
+                              <span className="text-gray-600">الجوال:</span> {emp.phone}
+                            </p>
+                            <p>
+                              <span className="text-gray-600">المؤسسة:</span>{' '}
+                              {getCompanyName(emp) || 'غير محدد'}
+                            </p>
+                            {emp.project_name && (
+                              <p>
+                                <span className="text-gray-600">المشروع:</span>
+                                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full mr-1">
+                                  {emp.project_name}
+                                </span>
+                              </p>
+                            )}
+                            {emp.residence_expiry && (
+                              <p>
+                                <span className="text-gray-600">انتهاء الإقامة:</span>{' '}
+                                {emp.residence_expiry}
+                              </p>
+                            )}
+                            {emp.contract_expiry && (
+                              <p>
+                                <span className="text-gray-600">انتهاء العقد:</span>{' '}
+                                {emp.contract_expiry}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       ))}
-
-                      <button
-                        onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
-                        className="p-1.5 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  ) : (
+                    <div className="bg-white border rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-1.5 text-right">الاسم</th>
+                              <th className="px-3 py-1.5 text-right">المهنة</th>
+                              <th className="px-3 py-1.5 text-right">الجنسية</th>
+                              <th className="px-3 py-1.5 text-right">الجوال</th>
+                              <th className="px-3 py-1.5 text-right">المؤسسة</th>
+                              <th className="px-3 py-1.5 text-right">المشروع</th>
+                              <th className="px-3 py-1.5 text-right">انتهاء الإقامة</th>
+                              <th className="px-3 py-1.5 text-right">انتهاء العقد</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedEmployees.map((emp) => (
+                              <tr
+                                key={emp.id}
+                                onClick={() => handleEmployeeClick(emp)}
+                                className="border-t hover:bg-gray-50 cursor-pointer"
+                              >
+                                <td className="px-3 py-1.5 font-medium">{emp.name}</td>
+                                <td className="px-3 py-1.5">{emp.profession}</td>
+                                <td className="px-3 py-1.5">{emp.nationality}</td>
+                                <td className="px-3 py-1.5">{emp.phone}</td>
+                                <td className="px-3 py-1.5">{getCompanyName(emp) || 'غير محدد'}</td>
+                                <td className="px-3 py-1.5">
+                                  {emp.project_name ? (
+                                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                                      {emp.project_name}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-1.5">{emp.residence_expiry || '-'}</td>
+                                <td className="px-3 py-1.5">{emp.contract_expiry || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Empty State */}
-            {!isLoading && resultsCount === 0 && (
-              <div className="text-center py-8 bg-white border rounded-lg">
-                <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <h3 className="text-base font-semibold mb-1">لا توجد نتائج</h3>
-                <p className="text-sm text-gray-600">جرب تغيير معايير البحث أو الفلاتر</p>
-              </div>
-            )}
+              {/* Company Results */}
+              {activeTab === 'companies' && paginatedCompanies.length > 0 && (
+                <div className="mb-4">
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                      {paginatedCompanies.map((comp) => (
+                        <div
+                          key={comp.id}
+                          onClick={() => handleCompanyClick(comp)}
+                          className="bg-white border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                        >
+                          <h3 className="font-bold text-base mb-1.5">{comp.name}</h3>
+                          <div className="space-y-0.5 text-xs">
+                            <p>
+                              <span className="text-gray-600">رقم اشتراك التأمينات:</span>{' '}
+                              {comp.social_insurance_number}
+                            </p>
+                            <p>
+                              <span className="text-gray-600">رقم موحد:</span> {comp.unified_number}
+                            </p>
+                            {comp.commercial_registration_expiry && (
+                              <p>
+                                <span className="text-gray-600">انتهاء السجل:</span>{' '}
+                                {comp.commercial_registration_expiry}
+                              </p>
+                            )}
+                            {comp.ending_subscription_power_date && (
+                              <p>
+                                <span className="text-gray-600">انتهاء اشتراك قوى:</span>{' '}
+                                {comp.ending_subscription_power_date}
+                              </p>
+                            )}
+                            {comp.ending_subscription_moqeem_date && (
+                              <p>
+                                <span className="text-gray-600">انتهاء اشتراك مقيم:</span>{' '}
+                                {comp.ending_subscription_moqeem_date}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white border rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-1.5 text-right">اسم المؤسسة</th>
+                              <th className="px-3 py-1.5 text-right">رقم اشتراك التأمينات</th>
+                              <th className="px-3 py-1.5 text-right">رقم موحد</th>
+                              <th className="px-3 py-1.5 text-right">انتهاء السجل</th>
+                              <th className="px-3 py-1.5 text-right">انتهاء اشتراك قوى</th>
+                              <th className="px-3 py-1.5 text-right">انتهاء اشتراك مقيم</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedCompanies.map((comp) => (
+                              <tr
+                                key={comp.id}
+                                onClick={() => handleCompanyClick(comp)}
+                                className="border-t hover:bg-gray-50 cursor-pointer"
+                              >
+                                <td className="px-3 py-1.5 font-medium">{comp.name}</td>
+                                <td className="px-3 py-1.5">
+                                  {comp.social_insurance_number || '-'}
+                                </td>
+                                <td className="px-3 py-1.5">{comp.unified_number}</td>
+                                <td className="px-3 py-1.5">
+                                  {comp.commercial_registration_expiry || '-'}
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  {comp.ending_subscription_power_date || '-'}
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  {comp.ending_subscription_moqeem_date || '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white border rounded-lg p-3">
+                  <div className="text-xs text-gray-600">
+                    عرض {startIndex + 1}-{Math.min(endIndex, totalResults)} من {totalResults} نتيجة
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className="p-1.5 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    {getPageNumbers().map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`px-2 py-1 border rounded-md text-xs ${
+                          currentPage === pageNum
+                            ? 'border-primary bg-primary text-slate-950'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className="p-1.5 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && resultsCount === 0 && (
+            <div className="text-center py-8 bg-white border rounded-lg">
+              <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <h3 className="text-base font-semibold mb-1">لا توجد نتائج</h3>
+              <p className="text-sm text-gray-600">جرب تغيير معايير البحث أو الفلاتر</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2031,9 +2207,15 @@ export default function AdvancedSearch() {
         <CompanyDetailModal
           company={{
             ...selectedCompanyForDetail,
-            employee_count: filteredEmployees.filter(e => e.company_id === selectedCompanyForDetail.id).length,
-            available_slots: Math.max(0, (selectedCompanyForDetail.max_employees || 4) - filteredEmployees.filter(e => e.company_id === selectedCompanyForDetail.id).length),
-            max_employees: selectedCompanyForDetail.max_employees || 4
+            employee_count: filteredEmployees.filter(
+              (e) => e.company_id === selectedCompanyForDetail.id
+            ).length,
+            available_slots: Math.max(
+              0,
+              (selectedCompanyForDetail.max_employees || 4) -
+                filteredEmployees.filter((e) => e.company_id === selectedCompanyForDetail.id).length
+            ),
+            max_employees: selectedCompanyForDetail.max_employees || 4,
           }}
           onClose={handleCloseCompanyDetailModal}
           onEdit={handleEditCompanyFromDetail}

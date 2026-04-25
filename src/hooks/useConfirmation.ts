@@ -31,7 +31,7 @@ export function useConfirmation() {
     cancelText: 'إلغاء',
     isDangerous: false,
     icon: 'question',
-    onConfirm: () => {}
+    onConfirm: () => {},
   })
 
   const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
@@ -46,20 +46,20 @@ export function useConfirmation() {
         icon: options.icon || 'question',
         onConfirm: () => {
           resolve(true)
-          setDialogState(prev => ({ ...prev, isOpen: false }))
-        }
+          setDialogState((prev) => ({ ...prev, isOpen: false }))
+        },
       }
       setDialogState(newState)
     })
   }, [])
 
   const close = useCallback(() => {
-    setDialogState(prev => ({ ...prev, isOpen: false }))
+    setDialogState((prev) => ({ ...prev, isOpen: false }))
   }, [])
 
   return {
     ...dialogState,
     confirm,
-    close
+    close,
   }
 }

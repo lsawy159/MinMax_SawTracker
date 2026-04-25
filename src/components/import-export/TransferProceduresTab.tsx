@@ -1,6 +1,16 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
 import { saveAs } from 'file-saver'
-import { AlertCircle, CheckCircle2, Download, Loader2, Plus, RefreshCcw, Trash2, Upload, UserPlus } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Loader2,
+  Plus,
+  RefreshCcw,
+  Trash2,
+  Upload,
+  UserPlus,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
@@ -48,10 +58,18 @@ const createDefaultForm = (): TransferProcedureFormData => ({
 })
 
 const isStatusAllowed = (status: string): boolean => {
-  return TRANSFER_PROCEDURE_STATUS_OPTIONS.includes(status as (typeof TRANSFER_PROCEDURE_STATUS_OPTIONS)[number])
+  return TRANSFER_PROCEDURE_STATUS_OPTIONS.includes(
+    status as (typeof TRANSFER_PROCEDURE_STATUS_OPTIONS)[number]
+  )
 }
 
-export default function TransferProceduresTab({ canImport, canExport }: { canImport: boolean; canExport: boolean }) {
+export default function TransferProceduresTab({
+  canImport,
+  canExport,
+}: {
+  canImport: boolean
+  canExport: boolean
+}) {
   const [transferRows, setTransferRows] = useState<TransferProcedureRow[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
@@ -60,7 +78,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
   const [statusDrafts, setStatusDrafts] = useState<Record<string, string>>({})
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
   const [conversionSource, setConversionSource] = useState<TransferProcedureRow | null>(null)
-  const [newEmployeeCard, setNewEmployeeCard] = useState<(Employee & { company: Company; project?: Project }) | null>(null)
+  const [newEmployeeCard, setNewEmployeeCard] = useState<
+    (Employee & { company: Company; project?: Project }) | null
+  >(null)
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
 
   useEffect(() => {
@@ -73,7 +93,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       const [transferRes, projectsRes] = await Promise.all([
         supabase
           .from('transfer_procedures')
-          .select('id,request_date,name,iqama,status,current_unified_number,project_id,created_by_user_id,notes,created_at,updated_at, project:projects(id,name,description,status,created_at,updated_at)')
+          .select(
+            'id,request_date,name,iqama,status,current_unified_number,project_id,created_by_user_id,notes,created_at,updated_at, project:projects(id,name,description,status,created_at,updated_at)'
+          )
           .order('created_at', { ascending: false }),
         supabase
           .from('projects')
@@ -240,12 +262,12 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       const XLSX = await loadXlsx()
       const exportRows = transferRows.map((row) => ({
         'تاريخ الطلب': row.request_date,
-        'الاسم': row.name,
+        الاسم: row.name,
         'رقم الإقامة': String(row.iqama),
-        'الحالة': row.status,
+        الحالة: row.status,
         'الرقم الموحد الحالي': String(row.current_unified_number),
-        'المشروع': row.project?.name || '',
-        'ملاحظات': row.notes || '',
+        المشروع: row.project?.name || '',
+        ملاحظات: row.notes || '',
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(exportRows)
@@ -262,7 +284,12 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'إجراءات النقل')
       const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
-      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'تقرير_إجراءات_النقل.xlsx')
+      saveAs(
+        new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+        'تقرير_إجراءات_النقل.xlsx'
+      )
       toast.success('تم تصدير إجراءات النقل بنجاح')
     } catch (error) {
       console.error(error)
@@ -284,7 +311,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       const iqamaRaw = String(rawRow['رقم الإقامة'] || '').trim()
       const status = String(rawRow['الحالة'] || '').trim()
       const currentUnifiedRaw = String(rawRow['الرقم الموحد الحالي'] || '').trim()
-      const projectName = String(rawRow['المشروع'] || '').trim().toLowerCase()
+      const projectName = String(rawRow['المشروع'] || '')
+        .trim()
+        .toLowerCase()
       const notes = String(rawRow['ملاحظات'] || '').trim()
 
       const requestDateParsed = parseDate(requestDateRaw)
@@ -299,7 +328,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       }
 
       if (!isNewTransferProcedureStatus(status)) {
-        errors.push(`الصف ${rowNumber}: حالة الطلب يجب أن تكون واحدة من: ${NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.join('، ')}`)
+        errors.push(
+          `الصف ${rowNumber}: حالة الطلب يجب أن تكون واحدة من: ${NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.join('، ')}`
+        )
         return
       }
 
@@ -368,13 +399,17 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       }
 
       const fileColumns = Object.keys(rows[0])
-      const missingColumns = TRANSFER_PROCEDURE_TEMPLATE_COLUMNS.filter((column) => !fileColumns.includes(column))
+      const missingColumns = TRANSFER_PROCEDURE_TEMPLATE_COLUMNS.filter(
+        (column) => !fileColumns.includes(column)
+      )
       if (missingColumns.length > 0) {
         toast.error(`الأعمدة التالية مفقودة: ${missingColumns.join('، ')}`)
         return
       }
 
-      const projectNameMap = new Map(projects.map((project) => [project.name.trim().toLowerCase(), project.id]))
+      const projectNameMap = new Map(
+        projects.map((project) => [project.name.trim().toLowerCase(), project.id])
+      )
       const { validRows, errors } = parseTransferImportRows(rows, projectNameMap)
 
       if (validRows.length === 0) {
@@ -406,9 +441,11 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       await loadTransferData()
 
       if (errors.length > 0) {
-        toast.warning(`تم الاستيراد مع ملاحظات: ${successCount} نجاح، ${failedCount + errors.length} تعثر`)
+        toast.warning(
+          `تم الاستيراد مع ملاحظات: ${successCount} نجاح، ${failedCount + errors.length} تعثر`
+        )
       } else if (failedCount > 0) {
-        toast.warning(`تم استيراد ${successCount} صفوف، وتعذر ${failedCount} صفوف`) 
+        toast.warning(`تم استيراد ${successCount} صفوف، وتعذر ${failedCount} صفوف`)
       } else {
         toast.success(`تم استيراد ${successCount} صفوف بنجاح`)
       }
@@ -430,7 +467,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
     setShowEmployeeModal(true)
   }
 
-  const handleEmployeeCreatedFromTransfer = (createdEmployee?: Employee & { company: Company; project?: Project }) => {
+  const handleEmployeeCreatedFromTransfer = (
+    createdEmployee?: Employee & { company: Company; project?: Project }
+  ) => {
     if (!createdEmployee || !conversionSource) {
       return
     }
@@ -458,8 +497,8 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <div className="text-sm text-gray-500">إجمالي الطلبات</div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="text-sm text-neutral-500">إجمالي الطلبات</div>
           <div className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</div>
         </div>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -467,16 +506,16 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
           <div className="mt-1 text-2xl font-bold text-amber-700">{stats.inProgress}</div>
         </div>
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-          <div className="text-sm text-green-700">جاهزة للتحويل</div>
-          <div className="mt-1 text-2xl font-bold text-green-700">{stats.done}</div>
+          <div className="text-sm text-success-700">جاهزة للتحويل</div>
+          <div className="mt-1 text-2xl font-bold text-success-700">{stats.done}</div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900">تسجيل طلب نقل جديد</h3>
-            <p className="text-xs text-gray-500 mt-1">المشروع إلزامي قبل حفظ السجل</p>
+            <p className="text-xs text-neutral-500 mt-1">المشروع إلزامي قبل حفظ السجل</p>
           </div>
           <button
             type="button"
@@ -489,7 +528,10 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
           </button>
         </div>
 
-        <form onSubmit={handleCreateTransferProcedure} className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <form
+          onSubmit={handleCreateTransferProcedure}
+          className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
+        >
           <input
             type="date"
             value={formData.request_date}
@@ -532,7 +574,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
           <input
             type="text"
             value={formData.current_unified_number}
-            onChange={(e) => setFormData((prev) => ({ ...prev, current_unified_number: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, current_unified_number: e.target.value }))
+            }
             className="app-input"
             placeholder="الرقم الموحد الحالي"
             required
@@ -559,34 +603,56 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
             placeholder="ملاحظات إضافية (اختياري)"
             disabled={saving}
           />
-          <button type="submit" className="app-button-primary h-[44px] self-start" disabled={saving}>
+          <button
+            type="submit"
+            className="app-button-primary h-[44px] self-start"
+            disabled={saving}
+          >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             حفظ طلب النقل
           </button>
         </form>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-bold text-slate-900">إدارة طلبات النقل</h3>
-            <p className="text-xs text-gray-500 mt-1">التحويل إلى موظف متاح فقط عند اكتمال الحالة: منقول</p>
+            <p className="text-xs text-neutral-500 mt-1">
+              التحويل إلى موظف متاح فقط عند اكتمال الحالة: منقول
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canImport && (
               <label className="app-button-secondary cursor-pointer px-3 py-2 text-sm">
                 <Upload className="h-4 w-4" />
                 استيراد
-                <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportTransfers} disabled={saving} />
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleImportTransfers}
+                  disabled={saving}
+                />
               </label>
             )}
             {canExport && (
-              <button type="button" onClick={handleExportTransfers} className="app-button-secondary px-3 py-2 text-sm" disabled={saving}>
+              <button
+                type="button"
+                onClick={handleExportTransfers}
+                className="app-button-secondary px-3 py-2 text-sm"
+                disabled={saving}
+              >
                 <Download className="h-4 w-4" />
                 تصدير
               </button>
             )}
-            <button type="button" onClick={() => void loadTransferData()} className="app-button-secondary px-3 py-2 text-sm" disabled={loading || saving}>
+            <button
+              type="button"
+              onClick={() => void loadTransferData()}
+              className="app-button-secondary px-3 py-2 text-sm"
+              disabled={loading || saving}
+            >
               <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               تحديث
             </button>
@@ -594,24 +660,28 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
         </div>
 
         {loading ? (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-center text-sm text-neutral-500">
             جاري تحميل بيانات إجراءات النقل...
           </div>
         ) : transferRows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500">
             لا توجد سجلات حالياً. أضف طلب نقل جديد أو استورد ملف Excel.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-neutral-50">
                 <tr>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">الاسم</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">رقم الإقامة</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">تاريخ الطلب</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">المشروع</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">الحالة</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-600">إجراءات</th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">الاسم</th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">
+                    رقم الإقامة
+                  </th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">
+                    تاريخ الطلب
+                  </th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">المشروع</th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">الحالة</th>
+                  <th className="px-3 py-2 text-right font-semibold text-neutral-600">إجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -621,7 +691,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
                     <tr key={row.id} className="bg-white">
                       <td className="px-3 py-3">
                         <div className="font-medium text-slate-900">{row.name}</div>
-                        {row.notes ? <div className="text-xs text-gray-500 mt-1">{row.notes}</div> : null}
+                        {row.notes ? (
+                          <div className="text-xs text-neutral-500 mt-1">{row.notes}</div>
+                        ) : null}
                       </td>
                       <td className="px-3 py-3 font-mono">{row.iqama}</td>
                       <td className="px-3 py-3">{formatDateShortWithHijri(row.request_date)}</td>
@@ -630,7 +702,9 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
                         <div className="flex items-center gap-2">
                           <select
                             value={statusDrafts[row.id] || row.status}
-                            onChange={(e) => setStatusDrafts((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                            onChange={(e) =>
+                              setStatusDrafts((prev) => ({ ...prev, [row.id]: e.target.value }))
+                            }
                             className="app-input py-2 text-sm"
                             disabled={saving}
                           >
@@ -659,8 +733,8 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
                             disabled={!isDone || saving}
                             className={`px-3 py-2 rounded-lg text-xs font-semibold border transition ${
                               isDone
-                                ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
-                                : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                ? 'border-green-300 bg-green-50 text-success-700 hover:bg-green-100'
+                                : 'border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed'
                             }`}
                           >
                             <UserPlus className="h-4 w-4 inline ml-1" />
@@ -689,7 +763,8 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
           <div className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              عند الضغط على «تحويل لموظف» سيتم فتح نموذج الموظف الكامل. بعد الحفظ الناجح: يفتح كرت الموظف مباشرة مع شاشة الالتزامات المالية، ثم يُحذف سجل النقل المؤقت تلقائياً.
+              عند الضغط على «تحويل لموظف» سيتم فتح نموذج الموظف الكامل. بعد الحفظ الناجح: يفتح كرت
+              الموظف مباشرة مع شاشة الالتزامات المالية، ثم يُحذف سجل النقل المؤقت تلقائياً.
             </p>
           </div>
         </div>
@@ -702,13 +777,17 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
           setConversionSource(null)
         }}
         onSuccess={handleEmployeeCreatedFromTransfer}
-        initialData={conversionSource ? {
-          name: conversionSource.name,
-          residence_number: String(conversionSource.iqama),
-          project_id: conversionSource.project_id,
-          notes: conversionSource.notes || '',
-          joining_date: conversionSource.request_date,
-        } : undefined}
+        initialData={
+          conversionSource
+            ? {
+                name: conversionSource.name,
+                residence_number: String(conversionSource.iqama),
+                project_id: conversionSource.project_id,
+                notes: conversionSource.notes || '',
+                joining_date: conversionSource.request_date,
+              }
+            : undefined
+        }
       />
 
       {showEmployeeCard && newEmployeeCard && (

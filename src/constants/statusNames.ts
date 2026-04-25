@@ -1,6 +1,6 @@
 /**
  * المسميات الموحدة لحالات الانتهاءات في النظام
- * 
+ *
  * المسميات الموحدة:
  * - منتهي: < 0 يوم (انتهي أو قديم جداً)
  * - طارئ: ≤ 7 أيام (يحتاج تجديد فوري)
@@ -15,10 +15,10 @@ export const STATUS_NAMES = {
   HIGH: 'عاجل',
   MEDIUM: 'متوسط',
   VALID: 'ساري',
-  NOT_SPECIFIED: 'غير محدد'
+  NOT_SPECIFIED: 'غير محدد',
 } as const
 
-export type StatusName = typeof STATUS_NAMES[keyof typeof STATUS_NAMES]
+export type StatusName = (typeof STATUS_NAMES)[keyof typeof STATUS_NAMES]
 
 /**
  * الحصول على اسم الحالة بالعربية
@@ -31,4 +31,3 @@ export const getStatusName = (status: StatusName): string => {
  * جميع المسميات كقائمة
  */
 export const ALL_STATUS_NAMES = Object.values(STATUS_NAMES)
-

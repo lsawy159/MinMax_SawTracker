@@ -5,7 +5,7 @@ import AuthLoading from './AuthLoading'
 const mockUseAuth = vi.fn()
 
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => mockUseAuth()
+  useAuth: () => mockUseAuth(),
 }))
 
 describe('AuthLoading', () => {
@@ -15,7 +15,7 @@ describe('AuthLoading', () => {
       loading: true,
       error: null,
       clearError: vi.fn(),
-      retryLogin: vi.fn().mockResolvedValue(undefined)
+      retryLogin: vi.fn().mockResolvedValue(undefined),
     })
   })
 

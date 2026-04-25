@@ -19,13 +19,13 @@ export function ErrorMessage({
   fullPage = false,
 }: ErrorMessageProps) {
   const containerClass = fullPage
-    ? 'min-h-screen flex items-center justify-center bg-gray-50'
+    ? 'min-h-screen flex items-center justify-center bg-neutral-50'
     : 'w-full'
 
   const icons = {
-    error: <XCircle className="w-12 h-12 text-red-500" />,
+    error: <XCircle className="w-12 h-12 text-danger-500" />,
     warning: <AlertTriangle className="w-12 h-12 text-yellow-500" />,
-    info: <AlertTriangle className="w-12 h-12 text-blue-500" />,
+    info: <AlertTriangle className="w-12 h-12 text-info-500" />,
   }
 
   const colors = {
@@ -58,13 +58,9 @@ export function ErrorMessage({
       >
         <div className="flex flex-col items-center text-center gap-4">
           {icons[type]}
-          
+
           <div>
-            {title && (
-              <h3 className={`text-lg font-semibold ${colorScheme.text} mb-2`}>
-                {title}
-              </h3>
-            )}
+            {title && <h3 className={`text-lg font-semibold ${colorScheme.text} mb-2`}>{title}</h3>}
             <p className={`${colorScheme.subtext}`}>{message}</p>
           </div>
 
@@ -73,7 +69,7 @@ export function ErrorMessage({
           {onRetry && (
             <button
               onClick={onRetry}
-              className={`flex items-center gap-2 px-4 py-2 bg-white border ${colorScheme.border} rounded-lg hover:bg-gray-50 transition-colors ${colorScheme.text} font-medium`}
+              className={`flex items-center gap-2 px-4 py-2 bg-white border ${colorScheme.border} rounded-lg hover:bg-neutral-50 transition-colors ${colorScheme.text} font-medium`}
             >
               <RefreshCw className="w-4 h-4" />
               إعادة المحاولة
@@ -98,7 +94,7 @@ export function InlineError({ message }: { message: string }) {
 // Success message
 export function SuccessMessage({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg text-green-900">
+    <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg text-success-900">
       <div className="flex-shrink-0">
         <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

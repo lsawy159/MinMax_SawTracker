@@ -5,14 +5,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return (
-    <div
-      className={cn(
-        'skeleton-shimmer rounded-md bg-muted',
-        className
-      )}
-    />
-  )
+  return <div className={cn('skeleton-shimmer rounded-md bg-muted', className)} />
 }
 
 // Skeleton variants for common use cases
@@ -66,14 +59,14 @@ export function DashboardSkeleton() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <Skeleton className="h-10 w-48" />
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
       </div>
-      
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (

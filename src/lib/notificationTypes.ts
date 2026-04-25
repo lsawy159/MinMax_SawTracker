@@ -1,12 +1,12 @@
 /**
  * 🔐 Notification Management System - Type Definitions
- * 
+ *
  * Features:
  * - Robust fallback to primary admin email (ahmad.alsawy159@gmail.com)
  * - Comprehensive error handling with logging
  * - Validation functions for JSON parsing
  * - Type-safe recipient management
- * 
+ *
  * Last Updated: February 4, 2026
  */
 
@@ -35,7 +35,7 @@ export interface AdditionalRecipient {
 /**
  * 🎯 Complete Notification Recipients Configuration
  * Stored as JSONB in system_settings table
- * 
+ *
  * Structure:
  * {
  *   "primary_admin": "ahmad.alsawy159@gmail.com",
@@ -63,26 +63,28 @@ export function createDefaultConfig(): NotificationRecipientsConfig {
     primary_admin_locked: true,
     additional_recipients: [],
     version: '1.0',
-    last_modified: new Date().toISOString()
+    last_modified: new Date().toISOString(),
   }
 }
 
 /**
  * ✔️ Validate Configuration Structure
  * Ensures all required fields are present and correct type
- * 
+ *
  * Returns { valid: boolean, config: NotificationRecipientsConfig, error?: string }
  */
-export function validateConfig(
-  data: unknown
-): { valid: boolean; config: NotificationRecipientsConfig; error?: string } {
+export function validateConfig(data: unknown): {
+  valid: boolean
+  config: NotificationRecipientsConfig
+  error?: string
+} {
   try {
     if (!data || typeof data !== 'object') {
       logger.warn('Invalid notification config: not an object')
       return {
         valid: false,
         config: createDefaultConfig(),
-        error: 'Configuration is not an object'
+        error: 'Configuration is not an object',
       }
     }
 
@@ -131,23 +133,25 @@ export function validateConfig(
     const config = obj as unknown as NotificationRecipientsConfig
     return { valid: true, config }
   } catch (err) {
-    logger.error(`Error validating notification config: ${err instanceof Error ? err.message : String(err)}`)
+    logger.error(
+      `Error validating notification config: ${err instanceof Error ? err.message : String(err)}`
+    )
     return {
       valid: false,
       config: createDefaultConfig(),
-      error: `Validation error: ${err instanceof Error ? err.message : String(err)}`
+      error: `Validation error: ${err instanceof Error ? err.message : String(err)}`,
     }
   }
 }
 
 /**
  * 📩 Build Recipient List for Specific Notification Type
- * 
+ *
  * Returns:
  * - ALWAYS includes primary_admin
  * - Filters additional_recipients by permission flag
  * - Has fallback to primary_admin only if parsing fails
- * 
+ *
  * Example:
  * ```
  * const recipients = getRecipientsForNotificationType(config, 'expiryAlerts')
@@ -165,8 +169,11 @@ export function getRecipientsForNotificationType(
 
   try {
     // Add filtered additional recipients based on permission flag
-    const key = notificationType as keyof Omit<AdditionalRecipient, 'id' | 'email' | 'added_at' | 'added_by'>
-    
+    const key = notificationType as keyof Omit<
+      AdditionalRecipient,
+      'id' | 'email' | 'added_at' | 'added_by'
+    >
+
     config.additional_recipients.forEach((recipient) => {
       if (recipient[key] === true && recipient.email && recipient.email.includes('@')) {
         recipients.add(recipient.email)
@@ -184,7 +191,7 @@ export function getRecipientsForNotificationType(
 
 /**
  * 🔍 Safe JSON Parse with Fallback
- * 
+ *
  * If parsing fails, returns default config instead of throwing
  * This ensures notifications are NEVER blocked by parsing errors
  */
@@ -240,7 +247,7 @@ export function createSampleConfig(): NotificationRecipientsConfig {
         backupNotifications: true,
         dailyDigest: false,
         added_at: '2026-02-03T10:00:00Z',
-        added_by: 'system'
+        added_by: 'system',
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440002',
@@ -249,10 +256,10 @@ export function createSampleConfig(): NotificationRecipientsConfig {
         backupNotifications: true,
         dailyDigest: true,
         added_at: '2026-02-03T11:00:00Z',
-        added_by: 'system'
-      }
+        added_by: 'system',
+      },
     ],
     version: '1.0',
-    last_modified: new Date().toISOString()
+    last_modified: new Date().toISOString(),
   }
 }

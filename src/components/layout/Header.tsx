@@ -1,44 +1,43 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useThemeMode } from '@/hooks/useUiPreferences';
-import { Menu, Moon, Sun, Search, Bell, LogOut, Settings, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { useThemeMode } from '@/hooks/useUiPreferences'
+import { Menu, Moon, Sun, Search, Bell, LogOut, Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/DropdownMenu';
-import { Avatar, AvatarFallback } from '@/components/ui/Avatar';
+} from '@/components/ui/DropdownMenu'
+import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 
 interface HeaderProps {
-  onMenuClick?: () => void;
-  isMobileMenuOpen?: boolean;
+  onMenuClick?: () => void
 }
 
-export function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const { isDark, toggleTheme } = useThemeMode();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+export function Header({ onMenuClick }: HeaderProps) {
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const { isDark, toggleTheme } = useThemeMode()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
+    await signOut()
+    navigate('/login')
+  }
 
   const handleAdvancedSearch = () => {
-    navigate('/advanced-search');
-  };
+    navigate('/advanced-search')
+  }
 
   const userInitials = (user?.full_name || user?.username || 'U')
     .split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
@@ -55,7 +54,9 @@ export function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">SawTracker</h1>
+          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+            SawTracker
+          </h1>
         </div>
 
         {/* Center: Search (desktop only) */}
@@ -106,11 +107,7 @@ export function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
             onClick={toggleTheme}
             aria-label={isDark ? 'الوضع الفاتح' : 'الوضع الداكن'}
           >
-            {isDark ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
           {/* Profile Dropdown */}
@@ -135,19 +132,29 @@ export function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
                   {user?.email}
                 </p>
                 <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-1">
-                  {user?.role === 'admin' ? 'مدير النظام' : user?.role === 'manager' ? 'مسؤول' : 'مستخدم'}
+                  {user?.role === 'admin'
+                    ? 'مدير النظام'
+                    : user?.role === 'manager'
+                      ? 'مسؤول'
+                      : 'مستخدم'}
                 </p>
               </div>
 
               {/* Actions */}
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer gap-2">
+              <DropdownMenuItem
+                onClick={() => navigate('/settings')}
+                className="cursor-pointer gap-2"
+              >
                 <Settings className="h-4 w-4" />
                 <span>الإعدادات</span>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer gap-2 text-danger-600 dark:text-danger-400">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer gap-2 text-danger-600 dark:text-danger-400"
+              >
                 <LogOut className="h-4 w-4" />
                 <span>تسجيل الخروج</span>
               </DropdownMenuItem>
@@ -156,5 +163,5 @@ export function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

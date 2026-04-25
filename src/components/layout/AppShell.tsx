@@ -1,13 +1,13 @@
-import React, { useState, ReactNode } from 'react';
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
+import React, { useState, ReactNode } from 'react'
+import { Sidebar } from './Sidebar'
+import { Header } from './Header'
 
 interface AppShellProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -22,16 +22,11 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header
-          onMenuClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          isMobileMenuOpen={isMobileSidebarOpen}
-        />
+        <Header onMenuClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
-  );
+  )
 }

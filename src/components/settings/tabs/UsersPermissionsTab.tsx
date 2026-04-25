@@ -1,40 +1,44 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase, User } from '@/lib/supabase';
-import { PermissionDrawer } from './PermissionDrawer';
-import { RolesManagementSheet } from './RolesManagementSheet';
-import { Button } from '@/components/ui/button';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { logger } from '@/utils/logger';
-import { Shield, Settings, Users as UsersIcon } from 'lucide-react';
+import React, { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase, User } from '@/lib/supabase'
+import { PermissionDrawer } from './PermissionDrawer'
+import { RolesManagementSheet } from './RolesManagementSheet'
+import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { logger } from '@/utils/logger'
+import { Shield, Settings, Users as UsersIcon } from 'lucide-react'
 
 export function UsersPermissionsTab(): JSX.Element {
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [showRolesSheet, setShowRolesSheet] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [showRolesSheet, setShowRolesSheet] = useState(false)
 
-  const { data: users = [], isLoading, error } = useQuery({
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
         .select('id, username, full_name, email, role, is_active, created_at')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
 
       if (error) {
-        logger.error('Error fetching users:', error);
-        throw error;
+        logger.error('Error fetching users:', error)
+        throw error
       }
-      return (data as User[]) || [];
+      return (data as User[]) || []
     },
-  });
+  })
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <LoadingSpinner />
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -42,7 +46,7 @@ export function UsersPermissionsTab(): JSX.Element {
       <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 dark:border-danger-700/50 dark:bg-danger-900/20">
         <p className="text-sm text-danger-700 dark:text-danger-300">خطأ في تحميل المستخدمين</p>
       </div>
-    );
+    )
   }
 
   if (users.length === 0) {
@@ -52,7 +56,7 @@ export function UsersPermissionsTab(): JSX.Element {
         title="لا توجد مستخدمون"
         description="لم يتم العثور على مستخدمين في النظام"
       />
-    );
+    )
   }
 
   return (
@@ -60,7 +64,9 @@ export function UsersPermissionsTab(): JSX.Element {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">المستخدمون والصلاحيات</h3>
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+            المستخدمون والصلاحيات
+          </h3>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             إدارة صلاحيات المستخدمين والأدوار
           </p>
@@ -160,5 +166,5 @@ export function UsersPermissionsTab(): JSX.Element {
       {/* Roles Management Sheet */}
       <RolesManagementSheet isOpen={showRolesSheet} onOpenChange={setShowRolesSheet} />
     </div>
-  );
+  )
 }

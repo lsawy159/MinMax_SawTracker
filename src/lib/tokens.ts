@@ -41,7 +41,7 @@ export type ColorTokenName =
   | 'danger-700'
   | 'info-50'
   | 'info-500'
-  | 'info-700';
+  | 'info-700'
 
 /**
  * Typography token names
@@ -64,7 +64,7 @@ export type TypographyTokenName =
   | 'font-weight-bold'
   | 'line-height-tight'
   | 'line-height-normal'
-  | 'line-height-relaxed';
+  | 'line-height-relaxed'
 
 /**
  * Spacing token names (4px base)
@@ -81,17 +81,17 @@ export type SpacingTokenName =
   | 'space-12'
   | 'space-16'
   | 'space-20'
-  | 'space-24';
+  | 'space-24'
 
 /**
  * Border radius token names
  */
-export type RadiusTokenName = 'radius-sm' | 'radius-md' | 'radius-lg' | 'radius-xl' | 'radius-full';
+export type RadiusTokenName = 'radius-sm' | 'radius-md' | 'radius-lg' | 'radius-xl' | 'radius-full'
 
 /**
  * Shadow token names
  */
-export type ShadowTokenName = 'shadow-sm' | 'shadow-md' | 'shadow-lg' | 'shadow-xl';
+export type ShadowTokenName = 'shadow-sm' | 'shadow-md' | 'shadow-lg' | 'shadow-xl'
 
 /**
  * Motion/transition token names
@@ -101,12 +101,18 @@ export type MotionTokenName =
   | 'duration-normal'
   | 'duration-slow'
   | 'easing-standard'
-  | 'easing-emphasized';
+  | 'easing-emphasized'
 
 /**
  * All token names combined
  */
-export type TokenName = ColorTokenName | TypographyTokenName | SpacingTokenName | RadiusTokenName | ShadowTokenName | MotionTokenName;
+export type TokenName =
+  | ColorTokenName
+  | TypographyTokenName
+  | SpacingTokenName
+  | RadiusTokenName
+  | ShadowTokenName
+  | MotionTokenName
 
 /**
  * Token constant for referencing tokens as CSS custom properties
@@ -227,7 +233,7 @@ export const TOKEN = {
       EMPHASIZED: 'easing-emphasized',
     } as const,
   },
-} as const;
+} as const
 
 /**
  * Helper to get CSS custom property reference
@@ -235,7 +241,7 @@ export const TOKEN = {
  * @example getCSSVar('space', '4') → 'var(--space-4)'
  */
 export function getCSSVar(category: string, value: string): string {
-  return `var(--${category}-${value})`;
+  return `var(--${category}-${value})`
 }
 
 /**
@@ -243,7 +249,7 @@ export function getCSSVar(category: string, value: string): string {
  * @example getColorVar('primary-500') → 'var(--color-primary-500)'
  */
 export function getColorVar(colorName: ColorTokenName): string {
-  return getCSSVar('color', colorName);
+  return getCSSVar('color', colorName)
 }
 
 /**
@@ -251,15 +257,17 @@ export function getColorVar(colorName: ColorTokenName): string {
  * @example getSpaceVar('space-4') → 'var(--space-4)'
  */
 export function getSpaceVar(spaceName: SpacingTokenName): string {
-  return `var(--${spaceName})`;
+  return `var(--${spaceName})`
 }
 
 /**
  * Helper to get CSS custom property for motion
  * @example getDurationVar('duration-normal') → 'var(--duration-normal)'
  */
-export function getDurationVar(durationName: 'duration-fast' | 'duration-normal' | 'duration-slow'): string {
-  return `var(--${durationName})`;
+export function getDurationVar(
+  durationName: 'duration-fast' | 'duration-normal' | 'duration-slow'
+): string {
+  return `var(--${durationName})`
 }
 
 /**
@@ -267,5 +275,5 @@ export function getDurationVar(durationName: 'duration-fast' | 'duration-normal'
  * @example getEasingVar('easing-standard') → 'var(--easing-standard)'
  */
 export function getEasingVar(easingName: 'easing-standard' | 'easing-emphasized'): string {
-  return `var(--${easingName})`;
+  return `var(--${easingName})`
 }

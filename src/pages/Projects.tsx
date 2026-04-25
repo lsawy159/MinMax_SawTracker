@@ -21,8 +21,12 @@ type ActiveTab = 'list' | 'statistics'
 
 export default function Projects() {
   const { canView, canCreate } = usePermissions()
-  const [projects, setProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
-  const [filteredProjects, setFilteredProjects] = useState<(Project & { employee_count: number; total_salaries: number })[]>([])
+  const [projects, setProjects] = useState<
+    (Project & { employee_count: number; total_salaries: number })[]
+  >([])
+  const [filteredProjects, setFilteredProjects] = useState<
+    (Project & { employee_count: number; total_salaries: number })[]
+  >([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<ActiveTab>('list')
 
@@ -45,7 +49,7 @@ export default function Projects() {
   const loadProjects = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       // جلب جميع المشاريع
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
@@ -62,15 +66,15 @@ export default function Projects() {
       if (employeesError) throw employeesError
 
       // حساب الإحصائيات لكل مشروع
-      const projectsWithStats = (projectsData || []).map(project => {
-        const projectEmployees = (employees || []).filter(emp => emp.project_id === project.id)
+      const projectsWithStats = (projectsData || []).map((project) => {
+        const projectEmployees = (employees || []).filter((emp) => emp.project_id === project.id)
         const employee_count = projectEmployees.length
         const total_salaries = projectEmployees.reduce((sum, emp) => sum + (emp.salary || 0), 0)
 
         return {
           ...project,
           employee_count,
-          total_salaries
+          total_salaries,
         }
       })
 
@@ -89,15 +93,16 @@ export default function Projects() {
     // Apply search filter
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchLower) ||
-        project.description?.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (project) =>
+          project.name.toLowerCase().includes(searchLower) ||
+          project.description?.toLowerCase().includes(searchLower)
       )
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(project => project.status === statusFilter)
+      filtered = filtered.filter((project) => project.status === statusFilter)
     }
 
     // Apply sort
@@ -153,7 +158,9 @@ export default function Projects() {
     setShowDeleteModal(true)
   }
 
-  const handleViewProject = (project: Project & { employee_count?: number; total_salaries?: number }) => {
+  const handleViewProject = (
+    project: Project & { employee_count?: number; total_salaries?: number }
+  ) => {
     setSelectedProject(project)
     setShowDetailModal(true)
   }
@@ -176,10 +183,7 @@ export default function Projects() {
         return
       }
 
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', selectedProject.id)
+      const { error } = await supabase.from('projects').delete().eq('id', selectedProject.id)
 
       if (error) throw error
 
@@ -188,9 +192,9 @@ export default function Projects() {
         action: 'حذف مشروع',
         entity_type: 'project',
         entity_id: selectedProject.id,
-        details: { 
-          project_name: selectedProject.name 
-        }
+        details: {
+          project_name: selectedProject.name,
+        },
       })
 
       toast.success('تم حذف المشروع بنجاح')
@@ -235,48 +239,48 @@ export default function Projects() {
       {!hasViewPermission ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+            <Shield className="w-16 h-16 mx-auto mb-4 text-danger-500" />
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
+            <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
       ) : (
-      <div className="app-page app-tech-grid">
-        <PageHeader
-          title="المشاريع"
-          description="إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة."
-          breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'المشاريع' }]}
-          actions={
-            canCreate('projects') ? (
-              <Button onClick={handleAddProject}>
-                <Plus className="w-4 h-4" />
-                إضافة مشروع جديد
-              </Button>
-            ) : undefined
-          }
-        />
+        <div className="app-page app-tech-grid">
+          <PageHeader
+            title="المشاريع"
+            description="إدارة المشاريع وعرض الإحصائيات بنفس الهوية الموحدة."
+            breadcrumbs={[{ label: 'الرئيسية', href: '/dashboard' }, { label: 'المشاريع' }]}
+            actions={
+              canCreate('projects') ? (
+                <Button onClick={handleAddProject}>
+                  <Plus className="w-4 h-4" />
+                  إضافة مشروع جديد
+                </Button>
+              ) : undefined
+            }
+          />
 
-        {/* Tabs */}
-        <div className="app-toggle-shell w-fit">
-          <button
-            onClick={() => setActiveTab('list')}
-            className={`app-toggle-button ${activeTab === 'list' ? 'app-toggle-button-active' : ''}`}
-          >
-            قائمة المشاريع
-          </button>
-          <button
-            onClick={() => setActiveTab('statistics')}
-            className={`app-toggle-button ${activeTab === 'statistics' ? 'app-toggle-button-active' : ''}`}
-          >
-            إحصائيات المشاريع
-          </button>
-        </div>
+          {/* Tabs */}
+          <div className="app-toggle-shell w-fit">
+            <button
+              onClick={() => setActiveTab('list')}
+              className={`app-toggle-button ${activeTab === 'list' ? 'app-toggle-button-active' : ''}`}
+            >
+              قائمة المشاريع
+            </button>
+            <button
+              onClick={() => setActiveTab('statistics')}
+              className={`app-toggle-button ${activeTab === 'statistics' ? 'app-toggle-button-active' : ''}`}
+            >
+              إحصائيات المشاريع
+            </button>
+          </div>
 
-        {/* Tab Content */}
-        {activeTab === 'list' ? (
-          <div className="space-y-4">
-            {/* Filters */}
-            <FilterBar>
+          {/* Tab Content */}
+          {activeTab === 'list' ? (
+            <div className="space-y-4">
+              {/* Filters */}
+              <FilterBar>
                 <SearchInput
                   type="text"
                   value={searchTerm}
@@ -318,104 +322,95 @@ export default function Projects() {
                     <option value="created_at_asc">الأقدم</option>
                   </select>
                 </div>
+              </FilterBar>
 
-            </FilterBar>
+              {/* Projects Grid */}
+              {filteredProjects.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-neutral-200">
+                  <FolderKanban className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                  <p className="text-neutral-600">لا توجد مشاريع</p>
+                  {searchTerm || statusFilter !== 'all' ? (
+                    <p className="text-sm text-neutral-500 mt-2">جرب تغيير الفلاتر</p>
+                  ) : (
+                    canCreate('projects') && (
+                      <Button onClick={handleAddProject} className="mt-4">
+                        إضافة مشروع جديد
+                      </Button>
+                    )
+                  )}
+                </div>
+              ) : (
+                <div className={projectGridClass}>
+                  {filteredProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onEdit={handleEditProject}
+                      onDelete={handleDeleteProject}
+                      onView={handleViewProject}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <ProjectStatistics />
+          )}
 
-            {/* Projects Grid */}
-            {filteredProjects.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                <FolderKanban className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">لا توجد مشاريع</p>
-                {searchTerm || statusFilter !== 'all' ? (
-                  <p className="text-sm text-gray-500 mt-2">جرب تغيير الفلاتر</p>
-                ) : (
-                  canCreate('projects') && (
-                    <Button
-                      onClick={handleAddProject}
-                      className="mt-4"
-                    >
-                      إضافة مشروع جديد
-                    </Button>
-                  )
-                )}
-              </div>
-            ) : (
-              <div className={projectGridClass}>
-                {filteredProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onEdit={handleEditProject}
-                    onDelete={handleDeleteProject}
-                    onView={handleViewProject}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <ProjectStatistics />
-        )}
+          {/* Modals */}
+          {showAddModal && (
+            <ProjectModal
+              isOpen={showAddModal}
+              project={null}
+              onClose={handleModalClose}
+              onSuccess={handleModalSuccess}
+            />
+          )}
 
-        {/* Modals */}
-        {showAddModal && (
-          <ProjectModal
-            isOpen={showAddModal}
-            project={null}
-            onClose={handleModalClose}
-            onSuccess={handleModalSuccess}
-          />
-        )}
+          {showEditModal && selectedProject && (
+            <ProjectModal
+              isOpen={showEditModal}
+              project={selectedProject}
+              onClose={handleModalClose}
+              onSuccess={handleModalSuccess}
+            />
+          )}
 
-        {showEditModal && selectedProject && (
-          <ProjectModal
-            isOpen={showEditModal}
-            project={selectedProject}
-            onClose={handleModalClose}
-            onSuccess={handleModalSuccess}
-          />
-        )}
+          {/* Project Detail Modal */}
+          {showDetailModal && selectedProject && (
+            <ProjectDetailModal
+              project={
+                selectedProject as Project & { employee_count?: number; total_salaries?: number }
+              }
+              onClose={handleModalClose}
+              onEdit={handleEditProject}
+              onDelete={handleDeleteProject}
+            />
+          )}
 
-        {/* Project Detail Modal */}
-        {showDetailModal && selectedProject && (
-          <ProjectDetailModal
-            project={selectedProject as Project & { employee_count?: number; total_salaries?: number }}
-            onClose={handleModalClose}
-            onEdit={handleEditProject}
-            onDelete={handleDeleteProject}
-          />
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && selectedProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">تأكيد الحذف</h3>
-              <p className="text-gray-600 mb-6">
-                هل أنت متأكد من حذف المشروع "{selectedProject.name}"؟
-                <br />
-                <span className="text-sm text-red-600">لا يمكن التراجع عن هذا الإجراء</span>
-              </p>
-              <div className="flex items-center justify-end gap-3">
-                <Button
-                  onClick={handleModalClose}
-                  variant="secondary"
-                >
-                  إلغاء
-                </Button>
-                <Button
-                  onClick={handleDeleteConfirm}
-                  variant="destructive"
-                >
-                  حذف
-                </Button>
+          {/* Delete Confirmation Modal */}
+          {showDeleteModal && selectedProject && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-bold text-neutral-900 mb-4">تأكيد الحذف</h3>
+                <p className="text-neutral-600 mb-6">
+                  هل أنت متأكد من حذف المشروع "{selectedProject.name}"؟
+                  <br />
+                  <span className="text-sm text-red-600">لا يمكن التراجع عن هذا الإجراء</span>
+                </p>
+                <div className="flex items-center justify-end gap-3">
+                  <Button onClick={handleModalClose} variant="secondary">
+                    إلغاء
+                  </Button>
+                  <Button onClick={handleDeleteConfirm} variant="destructive">
+                    حذف
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
     </Layout>
   )
 }
-

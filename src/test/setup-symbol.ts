@@ -4,14 +4,14 @@
 // Solution: Ensure Symbol is available on all global objects immediately
 
 // Immediate execution - no imports before this
-(function() {
+;(function () {
   'use strict'
-  
+
   // Check if Symbol exists
   if (typeof Symbol === 'undefined') {
     throw new Error('Symbol is not available in this environment. Node.js version may be too old.')
   }
-  
+
   // Node.js global object
   if (typeof global !== 'undefined') {
     try {
@@ -24,13 +24,13 @@
     } catch {
       // Fallback if defineProperty fails
       try {
-        (global as unknown as Record<string, unknown>).Symbol = Symbol
+        ;(global as unknown as Record<string, unknown>).Symbol = Symbol
       } catch {
         // Ignore
       }
     }
   }
-  
+
   // globalThis (ES2020+)
   if (typeof globalThis !== 'undefined') {
     try {
@@ -42,13 +42,13 @@
       })
     } catch {
       try {
-        (globalThis as unknown as Record<string, unknown>).Symbol = Symbol
+        ;(globalThis as unknown as Record<string, unknown>).Symbol = Symbol
       } catch {
         // Ignore
       }
     }
   }
-  
+
   // window (jsdom/browser)
   if (typeof window !== 'undefined') {
     try {
@@ -60,15 +60,18 @@
       })
     } catch {
       try {
-        (window as unknown as Record<string, unknown>).Symbol = Symbol
+        ;(window as unknown as Record<string, unknown>).Symbol = Symbol
       } catch {
         // Ignore
       }
     }
   }
-  
+
   // Ensure global.globalThis exists (for older Node.js)
-  if (typeof global !== 'undefined' && typeof (global as unknown as Record<string, unknown>).globalThis === 'undefined') {
+  if (
+    typeof global !== 'undefined' &&
+    typeof (global as unknown as Record<string, unknown>).globalThis === 'undefined'
+  ) {
     try {
       Object.defineProperty(global, 'globalThis', {
         value: global,
@@ -78,7 +81,7 @@
       })
     } catch {
       try {
-        (global as unknown as Record<string, unknown>).globalThis = global
+        ;(global as unknown as Record<string, unknown>).globalThis = global
       } catch {
         // Ignore
       }

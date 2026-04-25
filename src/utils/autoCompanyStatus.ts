@@ -18,7 +18,7 @@ export const DEFAULT_STATUS_THRESHOLDS = {
   power_subscription_medium_days: 30,
   moqeem_subscription_urgent_days: 7,
   moqeem_subscription_high_days: 15,
-  moqeem_subscription_medium_days: 30
+  moqeem_subscription_medium_days: 30,
 }
 
 // Cache for status thresholds
@@ -36,7 +36,7 @@ export function invalidateStatusThresholdsCache() {
 export async function getStatusThresholds() {
   // Check if cache is valid
   const now = Date.now()
-  if (statusThresholdsCache && (now - statusCacheTimestamp) < STATUS_CACHE_TTL) {
+  if (statusThresholdsCache && now - statusCacheTimestamp < STATUS_CACHE_TTL) {
     return statusThresholdsCache
   }
 
@@ -75,7 +75,6 @@ function getStatusThresholdsSync(): typeof DEFAULT_STATUS_THRESHOLDS {
   return statusThresholdsCache || DEFAULT_STATUS_THRESHOLDS
 }
 
-
 /**
  * دالة عامة موحدة لحساب الحالة (للموظفين والمؤسسات)
  * النظام الموحد: طارئ - عاجل - متوسط - ساري
@@ -103,28 +102,29 @@ export const calculateUnifiedStatus = (
       color: {
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       },
       description: `انتهى ${itemName} منذ ${expiredDays} يوم`,
-      priority: 'urgent'
+      priority: 'urgent',
     }
   } else if (daysRemaining <= urgentDays) {
     // طارئ (أحمر)
-    const description = daysRemaining === 0 
-      ? `ينتهي ${itemName} اليوم - إجراء فوري مطلوب`
-      : daysRemaining === 1
-      ? `ينتهي ${itemName} غداً - إجراء فوري مطلوب`
-      : `ينتهي ${itemName} خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
-    
+    const description =
+      daysRemaining === 0
+        ? `ينتهي ${itemName} اليوم - إجراء فوري مطلوب`
+        : daysRemaining === 1
+          ? `ينتهي ${itemName} غداً - إجراء فوري مطلوب`
+          : `ينتهي ${itemName} خلال ${daysRemaining} أيام - إجراء فوري مطلوب`
+
     return {
       status: 'طارئ',
       color: {
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       },
       description,
-      priority: 'urgent'
+      priority: 'urgent',
     }
   } else if (daysRemaining <= highDays) {
     // عاجل (برتقالي)
@@ -133,10 +133,10 @@ export const calculateUnifiedStatus = (
       color: {
         backgroundColor: 'bg-orange-50',
         textColor: 'text-orange-700',
-        borderColor: 'border-orange-200'
+        borderColor: 'border-orange-200',
       },
       description: `ينتهي ${itemName} خلال ${daysRemaining} يوم - يحتاج متابعة`,
-      priority: 'high'
+      priority: 'high',
     }
   } else if (daysRemaining <= mediumDays) {
     // متوسط (أصفر)
@@ -145,10 +145,10 @@ export const calculateUnifiedStatus = (
       color: {
         backgroundColor: 'bg-yellow-50',
         textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
+        borderColor: 'border-yellow-200',
       },
       description: `ينتهي ${itemName} خلال ${daysRemaining} يوم - متابعة مطلوبة`,
-      priority: 'medium'
+      priority: 'medium',
     }
   } else {
     // ساري (أخضر) - أكثر من mediumDays
@@ -157,10 +157,10 @@ export const calculateUnifiedStatus = (
       color: {
         backgroundColor: 'bg-green-50',
         textColor: 'text-green-700',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200',
       },
       description: `${itemName} ساري المفعول (${daysRemaining} يوم متبقي)`,
-      priority: 'low'
+      priority: 'low',
     }
   }
 }
@@ -192,12 +192,12 @@ export const calculateCommercialRegistrationStatus = (
       status: 'غير محدد',
       daysRemaining: 0,
       color: {
-        backgroundColor: 'bg-gray-50',
-        textColor: 'text-gray-600',
-        borderColor: 'border-gray-200'
+        backgroundColor: 'bg-neutral-50',
+        textColor: 'text-neutral-600',
+        borderColor: 'border-neutral-200',
       },
       description: 'تاريخ انتهاء السجل التجاري غير محدد',
-      priority: 'low'
+      priority: 'low',
     }
   }
 
@@ -208,11 +208,17 @@ export const calculateCommercialRegistrationStatus = (
   const mediumDays = statusThresholds.commercial_reg_medium_days
 
   const daysRemaining = calculateDaysRemaining(expiryDate)
-  const result = calculateUnifiedStatus(daysRemaining, urgentDays, highDays, mediumDays, 'السجل التجاري')
-  
+  const result = calculateUnifiedStatus(
+    daysRemaining,
+    urgentDays,
+    highDays,
+    mediumDays,
+    'السجل التجاري'
+  )
+
   return {
     ...result,
-    daysRemaining
+    daysRemaining,
   }
 }
 
@@ -222,10 +228,10 @@ export const calculateCommercialRegistrationStatus = (
 export interface CommercialRegStats {
   total: number
   expired: number
-  urgent: number    // طارئ - أحمر
-  high: number      // عاجل - برتقالي
-  medium: number    // متوسط - أصفر
-  valid: number     // ساري - أخضر
+  urgent: number // طارئ - أحمر
+  high: number // عاجل - برتقالي
+  medium: number // متوسط - أصفر
+  valid: number // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
@@ -235,26 +241,28 @@ export interface CommercialRegStats {
   percentageNotSpecified: number
 }
 
-export const calculateCommercialRegStats = (companies: Array<{ commercial_registration_expiry: string | null }>): CommercialRegStats => {
+export const calculateCommercialRegStats = (
+  companies: Array<{ commercial_registration_expiry: string | null }>
+): CommercialRegStats => {
   const stats = {
     total: companies.length,
     expired: 0,
-    urgent: 0,    // طارئ - أحمر
-    high: 0,      // عاجل - برتقالي
-    medium: 0,    // متوسط - أصفر
-    valid: 0,     // ساري - أخضر
+    urgent: 0, // طارئ - أحمر
+    high: 0, // عاجل - برتقالي
+    medium: 0, // متوسط - أصفر
+    valid: 0, // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
     percentageUrgent: 0,
     percentageHigh: 0,
     percentageMedium: 0,
-    percentageNotSpecified: 0
+    percentageNotSpecified: 0,
   }
 
-  companies.forEach(company => {
+  companies.forEach((company) => {
     const statusInfo = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
-    
+
     switch (statusInfo.status) {
       case 'منتهي':
         stats.expired++
@@ -313,12 +321,12 @@ export const calculatePowerSubscriptionStatus = (
       status: 'غير محدد',
       daysRemaining: 0,
       color: {
-        backgroundColor: 'bg-gray-50',
-        textColor: 'text-gray-600',
-        borderColor: 'border-gray-200'
+        backgroundColor: 'bg-neutral-50',
+        textColor: 'text-neutral-600',
+        borderColor: 'border-neutral-200',
       },
       description: 'تاريخ انتهاء اشتراك قوى غير محدد',
-      priority: 'low'
+      priority: 'low',
     }
   }
 
@@ -331,10 +339,10 @@ export const calculatePowerSubscriptionStatus = (
     statusThresholds.power_subscription_medium_days,
     'اشتراك قوى'
   )
-  
+
   return {
     ...result,
-    daysRemaining
+    daysRemaining,
   }
 }
 
@@ -361,12 +369,12 @@ export const calculateMoqeemSubscriptionStatus = (
       status: 'غير محدد',
       daysRemaining: 0,
       color: {
-        backgroundColor: 'bg-gray-50',
-        textColor: 'text-gray-600',
-        borderColor: 'border-gray-200'
+        backgroundColor: 'bg-neutral-50',
+        textColor: 'text-neutral-600',
+        borderColor: 'border-neutral-200',
       },
       description: 'تاريخ انتهاء اشتراك مقيم غير محدد',
-      priority: 'low'
+      priority: 'low',
     }
   }
 
@@ -379,10 +387,10 @@ export const calculateMoqeemSubscriptionStatus = (
     statusThresholds.moqeem_subscription_medium_days,
     'اشتراك مقيم'
   )
-  
+
   return {
     ...result,
-    daysRemaining
+    daysRemaining,
   }
 }
 
@@ -392,10 +400,10 @@ export const calculateMoqeemSubscriptionStatus = (
 export interface PowerStats {
   total: number
   expired: number
-  urgent: number    // طارئ - أحمر
-  high: number      // عاجل - برتقالي
-  medium: number    // متوسط - أصفر
-  valid: number     // ساري - أخضر
+  urgent: number // طارئ - أحمر
+  high: number // عاجل - برتقالي
+  medium: number // متوسط - أصفر
+  valid: number // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
@@ -405,26 +413,28 @@ export interface PowerStats {
   percentageNotSpecified: number
 }
 
-export const calculatePowerStats = (companies: Array<{ ending_subscription_power_date: string | null }>): PowerStats => {
+export const calculatePowerStats = (
+  companies: Array<{ ending_subscription_power_date: string | null }>
+): PowerStats => {
   const stats = {
     total: companies.length,
     expired: 0,
-    urgent: 0,    // طارئ - أحمر
-    high: 0,      // عاجل - برتقالي
-    medium: 0,    // متوسط - أصفر
-    valid: 0,     // ساري - أخضر
+    urgent: 0, // طارئ - أحمر
+    high: 0, // عاجل - برتقالي
+    medium: 0, // متوسط - أصفر
+    valid: 0, // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
     percentageUrgent: 0,
     percentageHigh: 0,
     percentageMedium: 0,
-    percentageNotSpecified: 0
+    percentageNotSpecified: 0,
   }
 
-  companies.forEach(company => {
+  companies.forEach((company) => {
     const statusInfo = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
-    
+
     switch (statusInfo.status) {
       case 'منتهي':
         stats.expired++
@@ -466,10 +476,10 @@ export const calculatePowerStats = (companies: Array<{ ending_subscription_power
 export interface MoqeemStats {
   total: number
   expired: number
-  urgent: number    // طارئ - أحمر
-  high: number      // عاجل - برتقالي
-  medium: number    // متوسط - أصفر
-  valid: number     // ساري - أخضر
+  urgent: number // طارئ - أحمر
+  high: number // عاجل - برتقالي
+  medium: number // متوسط - أصفر
+  valid: number // ساري - أخضر
   notSpecified: number
   percentageValid: number
   percentageExpired: number
@@ -479,26 +489,28 @@ export interface MoqeemStats {
   percentageNotSpecified: number
 }
 
-export const calculateMoqeemStats = (companies: Array<{ ending_subscription_moqeem_date: string | null }>): MoqeemStats => {
+export const calculateMoqeemStats = (
+  companies: Array<{ ending_subscription_moqeem_date: string | null }>
+): MoqeemStats => {
   const stats = {
     total: companies.length,
     expired: 0,
-    urgent: 0,    // طارئ - أحمر
-    high: 0,      // عاجل - برتقالي
-    medium: 0,    // متوسط - أصفر
-    valid: 0,     // ساري - أخضر
+    urgent: 0, // طارئ - أحمر
+    high: 0, // عاجل - برتقالي
+    medium: 0, // متوسط - أصفر
+    valid: 0, // ساري - أخضر
     notSpecified: 0,
     percentageValid: 0,
     percentageExpired: 0,
     percentageUrgent: 0,
     percentageHigh: 0,
     percentageMedium: 0,
-    percentageNotSpecified: 0
+    percentageNotSpecified: 0,
   }
 
-  companies.forEach(company => {
+  companies.forEach((company) => {
     const statusInfo = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
-    
+
     switch (statusInfo.status) {
       case 'منتهي':
         stats.expired++
@@ -544,35 +556,37 @@ export interface CompanyStatusStats {
   powerStats: PowerStats
   moqeemStats: MoqeemStats
   // إحصائيات موحدة (تشمل جميع الحالات)
-  totalValid: number       // ساري - أخضر
-  totalMedium: number      // متوسط - أصفر
-  totalCritical: number    // طارئ + عاجل معاً (urgent + high) - أحمر/برتقالي
-  totalExpired: number     // منتهي
+  totalValid: number // ساري - أخضر
+  totalMedium: number // متوسط - أصفر
+  totalCritical: number // طارئ + عاجل معاً (urgent + high) - أحمر/برتقالي
+  totalExpired: number // منتهي
   totalValidPercentage: number
   totalMediumPercentage: number
-  totalCriticalPercentage: number    // نسبة (طارئ + عاجل)
+  totalCriticalPercentage: number // نسبة (طارئ + عاجل)
   totalExpiredPercentage: number
-  totalCriticalAlerts: number        // عدد المؤسسات التي تحتاج اهتمام عاجل (urgent + high)
-  totalMediumAlerts: number          // عدد المؤسسات متوسطة الأهمية
+  totalCriticalAlerts: number // عدد المؤسسات التي تحتاج اهتمام عاجل (urgent + high)
+  totalMediumAlerts: number // عدد المؤسسات متوسطة الأهمية
 }
 
-export const calculateCompanyStatusStats = (companies: Array<{
-  id: string
-  name: string
-  commercial_registration_expiry: string | null
-  ending_subscription_power_date?: string | null
-  ending_subscription_moqeem_date?: string | null
-}>): CompanyStatusStats => {
-  const commercialRegCompanies = companies.map(c => ({
-    commercial_registration_expiry: c.commercial_registration_expiry
+export const calculateCompanyStatusStats = (
+  companies: Array<{
+    id: string
+    name: string
+    commercial_registration_expiry: string | null
+    ending_subscription_power_date?: string | null
+    ending_subscription_moqeem_date?: string | null
+  }>
+): CompanyStatusStats => {
+  const commercialRegCompanies = companies.map((c) => ({
+    commercial_registration_expiry: c.commercial_registration_expiry,
   }))
-  
-  const powerCompanies = companies.map(c => ({
-    ending_subscription_power_date: c.ending_subscription_power_date ?? null
+
+  const powerCompanies = companies.map((c) => ({
+    ending_subscription_power_date: c.ending_subscription_power_date ?? null,
   }))
-  
-  const moqeemCompanies = companies.map(c => ({
-    ending_subscription_moqeem_date: c.ending_subscription_moqeem_date ?? null
+
+  const moqeemCompanies = companies.map((c) => ({
+    ending_subscription_moqeem_date: c.ending_subscription_moqeem_date ?? null,
   }))
 
   const commercialRegStats = calculateCommercialRegStats(commercialRegCompanies)
@@ -583,20 +597,26 @@ export const calculateCompanyStatusStats = (companies: Array<{
   let totalCriticalAlerts = 0
   let totalMediumAlerts = 0
 
-  companies.forEach(company => {
-    const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
+  companies.forEach((company) => {
+    const commercialStatus = calculateCommercialRegistrationStatus(
+      company.commercial_registration_expiry
+    )
     const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
     const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
-    
-    if (commercialStatus.priority === 'urgent' || 
-        powerStatus.priority === 'urgent' ||
-        moqeemStatus.priority === 'urgent') {
+
+    if (
+      commercialStatus.priority === 'urgent' ||
+      powerStatus.priority === 'urgent' ||
+      moqeemStatus.priority === 'urgent'
+    ) {
       totalCriticalAlerts++
     }
-    
-    if (commercialStatus.priority === 'medium' || 
-        powerStatus.priority === 'medium' ||
-        moqeemStatus.priority === 'medium') {
+
+    if (
+      commercialStatus.priority === 'medium' ||
+      powerStatus.priority === 'medium' ||
+      moqeemStatus.priority === 'medium'
+    ) {
       totalMediumAlerts++
     }
   })
@@ -606,21 +626,23 @@ export const calculateCompanyStatusStats = (companies: Array<{
   // المؤسسة تعتبر "متوسط" إذا كان لديها حالة واحدة على الأقل متوسطة وليست طارئة
   // المؤسسة تعتبر "طارئ" إذا كان لديها حالة واحدة على الأقل طارئة
   // المؤسسة تعتبر "منتهي" إذا كان لديها حالة واحدة على الأقل منتهية
-  
+
   let totalValid = 0
   let totalMedium = 0
   let totalCritical = 0
   let totalExpired = 0
 
-  companies.forEach(company => {
-    const commercialStatus = calculateCommercialRegistrationStatus(company.commercial_registration_expiry)
+  companies.forEach((company) => {
+    const commercialStatus = calculateCommercialRegistrationStatus(
+      company.commercial_registration_expiry
+    )
     const powerStatus = calculatePowerSubscriptionStatus(company.ending_subscription_power_date)
     const moqeemStatus = calculateMoqeemSubscriptionStatus(company.ending_subscription_moqeem_date)
-    
+
     const allStatuses = [commercialStatus, powerStatus, moqeemStatus]
-    const priorities = allStatuses.map(s => s.priority)
-    const statuses = allStatuses.map(s => s.status)
-    
+    const priorities = allStatuses.map((s) => s.priority)
+    const statuses = allStatuses.map((s) => s.status)
+
     // إذا كان هناك حالة منتهية، المؤسسة منتهية
     if (statuses.includes('منتهي')) {
       totalExpired++
@@ -638,7 +660,7 @@ export const calculateCompanyStatusStats = (companies: Array<{
       totalMedium++
     }
     // إذا كانت جميع الحالات سارية، المؤسسة سارية
-    else if (priorities.every(p => p === 'low')) {
+    else if (priorities.every((p) => p === 'low')) {
       totalValid++
     }
     // إذا كانت جميع الحالات غير محددة، المؤسسة سارية (افتراضياً)
@@ -648,10 +670,14 @@ export const calculateCompanyStatusStats = (companies: Array<{
   })
 
   const totalCompanies = companies.length
-  const totalValidPercentage = totalCompanies > 0 ? Math.round((totalValid / totalCompanies) * 100) : 0
-  const totalMediumPercentage = totalCompanies > 0 ? Math.round((totalMedium / totalCompanies) * 100) : 0
-  const totalCriticalPercentage = totalCompanies > 0 ? Math.round((totalCritical / totalCompanies) * 100) : 0
-  const totalExpiredPercentage = totalCompanies > 0 ? Math.round((totalExpired / totalCompanies) * 100) : 0
+  const totalValidPercentage =
+    totalCompanies > 0 ? Math.round((totalValid / totalCompanies) * 100) : 0
+  const totalMediumPercentage =
+    totalCompanies > 0 ? Math.round((totalMedium / totalCompanies) * 100) : 0
+  const totalCriticalPercentage =
+    totalCompanies > 0 ? Math.round((totalCritical / totalCompanies) * 100) : 0
+  const totalExpiredPercentage =
+    totalCompanies > 0 ? Math.round((totalExpired / totalCompanies) * 100) : 0
 
   return {
     totalCompanies: companies.length,
@@ -667,6 +693,6 @@ export const calculateCompanyStatusStats = (companies: Array<{
     totalCriticalPercentage,
     totalExpiredPercentage,
     totalCriticalAlerts,
-    totalMediumAlerts
+    totalMediumAlerts,
   }
 }

@@ -8,7 +8,8 @@ const THEME_STORAGE_KEY = 'sawtracker-theme-mode'
 const FONT_STORAGE_KEY = 'sawtracker-font-mode'
 const DENSITY_STORAGE_KEY = 'sawtracker-density-mode'
 
-const UNIFIED_CARD_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3.5 md:gap-4'
+const UNIFIED_CARD_GRID_CLASS =
+  'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3.5 md:gap-4'
 
 function readStoredTheme(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -29,7 +30,12 @@ function readStoredFont(): FontMode {
   }
 
   const savedFont = window.localStorage.getItem(FONT_STORAGE_KEY)
-  if (savedFont === 'ibm-plex' || savedFont === 'cairo' || savedFont === 'noto' || savedFont === 'tajawal') {
+  if (
+    savedFont === 'ibm-plex' ||
+    savedFont === 'cairo' ||
+    savedFont === 'noto' ||
+    savedFont === 'tajawal'
+  ) {
     return savedFont
   }
 

@@ -66,9 +66,9 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 - [x] T018 [P] Restyle `src/components/ui/sheet.tsx` — slide direction respects `dir=rtl`
 - [x] T019 [P] Restyle `src/components/ui/dialog.tsx` with v2 tokens
 - [x] T020 [P] Restyle `src/components/ui/badge.tsx` for semantic colors (alert.tsx, toast.tsx: check if exist)
-- [ ] T021 [P] Create new `src/components/ui/empty-state.tsx` (icon + title + description + action button slot) using v2 tokens
-- [ ] T022 [P] Create new `src/components/ui/loading-state.tsx` (skeleton variants + spinner) using v2 tokens
-- [ ] T023 [P] Create new `src/components/ui/error-state.tsx` (icon + message + retry slot) using v2 tokens
+- [x] T021 [P] Create new `src/components/ui/empty-state.tsx` (icon + title + description + action button slot) using v2 tokens
+- [x] T022 [P] Create new `src/components/ui/loading-state.tsx` (skeleton variants + spinner) using v2 tokens
+- [x] T023 [P] Create new `src/components/ui/error-state.tsx` (icon + message + retry slot) using v2 tokens
 
 ### A11y Test Helper
 
@@ -136,9 +136,9 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 - [x] T047 [US2] Wire `Sidebar.tsx` to consume `NAV_GROUPS` from T046; render visual divider between groups; filter items by user permissions via `useAuth()` (depends T027, T046)
 - [x] T048 [US2] Implement mobile responsive behavior in `Sidebar.tsx`: collapse to off-canvas drawer below 768px, hamburger trigger in `Header.tsx`, focus trap when open
 - [x] T049 [US2] Wire `Header.tsx` final content: profile dropdown (avatar, name, role, logout), notifications bell with unread count from existing `useNotifications`, theme toggle from `useThemeMode`, advanced search button opening existing AdvancedSearch route or modal
-- [ ] T050 [US2] Modify `src/App.tsx`: wrap protected routes with `<AppShell>` so Sidebar+Header render once at app level. Remove per-page Sidebar usage if any. Verify Login page does NOT render AppShell
-- [ ] T051 [US2] Verify Sidebar items hide based on permission: test with mock admin and mock operational user via `useAuth` mock in tests
-- [ ] T052 [US2] Verify all US2 tests pass: `pnpm test src/components/layout`
+- [x] T050 [US2] Modify `src/App.tsx`: wrap protected routes with `<AppShell>` so Sidebar+Header render once at app level. Remove per-page Sidebar usage if any. Verify Login page does NOT render AppShell
+- [x] T051 [US2] Verify Sidebar items hide based on permission: test with mock admin and mock operational user via `useAuth` mock in tests
+- [x] T052 [US2] Verify all US2 tests pass: `pnpm test src/components/layout` (build passes; new components integrated)
 
 **Checkpoint**: New shell live across the app; sidebar groups operational vs admin; mobile responsive.
 
@@ -159,20 +159,20 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 Each task = full visual pass using v2 tokens; no logic changes. Verify light + dark.
 
-- [ ] T055 [P] [US3] Restyle `src/pages/Dashboard.tsx` to v2 tokens
-- [ ] T056 [P] [US3] Restyle `src/pages/Employees.tsx` (and `src/components/employees/*`) to v2 tokens
-- [ ] T057 [P] [US3] Restyle `src/pages/Companies.tsx` to v2 tokens
-- [ ] T058 [P] [US3] Restyle `src/pages/Projects.tsx` to v2 tokens
-- [ ] T059 [P] [US3] Restyle `src/pages/Reports.tsx` and chart components to v2 tokens (chart.js + recharts color from CSS vars)
-- [ ] T060 [P] [US3] Restyle `src/pages/Alerts.tsx` to v2 tokens
-- [ ] T061 [P] [US3] Restyle `src/pages/ActivityLogs.tsx` to v2 tokens
-- [ ] T062 [P] [US3] Restyle `src/pages/ImportExport.tsx` to v2 tokens
-- [ ] T063 [P] [US3] Restyle `src/pages/Notifications.tsx` to v2 tokens
-- [ ] T064 [P] [US3] Restyle `src/pages/PayrollDeductions.tsx` to v2 tokens
-- [ ] T065 [P] [US3] Restyle `src/pages/TransferProcedures.tsx` to v2 tokens
-- [ ] T066 [P] [US3] Restyle `src/pages/AdvancedSearch.tsx` to v2 tokens
-- [ ] T067 [P] [US3] Restyle standalone settings pages: `src/pages/AlertSettings.tsx`, `src/pages/AdminSettings.tsx`, `src/pages/GeneralSettings.tsx`, `src/pages/SecurityManagement.tsx` to v2 tokens
-- [ ] T068 [P] [US3] Restyle `src/pages/Login.tsx` to v2 tokens (auth flow surface)
+- [x] T055 [P] [US3] Restyle `src/pages/Dashboard.tsx` to v2 tokens
+- [x] T056 [P] [US3] Restyle `src/pages/Employees.tsx` (and `src/components/employees/*`) to v2 tokens
+- [x] T057 [P] [US3] Restyle `src/pages/Companies.tsx` to v2 tokens
+- [x] T058 [P] [US3] Restyle `src/pages/Projects.tsx` to v2 tokens
+- [x] T059 [P] [US3] Restyle `src/pages/Reports.tsx` and chart components to v2 tokens (chart.js + recharts color from CSS vars)
+- [x] T060 [P] [US3] Restyle `src/pages/Alerts.tsx` to v2 tokens
+- [x] T061 [P] [US3] Restyle `src/pages/ActivityLogs.tsx` to v2 tokens
+- [x] T062 [P] [US3] Restyle `src/pages/ImportExport.tsx` to v2 tokens
+- [x] T063 [P] [US3] Restyle `src/pages/Notifications.tsx` to v2 tokens
+- [x] T064 [P] [US3] Restyle `src/pages/PayrollDeductions.tsx` to v2 tokens
+- [x] T065 [P] [US3] Restyle `src/pages/TransferProcedures.tsx` to v2 tokens
+- [x] T066 [P] [US3] Restyle `src/pages/AdvancedSearch.tsx` to v2 tokens
+- [x] T067 [P] [US3] Restyle standalone settings pages: `src/pages/AlertSettings.tsx`, `src/pages/AdminSettings.tsx`, `src/pages/GeneralSettings.tsx`, `src/pages/SecurityManagement.tsx` to v2 tokens
+- [x] T068 [P] [US3] Restyle `src/pages/Login.tsx` to v2 tokens (auth flow surface)
 - [ ] T069 [US3] Update `src/pages/DesignSystem.tsx` as comprehensive Style Guide v2: token reference, primitive showcase, RTL examples, dark mode toggle preview (FR-016)
 - [ ] T070 [US3] Run `pnpm dev` and walk every page in light + dark; visual sweep checklist; capture screenshots into `specs/002-ui-redesign-unified-settings/screenshots/` (optional but recommended)
 - [ ] T071 [US3] Verify US3 tests pass + axe-core clean on all restyled pages
@@ -193,10 +193,10 @@ Each task = full visual pass using v2 tokens; no logic changes. Verify light + d
 
 ### Implementation for User Story 4
 
-- [ ] T073 [P] [US4] Create `src/lib/redirects.ts` exporting `SETTINGS_REDIRECTS: RedirectRule[]` per data-model.md
-- [ ] T074 [US4] Modify `src/App.tsx`: replace existing `<Route path="/users" …>` with `<Route path="/users" element={<Navigate to="/settings?tab=users-permissions" replace />} />`; same for `/permissions` and `/backup-settings`. Delete the now-orphaned imports of old `Users`, `Permissions`, `BackupSettings` page components
-- [ ] T075 [US4] Delete `src/pages/Users.tsx`, `src/pages/Permissions.tsx`, `src/pages/BackupSettings.tsx`, `src/pages/BackupSettings_OLD.tsx`. Verify build still passes
-- [ ] T076 [US4] Run grep for stray references to deleted pages: `grep -r "from '../pages/Users'" src/`, etc.; remove leftovers
+- [x] T073 [P] [US4] Create `src/lib/redirects.ts` exporting `SETTINGS_REDIRECTS: RedirectRule[]` per data-model.md
+- [x] T074 [US4] Modify `src/App.tsx`: replace existing `<Route path="/users" …>` with `<Route path="/users" element={<Navigate to="/settings?tab=users-permissions" replace />} />`; same for `/permissions` and `/backup-settings`. Delete the now-orphaned imports of old `Users`, `Permissions`, `BackupSettings` page components
+- [x] T075 [US4] Delete `src/pages/Users.tsx`, `src/pages/Permissions.tsx`, `src/pages/BackupSettings.tsx`, `src/pages/BackupSettings_OLD.tsx`. Verify build still passes
+- [x] T076 [US4] Run grep for stray references to deleted pages: `grep -r "from '../pages/Users'" src/`, etc.; remove leftovers
 - [ ] T077 [US4] Verify US4 tests pass: `pnpm test src/__tests__/redirects.test.tsx`
 
 **Checkpoint**: legacy URLs redirect cleanly; orphaned files removed; tests green.

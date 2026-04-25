@@ -1,24 +1,24 @@
-import React, { Suspense, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSettingsTabState, SETTINGS_TABS } from './useSettingsTabState';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import React, { Suspense, useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useSettingsTabState, SETTINGS_TABS } from './useSettingsTabState'
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // Lazy load tab components
 const UsersPermissionsTab = React.lazy(() =>
   import('./tabs/UsersPermissionsTab').then((mod) => ({ default: mod.UsersPermissionsTab }))
-);
+)
 
 const BackupTab = React.lazy(() =>
   import('./tabs/BackupTab').then((mod) => ({ default: mod.BackupTab }))
-);
+)
 
 interface SettingsTabConfig {
-  id: typeof SETTINGS_TABS[number];
-  label: string;
-  labelAr: string;
-  component: React.LazyExoticComponent<() => JSX.Element>;
-  requiredPermission?: string;
+  id: (typeof SETTINGS_TABS)[number]
+  label: string
+  labelAr: string
+  component: React.LazyExoticComponent<() => JSX.Element>
+  requiredPermission?: string
 }
 
 const SETTINGS_TAB_CONFIGS: SettingsTabConfig[] = [
@@ -36,36 +36,47 @@ const SETTINGS_TAB_CONFIGS: SettingsTabConfig[] = [
     component: BackupTab,
     requiredPermission: 'manage_backups',
   },
-];
+]
 
 interface SettingsHubProps {
-  userPermissions?: string[];
+  userPermissions?: string[]
 }
 
 export function SettingsHub({ userPermissions = [] }: SettingsHubProps): JSX.Element {
-  const { activeTab, setActiveTab } = useSettingsTabState();
-  const [isDirty, setIsDirty] = useState(false);
+  const { activeTab, setActiveTab } = useSettingsTabState()
+  const [isDirty, setIsDirty] = useState(false)
 
   useUnsavedChangesGuard({
     isDirty,
     onNavigate: () => {
-      setIsDirty(false);
+      setIsDirty(false)
     },
-  });
+  })
 
   // Filter tabs based on permissions
   const visibleTabs = SETTINGS_TAB_CONFIGS.filter((tab) => {
-    if (!tab.requiredPermission) return true;
-    return userPermissions.includes(tab.requiredPermission);
-  });
+    if (!tab.requiredPermission) return true
+    return userPermissions.includes(tab.requiredPermission)
+  })
 
   if (visibleTabs.length === 0) {
-    return <div className="p-6 text-center text-neutral-500">لا توجد أذونات كافية. No permissions.</div>;
+    return (
+      <div className="p-6 text-center text-neutral-500">لا توجد أذونات كافية. No permissions.</div>
+    )
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} dir="rtl" className="w-full">
-      <TabsList className="grid w-full gap-2" role="tablist" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+      dir="rtl"
+      className="w-full"
+    >
+      <TabsList
+        className="grid w-full gap-2"
+        role="tablist"
+        style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}
+      >
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.id}
@@ -81,7 +92,7 @@ export function SettingsHub({ userPermissions = [] }: SettingsHubProps): JSX.Ele
       </TabsList>
 
       {visibleTabs.map((tab) => {
-        const TabComponent = tab.component;
+        const TabComponent = tab.component
         return (
           <TabsContent key={tab.id} value={tab.id} className="mt-6">
             <Suspense
@@ -94,8 +105,8 @@ export function SettingsHub({ userPermissions = [] }: SettingsHubProps): JSX.Ele
               <TabComponent />
             </Suspense>
           </TabsContent>
-        );
+        )
       })}
     </Tabs>
-  );
+  )
 }

@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import Layout from '@/components/layout/Layout'
-import { BarChart3, RefreshCw, Download, AlertTriangle, Calendar, TrendingUp, Building2, Users } from 'lucide-react'
+import {
+  BarChart3,
+  RefreshCw,
+  Download,
+  AlertTriangle,
+  Calendar,
+  TrendingUp,
+  Building2,
+  Users,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
@@ -10,7 +19,13 @@ import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoComp
 import { usePermissions } from '@/utils/permissions'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 
 interface SubscriptionItem {
   type: string
@@ -37,7 +52,8 @@ export default function Reports() {
   const [filteredItems, setFilteredItems] = useState<SubscriptionItem[]>([])
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [statusThresholds, setStatusThresholds] = useState<typeof DEFAULT_STATUS_THRESHOLDS>(DEFAULT_STATUS_THRESHOLDS)
+  const [statusThresholds, setStatusThresholds] =
+    useState<typeof DEFAULT_STATUS_THRESHOLDS>(DEFAULT_STATUS_THRESHOLDS)
 
   useEffect(() => {
     const loadThresholds = async () => {
@@ -48,21 +64,24 @@ export default function Reports() {
     loadThresholds()
   }, [])
 
-  const categorizeExpiry = useCallback((expiryDate: string | null | undefined): SubscriptionItem['status'] | null => {
-    if (!expiryDate) return null
+  const categorizeExpiry = useCallback(
+    (expiryDate: string | null | undefined): SubscriptionItem['status'] | null => {
+      if (!expiryDate) return null
 
-    const days = differenceInDays(new Date(expiryDate), new Date())
-    if (days < 0) return 'expired'
+      const days = differenceInDays(new Date(expiryDate), new Date())
+      if (days < 0) return 'expired'
 
-    const urgentDays = statusThresholds.commercial_reg_urgent_days || 7
-    const highDays = statusThresholds.commercial_reg_high_days || 15
-    const mediumDays = statusThresholds.commercial_reg_medium_days || 30
+      const urgentDays = statusThresholds.commercial_reg_urgent_days || 7
+      const highDays = statusThresholds.commercial_reg_high_days || 15
+      const mediumDays = statusThresholds.commercial_reg_medium_days || 30
 
-    if (days <= urgentDays) return 'urgent'
-    if (days <= highDays) return 'urgent'
-    if (days <= mediumDays) return 'medium'
-    return 'valid'
-  }, [statusThresholds])
+      if (days <= urgentDays) return 'urgent'
+      if (days <= highDays) return 'urgent'
+      if (days <= mediumDays) return 'medium'
+      return 'valid'
+    },
+    [statusThresholds]
+  )
 
   const updateTabStatistics = useCallback((items: SubscriptionItem[], tab: TabType) => {
     const types = tab === 'companies' ? COMPANY_TYPES : EMPLOYEE_TYPES
@@ -78,9 +97,22 @@ export default function Reports() {
     setLoading(true)
 
     try {
-      const [{ data: employeesData, error: employeesError }, { data: companiesData, error: companiesError }] = await Promise.all([
-        supabase.from('employees').select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at').order('name'),
-        supabase.from('companies').select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at').order('name'),
+      const [
+        { data: employeesData, error: employeesError },
+        { data: companiesData, error: companiesError },
+      ] = await Promise.all([
+        supabase
+          .from('employees')
+          .select(
+            'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at'
+          )
+          .order('name'),
+        supabase
+          .from('companies')
+          .select(
+            'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at'
+          )
+          .order('name'),
       ])
 
       if (employeesError) throw employeesError
@@ -197,17 +229,20 @@ export default function Reports() {
   const exportExpiryReportToExcel = async () => {
     const XLSX = await loadXlsx()
     const rows = filteredItems.map((item) => ({
-      'النوع': item.type,
-      'الاسم': item.name,
+      النوع: item.type,
+      الاسم: item.name,
       'تاريخ الانتهاء': item.expiryDate,
       'الأيام المتبقية': item.daysRemaining,
-      'الحالة': item.status === 'expired'
-        ? 'منتهي'
-        : item.status === 'urgent'
-          ? (item.daysRemaining <= (statusThresholds.commercial_reg_urgent_days || 7) ? 'طارئ' : 'عاجل')
-          : item.status === 'medium'
-            ? 'متوسط'
-            : 'ساري',
+      الحالة:
+        item.status === 'expired'
+          ? 'منتهي'
+          : item.status === 'urgent'
+            ? item.daysRemaining <= (statusThresholds.commercial_reg_urgent_days || 7)
+              ? 'طارئ'
+              : 'عاجل'
+            : item.status === 'medium'
+              ? 'متوسط'
+              : 'ساري',
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(rows)
@@ -216,7 +251,9 @@ export default function Reports() {
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
 
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const blob = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
     saveAs(blob, `تقرير_${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`)
     toast.success('تم تصدير البيانات بنجاح')
   }
@@ -226,13 +263,13 @@ export default function Reports() {
       case 'expired':
         return 'bg-red-100 text-red-800 border-red-200'
       case 'urgent':
-        return 'bg-orange-100 text-orange-800 border-orange-200'
+        return 'bg-orange-100 text-warning-800 border-orange-200'
       case 'medium':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'valid':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-100 text-success-800 border-green-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-neutral-100 text-neutral-800 border-neutral-200'
     }
   }
 
@@ -258,7 +295,7 @@ export default function Reports() {
           <div className="flex items-center justify-center h-[60vh]">
             <div className="text-center">
               <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-gray-600">جاري تحميل البيانات...</p>
+              <p className="text-neutral-600">جاري تحميل البيانات...</p>
             </div>
           </div>
         </div>
@@ -322,7 +359,7 @@ export default function Reports() {
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">إجمالي المنتهية</p>
+                <p className="text-sm text-neutral-600 mb-1">إجمالي المنتهية</p>
                 <p className="text-2xl font-bold text-red-600">{totalExpired}</p>
               </div>
               <div className="bg-red-100 p-3 rounded-lg">
@@ -333,18 +370,18 @@ export default function Reports() {
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">عاجل</p>
-                <p className="text-2xl font-bold text-orange-600">{totalUrgent}</p>
+                <p className="text-sm text-neutral-600 mb-1">عاجل</p>
+                <p className="text-2xl font-bold text-warning-600">{totalUrgent}</p>
               </div>
               <div className="bg-orange-100 p-3 rounded-lg">
-                <Calendar className="w-6 h-6 text-orange-600" />
+                <Calendar className="w-6 h-6 text-warning-600" />
               </div>
             </div>
           </div>
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">متوسط</p>
+                <p className="text-sm text-neutral-600 mb-1">متوسط</p>
                 <p className="text-2xl font-bold text-yellow-600">{totalMedium}</p>
               </div>
               <div className="bg-yellow-100 p-3 rounded-lg">
@@ -355,11 +392,11 @@ export default function Reports() {
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">ساري</p>
-                <p className="text-2xl font-bold text-green-600">{totalValid}</p>
+                <p className="text-sm text-neutral-600 mb-1">ساري</p>
+                <p className="text-2xl font-bold text-success-600">{totalValid}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-green-600" />
+                <BarChart3 className="w-6 h-6 text-success-600" />
               </div>
             </div>
           </div>
@@ -376,7 +413,9 @@ export default function Reports() {
                 <SelectContent>
                   <SelectItem value="all">جميع الأنواع</SelectItem>
                   {typeOptions.map((option) => (
-                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -397,7 +436,7 @@ export default function Reports() {
 
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-neutral-50">
                 <tr>
                   <th className="px-4 py-2 text-right">النوع</th>
                   <th className="px-4 py-2 text-right">الاسم/المؤسسة</th>
@@ -409,21 +448,38 @@ export default function Reports() {
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">لا توجد بيانات</td>
+                    <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
+                      لا توجد بيانات
+                    </td>
                   </tr>
                 ) : (
                   filteredItems.map((item, index) => (
-                    <tr key={`${item.type}-${item.name}-${index}`} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={`${item.type}-${item.name}-${index}`}
+                      className="border-t hover:bg-neutral-50"
+                    >
                       <td className="px-4 py-2">{item.type}</td>
                       <td className="px-4 py-2 font-medium">{item.name}</td>
                       <td className="px-4 py-2">{item.expiryDate}</td>
                       <td className="px-4 py-2">
-                        <span className={item.daysRemaining < 0 ? 'text-red-600 font-bold' : item.daysRemaining <= 30 ? 'text-orange-600' : ''}>
-                          {item.daysRemaining < 0 ? `منتهي منذ ${Math.abs(item.daysRemaining)} يوم` : `${item.daysRemaining} يوم`}
+                        <span
+                          className={
+                            item.daysRemaining < 0
+                              ? 'text-red-600 font-bold'
+                              : item.daysRemaining <= 30
+                                ? 'text-warning-600'
+                                : ''
+                          }
+                        >
+                          {item.daysRemaining < 0
+                            ? `منتهي منذ ${Math.abs(item.daysRemaining)} يوم`
+                            : `${item.daysRemaining} يوم`}
                         </span>
                       </td>
                       <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded-full text-xs border ${getStatusBadgeColor(item.status)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs border ${getStatusBadgeColor(item.status)}`}
+                        >
                           {getStatusText(item.status)}
                         </span>
                       </td>
@@ -436,32 +492,41 @@ export default function Reports() {
 
           <div className="md:hidden space-y-3 p-4">
             {filteredItems.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">لا توجد بيانات</div>
+              <div className="text-center text-neutral-500 py-8">لا توجد بيانات</div>
             ) : (
               filteredItems.map((item, index) => (
-                <div key={`${item.type}-${item.name}-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                <div
+                  key={`${item.type}-${item.name}-${index}`}
+                  className="bg-white border border-neutral-200 rounded-lg p-4 space-y-2"
+                >
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <p className="text-xs text-gray-600 font-semibold">النوع</p>
-                      <p className="text-sm font-medium text-gray-900">{item.type}</p>
+                      <p className="text-xs text-neutral-600 font-semibold">النوع</p>
+                      <p className="text-sm font-medium text-neutral-900">{item.type}</p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs border flex-shrink-0 ${getStatusBadgeColor(item.status)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs border flex-shrink-0 ${getStatusBadgeColor(item.status)}`}
+                    >
                       {getStatusText(item.status)}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600 font-semibold">الاسم/المؤسسة</p>
-                    <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                    <p className="text-xs text-neutral-600 font-semibold">الاسم/المؤسسة</p>
+                    <p className="text-sm font-medium text-neutral-900">{item.name}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-gray-600 font-semibold">تاريخ الانتهاء</p>
-                      <p className="text-sm text-gray-900">{item.expiryDate}</p>
+                      <p className="text-xs text-neutral-600 font-semibold">تاريخ الانتهاء</p>
+                      <p className="text-sm text-neutral-900">{item.expiryDate}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 font-semibold">الأيام المتبقية</p>
-                      <p className={`text-sm font-semibold ${item.daysRemaining < 0 ? 'text-red-600' : item.daysRemaining <= 30 ? 'text-orange-600' : 'text-gray-900'}`}>
-                        {item.daysRemaining < 0 ? `منتهي منذ ${Math.abs(item.daysRemaining)}` : `${item.daysRemaining} يوم`}
+                      <p className="text-xs text-neutral-600 font-semibold">الأيام المتبقية</p>
+                      <p
+                        className={`text-sm font-semibold ${item.daysRemaining < 0 ? 'text-red-600' : item.daysRemaining <= 30 ? 'text-warning-600' : 'text-neutral-900'}`}
+                      >
+                        {item.daysRemaining < 0
+                          ? `منتهي منذ ${Math.abs(item.daysRemaining)}`
+                          : `${item.daysRemaining} يوم`}
                       </p>
                     </div>
                   </div>

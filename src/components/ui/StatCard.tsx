@@ -130,12 +130,19 @@ export const StatCard = ({
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {title}
+            </p>
             <p className="text-3xl font-bold text-foreground">{shownValue}</p>
             {trend || trendLabel ? (
               <div className="flex items-center gap-2 text-xs">
                 {trend ? (
-                  <span className={cn('inline-flex items-center gap-1 font-semibold', trend.positive ? 'text-success' : 'text-danger')}>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 font-semibold',
+                      trend.positive ? 'text-success' : 'text-danger'
+                    )}
+                  >
                     <trend.icon className="h-3.5 w-3.5" />
                     {trend.text}
                   </span>
@@ -146,7 +153,12 @@ export const StatCard = ({
           </div>
 
           {icon ? (
-            <div className={cn('inline-flex h-11 w-11 items-center justify-center rounded-xl', accentClassMap[accent])}>
+            <div
+              className={cn(
+                'inline-flex h-11 w-11 items-center justify-center rounded-xl',
+                accentClassMap[accent]
+              )}
+            >
               {icon}
             </div>
           ) : null}

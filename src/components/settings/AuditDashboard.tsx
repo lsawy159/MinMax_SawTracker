@@ -29,7 +29,7 @@ export default function AuditDashboard() {
     high_risk_operations: 0,
     failed_logins_today: 0,
     active_sessions: 0,
-    total_sessions: 0
+    total_sessions: 0,
   })
   const [recentSecurityEvents, setRecentSecurityEvents] = useState<SecurityEvent[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -99,7 +99,7 @@ export default function AuditDashboard() {
         high_risk_operations: highRiskOps || 0,
         failed_logins_today: failedLogins,
         active_sessions: activeSessionsCount,
-        total_sessions: totalSessionsCount
+        total_sessions: totalSessionsCount,
       })
     } catch (error) {
       console.error('Error loading audit stats:', error)
@@ -121,7 +121,12 @@ export default function AuditDashboard() {
 
         if (backups) {
           backups.forEach((backup) => {
-            const backupTypeLabel = backup.backup_type === 'full' ? 'كاملة' : backup.backup_type === 'incremental' ? 'تزايدية' : 'جزئية'
+            const backupTypeLabel =
+              backup.backup_type === 'full'
+                ? 'كاملة'
+                : backup.backup_type === 'incremental'
+                  ? 'تزايدية'
+                  : 'جزئية'
             events.push({
               id: `backup-${backup.id}`,
               type: 'backup',
@@ -129,7 +134,7 @@ export default function AuditDashboard() {
               timestamp: backup.completed_at || backup.id,
               icon: CheckCircle,
               bgColor: 'bg-green-50',
-              iconColor: 'text-green-600'
+              iconColor: 'text-success-600',
             })
           })
         }
@@ -158,7 +163,7 @@ export default function AuditDashboard() {
               timestamp: attempt.created_at,
               icon: Activity,
               bgColor: 'bg-yellow-50',
-              iconColor: 'text-yellow-600'
+              iconColor: 'text-yellow-600',
             })
           })
         }
@@ -179,7 +184,10 @@ export default function AuditDashboard() {
 
         if (sessionLogs) {
           sessionLogs.forEach((log) => {
-            if (log.action && (log.action.toLowerCase().includes('session') || log.action.includes('جلسة'))) {
+            if (
+              log.action &&
+              (log.action.toLowerCase().includes('session') || log.action.includes('جلسة'))
+            ) {
               events.push({
                 id: `session-${log.id}`,
                 type: 'session_ended',
@@ -187,7 +195,7 @@ export default function AuditDashboard() {
                 timestamp: log.created_at,
                 icon: Activity,
                 bgColor: 'bg-blue-50',
-                iconColor: 'text-blue-600'
+                iconColor: 'text-blue-600',
               })
             }
           })
@@ -237,7 +245,7 @@ export default function AuditDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded-lg p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-green-600" />
+            <Shield className="w-5 h-5 text-success-600" />
             ملخص الأمان
           </h3>
           <div className="space-y-3">
@@ -255,32 +263,32 @@ export default function AuditDashboard() {
             </div>
             <div className="flex justify-between">
               <span>الجلسات النشطة:</span>
-              <span className="font-bold text-green-600">{auditStats.active_sessions}</span>
+              <span className="font-bold text-success-600">{auditStats.active_sessions}</span>
             </div>
           </div>
         </div>
 
         <div className="border rounded-lg p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-success-600" />
             حالة النظام
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span>تشفير البيانات:</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">نشط</span>
+              <span className="px-2 py-1 bg-green-100 text-success-800 rounded text-sm">نشط</span>
             </div>
             <div className="flex items-center justify-between">
               <span>النسخ الاحتياطية التلقائية:</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">نشط</span>
+              <span className="px-2 py-1 bg-green-100 text-success-800 rounded text-sm">نشط</span>
             </div>
             <div className="flex items-center justify-between">
               <span>تسجيل العمليات:</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">نشط</span>
+              <span className="px-2 py-1 bg-green-100 text-success-800 rounded text-sm">نشط</span>
             </div>
             <div className="flex items-center justify-between">
               <span>مراقبة الجلسات:</span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">نشط</span>
+              <span className="px-2 py-1 bg-green-100 text-success-800 rounded text-sm">نشط</span>
             </div>
           </div>
         </div>
@@ -292,17 +300,25 @@ export default function AuditDashboard() {
           {recentSecurityEvents.length > 0 ? (
             recentSecurityEvents.map((event) => {
               const Icon = event.icon
-              const timeAgo = formatDistanceToNow(new Date(event.timestamp), { addSuffix: true, locale: ar })
+              const timeAgo = formatDistanceToNow(new Date(event.timestamp), {
+                addSuffix: true,
+                locale: ar,
+              })
 
               return (
-                <div key={event.id} className={`flex items-center gap-2 p-2 ${event.bgColor} rounded`}>
+                <div
+                  key={event.id}
+                  className={`flex items-center gap-2 p-2 ${event.bgColor} rounded`}
+                >
                   <Icon className={`w-4 h-4 ${event.iconColor}`} />
-                  <span>{event.title} - {timeAgo}</span>
+                  <span>
+                    {event.title} - {timeAgo}
+                  </span>
                 </div>
               )
             })
           ) : (
-            <div className="text-center py-8 text-gray-500">لا توجد أحداث أمنية حديثة</div>
+            <div className="text-center py-8 text-neutral-500">لا توجد أحداث أمنية حديثة</div>
           )}
         </div>
       </div>

@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, Company, Project, Employee } from '@/lib/supabase'
-import { X, UserPlus, AlertCircle, CheckCircle, Users, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
+import {
+  X,
+  UserPlus,
+  AlertCircle,
+  CheckCircle,
+  Users,
+  Search,
+  ChevronDown,
+  FolderKanban,
+  Plus,
+  Loader2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { parseDate, normalizeDate } from '@/utils/dateParser'
 import {
@@ -63,12 +74,10 @@ const createDefaultFormData = () => ({
   residence_image_url: '',
   notes: '',
   company_id: '',
-  hired_worker_contract_status: 'بدون أجير'
+  hired_worker_contract_status: 'بدون أجير',
 })
 
-const buildInitialFormData = (
-  initialData?: AddEmployeeModalProps['initialData']
-) => {
+const buildInitialFormData = (initialData?: AddEmployeeModalProps['initialData']) => {
   const defaults = createDefaultFormData()
   if (!initialData) {
     return defaults
@@ -77,17 +86,22 @@ const buildInitialFormData = (
   return {
     ...defaults,
     ...initialData,
-    residence_number: initialData.residence_number !== undefined
-      ? String(initialData.residence_number)
-      : defaults.residence_number,
-    salary: initialData.salary !== undefined
-      ? String(initialData.salary)
-      : defaults.salary,
-    hired_worker_contract_status: initialData.hired_worker_contract_status || defaults.hired_worker_contract_status,
+    residence_number:
+      initialData.residence_number !== undefined
+        ? String(initialData.residence_number)
+        : defaults.residence_number,
+    salary: initialData.salary !== undefined ? String(initialData.salary) : defaults.salary,
+    hired_worker_contract_status:
+      initialData.hired_worker_contract_status || defaults.hired_worker_contract_status,
   }
 }
 
-export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialData }: AddEmployeeModalProps) {
+export default function AddEmployeeModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData,
+}: AddEmployeeModalProps) {
   const [companies, setCompanies] = useState<CompanyWithStats[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
@@ -122,7 +136,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   // معالجة ESC لإغلاق المودال
   useEffect(() => {
     if (!isOpen) return
-    
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         // التحقق من أن المستخدم لا يكتب في حقل إدخال
@@ -146,7 +160,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   // تحديث نص البحث عند تغيير المؤسسة المختارة (فقط عند اختيار مؤسسة، وليس عند الكتابة)
   useEffect(() => {
     if (formData.company_id && companies.length > 0) {
-      const selectedCompany = companies.find(c => c.id === formData.company_id)
+      const selectedCompany = companies.find((c) => c.id === formData.company_id)
       if (selectedCompany) {
         const displayText = `${selectedCompany.name} - ${selectedCompany.unified_number} - (${selectedCompany.employee_count}/${selectedCompany.max_employees})`
         // تحديث فقط إذا كان النص مختلف (لتجنب التداخل مع الكتابة)
@@ -164,10 +178,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   // إغلاق القائمة عند النقر خارجها
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+      if (
+        companyDropdownRef.current &&
+        !companyDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsCompanyDropdownOpen(false)
       }
-      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+      if (
+        projectDropdownRef.current &&
+        !projectDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsProjectDropdownOpen(false)
       }
     }
@@ -179,7 +199,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
     try {
       const { data: companiesData, error } = await supabase
         .from('companies')
-        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at')
+        .select(
+          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at'
+        )
         .order('name')
 
       if (error) throw error
@@ -196,7 +218,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
       // حساب عدد الموظفين لكل شركة
       const employeeCounts: Record<string, number> = {}
-      employeesData?.forEach(emp => {
+      employeesData?.forEach((emp) => {
         if (emp.company_id) {
           employeeCounts[emp.company_id] = (employeeCounts[emp.company_id] || 0) + 1
         }
@@ -237,8 +259,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   // دالة الحصول على لون حالة الأماكن الشاغرة
   const getAvailableSlotsColor = (availableSlots: number) => {
     if (availableSlots === 0) return 'text-red-600 bg-red-50'
-    if (availableSlots === 1) return 'text-orange-600 bg-orange-50'
-    return 'text-green-600 bg-green-50'
+    if (availableSlots === 1) return 'text-warning-600 bg-orange-50'
+    return 'text-success-600 bg-green-50'
   }
 
   // دالة الحصول على وصف حالة الأماكن الشاغرة
@@ -249,10 +271,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   }
 
   // تصفية المؤسسات: إخفاء المكتملة والبحث
-  const filteredCompanies = companies.filter(company => {
+  const filteredCompanies = companies.filter((company) => {
     // إخفاء المؤسسات المكتملة
     if (company.available_slots === 0) return false
-    
+
     // البحث في الاسم أو الرقم الموحد
     if (companySearchQuery.trim()) {
       const query = companySearchQuery.toLowerCase().trim()
@@ -260,12 +282,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
       const unifiedNumberMatch = company.unified_number?.toString().includes(query)
       return nameMatch || unifiedNumberMatch
     }
-    
+
     return true
   })
 
   // تصفية المشاريع: البحث في الاسم
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects.filter((project) => {
     if (projectSearchQuery.trim()) {
       const query = projectSearchQuery.toLowerCase().trim()
       return project.name?.toLowerCase().includes(query)
@@ -274,15 +296,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
   })
 
   // التحقق من وجود مشروع بالاسم المدخل
-  const hasExactMatch = projectSearchQuery.trim() && 
-    projects.some(p => p.name.toLowerCase() === projectSearchQuery.toLowerCase().trim())
-  
+  const hasExactMatch =
+    projectSearchQuery.trim() &&
+    projects.some((p) => p.name.toLowerCase() === projectSearchQuery.toLowerCase().trim())
+
   const showCreateOption = projectSearchQuery.trim() && !hasExactMatch && isProjectDropdownOpen
 
   // تحديث نص البحث عند تغيير المشروع المختار
   useEffect(() => {
     if (formData.project_id && projects.length > 0) {
-      const selectedProject = projects.find(p => p.id === formData.project_id)
+      const selectedProject = projects.find((p) => p.id === formData.project_id)
       if (selectedProject) {
         const displayText = selectedProject.name
         if (projectSearchQuery !== displayText) {
@@ -304,12 +327,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
     // التحقق من عدم وجود مشروع بنفس الاسم
     const existingProject = projects.find(
-      p => p.name.toLowerCase() === newProjectName.trim().toLowerCase()
+      (p) => p.name.toLowerCase() === newProjectName.trim().toLowerCase()
     )
 
     if (existingProject) {
       toast.error('يوجد مشروع بنفس الاسم بالفعل')
-      setFormData({ ...formData, project_id: existingProject.id, project_name: existingProject.name })
+      setFormData({
+        ...formData,
+        project_id: existingProject.id,
+        project_name: existingProject.name,
+      })
       setProjectSearchQuery(existingProject.name)
       setShowCreateProjectModal(false)
       setNewProjectName('')
@@ -323,7 +350,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
         .from('projects')
         .insert({
           name: newProjectName.trim(),
-          status: 'active'
+          status: 'active',
         })
         .select()
         .single()
@@ -357,10 +384,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target
 
-    setFormData(prev => {
+    setFormData((prev) => {
       if (name === 'hired_worker_contract_expiry' && value.trim()) {
         return {
           ...prev,
@@ -389,11 +418,13 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
     }
 
     // التحقق من وجود أماكن شاغرة في المؤسسة المختارة
-    const selectedCompany = companies.find(c => c.id === formData.company_id)
+    const selectedCompany = companies.find((c) => c.id === formData.company_id)
     if (selectedCompany) {
       const availableSlots = selectedCompany.available_slots
       if (availableSlots === 0) {
-        toast.error(`لا يمكن إضافة موظف جديد. المؤسسة "${selectedCompany.name}" مكتملة (${selectedCompany.employee_count}/${selectedCompany.max_employees} موظف)`)
+        toast.error(
+          `لا يمكن إضافة موظف جديد. المؤسسة "${selectedCompany.name}" مكتملة (${selectedCompany.employee_count}/${selectedCompany.max_employees} موظف)`
+        )
         return false
       }
     }
@@ -456,11 +487,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
         residence_number: Number(formData.residence_number.trim()) || 0,
         joining_date: normalizeDate(formData.joining_date) ?? undefined,
         contract_expiry: normalizeDate(formData.contract_expiry) ?? undefined,
-        hired_worker_contract_expiry: normalizeDate(formData.hired_worker_contract_expiry) ?? undefined,
+        hired_worker_contract_expiry:
+          normalizeDate(formData.hired_worker_contract_expiry) ?? undefined,
         residence_expiry: normalizeDate(formData.residence_expiry) ?? undefined,
         bank_account: formData.bank_account.trim() || undefined,
         salary: Number(formData.salary) || 0,
-        health_insurance_expiry: normalizeDate(formData.health_insurance_expiry) ?? undefined,  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+        health_insurance_expiry: normalizeDate(formData.health_insurance_expiry) ?? undefined, // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         residence_image_url: formData.residence_image_url.trim() || undefined,
         notes: formData.notes.trim() || undefined,
         company_id: formData.company_id,
@@ -468,14 +500,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
           bank_name: formData.bank_name,
           hired_worker_contract_status: formData.hired_worker_contract_status,
           hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
-        })
+        }),
       }
 
       // إضافة project_id إذا كان موجوداً
       if (formData.project_id) {
         employeeData.project_id = formData.project_id
         // الاحتفاظ بـ project_name للتوافق مع البيانات القديمة
-        const selectedProject = projects.find(p => p.id === formData.project_id)
+        const selectedProject = projects.find((p) => p.id === formData.project_id)
         if (selectedProject) {
           employeeData.project_name = selectedProject.name
         }
@@ -494,7 +526,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
           .single()
 
         if (existingEmployee) {
-          toast.error(`رقم الإقامة ${residenceNumberStr} موجود بالفعل للموظف: ${existingEmployee.name}`)
+          toast.error(
+            `رقم الإقامة ${residenceNumberStr} موجود بالفعل للموظف: ${existingEmployee.name}`
+          )
           setLoading(false)
           return
         }
@@ -503,12 +537,18 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
       const { data: insertedEmployee, error } = await supabase
         .from('employees')
         .insert([employeeData])
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)'
+        )
         .single()
 
       if (error) {
         // Check if error is due to duplicate residence number
-        if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+        if (
+          error.code === '23505' ||
+          error.message?.includes('unique') ||
+          error.message?.includes('duplicate')
+        ) {
           toast.error(`رقم الإقامة ${residenceNumberStr} موجود بالفعل في النظام`)
           setLoading(false)
           return
@@ -517,17 +557,21 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
       }
 
       toast.success('تم إضافة الموظف بنجاح')
-      
+
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
-      
+
       // إعادة تعيين النموذج
       setFormData(createDefaultFormData())
       setProjectSearchQuery('')
       setIsProjectDropdownOpen(false)
 
       // إغلاق المودال وإعادة تحميل البيانات
-      onSuccess((insertedEmployee as unknown as (Employee & { company: Company; project?: Project }) | undefined))
+      onSuccess(
+        insertedEmployee as unknown as
+          | (Employee & { company: Company; project?: Project })
+          | undefined
+      )
       onClose()
     } catch (error) {
       console.error('Error adding employee:', error)
@@ -549,14 +593,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
             <div className="rounded-xl bg-primary/15 p-2">
               <UserPlus className="h-6 w-6 text-slate-900" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">إضافة موظف جديد</h2>
+            <h2 className="text-2xl font-bold text-neutral-900">إضافة موظف جديد</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hover:bg-neutral-100 rounded-lg transition"
             disabled={loading}
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-6 h-6 text-neutral-500" />
           </button>
         </div>
 
@@ -565,8 +609,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 1. الاسم */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الاسم <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                الاسم <span className="text-danger-500">*</span>
               </label>
               <input
                 type="text"
@@ -582,7 +626,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 2. المهنة */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 مهنة الإقامة
               </label>
               <input
@@ -598,9 +642,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 3. الجنسية */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الجنسية
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">الجنسية</label>
               <input
                 type="text"
                 name="nationality"
@@ -614,8 +656,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 4. رقم الإقامة */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الإقامة <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                رقم الإقامة <span className="text-danger-500">*</span>
               </label>
               <input
                 type="text"
@@ -631,7 +673,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 5. رقم جواز السفر */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 رقم جواز السفر
               </label>
               <input
@@ -647,9 +689,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 6. رقم الهاتف */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الهاتف
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">رقم الهاتف</label>
               <input
                 type="tel"
                 name="phone"
@@ -663,7 +703,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 7. الحساب البنكي */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 الحساب البنكي
               </label>
               <input
@@ -679,9 +719,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 8. اسم البنك */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                اسم البنك
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">اسم البنك</label>
               <input
                 type="text"
                 name="bank_name"
@@ -695,9 +733,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 9. الراتب */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الراتب
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">الراتب</label>
               <input
                 type="number"
                 name="salary"
@@ -713,7 +749,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 10. حالة عقد أجير */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 حالة عقد أجير
               </label>
               <select
@@ -724,14 +760,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                 disabled={loading || Boolean(formData.hired_worker_contract_expiry)}
               >
                 {HIRED_WORKER_CONTRACT_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
               </select>
             </div>
 
             {/* 11. المشروع */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
                 <FolderKanban className="w-4 h-4" />
                 المشروع
               </label>
@@ -750,20 +788,22 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                     className="app-input bg-white pr-10"
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <Search className="w-5 h-5 text-gray-400" />
+                    <Search className="w-5 h-5 text-neutral-400" />
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                     disabled={loading}
                   >
-                    <ChevronDown className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
                 </div>
-                
+
                 {isProjectDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                     <button
                       type="button"
                       onClick={() => {
@@ -771,22 +811,26 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                         setProjectSearchQuery('')
                         setIsProjectDropdownOpen(false)
                       }}
-                      className="w-full px-4 py-2.5 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
+                      className="w-full px-4 py-2.5 text-right text-sm hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none transition-colors text-neutral-600"
                     >
                       بدون مشروع
                     </button>
                     {filteredProjects.length === 0 && !showCreateOption ? (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      <div className="px-4 py-3 text-sm text-neutral-500 text-center">
                         {projectSearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مشاريع متاحة'}
                       </div>
                     ) : (
                       <>
-                        {filteredProjects.map(project => (
+                        {filteredProjects.map((project) => (
                           <button
                             key={project.id}
                             type="button"
                             onClick={() => {
-                              setFormData({ ...formData, project_id: project.id, project_name: project.name })
+                              setFormData({
+                                ...formData,
+                                project_id: project.id,
+                                project_name: project.name,
+                              })
                               setProjectSearchQuery(project.name)
                               setIsProjectDropdownOpen(false)
                             }}
@@ -794,12 +838,20 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                           >
                             <div className="flex items-center justify-between">
                               <span>{project.name}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                project.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                'bg-blue-100 text-blue-800'
-                              }`}>
-                                {project.status === 'active' ? 'نشط' : project.status === 'inactive' ? 'متوقف' : 'مكتمل'}
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  project.status === 'active'
+                                    ? 'bg-green-100 text-success-800'
+                                    : project.status === 'inactive'
+                                      ? 'bg-neutral-100 text-neutral-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                }`}
+                              >
+                                {project.status === 'active'
+                                  ? 'نشط'
+                                  : project.status === 'inactive'
+                                    ? 'متوقف'
+                                    : 'مكتمل'}
                               </span>
                             </div>
                           </button>
@@ -811,7 +863,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                               setNewProjectName(projectSearchQuery.trim())
                               setShowCreateProjectModal(true)
                             }}
-                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-green-50 focus:bg-green-50 focus:outline-none transition-colors border-t border-gray-200 text-green-700 font-medium"
+                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-green-50 focus:bg-green-50 focus:outline-none transition-colors border-t border-neutral-200 text-success-700 font-medium"
                           >
                             <div className="flex items-center justify-between">
                               <span className="flex items-center gap-2">
@@ -828,24 +880,20 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
               </div>
 
               {/* Hidden input for form validation */}
-              <input
-                type="hidden"
-                name="project_id"
-                value={formData.project_id}
-              />
+              <input type="hidden" name="project_id" value={formData.project_id} />
             </div>
 
             {/* مودال إضافة مشروع جديد */}
             {showCreateProjectModal && (
               <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[60] p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Plus className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-success-600" />
                     إضافة مشروع جديد
                   </h3>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      اسم المشروع <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      اسم المشروع <span className="text-danger-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -899,8 +947,8 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 10. الشركة أو المؤسسة */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الشركة أو المؤسسة <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                الشركة أو المؤسسة <span className="text-danger-500">*</span>
               </label>
               <div className="relative" ref={companyDropdownRef}>
                 <div className="relative">
@@ -917,80 +965,86 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                     disabled={loading}
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <Search className="w-5 h-5 text-gray-400" />
+                    <Search className="w-5 h-5 text-neutral-400" />
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                     disabled={loading}
                   >
-                    <ChevronDown className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
                 </div>
-                
+
                 {isCompanyDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                     {filteredCompanies.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      <div className="px-4 py-3 text-sm text-neutral-500 text-center">
                         {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مؤسسات متاحة'}
                       </div>
                     ) : (
-                      filteredCompanies.map(company => (
+                      filteredCompanies.map((company) => (
                         <button
                           key={company.id}
                           type="button"
                           onClick={() => {
-                            setFormData(prev => ({ ...prev, company_id: company.id }))
-                            setCompanySearchQuery(`${company.name} - ${company.unified_number} - (${company.employee_count}/${company.max_employees})`)
+                            setFormData((prev) => ({ ...prev, company_id: company.id }))
+                            setCompanySearchQuery(
+                              `${company.name} - ${company.unified_number} - (${company.employee_count}/${company.max_employees})`
+                            )
                             setIsCompanyDropdownOpen(false)
                           }}
                           className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
                         >
-                          {company.name} - {company.unified_number} - ({company.employee_count}/{company.max_employees})
+                          {company.name} - {company.unified_number} - ({company.employee_count}/
+                          {company.max_employees})
                         </button>
                       ))
                     )}
                   </div>
                 )}
               </div>
-              
+
               {/* Hidden input for form validation */}
-              <input
-                type="hidden"
-                name="company_id"
-                value={formData.company_id}
-                required
-              />
-              
+              <input type="hidden" name="company_id" value={formData.company_id} required />
+
               {/* عرض تفاصيل المؤسسة المختارة */}
-              {formData.company_id && (
+              {formData.company_id &&
                 (() => {
-                  const selectedCompany = companies.find(c => c.id === formData.company_id)
+                  const selectedCompany = companies.find((c) => c.id === formData.company_id)
                   if (!selectedCompany) return null
-                  
+
                   const availableSlots = selectedCompany.available_slots
                   const slotsColor = getAvailableSlotsColor(availableSlots)
                   const slotsText = getAvailableSlotsText(availableSlots)
-                  
+
                   return (
-                    <div className={`mt-3 p-3 rounded-lg border ${availableSlots === 0 ? 'border-red-200 bg-red-50' : availableSlots === 1 ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>
+                    <div
+                      className={`mt-3 p-3 rounded-lg border ${availableSlots === 0 ? 'border-red-200 bg-red-50' : availableSlots === 1 ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}
+                    >
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="w-4 h-4" />
-                        <span className="text-sm font-medium text-gray-700">معلومات المؤسسة</span>
+                        <span className="text-sm font-medium text-neutral-700">
+                          معلومات المؤسسة
+                        </span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">العدد الحالي:</span>
+                          <span className="text-neutral-600">العدد الحالي:</span>
                           <span className="font-medium">{selectedCompany.employee_count} موظف</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">الحد الأقصى:</span>
+                          <span className="text-neutral-600">الحد الأقصى:</span>
                           <span className="font-medium">{selectedCompany.max_employees} موظف</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">الأماكن الشاغرة:</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${slotsColor}`}>
+                          <span className="text-neutral-600">الأماكن الشاغرة:</span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${slotsColor}`}
+                          >
                             {slotsText}
                           </span>
                         </div>
@@ -1004,16 +1058,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                         )}
                         {availableSlots === 1 && (
                           <div className="flex items-center gap-2 mt-2 p-2 bg-orange-100 rounded-lg">
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                            <span className="text-xs text-orange-700 font-medium">
+                            <AlertCircle className="w-4 h-4 text-warning-600" />
+                            <span className="text-xs text-warning-700 font-medium">
                               تحذير: يتبقى مكان واحد فقط في هذه المؤسسة
                             </span>
                           </div>
                         )}
                         {availableSlots > 1 && (
                           <div className="flex items-center gap-2 mt-2 p-2 bg-green-100 rounded-lg">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-xs text-green-700 font-medium">
+                            <CheckCircle className="w-4 h-4 text-success-600" />
+                            <span className="text-xs text-success-700 font-medium">
                               يمكن إضافة موظفين جدد ({availableSlots} أماكن متاحة)
                             </span>
                           </div>
@@ -1021,8 +1075,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
                       </div>
                     </div>
                   )
-                })()
-              )}
+                })()}
             </div>
           </div>
 
@@ -1030,7 +1083,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             {/* 11. تاريخ الميلاد */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ الميلاد
               </label>
               <input
@@ -1045,7 +1098,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 12. تاريخ الالتحاق */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ الالتحاق
               </label>
               <input
@@ -1060,7 +1113,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 13. تاريخ انتهاء الإقامة */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ انتهاء الإقامة
               </label>
               <input
@@ -1075,7 +1128,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 14. تاريخ انتهاء العقد */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ انتهاء العقد
               </label>
               <input
@@ -1090,7 +1143,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 15. تاريخ انتهاء عقد أجير */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ انتهاء عقد أجير
               </label>
               <input
@@ -1105,7 +1158,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
             {/* 16. تاريخ انتهاء التأمين الصحي */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 تاريخ انتهاء التأمين الصحي
               </label>
               <input
@@ -1121,7 +1174,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
           {/* 17. رابط صورة الإقامة */}
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
               رابط صورة الإقامة
             </label>
             <input
@@ -1137,9 +1190,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
 
           {/* 18. الملاحظات */}
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              الملاحظات
-            </label>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">الملاحظات</label>
             <textarea
               name="notes"
               value={formData.notes}
@@ -1152,7 +1203,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
           </div>
 
           {/* Footer */}
-          <div className="app-modal-footer mt-8 flex items-center gap-4 border-t border-gray-200 pt-6">
+          <div className="app-modal-footer mt-8 flex items-center gap-4 border-t border-neutral-200 pt-6">
             <button
               type="submit"
               disabled={loading}

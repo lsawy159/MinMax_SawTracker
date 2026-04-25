@@ -29,12 +29,7 @@ const getInitials = (name: string): string => {
     .join('')
 }
 
-export const AvatarGroup = ({
-  items,
-  max = 4,
-  size = 'md',
-  className,
-}: AvatarGroupProps) => {
+export const AvatarGroup = ({ items, max = 4, size = 'md', className }: AvatarGroupProps) => {
   const visibleItems = items.slice(0, max)
   const remaining = Math.max(items.length - max, 0)
 

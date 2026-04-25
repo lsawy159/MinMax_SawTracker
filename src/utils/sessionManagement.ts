@@ -1,6 +1,6 @@
 /**
  * Session Management and Token Refresh
- * 
+ *
  * Comprehensive session lifecycle management:
  * - Session timeout and expiration
  * - Token refresh strategies
@@ -86,7 +86,7 @@ export class SessionManager {
       sessionStartTime: Date.now(),
       lastActivityTime: Date.now(),
       isActive: true,
-      tokenExpiryTime
+      tokenExpiryTime,
     }
 
     this.startTokenRefresh()
@@ -98,7 +98,7 @@ export class SessionManager {
     logger.info('[SessionManager] Session initialized', {
       userId,
       expiryIn: tokenExpiryTime - Date.now(),
-      sessionId: this.currentSessionId
+      sessionId: this.currentSessionId,
     })
   }
 
@@ -137,16 +137,16 @@ export class SessionManager {
       if (data?.session) {
         // Update token expiry time
         const expiresIn = data.session.expires_in || 3600 // Default 1 hour
-        this.sessionState.tokenExpiryTime = Date.now() + (expiresIn * 1000)
+        this.sessionState.tokenExpiryTime = Date.now() + expiresIn * 1000
 
         logger.info('[SessionManager] Token refreshed successfully', {
           expiresIn,
-          newExpiryTime: this.sessionState.tokenExpiryTime
+          newExpiryTime: this.sessionState.tokenExpiryTime,
         })
 
         this.emit('token_refreshed', {
           expiresIn,
-          newExpiryTime: this.sessionState.tokenExpiryTime
+          newExpiryTime: this.sessionState.tokenExpiryTime,
         })
 
         return true
@@ -201,7 +201,7 @@ export class SessionManager {
 
     try {
       const now = new Date().toISOString()
-      
+
       // Check if the session is still active in the database
       const { data: sessions, error } = await supabase
         .from('user_sessions')
@@ -224,7 +224,7 @@ export class SessionManager {
         logger.warn('[SessionManager] No active session found - session was terminated remotely')
         this.emit('session_revoked_immediately', {
           reason: 'session_terminated_remotely',
-          revokedAt: new Date().toISOString()
+          revokedAt: new Date().toISOString(),
         })
         await this.endSession('disabled')
       }
@@ -267,7 +267,7 @@ export class SessionManager {
         logger.warn('[SessionManager] Inactivity warning triggered')
         this.emit('inactivity_warning', {
           remainingTime: SessionConfig.SESSION_TIMEOUT_MS - SessionConfig.INACTIVITY_WARNING_MS,
-          message: 'Your session will expire in 5 minutes due to inactivity'
+          message: 'Your session will expire in 5 minutes due to inactivity',
         })
       }
     }, SessionConfig.INACTIVITY_WARNING_MS)
@@ -283,7 +283,7 @@ export class SessionManager {
 
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
 
-    events.forEach(event => {
+    events.forEach((event) => {
       document.addEventListener(event, updateLastActivity, { passive: true })
     })
 
@@ -293,7 +293,10 @@ export class SessionManager {
   /**
    * Track user action (for audit logging)
    */
-  static async trackAction(actionType: string, details: Record<string, unknown> = {}): Promise<void> {
+  static async trackAction(
+    actionType: string,
+    details: Record<string, unknown> = {}
+  ): Promise<void> {
     if (!SessionConfig.TRACK_ACTIVITY || !this.sessionState) return
 
     try {
@@ -302,7 +305,7 @@ export class SessionManager {
         userId: this.sessionState.userId,
         actionType,
         timestamp: new Date().toISOString(),
-        ...details
+        ...details,
       })
 
       // Update activity time
@@ -348,13 +351,15 @@ export class SessionManager {
   /**
    * End current session
    */
-  static async endSession(reason: 'user_logout' | 'inactivity_timeout' | 'disabled' | 'expired' = 'user_logout'): Promise<void> {
+  static async endSession(
+    reason: 'user_logout' | 'inactivity_timeout' | 'disabled' | 'expired' = 'user_logout'
+  ): Promise<void> {
     try {
       if (this.sessionState) {
         logger.info('[SessionManager] Ending session', {
           userId: this.sessionState.userId,
           reason,
-          duration: Date.now() - this.sessionState.sessionStartTime
+          duration: Date.now() - this.sessionState.sessionStartTime,
         })
 
         // Mark session as inactive
@@ -363,7 +368,7 @@ export class SessionManager {
         // Emit session end event
         this.emit('session_ended', {
           reason,
-          duration: Date.now() - this.sessionState.sessionStartTime
+          duration: Date.now() - this.sessionState.sessionStartTime,
         })
       }
 
@@ -386,15 +391,18 @@ export class SessionManager {
 
   /**
    * Immediate session revocation (when user is disabled)
-   * 
+   *
    * This method forcefully terminates the session without waiting
    */
-  static async revokeSessionImmediately(userId: string, reason: string = 'user_disabled'): Promise<void> {
+  static async revokeSessionImmediately(
+    userId: string,
+    reason: string = 'user_disabled'
+  ): Promise<void> {
     try {
       logger.warn('[SessionManager] IMMEDIATE SESSION REVOCATION', {
         userId,
         reason,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
 
       if (this.sessionState && this.sessionState.userId === userId) {
@@ -405,7 +413,7 @@ export class SessionManager {
         // Emit immediate revocation event
         this.emit('session_revoked_immediately', {
           reason,
-          revokedAt: new Date().toISOString()
+          revokedAt: new Date().toISOString(),
         })
 
         // Sign out immediately
@@ -478,7 +486,7 @@ export class SessionManager {
   private static emit(event: string, data?: SessionData): void {
     const callbacks = this.listeners.get(event)
     if (callbacks) {
-      callbacks.forEach(callback => {
+      callbacks.forEach((callback) => {
         try {
           callback(data || {})
         } catch (error) {
@@ -503,14 +511,14 @@ export class SessionManager {
       isActive: this.sessionState.isActive,
       sessionDuration: Date.now() - this.sessionState.sessionStartTime,
       inactivityDuration: Date.now() - this.lastActivityTime,
-      tokenExpiresIn: Math.max(0, this.sessionState.tokenExpiryTime - Date.now())
+      tokenExpiresIn: Math.max(0, this.sessionState.tokenExpiryTime - Date.now()),
     }
   }
 }
 
 /**
  * Session Monitor Component (React Hook)
- * 
+ *
  * @example
  * function App() {
  *   useSessionMonitor({
@@ -581,7 +589,7 @@ export class SessionHealthCheck {
     const sessionInfo = SessionManager.getSessionInfo()
     if (sessionInfo) {
       const timeRemaining = SessionManager.getSessionTimeRemaining()
-      
+
       if (timeRemaining < SessionConfig.TOKEN_EXPIRY_BUFFER_MS) {
         issues.push('Token is expiring soon')
         recommendations.push('Refresh token immediately')
@@ -599,7 +607,7 @@ export class SessionHealthCheck {
       isHealthy: issues.length === 0,
       status: issues.length === 0 ? 'OK' : 'WARNING',
       issues,
-      recommendations
+      recommendations,
     }
   }
 }

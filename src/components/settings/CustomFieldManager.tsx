@@ -32,7 +32,7 @@ export default function CustomFieldManager() {
     is_required: false,
     is_active: true,
     field_options: {},
-    display_order: 0
+    display_order: 0,
   })
   const [selectOptions, setSelectOptions] = useState<string>('')
 
@@ -48,7 +48,9 @@ export default function CustomFieldManager() {
     try {
       const { data, error } = await supabase
         .from('custom_fields')
-        .select('id,entity_type,field_name,field_label,field_type,field_options,is_required,is_active,display_order,created_at,created_by,updated_at')
+        .select(
+          'id,entity_type,field_name,field_label,field_type,field_options,is_required,is_active,display_order,created_at,created_by,updated_at'
+        )
         .order('entity_type')
         .order('display_order')
 
@@ -73,7 +75,7 @@ export default function CustomFieldManager() {
         is_required: field.is_required,
         is_active: field.is_active,
         field_options: field.field_options || {},
-        display_order: field.display_order
+        display_order: field.display_order,
       })
       if (field.field_type === 'select' && field.field_options?.options) {
         if (Array.isArray(field.field_options.options)) {
@@ -92,7 +94,7 @@ export default function CustomFieldManager() {
         is_required: false,
         is_active: true,
         field_options: {},
-        display_order: fields.length
+        display_order: fields.length,
       })
       setSelectOptions('')
     }
@@ -115,9 +117,11 @@ export default function CustomFieldManager() {
     // ظ…ط¹ط§ظ„ط¬ط© ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©
     const finalFormData = { ...formData }
     if (formData.field_type === 'select') {
-      const options = selectOptions.split('\n').filter(opt => opt.trim())
+      const options = selectOptions.split('\n').filter((opt) => opt.trim())
       if (options.length === 0) {
-        toast.error('ظٹط±ط¬ظ‰ ط¥ط¶ط§ظپط© ط®ظٹط§ط± ظˆط§ط­ط¯ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ„ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©')
+        toast.error(
+          'ظٹط±ط¬ظ‰ ط¥ط¶ط§ظپط© ط®ظٹط§ط± ظˆط§ط­ط¯ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ„ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©'
+        )
         return
       }
       finalFormData.field_options = { options }
@@ -136,9 +140,7 @@ export default function CustomFieldManager() {
         toast.success('طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
       } else {
         // ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ط¬ط¯ظٹط¯
-        const { error } = await supabase
-          .from('custom_fields')
-          .insert([finalFormData])
+        const { error } = await supabase.from('custom_fields').insert([finalFormData])
 
         if (error) throw error
         toast.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
@@ -148,7 +150,9 @@ export default function CustomFieldManager() {
       loadFields()
     } catch (error: unknown) {
       console.error('Error saving field:', error)
-      toast.error('ظپط´ظ„ ط­ظپط¸ ط§ظ„ط­ظ‚ظ„: ' + (error instanceof Error ? error.message : String(error)))
+      toast.error(
+        'ظپط´ظ„ ط­ظپط¸ ط§ظ„ط­ظ‚ظ„: ' + (error instanceof Error ? error.message : String(error))
+      )
     }
   }
 
@@ -161,10 +165,7 @@ export default function CustomFieldManager() {
     if (!fieldToDelete) return
 
     try {
-      const { error } = await supabase
-        .from('custom_fields')
-        .delete()
-        .eq('id', fieldToDelete.id)
+      const { error } = await supabase.from('custom_fields').delete().eq('id', fieldToDelete.id)
 
       if (error) throw error
       toast.success('طھظ… ط­ط°ظپ ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
@@ -188,8 +189,10 @@ export default function CustomFieldManager() {
       toast.success(field.is_active ? 'طھظ… ط¥ظٹظ‚ط§ظپ ط§ظ„ط­ظ‚ظ„' : 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ط­ظ‚ظ„')
       loadFields()
     } catch {
-      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط­ظ‚ظ„')    } finally {
-      setIsSaving(false)    }
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط­ظ‚ظ„')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const getFieldTypeLabel = (type: string) => {
@@ -199,13 +202,13 @@ export default function CustomFieldManager() {
       date: 'طھط§ط±ظٹط®',
       select: 'ظ‚ط§ط¦ظ…ط© ظ…ظ†ط³ط¯ظ„ط©',
       boolean: 'طµط­/ط®ط·ط£',
-      textarea: 'ظ†طµ ط·ظˆظٹظ„'
+      textarea: 'ظ†طµ ط·ظˆظٹظ„',
     }
     return labels[type] || type
   }
 
-  const employeeFields = fields.filter(f => f.entity_type === 'employee')
-  const companyFields = fields.filter(f => f.entity_type === 'company')
+  const employeeFields = fields.filter((f) => f.entity_type === 'employee')
+  const companyFields = fields.filter((f) => f.entity_type === 'company')
 
   return (
     <div className="space-y-6">
@@ -213,15 +216,12 @@ export default function CustomFieldManager() {
       <div className="app-panel p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©</h2>
-            <p className="text-gray-600 text-sm mt-1">
+            <h2 className="text-xl font-bold text-neutral-900">ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©</h2>
+            <p className="text-neutral-600 text-sm mt-1">
               ط¥ط¯ط§ط±ط© ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ط¥ط¶ط§ظپظٹط© ظ„ظ„ظ…ظˆط¸ظپظٹظ† ظˆط§ظ„ظ…ط¤ط³ط³ط§طھ
             </p>
           </div>
-          <button
-            onClick={() => handleOpenForm()}
-            className="app-button-primary"
-          >
+          <button onClick={() => handleOpenForm()} className="app-button-primary">
             <Plus className="w-5 h-5" />
             ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ط¬ط¯ظٹط¯
           </button>
@@ -235,14 +235,16 @@ export default function CustomFieldManager() {
       ) : (
         <>
           {/* Employee Fields */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="font-semibold text-gray-900">ط­ظ‚ظˆظ„ ط§ظ„ظ…ظˆط¸ظپظٹظ† ({employeeFields.length})</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+            <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+              <h3 className="font-semibold text-neutral-900">
+                ط­ظ‚ظˆظ„ ط§ظ„ظ…ظˆط¸ظپظٹظ† ({employeeFields.length})
+              </h3>
             </div>
             <div className="p-6">
               {employeeFields.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <div className="text-center py-8 text-neutral-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
                   <p>ظ„ط§ طھظˆط¬ط¯ ط­ظ‚ظˆظ„ ظ…ط®طµطµط© ظ„ظ„ظ…ظˆط¸ظپظٹظ†</p>
                 </div>
               ) : (
@@ -250,13 +252,15 @@ export default function CustomFieldManager() {
                   {employeeFields.map((field) => (
                     <div
                       key={field.id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                      className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition"
                     >
                       <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-3 h-3 rounded-full ${field.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <div
+                          className={`w-3 h-3 rounded-full ${field.is_active ? 'bg-green-500' : 'bg-neutral-400'}`}
+                        ></div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-gray-900">{field.field_label}</h4>
+                            <h4 className="font-medium text-neutral-900">{field.field_label}</h4>
                             {field.is_required && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
                                 ظ…ط·ظ„ظˆط¨
@@ -264,12 +268,12 @@ export default function CustomFieldManager() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-sm text-gray-600">
-                              <code className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono">
+                            <span className="text-sm text-neutral-600">
+                              <code className="px-2 py-0.5 bg-neutral-100 rounded text-xs font-mono">
                                 {field.field_name}
                               </code>
                             </span>
-                            <span className="text-sm text-gray-500">â€¢</span>
+                            <span className="text-sm text-neutral-500">â€¢</span>
                             <span className="text-sm text-blue-600">
                               {getFieldTypeLabel(field.field_type)}
                             </span>
@@ -282,7 +286,7 @@ export default function CustomFieldManager() {
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                             field.is_active
                               ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-green-100 text-success-700 hover:bg-green-200'
                           }`}
                         >
                           {field.is_active ? 'ط¥ظٹظ‚ط§ظپ' : 'طھظپط¹ظٹظ„'}
@@ -308,14 +312,16 @@ export default function CustomFieldManager() {
           </div>
 
           {/* Company Fields */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="font-semibold text-gray-900">ط­ظ‚ظˆظ„ ط§ظ„ظ…ط¤ط³ط³ط§طھ ({companyFields.length})</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+            <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+              <h3 className="font-semibold text-neutral-900">
+                ط­ظ‚ظˆظ„ ط§ظ„ظ…ط¤ط³ط³ط§طھ ({companyFields.length})
+              </h3>
             </div>
             <div className="p-6">
               {companyFields.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <div className="text-center py-8 text-neutral-500">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
                   <p>ظ„ط§ طھظˆط¬ط¯ ط­ظ‚ظˆظ„ ظ…ط®طµطµط© ظ„ظ„ظ…ط¤ط³ط³ط§طھ</p>
                 </div>
               ) : (
@@ -323,13 +329,15 @@ export default function CustomFieldManager() {
                   {companyFields.map((field) => (
                     <div
                       key={field.id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                      className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition"
                     >
                       <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-3 h-3 rounded-full ${field.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <div
+                          className={`w-3 h-3 rounded-full ${field.is_active ? 'bg-green-500' : 'bg-neutral-400'}`}
+                        ></div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-gray-900">{field.field_label}</h4>
+                            <h4 className="font-medium text-neutral-900">{field.field_label}</h4>
                             {field.is_required && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
                                 ظ…ط·ظ„ظˆط¨
@@ -337,12 +345,12 @@ export default function CustomFieldManager() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-sm text-gray-600">
-                              <code className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono">
+                            <span className="text-sm text-neutral-600">
+                              <code className="px-2 py-0.5 bg-neutral-100 rounded text-xs font-mono">
                                 {field.field_name}
                               </code>
                             </span>
-                            <span className="text-sm text-gray-500">â€¢</span>
+                            <span className="text-sm text-neutral-500">â€¢</span>
                             <span className="text-sm text-blue-600">
                               {getFieldTypeLabel(field.field_type)}
                             </span>
@@ -355,7 +363,7 @@ export default function CustomFieldManager() {
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                             field.is_active
                               ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-green-100 text-success-700 hover:bg-green-200'
                           }`}
                         >
                           {field.is_active ? 'ط¥ظٹظ‚ط§ظپ' : 'طھظپط¹ظٹظ„'}
@@ -389,7 +397,9 @@ export default function CustomFieldManager() {
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white">
               <h3 className="text-xl font-bold">
-                {editingField ? 'طھط¹ط¯ظٹظ„ ط­ظ‚ظ„ ظ…ط®طµطµ' : 'ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ظ…ط®طµطµ ط¬ط¯ظٹط¯'}
+                {editingField
+                  ? 'طھط¹ط¯ظٹظ„ ط­ظ‚ظ„ ظ…ط®طµطµ'
+                  : 'ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ظ…ط®طµطµ ط¬ط¯ظٹط¯'}
               </h3>
               <button
                 onClick={handleCloseForm}
@@ -403,12 +413,14 @@ export default function CustomFieldManager() {
             <div className="p-6 space-y-4">
               {/* Entity Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ظ†ظˆط¹ ط§ظ„ظƒظٹط§ظ† <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ظ†ظˆط¹ ط§ظ„ظƒظٹط§ظ† <span className="text-danger-500">*</span>
                 </label>
                 <select
                   value={formData.entity_type}
-                  onChange={(e) => setFormData({ ...formData, entity_type: e.target.value as EntityType })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, entity_type: e.target.value as EntityType })
+                  }
                   className="app-input"
                   disabled={!!editingField || isSaving}
                 >
@@ -419,24 +431,33 @@ export default function CustomFieldManager() {
 
               {/* Field Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ط§ط³ظ… ط§ظ„ط­ظ‚ظ„ (ط¨ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©) <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ط§ط³ظ… ط§ظ„ط­ظ‚ظ„ (ط¨ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©){' '}
+                  <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.field_name}
-                  onChange={(e) => setFormData({ ...formData, field_name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      field_name: e.target.value.toLowerCase().replace(/\s+/g, '_'),
+                    })
+                  }
                   placeholder="ظ…ط«ط§ظ„: emergency_contact"
                   className="app-input font-mono"
                   disabled={!!editingField || isSaving}
                 />
-                <p className="text-xs text-gray-500 mt-1">ط§ط³طھط®ط¯ظ… ط£ط­ط±ظپ ط¥ظ†ط¬ظ„ظٹط²ظٹط© طµط؛ظٹط±ط© ظˆط´ط±ط·ط© ط³ظپظ„ظٹط© ظپظ‚ط·</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  ط§ط³طھط®ط¯ظ… ط£ط­ط±ظپ ط¥ظ†ط¬ظ„ظٹط²ظٹط© طµط؛ظٹط±ط© ظˆط´ط±ط·ط© ط³ظپظ„ظٹط©
+                  ظپظ‚ط·
+                </p>
               </div>
 
               {/* Field Label */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ط§ظ„طھط³ظ…ظٹط© (ظ„ظ„ط¹ط±ط¶) <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ط§ظ„طھط³ظ…ظٹط© (ظ„ظ„ط¹ط±ط¶) <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -450,12 +471,14 @@ export default function CustomFieldManager() {
 
               {/* Field Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ظ†ظˆط¹ ط§ظ„ط­ظ‚ظ„ <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  ظ†ظˆط¹ ط§ظ„ط­ظ‚ظ„ <span className="text-danger-500">*</span>
                 </label>
                 <select
                   value={formData.field_type}
-                  onChange={(e) => setFormData({ ...formData, field_type: e.target.value as FieldType })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, field_type: e.target.value as FieldType })
+                  }
                   className="app-input bg-white"
                 >
                   <option value="text">ظ†طµ ظ‚طµظٹط±</option>
@@ -470,8 +493,8 @@ export default function CustomFieldManager() {
               {/* Select Options (if type is select) */}
               {formData.field_type === 'select' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ط§ط¦ظ…ط© <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ط§ط¦ظ…ط© <span className="text-danger-500">*</span>
                   </label>
                   <textarea
                     value={selectOptions}
@@ -480,7 +503,9 @@ export default function CustomFieldManager() {
                     rows={5}
                     className="app-input min-h-[120px] resize-none"
                   />
-                  <p className="text-xs text-gray-500 mt-1">ط§ظƒطھط¨ ظƒظ„ ط®ظٹط§ط± ظپظٹ ط³ط·ط± ط¬ط¯ظٹط¯</p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    ط§ظƒطھط¨ ظƒظ„ ط®ظٹط§ط± ظپظٹ ط³ط·ط± ط¬ط¯ظٹط¯
+                  </p>
                 </div>
               )}
 
@@ -493,7 +518,7 @@ export default function CustomFieldManager() {
                     onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
                     className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
-                  <span className="text-sm text-gray-700">ط­ظ‚ظ„ ظ…ط·ظ„ظˆط¨</span>
+                  <span className="text-sm text-neutral-700">ط­ظ‚ظ„ ظ…ط·ظ„ظˆط¨</span>
                 </label>
 
                 <label className="flex items-center gap-2">
@@ -503,13 +528,13 @@ export default function CustomFieldManager() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
-                  <span className="text-sm text-gray-700">ظ…ظپط¹ظ‘ظ„</span>
+                  <span className="text-sm text-neutral-700">ظ…ظپط¹ظ‘ظ„</span>
                 </label>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="app-modal-footer sticky bottom-0 flex justify-end gap-3 border-t border-gray-200 bg-white p-6">
+            <div className="app-modal-footer sticky bottom-0 flex justify-end gap-3 border-t border-neutral-200 bg-white p-6">
               <button
                 onClick={handleCloseForm}
                 disabled={isSaving}
@@ -517,12 +542,12 @@ export default function CustomFieldManager() {
               >
                 ط¥ظ„ط؛ط§ط،
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="app-button-primary"
-              >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <button onClick={handleSave} disabled={isSaving} className="app-button-primary">
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 {isSaving ? 'ط¬ط§ط±ظچ ط§ظ„ط­ظپط¸...' : editingField ? 'طھط­ط¯ظٹط«' : 'ط¥ط¶ط§ظپط©'}
               </button>
             </div>
@@ -548,4 +573,3 @@ export default function CustomFieldManager() {
     </div>
   )
 }
-

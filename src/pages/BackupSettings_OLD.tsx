@@ -5,7 +5,19 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { toast } from 'sonner'
-import { Mail, Save, RefreshCw, Shield, Database, Info, CheckCircle, AlertTriangle, Clock, Loader2, HardDrive } from 'lucide-react'
+import {
+  Mail,
+  Save,
+  RefreshCw,
+  Shield,
+  Database,
+  Info,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Loader2,
+  HardDrive,
+} from 'lucide-react'
 import { enqueueEmail } from '@/lib/emailQueueService'
 import { formatDateWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
@@ -22,7 +34,7 @@ const DEFAULT_ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'Ahmad.alsawy159
 
 export default function BackupSettingsManagement() {
   const { user } = useAuth()
-  
+
   // يجب استدعاء hooks دائماً في أعلى المكوّن - لا conditional
   const permissions = usePermissions()
 
@@ -32,7 +44,7 @@ export default function BackupSettingsManagement() {
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
     admin_email: DEFAULT_ADMIN_EMAIL,
     backup_email_notifications: '',
-    backup_notifications_enabled: true
+    backup_notifications_enabled: true,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -41,9 +53,18 @@ export default function BackupSettingsManagement() {
     sentToday: 0,
     pending: 0,
     failed: 0,
-    lastSuccessTime: '' as string | ''
+    lastSuccessTime: '' as string | '',
   })
-  const [activity, setActivity] = useState<Array<{ id: string; to_emails: string[]; subject: string; status: string; created_at: string; processed_at: string | null }>>([])
+  const [activity, setActivity] = useState<
+    Array<{
+      id: string
+      to_emails: string[]
+      subject: string
+      status: string
+      created_at: string
+      processed_at: string | null
+    }>
+  >([])
   const [recipients, setRecipients] = useState<string[]>([])
   const [newRecipient, setNewRecipient] = useState('')
   const [manualBackupLoading, setManualBackupLoading] = useState(false)
@@ -71,7 +92,7 @@ export default function BackupSettingsManagement() {
       const nextConfig: EmailConfig = {
         admin_email: DEFAULT_ADMIN_EMAIL,
         backup_email_notifications: '',
-        backup_notifications_enabled: true
+        backup_notifications_enabled: true,
       }
 
       data?.forEach((row) => {
@@ -89,7 +110,7 @@ export default function BackupSettingsManagement() {
       setEmailConfig(nextConfig)
       const parsedRecipients = (nextConfig.backup_email_notifications || '')
         .split(/[;,]/)
-        .map(s => s.trim())
+        .map((s) => s.trim())
         .filter(Boolean)
       setRecipients(parsedRecipients)
     } catch (error) {
@@ -141,9 +162,13 @@ export default function BackupSettingsManagement() {
         sentToday: sentTodayCount || 0,
         pending: pendingCount || 0,
         failed: failedCount || 0,
-        lastSuccessTime: lastSuccessArr && lastSuccessArr[0]
-          ? (lastSuccessArr[0].processed_at || lastSuccessArr[0].completed_at || lastSuccessArr[0].sent_at || '')
-          : ''
+        lastSuccessTime:
+          lastSuccessArr && lastSuccessArr[0]
+            ? lastSuccessArr[0].processed_at ||
+              lastSuccessArr[0].completed_at ||
+              lastSuccessArr[0].sent_at ||
+              ''
+            : '',
       })
 
       const { data: recent } = await supabase
@@ -181,12 +206,12 @@ export default function BackupSettingsManagement() {
       toast.info('هذا البريد موجود بالفعل')
       return
     }
-    setRecipients(prev => [...prev, email])
+    setRecipients((prev) => [...prev, email])
     setNewRecipient('')
   }
 
   const removeRecipient = (email: string) => {
-    setRecipients(prev => prev.filter(e => e !== email))
+    setRecipients((prev) => prev.filter((e) => e !== email))
   }
 
   const saveEmailSettings = async () => {
@@ -205,7 +230,7 @@ export default function BackupSettingsManagement() {
         return {
           setting_key: key,
           setting_value: value,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         }
       })
 
@@ -239,7 +264,7 @@ export default function BackupSettingsManagement() {
         toEmails: [admin],
         subject,
         htmlContent: html,
-        priority: 'urgent'
+        priority: 'urgent',
       })
       if (res.success) {
         toast.success('تم إرسال البريد الاختباري إلى المدير')
@@ -323,12 +348,18 @@ export default function BackupSettingsManagement() {
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-sm font-bold text-gray-900">إعدادات النسخ الاحتياطي</h1>
-                <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${systemPulse.tone === 'success' ? 'text-green-700' : 'text-amber-700'}`}>
-                  <span className={`w-2 h-2 rounded-full ${systemPulse.tone === 'success' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                <span
+                  className={`inline-flex items-center gap-1 text-[11px] font-medium ${systemPulse.tone === 'success' ? 'text-green-700' : 'text-amber-700'}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${systemPulse.tone === 'success' ? 'bg-green-500' : 'bg-amber-500'}`}
+                  />
                   {systemPulse.tone === 'success' ? 'نشط' : 'عامل الانتظار'}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-600">إدارة إعدادات النسخ الاحتياطي وإشعارات البريد الإلكتروني</p>
+              <p className="text-[11px] text-gray-600">
+                إدارة إعدادات النسخ الاحتياطي وإشعارات البريد الإلكتروني
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
@@ -388,12 +419,26 @@ export default function BackupSettingsManagement() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">مراقبة قائمة الانتظار</h2>
-                  <p className="text-xs text-gray-600">تحديث آلي كل دقيقتين (120 ثانية) مع إمكانية التحديث اليدوي</p>
+                  <p className="text-xs text-gray-600">
+                    تحديث آلي كل دقيقتين (120 ثانية) مع إمكانية التحديث اليدوي
+                  </p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={retryAllFailed} className="px-2 py-1 text-[11px] bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">إعادة محاولة الفاشلة</button>
-                  <button onClick={clearHistory} className="px-2 py-1 text-[11px] bg-red-100 text-red-800 rounded hover:bg-red-200">مسح السجل</button>
-                  <span className="px-2 py-1 text-[11px] bg-blue-50 text-blue-700 rounded">Realtime</span>
+                  <button
+                    onClick={retryAllFailed}
+                    className="px-2 py-1 text-[11px] bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                  >
+                    إعادة محاولة الفاشلة
+                  </button>
+                  <button
+                    onClick={clearHistory}
+                    className="px-2 py-1 text-[11px] bg-red-100 text-red-800 rounded hover:bg-red-200"
+                  >
+                    مسح السجل
+                  </button>
+                  <span className="px-2 py-1 text-[11px] bg-blue-50 text-blue-700 rounded">
+                    Realtime
+                  </span>
                 </div>
               </div>
               <EmailQueueMonitor />
@@ -416,27 +461,47 @@ export default function BackupSettingsManagement() {
                   </thead>
                   <tbody>
                     {activity.length === 0 ? (
-                      <tr><td colSpan={4} className="px-2.5 py-3 text-center text-gray-500">لا يوجد بيانات حديثة</td></tr>
+                      <tr>
+                        <td colSpan={4} className="px-2.5 py-3 text-center text-gray-500">
+                          لا يوجد بيانات حديثة
+                        </td>
+                      </tr>
                     ) : (
                       activity.map((row) => {
                         const isSuccess = row.status === 'completed' || row.status === 'sent'
-                        const color = isSuccess ? 'text-green-700 bg-green-50' : row.status === 'failed' ? 'text-red-700 bg-red-50' : 'text-gray-700 bg-gray-50'
-                        const label = isSuccess ? 'نجحت' : row.status === 'failed' ? 'فشلت' : row.status
+                        const color = isSuccess
+                          ? 'text-green-700 bg-green-50'
+                          : row.status === 'failed'
+                            ? 'text-red-700 bg-red-50'
+                            : 'text-gray-700 bg-gray-50'
+                        const label = isSuccess
+                          ? 'نجحت'
+                          : row.status === 'failed'
+                            ? 'فشلت'
+                            : row.status
                         return (
                           <tr key={row.id} className="border-t hover:bg-gray-50">
                             <td className="px-2.5 py-1">
                               <div className="flex flex-col gap-0.5">
                                 {row.to_emails.slice(0, 2).map((email, idx) => (
-                                  <span key={idx} className="text-[11px] font-mono">{email}</span>
+                                  <span key={idx} className="text-[11px] font-mono">
+                                    {email}
+                                  </span>
                                 ))}
                                 {row.to_emails.length > 2 && (
-                                  <span className="text-[11px] text-gray-500">+{row.to_emails.length - 2} آخر</span>
+                                  <span className="text-[11px] text-gray-500">
+                                    +{row.to_emails.length - 2} آخر
+                                  </span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-2.5 py-1 max-w-xs truncate" title={row.subject}>{row.subject}</td>
+                            <td className="px-2.5 py-1 max-w-xs truncate" title={row.subject}>
+                              {row.subject}
+                            </td>
                             <td className="px-2.5 py-1">
-                              <span className={`px-2 py-0.5 rounded text-[11px] ${color}`}>{label}</span>
+                              <span className={`px-2 py-0.5 rounded text-[11px] ${color}`}>
+                                {label}
+                              </span>
                             </td>
                             <td className="px-2.5 py-1 text-[10px] text-gray-700">
                               <HijriDateDisplay date={row.processed_at || row.created_at}>
@@ -458,7 +523,9 @@ export default function BackupSettingsManagement() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">الإجراءات السريعة</h2>
-                  <p className="text-xs text-gray-600">إطلاق نسخة احتياطية يدوية فوراً مع إشعارات البريد</p>
+                  <p className="text-xs text-gray-600">
+                    إطلاق نسخة احتياطية يدوية فوراً مع إشعارات البريد
+                  </p>
                 </div>
                 <HardDrive className="w-4 h-4 text-blue-600" />
               </div>
@@ -467,10 +534,17 @@ export default function BackupSettingsManagement() {
                 disabled={manualBackupLoading}
                 className="w-full md:w-auto flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-60 text-xs"
               >
-                {manualBackupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                {manualBackupLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
                 <span>إطلاق نسخة احتياطية يدوية</span>
               </button>
-              <p className="text-[11px] text-gray-500 mt-1">يحترم الإعداد <strong>backup_notifications_enabled</strong> ويضمّن المسار backups/ في البريد.</p>
+              <p className="text-[11px] text-gray-500 mt-1">
+                يحترم الإعداد <strong>backup_notifications_enabled</strong> ويضمّن المسار backups/
+                في البريد.
+              </p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2 space-y-2">
@@ -493,36 +567,52 @@ export default function BackupSettingsManagement() {
                 <Info className="w-4 h-4 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-semibold">ملاحظة هامة</p>
-                  <p className="leading-snug">حدود الأيام/الألوان للتنبيهات تُدار من صفحة إعدادات التنبيهات. هذه الصفحة مخصصة لإعدادات النسخ الاحتياطي فقط.</p>
+                  <p className="leading-snug">
+                    حدود الأيام/الألوان للتنبيهات تُدار من صفحة إعدادات التنبيهات. هذه الصفحة مخصصة
+                    لإعدادات النسخ الاحتياطي فقط.
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">البريد الإداري (Admin Email)</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    البريد الإداري (Admin Email)
+                  </label>
                   <input
                     type="email"
                     value={emailConfig.admin_email}
-                    onChange={(e) => setEmailConfig((prev) => ({ ...prev, admin_email: e.target.value }))}
+                    onChange={(e) =>
+                      setEmailConfig((prev) => ({ ...prev, admin_email: e.target.value }))
+                    }
                     disabled={!hasEditPermission}
                     placeholder="example@company.com"
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-xs"
                   />
-                  <p className="text-[11px] text-gray-500 mt-0.5">القيمة الافتراضية: {DEFAULT_ADMIN_EMAIL}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    القيمة الافتراضية: {DEFAULT_ADMIN_EMAIL}
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">مستلمو النسخ الاحتياطية</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    مستلمو النسخ الاحتياطية
+                  </label>
                   <div className="flex flex-wrap gap-1.5 mb-1.5">
-                    {recipients.map(email => (
-                      <span key={email} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[11px] inline-flex items-center gap-1.5">
+                    {recipients.map((email) => (
+                      <span
+                        key={email}
+                        className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[11px] inline-flex items-center gap-1.5"
+                      >
                         <span className="font-mono">{email}</span>
                         <button
                           type="button"
                           onClick={() => removeRecipient(email)}
                           disabled={!hasEditPermission}
                           className="text-blue-700 hover:text-blue-900"
-                        >×</button>
+                        >
+                          ×
+                        </button>
                       </span>
                     ))}
                     {recipients.length === 0 && (
@@ -543,35 +633,56 @@ export default function BackupSettingsManagement() {
                       onClick={addRecipient}
                       disabled={!hasEditPermission}
                       className="px-2.5 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-[11px]"
-                    >إضافة</button>
+                    >
+                      إضافة
+                    </button>
                     {recipients.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setRecipients([])}
                         disabled={!hasEditPermission}
                         className="px-2.5 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-[11px]"
-                      >مسح الكل</button>
+                      >
+                        مسح الكل
+                      </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-0.5">يمكن إضافة عدة مستلمين، وتُحفظ مفصولة بفواصل.</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    يمكن إضافة عدة مستلمين، وتُحفظ مفصولة بفواصل.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 bg-gray-50">
                   <div>
-                    <p className="text-xs font-semibold text-gray-900">تفعيل إشعارات النسخ الاحتياطي</p>
-                    <p className="text-[11px] text-gray-600">تشغيل/إيقاف إرسال بريد النسخ الاحتياطي للعنوان أعلاه.</p>
+                    <p className="text-xs font-semibold text-gray-900">
+                      تفعيل إشعارات النسخ الاحتياطي
+                    </p>
+                    <p className="text-[11px] text-gray-600">
+                      تشغيل/إيقاف إرسال بريد النسخ الاحتياطي للعنوان أعلاه.
+                    </p>
                   </div>
                   <label className="inline-flex items-center cursor-pointer">
-                    <span className="mr-2 text-xs text-gray-700">{emailConfig.backup_notifications_enabled ? 'مفعّل' : 'معطّل'}</span>
+                    <span className="mr-2 text-xs text-gray-700">
+                      {emailConfig.backup_notifications_enabled ? 'مفعّل' : 'معطّل'}
+                    </span>
                     <input
                       type="checkbox"
                       className="sr-only"
                       checked={emailConfig.backup_notifications_enabled}
-                      onChange={(e) => setEmailConfig((prev) => ({ ...prev, backup_notifications_enabled: e.target.checked }))}
+                      onChange={(e) =>
+                        setEmailConfig((prev) => ({
+                          ...prev,
+                          backup_notifications_enabled: e.target.checked,
+                        }))
+                      }
                       disabled={!hasEditPermission}
                     />
-                    <div className={`w-10 h-5 rounded-full transition-all duration-200 ${emailConfig.backup_notifications_enabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                      <div className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${emailConfig.backup_notifications_enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                    <div
+                      className={`w-10 h-5 rounded-full transition-all duration-200 ${emailConfig.backup_notifications_enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <div
+                        className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${emailConfig.backup_notifications_enabled ? 'translate-x-5' : 'translate-x-1'}`}
+                      />
                     </div>
                   </label>
                 </div>
@@ -583,7 +694,11 @@ export default function BackupSettingsManagement() {
                   disabled={saving || !hasEditPermission}
                   className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-1.5 text-xs"
                 >
-                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
                   {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
                 </button>
               </div>
@@ -593,18 +708,25 @@ export default function BackupSettingsManagement() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">الصحة والاختبار</h2>
-                  <p className="text-xs text-gray-600">أرسل بريد اختبار عاجل للتحقق من المسار كاملاً</p>
+                  <p className="text-xs text-gray-600">
+                    أرسل بريد اختبار عاجل للتحقق من المسار كاملاً
+                  </p>
                 </div>
                 <button
                   onClick={sendTestEmail}
                   className="px-2.5 py-1 text-[11px] bg-green-600 text-white rounded hover:bg-green-700"
-                >إرسال بريد اختبار</button>
+                >
+                  إرسال بريد اختبار
+                </button>
               </div>
               <div className="bg-blue-50 border border-blue-100 text-[11px] text-blue-800 rounded-lg p-2.5 flex items-start gap-2">
                 <Info className="w-4 h-4 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-semibold">ملاحظة هامة</p>
-                  <p className="leading-snug">حدود الأيام/الألوان للتنبيهات تُدار من صفحة إعدادات التنبيهات. هذه الصفحة تختص بإعدادات النسخ الاحتياطي فقط.</p>
+                  <p className="leading-snug">
+                    حدود الأيام/الألوان للتنبيهات تُدار من صفحة إعدادات التنبيهات. هذه الصفحة تختص
+                    بإعدادات النسخ الاحتياطي فقط.
+                  </p>
                 </div>
               </div>
             </div>

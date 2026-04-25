@@ -1,12 +1,12 @@
 /**
  * 🔐 Safe Notification Recipients Getter
- * 
+ *
  * Features:
  * - Reads from system_settings with fallback to defaults
  * - Robust error handling with comprehensive logging
  * - ALWAYS includes primary admin email (ahmad.alsawy159@gmail.com)
  * - Safe async operations with timeout
- * 
+ *
  * Last Updated: February 4, 2026
  */
 
@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import {
   PRIMARY_ADMIN_EMAIL,
   getRecipientsForNotificationType,
-  safeParseConfig
+  safeParseConfig,
 } from '@/lib/notificationTypes'
 import { logger } from '@/utils/logger'
 
@@ -26,9 +26,9 @@ interface GetRecipientsOptions {
 
 /**
  * 🎯 Get Recipients for a Specific Notification Type
- * 
+ *
  * This is the MAIN function used by all services
- * 
+ *
  * Safety Features:
  * 1. Database read with timeout
  * 2. JSON parsing with fallback
@@ -36,9 +36,9 @@ interface GetRecipientsOptions {
  * 4. ALWAYS includes primary admin
  * 5. Falls back to primary admin if any error
  * 6. Comprehensive error logging
- * 
+ *
  * Returns: string[] of email addresses
- * 
+ *
  * Example:
  * ```typescript
  * const recipients = await getNotificationRecipients({
@@ -47,14 +47,8 @@ interface GetRecipientsOptions {
  * // Returns: ['ahmad.alsawy159@gmail.com', 'other@company.com']
  * ```
  */
-export async function getNotificationRecipients(
-  options: GetRecipientsOptions
-): Promise<string[]> {
-  const {
-    notificationType,
-    timeout = 5000,
-    includeLogging = true
-  } = options
+export async function getNotificationRecipients(options: GetRecipientsOptions): Promise<string[]> {
+  const { notificationType, timeout = 5000, includeLogging = true } = options
 
   if (includeLogging) {
     logger.debug(`[getNotificationRecipients] Fetching recipients for: ${notificationType}`)
@@ -66,7 +60,7 @@ export async function getNotificationRecipients(
       const timer = setTimeout(() => {
         reject(new Error(`Database query timeout after ${timeout}ms`))
       }, timeout)
-      
+
       // Ensure timeout is cleared
       return () => clearTimeout(timer)
     })
@@ -83,7 +77,9 @@ export async function getNotificationRecipients(
         // It's OK if the setting doesn't exist yet - we use defaults
         if (error.code === 'PGRST116') {
           if (includeLogging) {
-            logger.debug('[getNotificationRecipients] notification_recipients setting not found, using defaults')
+            logger.debug(
+              '[getNotificationRecipients] notification_recipients setting not found, using defaults'
+            )
           }
           return null
         }
@@ -124,7 +120,7 @@ export async function getNotificationRecipients(
 
 /**
  * 🧪 Health Check - Verify Notification System is Working
- * 
+ *
  * Returns:
  * ```
  * {
@@ -169,10 +165,12 @@ export async function checkNotificationHealth(): Promise<{
       primaryAdmin: PRIMARY_ADMIN_EMAIL,
       recipientCount: recipients.length,
       lastChecked: new Date().toISOString(),
-      warnings
+      warnings,
     }
   } catch (err) {
-    logger.error(`[checkNotificationHealth] Error: ${err instanceof Error ? err.message : String(err)}`)
+    logger.error(
+      `[checkNotificationHealth] Error: ${err instanceof Error ? err.message : String(err)}`
+    )
     return {
       status: 'error',
       primaryAdmin: PRIMARY_ADMIN_EMAIL,
@@ -180,8 +178,8 @@ export async function checkNotificationHealth(): Promise<{
       lastChecked: new Date().toISOString(),
       warnings: [
         'Error checking notification system',
-        err instanceof Error ? err.message : String(err)
-      ]
+        err instanceof Error ? err.message : String(err),
+      ],
     }
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Performance Optimization Utilities
- * 
+ *
  * This module provides tools for optimizing React component performance:
  * - Code Splitting and Lazy Loading
  * - Memoization and Rendering Optimization
@@ -63,7 +63,7 @@ export class PerformanceMetrics {
       avg: values.reduce((a, b) => a + b, 0) / values.length,
       min: Math.min(...values),
       max: Math.max(...values),
-      count: values.length
+      count: values.length,
     }
   }
 
@@ -74,7 +74,7 @@ export class PerformanceMetrics {
   static getAllMetrics() {
     return {
       metrics: Object.fromEntries(this.metrics),
-      renders: Object.fromEntries(this.renders)
+      renders: Object.fromEntries(this.renders),
     }
   }
 
@@ -86,7 +86,7 @@ export class PerformanceMetrics {
 
 /**
  * Enhanced Lazy Loading with Performance Monitoring
- * 
+ *
  * @param importFunc - Async import function
  * @param componentName - Name for performance tracking
  * @returns LazyExoticComponent
@@ -96,7 +96,7 @@ export function createLazyComponent<P extends object>(
   componentName: string
 ): LazyExoticComponent<ComponentType<P>> {
   const startTime = performance.now()
-  
+
   const LazyComponent = lazy(async () => {
     try {
       const module = await importFunc()
@@ -117,7 +117,7 @@ export function createLazyComponent<P extends object>(
 
 /**
  * Route-based Code Splitting with Fallback
- * 
+ *
  * Usage:
  * const DashboardRoute = withCodeSplitting(
  *   () => import('./pages/Dashboard'),
@@ -134,7 +134,9 @@ export function withCodeSplitting<P extends object>(
   return (props: P) => {
     return React.createElement(
       Suspense,
-      { fallback: fallback || React.createElement(DefaultLoadingFallback, { name: componentName }) },
+      {
+        fallback: fallback || React.createElement(DefaultLoadingFallback, { name: componentName }),
+      },
       React.createElement(LazyComponent as unknown as React.ComponentType<P>, props)
     )
   }
@@ -144,15 +146,39 @@ export function withCodeSplitting<P extends object>(
  * Default Loading Fallback Component
  */
 function DefaultLoadingFallback({ name }: { name: string }) {
-  return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100' },
-    React.createElement('div', { className: 'flex flex-col items-center gap-4' },
-      React.createElement('div', { className: 'relative w-12 h-12' },
-        React.createElement('div', { className: 'absolute inset-0 rounded-full border-2 border-gray-200' }),
-        React.createElement('div', { className: 'absolute inset-0 rounded-full border-2 border-transparent border-t-blue-600 animate-spin' })
+  return React.createElement(
+    'div',
+    {
+      className:
+        'min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100',
+    },
+    React.createElement(
+      'div',
+      { className: 'flex flex-col items-center gap-4' },
+      React.createElement(
+        'div',
+        { className: 'relative w-12 h-12' },
+        React.createElement('div', {
+          className: 'absolute inset-0 rounded-full border-2 border-neutral-200',
+        }),
+        React.createElement('div', {
+          className:
+            'absolute inset-0 rounded-full border-2 border-transparent border-t-blue-600 animate-spin',
+        })
       ),
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('p', { className: 'text-gray-700 font-medium' }, `جاري تحميل ${name}...`),
-        React.createElement('p', { className: 'text-gray-500 text-sm mt-2' }, 'يرجى الانتظار قليلاً')
+      React.createElement(
+        'div',
+        { className: 'text-center' },
+        React.createElement(
+          'p',
+          { className: 'text-neutral-700 font-medium' },
+          `جاري تحميل ${name}...`
+        ),
+        React.createElement(
+          'p',
+          { className: 'text-neutral-500 text-sm mt-2' },
+          'يرجى الانتظار قليلاً'
+        )
       )
     )
   )
@@ -164,11 +190,11 @@ function DefaultLoadingFallback({ name }: { name: string }) {
  */
 export function useRenderCount(componentName: string): number {
   const count = PerformanceMetrics.getRenderCount(componentName)
-  
+
   if (isDevelopment()) {
     logger.debug(`[RenderCount] ${componentName} rendered ${count + 1} times`)
   }
-  
+
   PerformanceMetrics.recordRender(componentName)
   return count
 }
@@ -176,7 +202,7 @@ export function useRenderCount(componentName: string): number {
 /**
  * Performance Monitor Hook
  * Measures component render time
- * 
+ *
  * Usage:
  * const duration = usePerformanceMonitor('MyComponent')
  */
@@ -188,7 +214,7 @@ export function usePerformanceMonitor(): number {
 
 /**
  * Bundle Size Optimization Hints
- * 
+ *
  * Returns recommendations for code splitting based on bundle analysis
  */
 export const BundleOptimizationGuide = {
@@ -196,44 +222,41 @@ export const BundleOptimizationGuide = {
     {
       type: 'route-splitting',
       description: 'Dashboard and admin pages should be split',
-      components: ['Dashboard', 'Users', 'Settings', 'SecurityManagement']
+      components: ['Dashboard', 'Users', 'Settings', 'SecurityManagement'],
     },
     {
       type: 'lazy-loading',
       description: 'Heavy components like Reports and Charts should load on demand',
-      components: ['Reports', 'AdvancedSearch', 'ImportExport']
+      components: ['Reports', 'AdvancedSearch', 'ImportExport'],
     },
     {
       type: 'vendor-splitting',
       description: 'Large dependencies should be separated',
-      packages: ['@tanstack/react-query', 'react-router-dom']
+      packages: ['@tanstack/react-query', 'react-router-dom'],
     },
     {
       type: 'dynamic-imports',
       description: 'Data processing utilities should load dynamically',
-      utilities: ['charts', 'excel-export', 'pdf-generation']
-    }
+      utilities: ['charts', 'excel-export', 'pdf-generation'],
+    },
   ],
 
   checkBundleSize(): void {
     if (isProduction()) {
       logger.info('[BundleCheck] Run: npm run build -- --report')
     }
-  }
+  },
 }
 
 /**
  * Dynamic Import Cache
- * 
+ *
  * Prevents duplicate module imports and improves performance
  */
 class ImportCache {
   private static cache: Map<string, Promise<unknown>> = new Map()
 
-  static async load<T>(
-    importFunc: () => Promise<T>,
-    cacheKey: string
-  ): Promise<T> {
+  static async load<T>(importFunc: () => Promise<T>, cacheKey: string): Promise<T> {
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)! as Promise<T>
     }
@@ -252,7 +275,7 @@ export { ImportCache }
 
 /**
  * Chunk Preloading Strategy
- * 
+ *
  * Pre-load chunks based on user interaction patterns
  */
 export class ChunkPreloader {
@@ -267,14 +290,14 @@ export class ChunkPreloader {
     // Use requestIdleCallback for non-blocking preload
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => {
-        importFunc().catch(err => {
+        importFunc().catch((err) => {
           logger.warn(`[ChunkPreloader] Failed to preload ${chunkName}:`, err)
         })
       })
     } else {
       // Fallback to setTimeout
       setTimeout(() => {
-        importFunc().catch(err => {
+        importFunc().catch((err) => {
           logger.warn(`[ChunkPreloader] Failed to preload ${chunkName}:`, err)
         })
       }, 2000)

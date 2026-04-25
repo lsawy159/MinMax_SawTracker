@@ -46,12 +46,16 @@ class SecurityLogger {
   private logs: LogEntry[] = []
   private maxLogs = 100
 
-  private recordLog(level: LogLevel, formattedMessage: string, context?: Record<string, unknown>): void {
+  private recordLog(
+    level: LogLevel,
+    formattedMessage: string,
+    context?: Record<string, unknown>
+  ): void {
     const entry: LogEntry = {
       level,
       message: formattedMessage,
       timestamp: new Date().toISOString(),
-      context
+      context,
     }
 
     this.logs.push(entry)
@@ -73,9 +77,9 @@ class SecurityLogger {
       [LogLevel.WARN]: '⚠️ [WARN]',
       [LogLevel.ERROR]: '❌ [ERROR]',
     }[level]
-    return `${prefix} ${args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-    ).join(' ')}`
+    return `${prefix} ${args
+      .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)))
+      .join(' ')}`
   }
 
   debug(...args: unknown[]): void {
@@ -124,15 +128,13 @@ class SecurityLogger {
         resource_id: entry.resource_id,
         old_values: entry.old_values,
         new_values: entry.new_values,
-        ip_address: entry.ip_address || await this.getClientIP(),
+        ip_address: entry.ip_address || (await this.getClientIP()),
         user_agent: entry.user_agent || navigator.userAgent,
         status: entry.status || 'success',
         error_message: entry.error_message,
       }
 
-      const { error } = await supabase
-        .from('audit_log')
-        .insert(auditEntry)
+      const { error } = await supabase.from('audit_log').insert(auditEntry)
 
       if (error) {
         console.error('Failed to log audit event:', error)
@@ -156,17 +158,15 @@ class SecurityLogger {
       const user = await supabase.auth.getUser()
       const userId = user.data.user?.id
 
-      const { error } = await supabase
-        .from('security_events')
-        .insert({
-          event_type: eventType,
-          severity,
-          user_id: userId,
-          description,
-          details: details || {},
-          ip_address: await this.getClientIP(),
-          is_resolved: false,
-        })
+      const { error } = await supabase.from('security_events').insert({
+        event_type: eventType,
+        severity,
+        user_id: userId,
+        description,
+        details: details || {},
+        ip_address: await this.getClientIP(),
+        is_resolved: false,
+      })
 
       if (error) {
         console.error('Failed to log security event:', error)
@@ -194,27 +194,22 @@ class SecurityLogger {
    */
   async logFailedLogin(email: string, reason: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('login_attempts')
-        .insert({
-          email,
-          attempt_type: 'failed',
-          failure_reason: reason,
-          ip_address: await this.getClientIP(),
-          user_agent: navigator.userAgent,
-        })
+      const { error } = await supabase.from('login_attempts').insert({
+        email,
+        attempt_type: 'failed',
+        failure_reason: reason,
+        ip_address: await this.getClientIP(),
+        user_agent: navigator.userAgent,
+      })
 
       if (error) {
         console.error('Failed to log login attempt:', error)
       }
 
       // Log as security event
-      await this.logSecurityEvent(
-        'failed_login',
-        `Failed login attempt for ${email}`,
-        'medium',
-        { reason }
-      )
+      await this.logSecurityEvent('failed_login', `Failed login attempt for ${email}`, 'medium', {
+        reason,
+      })
     } catch (err) {
       console.error('Error logging failed login:', err)
     }
@@ -225,15 +220,13 @@ class SecurityLogger {
    */
   async logSuccessfulLogin(userId: string, email: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('login_attempts')
-        .insert({
-          user_id: userId,
-          email,
-          attempt_type: 'success',
-          ip_address: await this.getClientIP(),
-          user_agent: navigator.userAgent,
-        })
+      const { error } = await supabase.from('login_attempts').insert({
+        user_id: userId,
+        email,
+        attempt_type: 'success',
+        ip_address: await this.getClientIP(),
+        user_agent: navigator.userAgent,
+      })
 
       if (error) {
         console.error('Failed to log login attempt:', error)
@@ -285,12 +278,10 @@ class SecurityLogger {
       error_message: reason,
     })
 
-    await this.logSecurityEvent(
-      'access_denied',
-      `Access denied: ${reason}`,
-      'high',
-      { resource, attempted_by: userId }
-    )
+    await this.logSecurityEvent('access_denied', `Access denied: ${reason}`, 'high', {
+      resource,
+      attempted_by: userId,
+    })
   }
 }
 

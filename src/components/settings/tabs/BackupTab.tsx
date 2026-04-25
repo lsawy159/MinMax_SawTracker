@@ -1,77 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { formatDateWithHijri } from '@/utils/dateFormatter';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
-import { triggerManualBackupAndNotify } from '@/lib/backupService';
-import { Database, Download, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import React, { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { formatDateWithHijri } from '@/utils/dateFormatter'
+import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
+import { triggerManualBackupAndNotify } from '@/lib/backupService'
+import { Database, Download, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
 
 interface BackupRecord {
-  id: string;
-  backup_type: string;
-  file_path: string;
-  file_size: number;
-  compression_ratio: number;
-  status: string;
-  started_at: string;
-  completed_at: string;
-  error_message?: string;
-  tables_included?: string[];
+  id: string
+  backup_type: string
+  file_path: string
+  file_size: number
+  compression_ratio: number
+  status: string
+  started_at: string
+  completed_at: string
+  error_message?: string
+  tables_included?: string[]
 }
 
 export function BackupTab(): JSX.Element {
-  const [isRunningBackup, setIsRunningBackup] = useState(false);
+  const [isRunningBackup, setIsRunningBackup] = useState(false)
 
-  const { data: backups = [], isLoading, refetch } = useQuery({
+  const {
+    data: backups = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['backups'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('backup_history')
-        .select('id, backup_type, file_path, file_size, compression_ratio, status, started_at, completed_at, error_message, tables_included')
+        .select(
+          'id, backup_type, file_path, file_size, compression_ratio, status, started_at, completed_at, error_message, tables_included'
+        )
         .order('started_at', { ascending: false })
-        .limit(10);
+        .limit(10)
 
       if (error) {
-        logger.error('Error fetching backup history:', error);
-        throw error;
+        logger.error('Error fetching backup history:', error)
+        throw error
       }
-      return (data as BackupRecord[]) || [];
+      return (data as BackupRecord[]) || []
     },
-  });
+  })
 
   const handleRunBackup = async () => {
-    setIsRunningBackup(true);
+    setIsRunningBackup(true)
     try {
-      await triggerManualBackupAndNotify();
-      toast.success('تم بدء النسخة الاحتياطية');
-      refetch();
+      await triggerManualBackupAndNotify()
+      toast.success('تم بدء النسخة الاحتياطية')
+      refetch()
     } catch (error) {
-      logger.error('Error running backup:', error);
-      const errorMessage = error instanceof Error ? error.message : 'فشل إنشاء النسخة الاحتياطية';
-      toast.error(errorMessage);
+      logger.error('Error running backup:', error)
+      const errorMessage = error instanceof Error ? error.message : 'فشل إنشاء النسخة الاحتياطية'
+      toast.error(errorMessage)
     } finally {
-      setIsRunningBackup(false);
+      setIsRunningBackup(false)
     }
-  };
+  }
 
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <LoadingSpinner />
       </div>
-    );
+    )
   }
 
   return (
@@ -139,7 +145,9 @@ export function BackupTab(): JSX.Element {
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                        {backup.backup_type === 'full' ? 'نسخة احتياطية كاملة' : 'نسخة احتياطية إضافية'}
+                        {backup.backup_type === 'full'
+                          ? 'نسخة احتياطية كاملة'
+                          : 'نسخة احتياطية إضافية'}
                       </span>
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -166,13 +174,9 @@ export function BackupTab(): JSX.Element {
                     </div>
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
                       {backup.completed_at ? (
-                        <span>
-                          انتهت في: {formatDateWithHijri(backup.completed_at)}
-                        </span>
+                        <span>انتهت في: {formatDateWithHijri(backup.completed_at)}</span>
                       ) : (
-                        <span>
-                          بدأت في: {formatDateWithHijri(backup.started_at)}
-                        </span>
+                        <span>بدأت في: {formatDateWithHijri(backup.started_at)}</span>
                       )}
                     </div>
                     {backup.error_message && (
@@ -212,5 +216,5 @@ export function BackupTab(): JSX.Element {
         )}
       </div>
     </div>
-  );
+  )
 }

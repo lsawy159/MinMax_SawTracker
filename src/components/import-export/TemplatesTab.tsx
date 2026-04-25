@@ -4,23 +4,22 @@ import { saveAs } from 'file-saver'
 import { loadXlsx } from '@/utils/lazyXlsx'
 
 export default function TemplatesTab() {
-  
   const downloadEmployeeTemplate = async () => {
     try {
       const XLSX = await loadXlsx()
       const templateData = [
         {
-          'الاسم': 'محمد أحمد',
-          'المهنة': 'مهندس',
-          'الجنسية': 'مصري',
+          الاسم: 'محمد أحمد',
+          المهنة: 'مهندس',
+          الجنسية: 'مصري',
           'رقم الإقامة': '2123456789',
           'رقم الجواز': 'A1234567',
           'رقم الهاتف': '0501234567',
           'الحساب البنكي': 'SA1234567890123456789012',
           'اسم البنك': 'مصرف الراجحي',
-          'الراتب': '8000',
+          الراتب: '8000',
           'حالة عقد أجير': 'أجير',
-          'المشروع': 'مشروع رقم 1',
+          المشروع: 'مشروع رقم 1',
           'الشركة أو المؤسسة': 'مؤسسة النجاح',
           'الرقم الموحد': '1234567890',
           'تاريخ الميلاد': '1990-01-15',
@@ -30,8 +29,8 @@ export default function TemplatesTab() {
           'تاريخ انتهاء عقد أجير': '2025-01-01',
           'تاريخ انتهاء التأمين الصحي': '2025-06-30',
           'رابط صورة الإقامة': '',
-          'الملاحظات': ''
-        }
+          الملاحظات: '',
+        },
       ]
 
       const ws = XLSX.utils.json_to_sheet(templateData)
@@ -60,7 +59,7 @@ export default function TemplatesTab() {
         { wch: 15 }, // تاريخ انتهاء عقد أجير
         { wch: 20 }, // تاريخ انتهاء التأمين الصحي
         { wch: 25 }, // رابط صورة الإقامة
-        { wch: 25 }  // الملاحظات
+        { wch: 25 }, // الملاحظات
       ]
       ws['!cols'] = wscols
 
@@ -98,7 +97,9 @@ export default function TemplatesTab() {
 
       // Generate Excel file
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const data = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
       saveAs(data, 'قالب_الموظفين.xlsx')
 
       toast.success('تم تحميل قالب الموظفين')
@@ -114,13 +115,13 @@ export default function TemplatesTab() {
       const templateData = [
         {
           'تاريخ الطلب': '2026-04-22',
-          'الاسم': 'أحمد علي',
+          الاسم: 'أحمد علي',
           'رقم الإقامة': '2987654321',
-          'الحالة': 'تحت إجراء النقل',
+          الحالة: 'تحت إجراء النقل',
           'الرقم الموحد الحالي': '7001234567',
-          'المشروع': 'مشروع رقم 1',
-          'ملاحظات': ''
-        }
+          المشروع: 'مشروع رقم 1',
+          ملاحظات: '',
+        },
       ]
 
       const ws = XLSX.utils.json_to_sheet(templateData)
@@ -138,7 +139,9 @@ export default function TemplatesTab() {
       ]
 
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const data = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
       saveAs(data, 'قالب_إجراءات_النقل.xlsx')
 
       toast.success('تم تحميل قالب إجراءات النقل')
@@ -160,10 +163,10 @@ export default function TemplatesTab() {
           'تاريخ انتهاء السجل التجاري': '2026-12-31',
           'تاريخ انتهاء اشتراك قوى': '2026-08-31',
           'تاريخ انتهاء اشتراك مقيم': '2026-09-30',
-          'الاعفاءات': '',
+          الاعفاءات: '',
           'نوع المؤسسة': 'تجارية',
-          'الملاحظات': ''
-        }
+          الملاحظات: '',
+        },
       ]
 
       const ws = XLSX.utils.json_to_sheet(templateData)
@@ -180,12 +183,14 @@ export default function TemplatesTab() {
         { wch: 25 }, // تاريخ انتهاء اشتراك مقيم
         { wch: 20 }, // الاعفاءات
         { wch: 20 }, // نوع المؤسسة
-        { wch: 25 }  // الملاحظات
+        { wch: 25 }, // الملاحظات
       ]
       ws['!cols'] = wscols
 
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const data = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
       saveAs(data, 'قالب_المؤسسات.xlsx')
 
       toast.success('تم تحميل قالب المؤسسات')
@@ -221,11 +226,11 @@ export default function TemplatesTab() {
         'تاريخ انتهاء عقد أجير',
         'تاريخ انتهاء التأمين الصحي',
         'رابط صورة الإقامة',
-        'الملاحظات'
+        'الملاحظات',
       ],
       color: 'blue',
       icon: '👥',
-      downloadFn: downloadEmployeeTemplate
+      downloadFn: downloadEmployeeTemplate,
     },
     {
       id: 'companies',
@@ -241,11 +246,11 @@ export default function TemplatesTab() {
         'تاريخ انتهاء اشتراك مقيم',
         'الاعفاءات',
         'نوع المؤسسة',
-        'الملاحظات'
+        'الملاحظات',
       ],
       color: 'green',
       icon: '🏢',
-      downloadFn: downloadCompanyTemplate
+      downloadFn: downloadCompanyTemplate,
     },
     {
       id: 'transfer-procedures',
@@ -258,12 +263,12 @@ export default function TemplatesTab() {
         'الحالة (مطلوب - لا تقبل منقول)',
         'الرقم الموحد الحالي (مطلوب)',
         'المشروع (مطلوب)',
-        'ملاحظات (اختياري)'
+        'ملاحظات (اختياري)',
       ],
       color: 'amber',
       icon: '🔄',
-      downloadFn: downloadTransferProceduresTemplate
-    }
+      downloadFn: downloadTransferProceduresTemplate,
+    },
   ]
 
   return (
@@ -311,19 +316,23 @@ export default function TemplatesTab() {
               <div className="flex items-center gap-3">
                 <div className="text-4xl">{template.icon}</div>
                 <div>
-                  <h3 className={`text-xl font-bold text-${template.color}-900`}>{template.title}</h3>
-                  <p className={`text-sm text-${template.color}-700 mt-1`}>{template.description}</p>
+                  <h3 className={`text-xl font-bold text-${template.color}-900`}>
+                    {template.title}
+                  </h3>
+                  <p className={`text-sm text-${template.color}-700 mt-1`}>
+                    {template.description}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Fields List */}
             <div className="bg-white rounded-lg p-4 mb-4">
-              <h4 className="font-medium text-gray-900 mb-2">الحقول المتضمنة:</h4>
+              <h4 className="font-medium text-neutral-900 mb-2">الحقول المتضمنة:</h4>
               <ul className="space-y-1">
                 {template.fields.map((field, index) => (
-                  <li key={index} className="text-sm text-gray-700 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                  <li key={index} className="text-sm text-neutral-700 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full"></span>
                     {field}
                   </li>
                 ))}
@@ -366,44 +375,44 @@ export default function TemplatesTab() {
       </div>
 
       {/* Format Examples */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-3">📝 أمثلة على التنسيق الصحيح</h3>
+      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6">
+        <h3 className="text-lg font-bold text-neutral-900 mb-3">📝 أمثلة على التنسيق الصحيح</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <div className="font-medium text-gray-900 mb-2">التواريخ:</div>
+            <div className="font-medium text-neutral-900 mb-2">التواريخ:</div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">✅ صحيح:</span>
-                <span className="font-mono text-green-600">2024-12-31</span>
+                <span className="text-neutral-600">✅ صحيح:</span>
+                <span className="font-mono text-success-600">2024-12-31</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">❌ خاطئ:</span>
+                <span className="text-neutral-600">❌ خاطئ:</span>
                 <span className="font-mono text-red-600">31/12/2024</span>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <div className="font-medium text-gray-900 mb-2">رقم الجوال:</div>
+            <div className="font-medium text-neutral-900 mb-2">رقم الجوال:</div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">✅ صحيح:</span>
-                <span className="font-mono text-green-600">0501234567</span>
+                <span className="text-neutral-600">✅ صحيح:</span>
+                <span className="font-mono text-success-600">0501234567</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">❌ خاطئ:</span>
+                <span className="text-neutral-600">❌ خاطئ:</span>
                 <span className="font-mono text-red-600">050-123-4567</span>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <div className="font-medium text-gray-900 mb-2">الأرقام:</div>
+            <div className="font-medium text-neutral-900 mb-2">الأرقام:</div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">✅ صحيح:</span>
-                <span className="font-mono text-green-600">50</span>
+                <span className="text-neutral-600">✅ صحيح:</span>
+                <span className="font-mono text-success-600">50</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">❌ خاطئ:</span>
+                <span className="text-neutral-600">❌ خاطئ:</span>
                 <span className="font-mono text-red-600">خمسون</span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 /**
  * Advanced Memoization Utilities
- * 
+ *
  * Provides tools for optimizing React component rendering:
  * - React.memo wrappers with deep equality checks
  * - useMemo optimization strategies
@@ -11,7 +11,15 @@
 
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import React, { memo, useMemo, useCallback, useDeferredValue, useTransition, useRef, useState } from 'react'
+import React, {
+  memo,
+  useMemo,
+  useCallback,
+  useDeferredValue,
+  useTransition,
+  useRef,
+  useState,
+} from 'react'
 import { logger } from './logger'
 
 // Type guard for development environment
@@ -41,12 +49,18 @@ function deepEqual(obj1: unknown, obj2: unknown, depth = 0): boolean {
 
   if (keys1.length !== keys2.length) return false
 
-  return keys1.every(key => deepEqual((obj1 as Record<string, unknown>)[key], (obj2 as Record<string, unknown>)[key], depth + 1))
+  return keys1.every((key) =>
+    deepEqual(
+      (obj1 as Record<string, unknown>)[key],
+      (obj2 as Record<string, unknown>)[key],
+      depth + 1
+    )
+  )
 }
 
 /**
  * Enhanced React.memo with deep equality
- * 
+ *
  * @example
  * const MyComponent = deepMemo(({ data, items }) => (
  *   <div>{data.title} - {items.length} items</div>
@@ -83,12 +97,12 @@ export function shallowMemo<P extends object>(
 
 /**
  * Advanced useMemo Hook
- * 
+ *
  * Features:
  * - Automatic dependency tracking
  * - Performance logging
  * - Development-only warnings
- * 
+ *
  * @example
  * const result = useMemoized(
  *   () => expensiveCalculation(data),
@@ -96,10 +110,7 @@ export function shallowMemo<P extends object>(
  *   'expensiveCalculation'
  * )
  */
-export function useMemoized<T>(
-  factory: () => T,
-  deps: React.DependencyList
-): T {
+export function useMemoized<T>(factory: () => T, deps: React.DependencyList): T {
   const startTime = performance.now()
 
   const result = useMemo(() => {
@@ -107,9 +118,7 @@ export function useMemoized<T>(
     const duration = performance.now() - startTime
 
     if (isDevelopment() && duration > 16) {
-      logger.warn(
-        `[useMemoized] Calculation took ${duration.toFixed(2)}ms (slow)`
-      )
+      logger.warn(`[useMemoized] Calculation took ${duration.toFixed(2)}ms (slow)`)
     }
 
     return value
@@ -121,7 +130,7 @@ export function useMemoized<T>(
 /**
  * Stable useCallback Hook
  * Prevents unnecessary re-renders of child components
- * 
+ *
  * @example
  * const handleClick = useStableCallback(() => {
  *   console.log('clicked')
@@ -137,7 +146,7 @@ export function useStableCallback<T extends (...args: unknown[]) => unknown>(
 /**
  * Deferred Value Hook
  * Useful for large list rendering and search
- * 
+ *
  * @example
  * const deferredQuery = useDeferredSearchValue(searchQuery)
  */
@@ -148,7 +157,7 @@ export function useDeferredSearchValue(value: string): string {
 /**
  * useTransition Hook Wrapper
  * Better handling of non-blocking updates
- * 
+ *
  * @example
  * const { isPending, startTransition } = useNonBlockingTransition()
  */
@@ -160,14 +169,14 @@ export function useNonBlockingTransition() {
     startTransition,
     updateAsync: (callback: () => void) => {
       startTransition(callback)
-    }
+    },
   }
 }
 
 /**
  * Selector Memoization for Redux/State
  * Prevents unnecessary re-renders when state changes
- * 
+ *
  * @example
  * const userName = useSelectorMemo(
  *   (state) => state.user.name,
@@ -203,7 +212,7 @@ export function useSelectorMemo<TState, TSelected>(
 /**
  * List Virtualization Helper
  * For rendering large lists efficiently
- * 
+ *
  * @example
  * const visibleItems = useVirtualizedList(allItems, itemHeight, containerHeight)
  */
@@ -262,7 +271,7 @@ class ComputationCache<K, V> {
 /**
  * useComputedValue Hook
  * Combines useMemo with ComputationCache
- * 
+ *
  * @example
  * const result = useComputedValue(
  *   () => heavyComputation(data),
@@ -303,7 +312,7 @@ export function useComputedValue<T>(
 /**
  * Heavy Component Wrapper
  * Wraps expensive components with memoization
- * 
+ *
  * @example
  * const HeavyTable = withHeavyComponentMemo(DataTable)
  * // Now will only re-render if props actually change
@@ -397,7 +406,7 @@ export const MemoizationBestPractices = {
     logMemoHits: true,
     logSlowRenders: true,
     trackRenderCounts: true,
-  }
+  },
 }
 
 // Re-export React hooks for convenience

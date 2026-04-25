@@ -37,7 +37,9 @@ vi.mock('@/lib/supabase', () => ({
 }))
 
 vi.mock('@/components/layout/Layout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }))
 
 vi.mock('@/components/settings/CustomFieldManager', () => ({

@@ -1,7 +1,29 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LayoutDashboard, Users, Building2, FolderKanban, UserCog, Settings, Database, BarChart3, History, ArrowDownUp, SearchIcon, Bell, Menu, X, ChevronRight, LogOut, Mail, Wallet, Moon, Sun, RefreshCcw } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  FolderKanban,
+  UserCog,
+  Settings,
+  Database,
+  BarChart3,
+  History,
+  ArrowDownUp,
+  SearchIcon,
+  Bell,
+  Menu,
+  X,
+  ChevronRight,
+  LogOut,
+  Mail,
+  Wallet,
+  Moon,
+  Sun,
+  RefreshCcw,
+} from 'lucide-react'
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
 import { usePermissions } from '@/utils/permissions'
@@ -13,26 +35,26 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const { user, signOut } = useAuth()
   const { alertsStats } = useAlertsStats()
-  
+
   // State for sidebar collapse (desktop)
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed')
     return saved ? JSON.parse(saved) : false
   })
-  
+
   // State for mobile sidebar open/close
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  
+
   // Save collapse state to localStorage
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(isCollapsed))
   }, [isCollapsed])
-  
+
   // Close mobile sidebar when route changes
   useEffect(() => {
     setIsMobileOpen(false)
   }, [location.pathname])
-  
+
   // Close mobile sidebar on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -54,8 +76,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     await signOut()
     window.location.href = '/login'
   }
-
-
 
   useEffect(() => {
     const handleRipple = (event: MouseEvent) => {
@@ -108,22 +128,127 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const navItems = useMemo(
     () => [
-      { path: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية', permission: { section: 'dashboard' as const, action: 'view' }, badge: null },
-      { path: '/employees', icon: Users, label: 'الموظفين', permission: { section: 'employees' as const, action: 'view' }, badge: alertsStats.employeeUrgent > 0 ? { count: alertsStats.employeeUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
-      { path: '/companies', icon: Building2, label: 'المؤسسات', permission: { section: 'companies' as const, action: 'view' }, badge: alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null, badgeTooltip: 'التنبيهات الطارئة فقط' },
-      { path: '/projects', icon: FolderKanban, label: 'المشاريع', permission: { section: 'projects' as const, action: 'view' }, badge: null },
-      { path: '/transfer-procedures', icon: RefreshCcw, label: 'إجراءات النقل', permission: { section: 'transferProcedures' as const, action: 'view' }, badge: null },
-      { path: '/alerts', icon: Bell, label: 'التنبيهات', permission: { section: 'alerts' as const, action: 'view' }, badge: alertsStats.total > 0 ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' } : null },
-      { path: '/advanced-search', icon: SearchIcon, label: 'البحث المتقدم', permission: { section: 'advancedSearch' as const, action: 'view' }, badge: null },
-      { path: '/payroll-deductions', icon: Wallet, label: 'الرواتب والاستقطاعات', permission: { section: 'payroll' as const, action: 'view' }, badge: null },
-      { path: '/reports', icon: BarChart3, label: 'التقارير', permission: { section: 'reports' as const, action: 'view' }, badge: null },
-      { path: '/activity-logs', icon: History, label: 'سجل النشاطات', permission: { section: 'activityLogs' as const, action: 'view' }, badge: null },
-      { path: '/import-export', icon: ArrowDownUp, label: 'استيراد/تصدير', permission: { section: 'importExport' as const, action: 'view' }, badge: null },
-      { path: '/users', icon: UserCog, label: 'المستخدمين', permission: { section: 'users' as const, action: 'view' }, badge: null },
-      { path: '/settings', icon: Settings, label: 'حدود الشركات', permission: { section: 'settings' as const, action: 'view' }, badge: null },
-      { path: '/backup-settings', icon: Mail, label: 'إعدادات النسخ الاحتياطي', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
-      { path: '/alert-settings', icon: Bell, label: 'إعدادات التنبيهات', permission: { section: 'centralizedSettings' as const, action: 'view' }, badge: null },
-      { path: '/admin-settings', icon: Database, label: 'إعدادات النظام', permission: { section: 'adminSettings' as const, action: 'view' }, badge: null },
+      {
+        path: '/dashboard',
+        icon: LayoutDashboard,
+        label: 'الرئيسية',
+        permission: { section: 'dashboard' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/employees',
+        icon: Users,
+        label: 'الموظفين',
+        permission: { section: 'employees' as const, action: 'view' },
+        badge:
+          alertsStats.employeeUrgent > 0
+            ? { count: alertsStats.employeeUrgent, color: 'red' }
+            : null,
+        badgeTooltip: 'التنبيهات الطارئة فقط',
+      },
+      {
+        path: '/companies',
+        icon: Building2,
+        label: 'المؤسسات',
+        permission: { section: 'companies' as const, action: 'view' },
+        badge:
+          alertsStats.companyUrgent > 0 ? { count: alertsStats.companyUrgent, color: 'red' } : null,
+        badgeTooltip: 'التنبيهات الطارئة فقط',
+      },
+      {
+        path: '/projects',
+        icon: FolderKanban,
+        label: 'المشاريع',
+        permission: { section: 'projects' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/transfer-procedures',
+        icon: RefreshCcw,
+        label: 'إجراءات النقل',
+        permission: { section: 'transferProcedures' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/alerts',
+        icon: Bell,
+        label: 'التنبيهات',
+        permission: { section: 'alerts' as const, action: 'view' },
+        badge:
+          alertsStats.total > 0
+            ? { count: alertsStats.total, color: alertsStats.urgent > 0 ? 'red' : 'blue' }
+            : null,
+      },
+      {
+        path: '/advanced-search',
+        icon: SearchIcon,
+        label: 'البحث المتقدم',
+        permission: { section: 'advancedSearch' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/payroll-deductions',
+        icon: Wallet,
+        label: 'الرواتب والاستقطاعات',
+        permission: { section: 'payroll' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/reports',
+        icon: BarChart3,
+        label: 'التقارير',
+        permission: { section: 'reports' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/activity-logs',
+        icon: History,
+        label: 'سجل النشاطات',
+        permission: { section: 'activityLogs' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/import-export',
+        icon: ArrowDownUp,
+        label: 'استيراد/تصدير',
+        permission: { section: 'importExport' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/users',
+        icon: UserCog,
+        label: 'المستخدمين',
+        permission: { section: 'users' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/settings',
+        icon: Settings,
+        label: 'حدود الشركات',
+        permission: { section: 'settings' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/backup-settings',
+        icon: Mail,
+        label: 'إعدادات النسخ الاحتياطي',
+        permission: { section: 'adminSettings' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/alert-settings',
+        icon: Bell,
+        label: 'إعدادات التنبيهات',
+        permission: { section: 'centralizedSettings' as const, action: 'view' },
+        badge: null,
+      },
+      {
+        path: '/admin-settings',
+        icon: Database,
+        label: 'إعدادات النظام',
+        permission: { section: 'adminSettings' as const, action: 'view' },
+        badge: null,
+      },
     ],
     [alertsStats]
   )
@@ -131,7 +256,11 @@ export default function Layout({ children }: { children: ReactNode }) {
   const quickSearchItems = useMemo(
     () =>
       navItems
-        .filter((item) => !item.permission || hasPermission(item.permission.section, item.permission.action as string))
+        .filter(
+          (item) =>
+            !item.permission ||
+            hasPermission(item.permission.section, item.permission.action as string)
+        )
         .map((item) => ({
           path: item.path,
           label: item.label,
@@ -202,33 +331,31 @@ export default function Layout({ children }: { children: ReactNode }) {
                 >
                   {isMobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                 </button>
-                
+
                 {/* Logo */}
                 {!isCollapsed ? (
-                  <Link to="/dashboard" className="flex flex-col items-center transition-opacity hover:opacity-90 flex-1">
+                  <Link
+                    to="/dashboard"
+                    className="flex flex-col items-center transition-opacity hover:opacity-90 flex-1"
+                  >
                     <div className="rounded-2xl border border-primary/40 bg-white px-3 py-2 shadow-soft">
-                      <img 
-                        src="/logo.png" 
-                        alt="SawTracker Logo" 
-                        className="h-14 w-auto"
-                      />
+                      <img src="/logo.png" alt="SawTracker Logo" className="h-14 w-auto" />
                     </div>
                     <span className="mt-2 text-[10px] font-semibold tracking-wide text-slate-500">
                       See What Others Don't
                     </span>
                   </Link>
                 ) : (
-                  <Link to="/dashboard" className="flex items-center justify-center transition-opacity hover:opacity-90 flex-1">
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center justify-center transition-opacity hover:opacity-90 flex-1"
+                  >
                     <div className="rounded-2xl border border-primary/40 bg-white p-2 shadow-soft">
-                      <img 
-                        src="/logo.png" 
-                        alt="SawTracker Logo" 
-                        className="h-10 w-auto"
-                      />
+                      <img src="/logo.png" alt="SawTracker Logo" className="h-10 w-auto" />
                     </div>
                   </Link>
                 )}
-                
+
                 {/* Collapse Button (Desktop only) */}
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
@@ -247,15 +374,17 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* Navigation */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {navItems
-                .filter(item => {
-                  return !item.permission || 
+                .filter((item) => {
+                  return (
+                    !item.permission ||
                     hasPermission(item.permission.section, item.permission.action as string)
+                  )
                 })
-                .map(item => {
+                .map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.path
                   const hasBadge = item.badge && item.badge.count > 0
-                  
+
                   const navItem = (
                     <Link
                       key={item.path}
@@ -272,65 +401,65 @@ export default function Layout({ children }: { children: ReactNode }) {
                         }
                       `}
                     >
-                      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} flex-1 min-w-0`}>
-                        <Icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                          isActive ? 'scale-110' : 'group-hover:scale-105'
-                        }`} />
-                        {!isCollapsed && (
-                          <span className="text-[12px] truncate">{item.label}</span>
-                        )}
+                      <div
+                        className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} flex-1 min-w-0`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+                            isActive ? 'scale-110' : 'group-hover:scale-105'
+                          }`}
+                        />
+                        {!isCollapsed && <span className="text-[12px] truncate">{item.label}</span>}
                       </div>
-                      
-                      {hasBadge && !isCollapsed && (
-                        item.badgeTooltip ? (
+
+                      {hasBadge &&
+                        !isCollapsed &&
+                        (item.badgeTooltip ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className={`
+                              <div
+                                className={`
                                 flex items-center justify-center
                                 min-w-[18px] h-[18px] px-1 rounded-full
                                 text-[10px] font-bold text-white
                                 shadow-sm transition-transform duration-200
-                                ${
-                                  item.badge?.color === 'red' 
-                                    ? 'bg-red-500' 
-                                    : 'bg-slate-900'
-                                }
+                                ${item.badge?.color === 'red' ? 'bg-red-500' : 'bg-slate-900'}
                                 ${isActive ? 'scale-110' : 'group-hover:scale-105'}
-                              `}>
+                              `}
+                              >
                                 {item.badge!.count > 99 ? '99+' : item.badge!.count}
                               </div>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="bg-gray-900 text-white">
+                            <TooltipContent side="bottom" className="bg-neutral-900 text-white">
                               {item.badgeTooltip}
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <div className={`
+                          <div
+                            className={`
                             flex items-center justify-center
                             min-w-[18px] h-[18px] px-1 rounded-full
                             text-[10px] font-bold text-white
                             shadow-sm transition-transform duration-200
-                            ${
-                              item.badge?.color === 'red' 
-                                ? 'bg-red-500' 
-                                : 'bg-slate-900'
-                            }
+                            ${item.badge?.color === 'red' ? 'bg-red-500' : 'bg-slate-900'}
                             ${isActive ? 'scale-110' : 'group-hover:scale-105'}
-                          `}>
+                          `}
+                          >
                             {item.badge!.count > 99 ? '99+' : item.badge!.count}
                           </div>
-                        )
-                      )}
-                      
+                        ))}
+
                       {hasBadge && isCollapsed && (
-                        <div className={`
+                        <div
+                          className={`
                           absolute -top-0.5 -right-0.5
                           h-2 w-2 rounded-full
                           ${item.badge?.color === 'red' ? 'bg-red-500' : 'bg-slate-900'}
                           ring-2 ring-white
-                        `} />
+                        `}
+                        />
                       )}
-                      
+
                       {/* Active indicator */}
                       {isActive && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-primary rounded-r-full" />
@@ -342,23 +471,23 @@ export default function Layout({ children }: { children: ReactNode }) {
                   if (isCollapsed) {
                     return (
                       <Tooltip key={item.path}>
-                        <TooltipTrigger asChild>
-                          {navItem}
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-gray-900 text-white">
+                        <TooltipTrigger asChild>{navItem}</TooltipTrigger>
+                        <TooltipContent side="right" className="bg-neutral-900 text-white">
                           <div className="flex items-center gap-2">
                             <span>{item.label}</span>
                             {hasBadge && (
-                              <span className={`
+                              <span
+                                className={`
                                 px-1.5 py-0.5 rounded text-xs font-bold
                                 ${item.badge?.color === 'red' ? 'bg-red-500' : 'bg-slate-900'}
-                              `}>
+                              `}
+                              >
                                 {item.badge!.count > 99 ? '99+' : item.badge!.count}
                               </span>
                             )}
                           </div>
                           {item.badgeTooltip && (
-                            <div className="mt-1 text-[10px] text-gray-300">
+                            <div className="mt-1 text-[10px] text-neutral-300">
                               {item.badgeTooltip}
                             </div>
                           )}
@@ -380,7 +509,11 @@ export default function Layout({ children }: { children: ReactNode }) {
                     className="w-full group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 transition-all duration-200 ease-in-out hover:bg-primary/10 hover:text-slate-950"
                     type="button"
                   >
-                    {isDark ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
+                    {isDark ? (
+                      <Sun className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <Moon className="w-4 h-4 flex-shrink-0" />
+                    )}
                     <span className="text-xs">{isDark ? 'الوضع الفاتح' : 'الوضع الداكن'}</span>
                   </button>
                   <button
@@ -406,7 +539,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 text-white">
+                    <TooltipContent side="right" className="bg-neutral-900 text-white">
                       {isDark ? 'الوضع الفاتح' : 'الوضع الداكن'}
                     </TooltipContent>
                   </Tooltip>
@@ -422,7 +555,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                         <LogOut className="w-4 h-4" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-gray-900 text-white">
+                    <TooltipContent side="right" className="bg-neutral-900 text-white">
                       تسجيل خروج
                     </TooltipContent>
                   </Tooltip>
@@ -432,7 +565,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           </aside>
 
           {/* Main Content */}
-          <main className={`flex-1 pb-20 pt-16 lg:pb-0 lg:pt-16 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}>
+          <main
+            className={`flex-1 pb-20 pt-16 lg:pb-0 lg:pt-16 transition-all duration-300 ${isCollapsed ? 'lg:ml-0' : ''}`}
+          >
             {children}
           </main>
         </div>

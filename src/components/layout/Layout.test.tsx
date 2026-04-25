@@ -76,7 +76,15 @@ describe('Layout payroll navigation visibility', () => {
         return false
       }
 
-      return ['dashboard', 'employees', 'companies', 'projects', 'alerts', 'advancedSearch', 'payroll'].includes(section)
+      return [
+        'dashboard',
+        'employees',
+        'companies',
+        'projects',
+        'alerts',
+        'advancedSearch',
+        'payroll',
+      ].includes(section)
     })
 
     render(
@@ -100,7 +108,15 @@ describe('Layout payroll navigation visibility', () => {
         return false
       }
 
-      return ['dashboard', 'employees', 'companies', 'projects', 'alerts', 'advancedSearch', 'reports'].includes(section)
+      return [
+        'dashboard',
+        'employees',
+        'companies',
+        'projects',
+        'alerts',
+        'advancedSearch',
+        'reports',
+      ].includes(section)
     })
 
     render(

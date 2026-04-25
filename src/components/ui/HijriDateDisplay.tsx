@@ -16,16 +16,16 @@ export function HijriDateDisplay({ date, children, className = '' }: HijriDateDi
   if (!date || date === null || date === undefined) {
     return <span className={className}>{children}</span>
   }
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   // التحقق من أن dateObj صحيح
   if (!dateObj || isNaN(dateObj.getTime())) {
     return <span className={className}>{children}</span>
   }
 
   const hijri = formatHijriDate(dateObj)
-  
+
   if (!hijri) {
     return <span className={className}>{children}</span>
   }
@@ -34,13 +34,11 @@ export function HijriDateDisplay({ date, children, className = '' }: HijriDateDi
     <Tooltip.Provider delayDuration={200}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <span className={`cursor-help inline-block ${className}`}>
-            {children}
-          </span>
+          <span className={`cursor-help inline-block ${className}`}>{children}</span>
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+            className="bg-neutral-900 text-white text-xs px-2 py-1 rounded shadow-lg z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
             sideOffset={5}
             side="top"
             dir="rtl"
@@ -53,4 +51,3 @@ export function HijriDateDisplay({ date, children, className = '' }: HijriDateDi
     </Tooltip.Provider>
   )
 }
-

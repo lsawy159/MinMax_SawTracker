@@ -11,9 +11,7 @@ import { useEffect, useRef } from 'react'
  *
  * CSS المطلوب موجود في index.css (.scroll-reveal + .scroll-reveal.revealed)
  */
-export function useScrollReveal<T extends HTMLElement = HTMLElement>(
-  threshold = 0.12
-) {
+export function useScrollReveal<T extends HTMLElement = HTMLElement>(threshold = 0.12) {
   const ref = useRef<T>(null)
 
   useEffect(() => {

@@ -35,10 +35,12 @@ const createSupabaseQuery = (
     order?: (...args: unknown[]) => Promise<{ data: unknown[]; error: null }>
   }
 ) => ({
-  eq: (...args: unknown[]) => overrides?.eq ? overrides.eq(...args) : Promise.resolve(result),
-  in: (...args: unknown[]) => overrides?.in ? overrides.in(...args) : Promise.resolve(result),
-  order: (...args: unknown[]) => overrides?.order ? overrides.order(...args) : Promise.resolve(result),
-  then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => Promise.resolve(result).then(resolve),
+  eq: (...args: unknown[]) => (overrides?.eq ? overrides.eq(...args) : Promise.resolve(result)),
+  in: (...args: unknown[]) => (overrides?.in ? overrides.in(...args) : Promise.resolve(result)),
+  order: (...args: unknown[]) =>
+    overrides?.order ? overrides.order(...args) : Promise.resolve(result),
+  then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+    Promise.resolve(result).then(resolve),
   catch: (reject: (reason: unknown) => unknown) => Promise.resolve(result).catch(reject),
 })
 
@@ -123,7 +125,9 @@ function setupDefaultPayrollMocks() {
 }
 
 vi.mock('@/components/layout/Layout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }))
 
 vi.mock('@/lib/supabase', () => ({
@@ -137,12 +141,13 @@ vi.mock('@/lib/supabase', () => ({
 
       if (table === 'payroll_entries') {
         return {
-          select: () => createSupabaseQuery(
-            { data: [], error: null },
-            {
-              eq: (_column: unknown, value: unknown) => mockPayrollEntriesExportFetch(value),
-            }
-          ),
+          select: () =>
+            createSupabaseQuery(
+              { data: [], error: null },
+              {
+                eq: (_column: unknown, value: unknown) => mockPayrollEntriesExportFetch(value),
+              }
+            ),
         }
       }
 
@@ -255,7 +260,9 @@ describe('PayrollDeductions', () => {
     render(<PayrollDeductions />)
 
     expect(screen.getByText('غير مصرح')).toBeInTheDocument()
-    expect(screen.getByText('عذراً، ليس لديك صلاحية لعرض صفحة الرواتب والاستقطاعات.')).toBeInTheDocument()
+    expect(
+      screen.getByText('عذراً، ليس لديك صلاحية لعرض صفحة الرواتب والاستقطاعات.')
+    ).toBeInTheDocument()
   })
 
   it('reopens the existing run instead of creating a duplicate one for the same month and scope', async () => {
@@ -324,7 +331,9 @@ describe('PayrollDeductions', () => {
     expect(screen.getAllByRole('button', { name: 'إدخال راتب يدوي' }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('button', { name: 'استيراد من Excel' }).length).toBeGreaterThan(0)
     expect(screen.getByText('للبدء السريع:')).toBeInTheDocument()
-    expect(screen.getByText('1. اضغط على زر إدخال راتب يدوي لإضافة راتب أول موظف داخل هذا المسير.')).toBeInTheDocument()
+    expect(
+      screen.getByText('1. اضغط على زر إدخال راتب يدوي لإضافة راتب أول موظف داخل هذا المسير.')
+    ).toBeInTheDocument()
     expect(screen.getByText('الموظفون المتاحون داخل نطاق هذا المسير: 1')).toBeInTheDocument()
     expect(screen.getByText('حالة المسير: مسودة')).toBeInTheDocument()
   })
@@ -342,7 +351,11 @@ describe('PayrollDeductions', () => {
     })
 
     expect(screen.getByText('الموظفون المتاحون داخل نطاق هذا المسير: 0')).toBeInTheDocument()
-    expect(screen.getByText('لا يوجد موظفون داخل نطاق هذا المسير حاليًا، لذلك تم تعطيل الإدخال اليدوي والاستيراد حتى إضافة موظفين لهذا النطاق أولًا.')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'لا يوجد موظفون داخل نطاق هذا المسير حاليًا، لذلك تم تعطيل الإدخال اليدوي والاستيراد حتى إضافة موظفين لهذا النطاق أولًا.'
+      )
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'إدخال راتب يدوي' })).toBeDisabled()
   })
 
@@ -370,7 +383,11 @@ describe('PayrollDeductions', () => {
       expect(screen.getByText('حالة المسير: ملغي')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('هذا المسير ملغي حاليًا، لذلك لا يمكن إدخال رواتب أو استيراد بيانات بداخله حتى إعادة فتحه.')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'هذا المسير ملغي حاليًا، لذلك لا يمكن إدخال رواتب أو استيراد بيانات بداخله حتى إعادة فتحه.'
+      )
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'إعادة فتح المسير' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'إدخال راتب يدوي' })).toBeDisabled()
   })
@@ -410,7 +427,9 @@ describe('PayrollDeductions', () => {
     await user.click(screen.getByRole('button', { name: 'حذف المسير' }))
 
     expect(screen.getByText('تأكيد حذف المسير')).toBeInTheDocument()
-    expect(screen.getByText('سيتم حذف هذا المسير وكل الرواتب المرتبطة به نهائيًا.')).toBeInTheDocument()
+    expect(
+      screen.getByText('سيتم حذف هذا المسير وكل الرواتب المرتبطة به نهائيًا.')
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'تأكيد الحذف' }))
 
@@ -666,10 +685,10 @@ describe('PayrollDeductions', () => {
         'رقم الإقامة': '1234567890',
         'أيام الحضور': 30,
         'الإجازات المدفوعة': 0,
-        'الإضافي': 200,
-        'الخصومات': 50,
+        الإضافي: 200,
+        الخصومات: 50,
         'خصم الأقساط': 25,
-        'ملاحظات': 'مراجعة',
+        ملاحظات: 'مراجعة',
       },
     ])
 

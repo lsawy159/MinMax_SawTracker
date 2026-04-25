@@ -32,10 +32,7 @@ describe('PermissionGuard', () => {
     mockHasAnyPermission.mockReturnValue(false)
 
     render(
-      <PermissionGuard
-        permissions={['payroll.view']}
-        fallback={<div>no-access-fallback</div>}
-      >
+      <PermissionGuard permissions={['payroll.view']} fallback={<div>no-access-fallback</div>}>
         <div>hidden-content</div>
       </PermissionGuard>
     )

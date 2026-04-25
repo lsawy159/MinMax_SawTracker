@@ -8,7 +8,9 @@ export function useEmployees() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)'
+        )
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -22,15 +24,11 @@ export function useEmployees() {
 
 export function useCreateEmployee() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (employee: Partial<Employee>) => {
-      const { data, error } = await supabase
-        .from('employees')
-        .insert([employee])
-        .select()
-        .single()
-      
+      const { data, error } = await supabase.from('employees').insert([employee]).select().single()
+
       if (error) {
         logger.error('Error creating employee:', error)
         throw error
@@ -46,7 +44,7 @@ export function useCreateEmployee() {
 
 export function useUpdateEmployee() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Employee> & { id: string }) => {
       const { data, error } = await supabase
@@ -55,7 +53,7 @@ export function useUpdateEmployee() {
         .eq('id', id)
         .select()
         .single()
-      
+
       if (error) {
         logger.error('Error updating employee:', error)
         throw error
@@ -71,14 +69,11 @@ export function useUpdateEmployee() {
 
 export function useDeleteEmployee() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('employees')
-        .delete()
-        .eq('id', id)
-      
+      const { error } = await supabase.from('employees').delete().eq('id', id)
+
       if (error) {
         logger.error('Error deleting employee:', error)
         throw error
@@ -90,5 +85,3 @@ export function useDeleteEmployee() {
     },
   })
 }
-
-

@@ -19,7 +19,7 @@ export interface SimpleEnhancedAlert {
   created_at: string
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   estimated_cost?: string
-  
+
   // Enhanced fields for compatibility
   alert_type: 'commercial_registration_expiry' | 'government_docs_renewal'
   renewal_complexity: 'simple' | 'moderate' | 'complex'
@@ -58,7 +58,7 @@ export interface AlertThresholds {
 
 export const DEFAULT_ENHANCED_THRESHOLDS: AlertThresholds = {
   commercial_reg: { urgent: 30, medium: 60, low: 90 },
-  government_docs: { urgent: 15, medium: 45, low: 75 }
+  government_docs: { urgent: 15, medium: 45, low: 75 },
 }
 
 export interface EnhancedAlert {
@@ -106,19 +106,24 @@ export interface EnhancedAlert {
  */
 export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAlert[] {
   const alerts: EnhancedAlert[] = []
-  
+
   for (const company of companies) {
     // Commercial Registration Alerts
     if (company.commercial_registration_expiry) {
       const expiryDate = new Date(company.commercial_registration_expiry)
       const today = new Date()
       const daysRemaining = differenceInDays(expiryDate, today)
-      
+
       if (daysRemaining <= 90 && daysRemaining <= DEFAULT_ENHANCED_THRESHOLDS.commercial_reg.low) {
-        const priority = daysRemaining < 0 ? 'urgent' : 
-                        daysRemaining <= 30 ? 'urgent' : 
-                        daysRemaining <= 60 ? 'medium' : 'low'
-        
+        const priority =
+          daysRemaining < 0
+            ? 'urgent'
+            : daysRemaining <= 30
+              ? 'urgent'
+              : daysRemaining <= 60
+                ? 'medium'
+                : 'low'
+
         alerts.push({
           id: `enhanced_${company.id}_${company.commercial_registration_expiry}`,
           type: 'commercial_registration_expiry',
@@ -128,48 +133,63 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
           company: {
             id: company.id,
             name: company.name,
-            commercial_registration_number: company.commercial_registration_number
+            commercial_registration_number: company.commercial_registration_number,
           },
           expiry_date: company.commercial_registration_expiry,
           days_remaining: daysRemaining,
           action_required: `قم بترتيب تجديد السجل التجاري للمؤسسة "${company.name}"`,
           created_at: new Date().toISOString(),
-          risk_level: daysRemaining < 0 ? 'critical' : 
-                     daysRemaining <= 30 ? 'high' : 
-                     daysRemaining <= 60 ? 'medium' : 'low',
+          risk_level:
+            daysRemaining < 0
+              ? 'critical'
+              : daysRemaining <= 30
+                ? 'high'
+                : daysRemaining <= 60
+                  ? 'medium'
+                  : 'low',
           estimated_cost: 'SAR 200 - 800',
-          
+
           // Enhanced fields
           alert_type: 'commercial_registration_expiry',
           document_category: 'legal',
           renewal_complexity: 'moderate',
           estimated_renewal_time: daysRemaining < 7 ? '1-3 أيام' : '1-2 أسبوع',
           related_documents: ['السجل التجاري', 'الرخصة المهنية', 'التأمين'],
-          compliance_risk: daysRemaining < 0 ? 'critical' : 
-                          daysRemaining <= 30 ? 'high' : 
-                          daysRemaining <= 60 ? 'medium' : 'low',
-          business_impact: daysRemaining < 0 ? 'critical' : 
-                          daysRemaining <= 30 ? 'significant' : 
-                          daysRemaining <= 60 ? 'moderate' : 'minimal',
+          compliance_risk:
+            daysRemaining < 0
+              ? 'critical'
+              : daysRemaining <= 30
+                ? 'high'
+                : daysRemaining <= 60
+                  ? 'medium'
+                  : 'low',
+          business_impact:
+            daysRemaining < 0
+              ? 'critical'
+              : daysRemaining <= 30
+                ? 'significant'
+                : daysRemaining <= 60
+                  ? 'moderate'
+                  : 'minimal',
           suggested_actions: [
             'جمع الوثائق المطلوبة',
             'دفع الرسوم المقررة',
             'مراجعة هيئة التجارة',
-            'متابعة حالة الطلب'
+            'متابعة حالة الطلب',
           ],
           renewal_cost_estimate: { min: 500, max: 2000, currency: 'SAR' },
           responsible_department: 'Legal Affairs',
-          renewal_history: []
+          renewal_history: [],
         })
       }
     }
   }
-  
+
   return alerts.sort((a, b) => {
     const priorityOrder = { urgent: 3, medium: 2, low: 1 }
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
     if (priorityDiff !== 0) return priorityDiff
-    
+
     const daysA = a.days_remaining ?? Infinity
     const daysB = b.days_remaining ?? Infinity
     return daysA - daysB
@@ -188,7 +208,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateCommercialRegActions(days: number, company: Company): string[] {
   const actions = []
-  
+
   if (days < 0) {
     actions.push('اتصل بوزارة التجارة فوراً')
     actions.push('اطلب موعد عاجل لتجديد السجل')
@@ -205,7 +225,7 @@ function generateCommercialRegActions(days: number, company: Company): string[] 
     actions.push('خطط لتجديد السجل مسبقاً')
     actions.push('راجع متطلبات التجديد')
   }
-  
+
   return actions
 }
 
@@ -213,7 +233,7 @@ function generateCommercialRegActions(days: number, company: Company): string[] 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateInsuranceActions(days: number, company: Company): string[] {
   const actions = []
-  
+
   if (days < 0) {
     actions.push('اتصل بشركة التأمين فوراً')
     actions.push('أوقف العمل مؤقتاً لحين التجديد')
@@ -230,7 +250,7 @@ function generateInsuranceActions(days: number, company: Company): string[] {
     actions.push('راجع شروط التأمين الحالية')
     actions.push('قارن العروض المتاحة')
   }
-  
+
   return actions
 }
 
@@ -238,7 +258,7 @@ function generateInsuranceActions(days: number, company: Company): string[] {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateGovDocsActions(days: number, company: Company): string[] {
   const actions = []
-  
+
   if (days < 0) {
     actions.push('اتصل بالجهات الحكومية المختصة')
     actions.push('اطلب موعد عاجل')
@@ -255,7 +275,7 @@ function generateGovDocsActions(days: number, company: Company): string[] {
     actions.push('خطط لتجديد الوثائق')
     actions.push('راجع متطلبات التجديد')
   }
-  
+
   return actions
 }
 
@@ -263,7 +283,10 @@ function generateGovDocsActions(days: number, company: Company): string[] {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineRenewalComplexity(company: Company): EnhancedAlert['renewal_complexity'] {
   // Simple logic - could be enhanced with more company attributes
-  if (company.commercial_registration_number && company.commercial_registration_number.length > 10) {
+  if (
+    company.commercial_registration_number &&
+    company.commercial_registration_number.length > 10
+  ) {
     return 'moderate'
   }
   return 'simple'
@@ -278,7 +301,10 @@ function _determineInsuranceComplexity(_company: Company): EnhancedAlert['renewa
 
 // Reserved for future use: Estimate time required for renewal process
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function estimateRenewalTime(days: number, complexity: EnhancedAlert['renewal_complexity']): string {
+function estimateRenewalTime(
+  days: number,
+  complexity: EnhancedAlert['renewal_complexity']
+): string {
   if (complexity === 'simple') {
     return days < 0 ? '3-5 أيام عمل' : '1-3 أيام عمل'
   } else if (complexity === 'moderate') {
@@ -297,7 +323,7 @@ function _getEnhancedTitle(_type: string, _days: number): string {
     if (_days <= 30) return 'تجديد السجل التجاري مطلوب'
     return 'متابعة تجديد السجل التجاري'
   }
-  
+
   return 'تنبيه تجديد الوثائق'
 }
 
@@ -306,30 +332,30 @@ function _getEnhancedTitle(_type: string, _days: number): string {
  */
 export function getEnhancedAlertsStats(alerts: EnhancedAlert[]) {
   const total = alerts.length
-  const urgent = alerts.filter(a => a.priority === 'urgent').length
-  const medium = alerts.filter(a => a.priority === 'medium').length
-  const low = alerts.filter(a => a.priority === 'low').length
-  
+  const urgent = alerts.filter((a) => a.priority === 'urgent').length
+  const medium = alerts.filter((a) => a.priority === 'medium').length
+  const low = alerts.filter((a) => a.priority === 'low').length
+
   const byRisk = {
-    critical: alerts.filter(a => a.compliance_risk === 'critical').length,
-    high: alerts.filter(a => a.compliance_risk === 'high').length,
-    medium: alerts.filter(a => a.compliance_risk === 'medium').length,
-    low: alerts.filter(a => a.compliance_risk === 'low').length
+    critical: alerts.filter((a) => a.compliance_risk === 'critical').length,
+    high: alerts.filter((a) => a.compliance_risk === 'high').length,
+    medium: alerts.filter((a) => a.compliance_risk === 'medium').length,
+    low: alerts.filter((a) => a.compliance_risk === 'low').length,
   }
-  
+
   const byDocumentCategory = {
-    legal: alerts.filter(a => a.document_category === 'legal').length,
-    financial: alerts.filter(a => a.document_category === 'financial').length,
-    operational: alerts.filter(a => a.document_category === 'operational').length
+    legal: alerts.filter((a) => a.document_category === 'legal').length,
+    financial: alerts.filter((a) => a.document_category === 'financial').length,
+    operational: alerts.filter((a) => a.document_category === 'operational').length,
   }
-  
+
   const byBusinessImpact = {
-    critical: alerts.filter(a => a.business_impact === 'critical').length,
-    significant: alerts.filter(a => a.business_impact === 'significant').length,
-    moderate: alerts.filter(a => a.business_impact === 'moderate').length,
-    minimal: alerts.filter(a => a.business_impact === 'minimal').length
+    critical: alerts.filter((a) => a.business_impact === 'critical').length,
+    significant: alerts.filter((a) => a.business_impact === 'significant').length,
+    moderate: alerts.filter((a) => a.business_impact === 'moderate').length,
+    minimal: alerts.filter((a) => a.business_impact === 'minimal').length,
   }
-  
+
   return {
     total,
     urgent,
@@ -338,8 +364,9 @@ export function getEnhancedAlertsStats(alerts: EnhancedAlert[]) {
     byRisk,
     byDocumentCategory,
     byBusinessImpact,
-    commercialRegAlerts: alerts.filter(a => a.alert_type === 'commercial_registration_expiry').length,
-    govDocsAlerts: alerts.filter(a => a.alert_type === 'government_docs_renewal').length
+    commercialRegAlerts: alerts.filter((a) => a.alert_type === 'commercial_registration_expiry')
+      .length,
+    govDocsAlerts: alerts.filter((a) => a.alert_type === 'government_docs_renewal').length,
   }
 }
 
@@ -347,7 +374,7 @@ export function getEnhancedAlertsStats(alerts: EnhancedAlert[]) {
  * Filter alerts by multiple criteria
  */
 export function filterEnhancedAlertsByMultipleCriteria(
-  alerts: EnhancedAlert[], 
+  alerts: EnhancedAlert[],
   criteria: {
     priority?: EnhancedAlert['priority'][]
     complianceRisk?: EnhancedAlert['compliance_risk'][]
@@ -356,13 +383,16 @@ export function filterEnhancedAlertsByMultipleCriteria(
     alertType?: EnhancedAlert['alert_type'][]
   }
 ): EnhancedAlert[] {
-  return alerts.filter(alert => {
+  return alerts.filter((alert) => {
     if (criteria.priority && !criteria.priority.includes(alert.priority)) return false
-    if (criteria.complianceRisk && !criteria.complianceRisk.includes(alert.compliance_risk)) return false
-    if (criteria.documentCategory && !criteria.documentCategory.includes(alert.document_category)) return false
-    if (criteria.businessImpact && !criteria.businessImpact.includes(alert.business_impact)) return false
+    if (criteria.complianceRisk && !criteria.complianceRisk.includes(alert.compliance_risk))
+      return false
+    if (criteria.documentCategory && !criteria.documentCategory.includes(alert.document_category))
+      return false
+    if (criteria.businessImpact && !criteria.businessImpact.includes(alert.business_impact))
+      return false
     if (criteria.alertType && !criteria.alertType.includes(alert.alert_type)) return false
-    
+
     return true
   })
 }
@@ -371,10 +401,11 @@ export function filterEnhancedAlertsByMultipleCriteria(
  * Get critical alerts that need immediate attention
  */
 export function getCriticalAlerts(alerts: EnhancedAlert[]): EnhancedAlert[] {
-  return alerts.filter(alert => 
-    alert.priority === 'urgent' || 
-    alert.compliance_risk === 'critical' || 
-    alert.business_impact === 'critical'
+  return alerts.filter(
+    (alert) =>
+      alert.priority === 'urgent' ||
+      alert.compliance_risk === 'critical' ||
+      alert.business_impact === 'critical'
   )
 }
 
@@ -394,38 +425,41 @@ export function generateAlertSummaryReport(alerts: EnhancedAlert[]): {
 } {
   const stats = getEnhancedAlertsStats(alerts)
   const criticalCount = getCriticalAlerts(alerts).length
-  
+
   const estimatedRenewalCosts = alerts.reduce(
     (total, alert) => {
       if (alert.renewal_cost_estimate) {
         return {
           min: total.min + alert.renewal_cost_estimate.min,
           max: total.max + alert.renewal_cost_estimate.max,
-          currency: alert.renewal_cost_estimate.currency
+          currency: alert.renewal_cost_estimate.currency,
         }
       }
       return total
     },
     { min: 0, max: 0, currency: 'SAR' }
   )
-  
-  const departments = alerts.reduce((acc, alert) => {
-    const dept = alert.responsible_department || 'Unknown'
-    acc[dept] = (acc[dept] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-  
+
+  const departments = alerts.reduce(
+    (acc, alert) => {
+      const dept = alert.responsible_department || 'Unknown'
+      acc[dept] = (acc[dept] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>
+  )
+
   const timeline = {
-    overdue: alerts.filter(a => (a.days_remaining ?? 0) < 0).length,
-    urgent: alerts.filter(a => a.priority === 'urgent').length,
-    upcoming: alerts.filter(a => (a.days_remaining ?? 0) > 0).length
+    overdue: alerts.filter((a) => (a.days_remaining ?? 0) < 0).length,
+    urgent: alerts.filter((a) => a.priority === 'urgent').length,
+    upcoming: alerts.filter((a) => (a.days_remaining ?? 0) > 0).length,
   }
-  
+
   return {
     total: stats.total,
     criticalCount,
     estimatedRenewalCosts,
     departments,
-    timeline
+    timeline,
   }
 }

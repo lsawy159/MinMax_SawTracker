@@ -71,7 +71,9 @@ export default function Login() {
               <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-yellow-300 to-amber-400 text-slate-950 shadow-[0_20px_40px_-20px_rgba(254,206,20,0.8)]">
                 <LogIn className="h-8 w-8" />
               </div>
-              <h1 className="text-3xl font-black tracking-[0.14em] text-slate-900 dark:text-white">SawTracker</h1>
+              <h1 className="text-3xl font-black tracking-[0.14em] text-slate-900 dark:text-white">
+                SawTracker
+              </h1>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">

@@ -25,7 +25,7 @@ async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
     const recipients = await getNotificationRecipients({
       notificationType: 'backupNotifications',
       timeout: 5000,
-      includeLogging: true
+      includeLogging: true,
     })
 
     if (recipients.length === 0) {
@@ -51,18 +51,22 @@ async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
       subject,
       textContent: bodyText,
       htmlContent: bodyHtml,
-      priority: 'high'
+      priority: 'high',
     })
 
     logger.info(`[BackupService] Backup notification sent successfully to ${recipients.join(', ')}`)
   } catch (err) {
-    logger.error(`[BackupService] maybeNotifyBackupNew error: ${err instanceof Error ? err.message : String(err)}`)
+    logger.error(
+      `[BackupService] maybeNotifyBackupNew error: ${err instanceof Error ? err.message : String(err)}`
+    )
     // ًں”گ FALLBACK: Try legacy system
     try {
       await maybeNotifyBackupLegacy(backup)
       logger.warn('[BackupService] Fell back to legacy notification system')
     } catch (legacyErr) {
-      logger.error(`[BackupService] Legacy notification also failed: ${legacyErr instanceof Error ? legacyErr.message : String(legacyErr)}`)
+      logger.error(
+        `[BackupService] Legacy notification also failed: ${legacyErr instanceof Error ? legacyErr.message : String(legacyErr)}`
+      )
     }
   }
 }
@@ -74,18 +78,27 @@ async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
     const { data: settings, error } = await supabase
       .from('system_settings')
       .select('setting_key, setting_value')
-      .in('setting_key', ['backup_notifications_enabled', 'backup_email_notifications', 'admin_email'])
+      .in('setting_key', [
+        'backup_notifications_enabled',
+        'backup_email_notifications',
+        'admin_email',
+      ])
 
     if (error) throw error
 
-    const map = new Map<string, unknown>(settings?.map((s: SystemSetting) => [s.setting_key, s.setting_value]))
+    const map = new Map<string, unknown>(
+      settings?.map((s: SystemSetting) => [s.setting_key, s.setting_value])
+    )
     const enabled = Boolean(map.get('backup_notifications_enabled') ?? true)
     if (!enabled) return
 
     const recipientsRaw = (map.get('backup_email_notifications') as string) || ''
     const adminEmail = (map.get('admin_email') as string) || PRIMARY_ADMIN_EMAIL
     const toList = [
-      ...recipientsRaw.split(/[;,]/).map(s => s.trim()).filter(Boolean),
+      ...recipientsRaw
+        .split(/[;,]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
     ]
     if (toList.length === 0 && adminEmail) toList.push(adminEmail)
     if (toList.length === 0) return
@@ -106,10 +119,12 @@ async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
       subject,
       textContent: bodyText,
       htmlContent: bodyHtml,
-      priority: 'high'
+      priority: 'high',
     })
   } catch (err) {
-    logger.warn(`[BackupService] maybeNotifyBackupLegacy error: ${err instanceof Error ? err.message : String(err)}`)
+    logger.warn(
+      `[BackupService] maybeNotifyBackupLegacy error: ${err instanceof Error ? err.message : String(err)}`
+    )
   }
 }
 
@@ -122,7 +137,7 @@ export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
 // ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ظٹط¯ظˆظٹط© ظˆط¥ط±ط³ط§ظ„ ط¥ط´ط¹ط§ط± ط¹ظ†ط¯ ط§ظ„ظ†ط¬ط§ط­
 export async function triggerManualBackupAndNotify(): Promise<BackupRecord | null> {
   const { data, error } = await supabase.functions.invoke('automated-backup', {
-    body: { backup_type: 'manual' }
+    body: { backup_type: 'manual' },
   })
 
   if (error) {
@@ -139,10 +154,21 @@ export async function triggerManualBackupAndNotify(): Promise<BackupRecord | nul
     }
   }
 
-  if (!responseData || (typeof responseData === 'object' && responseData !== null && 'success' in responseData && !responseData.success)) {
-    const message = (responseData && typeof responseData === 'object' && responseData !== null && 'error' in responseData && typeof responseData.error === 'string') 
-      ? responseData.error 
-      : 'ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©'
+  if (
+    !responseData ||
+    (typeof responseData === 'object' &&
+      responseData !== null &&
+      'success' in responseData &&
+      !responseData.success)
+  ) {
+    const message =
+      responseData &&
+      typeof responseData === 'object' &&
+      responseData !== null &&
+      'error' in responseData &&
+      typeof responseData.error === 'string'
+        ? responseData.error
+        : 'ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©'
     throw new Error(message)
   }
 
@@ -168,4 +194,3 @@ export async function triggerManualBackupAndNotify(): Promise<BackupRecord | nul
 
   return null
 }
-

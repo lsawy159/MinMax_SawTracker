@@ -65,7 +65,9 @@ export function useEmployeeObligations(employeeId?: string) {
 
       const { data: headers, error: headersError } = await supabase
         .from('employee_obligation_headers')
-        .select('id,employee_id,obligation_type,title,total_amount,currency_code,start_month,installment_count,status,created_by_user_id,superseded_by_header_id,notes,created_at,updated_at')
+        .select(
+          'id,employee_id,obligation_type,title,total_amount,currency_code,start_month,installment_count,status,created_by_user_id,superseded_by_header_id,notes,created_at,updated_at'
+        )
         .eq('employee_id', employeeId)
         .order('start_month', { ascending: false })
 
@@ -83,7 +85,9 @@ export function useEmployeeObligations(employeeId?: string) {
 
       const { data: lines, error: linesError } = await supabase
         .from('employee_obligation_lines')
-        .select('id,header_id,employee_id,due_month,amount_due,amount_paid,line_status,source_version,manual_override,override_reason,rescheduled_from_line_id,rescheduled_to_line_id,payroll_entry_id,notes,created_at,updated_at')
+        .select(
+          'id,header_id,employee_id,due_month,amount_due,amount_paid,line_status,source_version,manual_override,override_reason,rescheduled_from_line_id,rescheduled_to_line_id,payroll_entry_id,notes,created_at,updated_at'
+        )
         .eq('employee_id', employeeId)
         .in('header_id', headerIds)
         .order('due_month', { ascending: true })
@@ -147,7 +151,11 @@ export function useUpdateObligationLinePayment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ lineId, employeeId, ...updates }: UpdateEmployeeObligationLinePaymentInput) => {
+    mutationFn: async ({
+      lineId,
+      employeeId,
+      ...updates
+    }: UpdateEmployeeObligationLinePaymentInput) => {
       const payload = {
         amount_paid: updates.amount_paid,
         manual_override: updates.manual_override ?? false,
@@ -159,7 +167,9 @@ export function useUpdateObligationLinePayment() {
         .from('employee_obligation_lines')
         .update(payload)
         .eq('id', lineId)
-        .select('id,header_id,employee_id,due_month,amount_due,amount_paid,line_status,source_version,manual_override,override_reason,rescheduled_from_line_id,rescheduled_to_line_id,payroll_entry_id,notes,created_at,updated_at')
+        .select(
+          'id,header_id,employee_id,due_month,amount_due,amount_paid,line_status,source_version,manual_override,override_reason,rescheduled_from_line_id,rescheduled_to_line_id,payroll_entry_id,notes,created_at,updated_at'
+        )
         .single()
 
       if (error) {

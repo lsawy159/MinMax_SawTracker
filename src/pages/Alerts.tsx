@@ -2,16 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabase, Employee, Company } from '@/lib/supabase'
 import { AlertCard, Alert } from '@/components/alerts/AlertCard'
 import { EmployeeAlertCard, EmployeeAlert } from '@/components/alerts/EmployeeAlertCard'
-import { 
-  generateCompanyAlertsSync,
-  getAlertsStats,
-  filterAlertsByPriority
-} from '@/utils/alerts'
-import { 
-  generateEmployeeAlerts, 
+import { generateCompanyAlertsSync, getAlertsStats, filterAlertsByPriority } from '@/utils/alerts'
+import {
+  generateEmployeeAlerts,
   enrichEmployeeAlertsWithCompanyData,
   getEmployeeAlertsStats,
-  filterEmployeeAlertsByPriority
+  filterEmployeeAlertsByPriority,
 } from '@/utils/employeeAlerts'
 import { Bell, AlertTriangle, Building2, Users, X, CheckCircle2, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -24,8 +20,13 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 
 interface AlertsProps {
   initialTab?: 'companies' | 'employees' | 'all'
@@ -43,17 +44,21 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'companies' | 'employees' | 'all'>(initialTab)
-  
+
   // [NEW] تبويب لـ "جديد" و "مقروء"
   const [readFilterTab, setReadFilterTab] = useState<'new' | 'read'>('new')
-  
-  const [activeFilter, setActiveFilter] = useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>(initialFilter)
+
+  const [activeFilter, setActiveFilter] = useState<'all' | 'urgent' | 'high' | 'medium' | 'low'>(
+    initialFilter
+  )
   const [searchTerm, setSearchTerm] = useState('')
   const [showCompanyCard, setShowCompanyCard] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company }) | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<
+    (Employee & { company: Company }) | null
+  >(null)
   const navigate = useNavigate()
   // شبكة خاصة بكروت التنبيهات - أعرض من الكروت العادية لاستيعاب المحتوى
   const ALERT_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-3'
@@ -70,9 +75,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <Bell className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+            <Bell className="w-16 h-16 mx-auto mb-4 text-danger-500" />
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
+            <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
       </Layout>
@@ -82,7 +87,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // جلب التنبيهات المقروءة من قاعدة البيانات
   const loadReadAlerts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
@@ -92,7 +99,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       if (error) throw error
 
-      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
+      const readAlertIds = new Set(data?.map((r) => r.alert_id) || [])
       setReadAlerts(readAlertIds)
     } catch (error) {
       console.error('خطأ في جلب التنبيهات المقروءة:', error)
@@ -106,14 +113,18 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       // جلب الموظفين
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at'
+        )
 
       if (employeesError) throw employeesError
 
       // جلب المؤسسات
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
+        .select(
+          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+        )
 
       if (companiesError) throw companiesError
 
@@ -124,10 +135,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         // توليد تنبيهات المؤسسات
         const companyAlertsGenerated = await generateCompanyAlertsSync(companiesData)
         setCompanyAlerts(companyAlertsGenerated)
-        
+
         // توليد تنبيهات الموظفين
         const employeeAlertsGenerated = await generateEmployeeAlerts(employeesData, companiesData)
-        const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companiesData)
+        const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(
+          employeeAlertsGenerated,
+          companiesData
+        )
         setEmployeeAlerts(enrichedEmployeeAlerts)
       }
     } catch (error) {
@@ -144,7 +158,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   }
 
   const handleShowCompanyCard = (companyId: string) => {
-    const company = companies.find(c => c.id === companyId)
+    const company = companies.find((c) => c.id === companyId)
     if (company) {
       setSelectedCompany(company)
       setShowCompanyCard(true)
@@ -156,7 +170,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       // جلب بيانات الموظف من قاعدة البيانات
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at'
+        )
         .eq('id', employeeId)
         .single()
 
@@ -166,7 +182,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         // جلب بيانات المؤسسة المرتبطة بالموظف
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
-          .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
+          .select(
+            'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+          )
           .eq('id', employeeData.company_id)
           .single()
 
@@ -176,7 +194,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           // إعداد بيانات الموظف مع المؤسسة
           const employeeWithCompany = {
             ...employeeData,
-            company: companyData
+            company: companyData,
           } as Employee & { company: Company }
 
           setSelectedEmployee(employeeWithCompany)
@@ -217,10 +235,12 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     if (selectedCompany) {
       const { data: updatedCompany, error } = await supabase
         .from('companies')
-        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
+        .select(
+          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+        )
         .eq('id', selectedCompany.id)
         .single()
-      
+
       if (!error && updatedCompany) {
         setSelectedCompany(updatedCompany)
         // إعادة فتح modal عرض المؤسسة مع البيانات المحدثة
@@ -235,28 +255,31 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
   const handleMarkAsRead = async (alertId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         console.error('المستخدم غير مسجل دخول')
         return
       }
 
       // حفظ التنبيه كمقروء في قاعدة البيانات
-      const { error } = await supabase
-        .from('read_alerts')
-        .upsert({
+      const { error } = await supabase.from('read_alerts').upsert(
+        {
           user_id: user.id,
           alert_id: alertId,
-          read_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,alert_id'
-        })
+          read_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,alert_id',
+        }
+      )
 
       if (error) throw error
 
       // تحديث حالة التنبيه محلياً
-      setReadAlerts(prev => new Set([...prev, alertId]))
-      
+      setReadAlerts((prev) => new Set([...prev, alertId]))
+
       // [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
       window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
     } catch (error) {
@@ -267,7 +290,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // [NEW] دالة لتمييز كل التنبيهات "الجديدة" كمقروءة
   const handleMarkAllAsRead = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         console.error('المستخدم غير مسجل دخول')
         return
@@ -275,35 +300,33 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       // 1. جمع كل الـ IDs غير المقروءة
       const unreadCompanyAlertIds = companyAlerts
-        .filter(alert => !readAlerts.has(alert.id))
-        .map(alert => alert.id)
-      
+        .filter((alert) => !readAlerts.has(alert.id))
+        .map((alert) => alert.id)
+
       const unreadEmployeeAlertIds = employeeAlerts
-        .filter(alert => !readAlerts.has(alert.id))
-        .map(alert => alert.id)
+        .filter((alert) => !readAlerts.has(alert.id))
+        .map((alert) => alert.id)
 
       const allUnreadIds = [...unreadCompanyAlertIds, ...unreadEmployeeAlertIds]
-      
+
       if (allUnreadIds.length === 0) return
 
       // 2. تحضير السجلات للإرسال
-      const recordsToUpsert = allUnreadIds.map(alertId => ({
+      const recordsToUpsert = allUnreadIds.map((alertId) => ({
         user_id: user.id,
         alert_id: alertId,
-        read_at: new Date().toISOString()
+        read_at: new Date().toISOString(),
       }))
 
       // 3. إرسالها إلى قاعدة البيانات
-      const { error } = await supabase
-        .from('read_alerts')
-        .upsert(recordsToUpsert, {
-          onConflict: 'user_id,alert_id'
-        })
+      const { error } = await supabase.from('read_alerts').upsert(recordsToUpsert, {
+        onConflict: 'user_id,alert_id',
+      })
 
       if (error) throw error
 
       // 4. تحديث الحالة المحلية
-      setReadAlerts(prev => new Set([...prev, ...allUnreadIds]))
+      setReadAlerts((prev) => new Set([...prev, ...allUnreadIds]))
 
       // 5. [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
       window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
@@ -315,7 +338,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // دالة لإعادة تنبيه واحد إلى غير مقروء
   const handleMarkAsUnread = async (alertId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         console.error('المستخدم غير مسجل دخول')
         return
@@ -331,12 +356,12 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       if (error) throw error
 
       // تحديث حالة التنبيه محلياً
-      setReadAlerts(prev => {
+      setReadAlerts((prev) => {
         const newSet = new Set(prev)
         newSet.delete(alertId)
         return newSet
       })
-      
+
       // تحديث الإحصائيات
       window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
     } catch (error) {
@@ -347,7 +372,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // دالة لإعادة جميع التنبيهات المقروءة إلى غير مقروءة
   const handleMarkAllAsUnread = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         console.error('المستخدم غير مسجل دخول')
         return
@@ -355,15 +382,15 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       // 1. جمع كل الـ IDs المقروءة
       const readCompanyAlertIds = companyAlerts
-        .filter(alert => readAlerts.has(alert.id))
-        .map(alert => alert.id)
-      
+        .filter((alert) => readAlerts.has(alert.id))
+        .map((alert) => alert.id)
+
       const readEmployeeAlertIds = employeeAlerts
-        .filter(alert => readAlerts.has(alert.id))
-        .map(alert => alert.id)
+        .filter((alert) => readAlerts.has(alert.id))
+        .map((alert) => alert.id)
 
       const allReadIds = [...readCompanyAlertIds, ...readEmployeeAlertIds]
-      
+
       if (allReadIds.length === 0) return
 
       // 2. حذف جميع السجلات المقروءة من قاعدة البيانات
@@ -385,13 +412,14 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     }
   }
 
-
   // إحصائيات التنبيهات (فقط غير المقروءة و urgent/high) - هذه خاصة بالصفحة الداخلية
-  const unreadCompanyAlerts = companyAlerts.filter(alert => 
-    !readAlerts.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
+  const unreadCompanyAlerts = companyAlerts.filter(
+    (alert) =>
+      !readAlerts.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
   )
-  const unreadEmployeeAlerts = employeeAlerts.filter(alert => 
-    !readAlerts.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
+  const unreadEmployeeAlerts = employeeAlerts.filter(
+    (alert) =>
+      !readAlerts.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
   )
 
   const companyAlertsStats = getAlertsStats(unreadCompanyAlerts)
@@ -399,12 +427,11 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   const totalAlerts = companyAlertsStats.total + employeeAlertsStats.total
   const totalUrgentAlerts = companyAlertsStats.urgent + employeeAlertsStats.urgent
 
-
   // [MODIFIED] فلترة التنبيهات بناءً على التبويب "جديد" أو "مقروء"
   const getFilteredCompanyAlerts = () => {
     // 1. ابدأ بجميع تنبيهات المؤسسات - فلترة لعرض urgent و high فقط
-    let filtered = companyAlerts.filter(alert => 
-      alert.priority === 'urgent' || alert.priority === 'high'
+    let filtered = companyAlerts.filter(
+      (alert) => alert.priority === 'urgent' || alert.priority === 'high'
     )
 
     // 2. فلتر الأولوية (إذا كان المستخدم يريد فلترة إضافية)
@@ -414,17 +441,18 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
     // 3. فلتر البحث
     if (searchTerm) {
-      filtered = filtered.filter(alert => 
-        alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.title.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (alert) =>
+          alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          alert.title.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
     // 4. [NEW] فلتر المقروء/غير المقروء
     if (readFilterTab === 'new') {
-      filtered = filtered.filter(alert => !readAlerts.has(alert.id))
+      filtered = filtered.filter((alert) => !readAlerts.has(alert.id))
     } else {
-      filtered = filtered.filter(alert => readAlerts.has(alert.id))
+      filtered = filtered.filter((alert) => readAlerts.has(alert.id))
     }
 
     return filtered
@@ -433,8 +461,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // [MODIFIED] فلترة التنبيهات بناءً على التبويب "جديد" أو "مقروء"
   const getFilteredEmployeeAlerts = () => {
     // 1. ابدأ بجميع تنبيهات الموظفين - فلترة لعرض urgent و high فقط
-    let filtered = employeeAlerts.filter(alert => 
-      alert.priority === 'urgent' || alert.priority === 'high'
+    let filtered = employeeAlerts.filter(
+      (alert) => alert.priority === 'urgent' || alert.priority === 'high'
     )
 
     // 2. فلتر الأولوية (إذا كان المستخدم يريد فلترة إضافية)
@@ -444,18 +472,19 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
     // 3. فلتر البحث
     if (searchTerm) {
-      filtered = filtered.filter(alert => 
-        alert.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.title.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (alert) =>
+          alert.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          alert.title.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
     // 4. [NEW] فلتر المقروء/غير المقروء
     if (readFilterTab === 'new') {
-      filtered = filtered.filter(alert => !readAlerts.has(alert.id))
+      filtered = filtered.filter((alert) => !readAlerts.has(alert.id))
     } else {
-      filtered = filtered.filter(alert => readAlerts.has(alert.id))
+      filtered = filtered.filter((alert) => readAlerts.has(alert.id))
     }
 
     return filtered
@@ -465,8 +494,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   const filteredEmployeeAlerts = getFilteredEmployeeAlerts()
 
   // [NEW] حساب عدد المقروءة (لأجل تبويب "مقروء")
-  const readCompanyAlertsCount = companyAlerts.filter(alert => readAlerts.has(alert.id)).length
-  const readEmployeeAlertsCount = employeeAlerts.filter(alert => readAlerts.has(alert.id)).length
+  const readCompanyAlertsCount = companyAlerts.filter((alert) => readAlerts.has(alert.id)).length
+  const readEmployeeAlertsCount = employeeAlerts.filter((alert) => readAlerts.has(alert.id)).length
   const totalReadAlerts = readCompanyAlertsCount + readEmployeeAlertsCount
 
   if (loading) {
@@ -548,9 +577,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               <button
                 onClick={() => setActiveTab('all')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  activeTab === 'all' 
-                    ? 'app-tab-button-active' 
-                    : 'app-tab-button'
+                  activeTab === 'all' ? 'app-tab-button-active' : 'app-tab-button'
                 }`}
               >
                 الكل ({totalAlerts})
@@ -558,9 +585,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               <button
                 onClick={() => setActiveTab('companies')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  activeTab === 'companies' 
-                    ? 'app-tab-button-active' 
-                    : 'app-tab-button'
+                  activeTab === 'companies' ? 'app-tab-button-active' : 'app-tab-button'
                 }`}
               >
                 المؤسسات ({companyAlertsStats.total})
@@ -568,9 +593,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
               <button
                 onClick={() => setActiveTab('employees')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  activeTab === 'employees' 
-                    ? 'app-tab-button-active' 
-                    : 'app-tab-button'
+                  activeTab === 'employees' ? 'app-tab-button-active' : 'app-tab-button'
                 }`}
               >
                 الموظفين ({employeeAlertsStats.total})
@@ -589,7 +612,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
               <Select
                 value={activeFilter}
-                onValueChange={(value) => setActiveFilter(value as 'all' | 'urgent' | 'high' | 'medium' | 'low')}
+                onValueChange={(value) =>
+                  setActiveFilter(value as 'all' | 'urgent' | 'high' | 'medium' | 'low')
+                }
               >
                 <SelectTrigger className="min-w-[220px]">
                   <SelectValue placeholder="جميع الأولويات" />
@@ -606,15 +631,13 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           </div>
 
           {/* [NEW] تبويبات (جديد / مقروء) */}
-          <div className="border-t border-gray-200 pt-6">
+          <div className="border-t border-neutral-200 pt-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="app-toggle-shell w-full sm:w-auto">
                 <button
                   onClick={() => setReadFilterTab('new')}
                   className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
-                    readFilterTab === 'new' 
-                      ? 'app-toggle-button-active' 
-                      : 'app-toggle-button'
+                    readFilterTab === 'new' ? 'app-toggle-button-active' : 'app-toggle-button'
                   }`}
                 >
                   تنبيهات جديدة ({totalAlerts})
@@ -622,9 +645,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 <button
                   onClick={() => setReadFilterTab('read')}
                   className={`px-6 py-2 rounded-md font-medium transition-colors w-1/2 sm:w-auto ${
-                    readFilterTab === 'read' 
-                      ? 'app-toggle-button-active' 
-                      : 'app-toggle-button'
+                    readFilterTab === 'read' ? 'app-toggle-button-active' : 'app-toggle-button'
                   }`}
                 >
                   مقروءة ({totalReadAlerts})
@@ -633,21 +654,15 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
               {/* [NEW] زر تم الاطلاع على الكل */}
               {readFilterTab === 'new' && totalAlerts > 0 && (
-                <Button
-                  onClick={handleMarkAllAsRead}
-                  variant="success"
-                >
+                <Button onClick={handleMarkAllAsRead} variant="success">
                   <CheckCircle2 className="w-5 h-5" />
                   <span>تم الاطلاع على الكل</span>
                 </Button>
               )}
-              
+
               {/* [NEW] زر إعادة الكل إلى غير مقروء */}
               {readFilterTab === 'read' && totalReadAlerts > 0 && (
-                <Button
-                  onClick={handleMarkAllAsUnread}
-                  variant="secondary"
-                >
+                <Button onClick={handleMarkAllAsUnread} variant="secondary">
                   <Mail className="w-5 h-5" />
                   <span>إعادة الكل إلى غير مقروء</span>
                 </Button>
@@ -659,73 +674,74 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         {/* عرض التنبيهات (مقسّمة الآن) */}
         <div className="space-y-8">
           {/* تنبيهات المؤسسات */}
-          {(activeTab === 'all' || activeTab === 'companies') && filteredCompanyAlerts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <Building2 className="w-6 h-6 text-primary" />
-                <h2 className="text-xl font-bold text-gray-900">تنبيهات المؤسسات</h2>
-                <span className="rounded-full bg-primary/15 px-2 py-1 text-sm font-medium text-slate-900">
-                  {filteredCompanyAlerts.length}
-                </span>
+          {(activeTab === 'all' || activeTab === 'companies') &&
+            filteredCompanyAlerts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <Building2 className="w-6 h-6 text-primary" />
+                  <h2 className="text-xl font-bold text-neutral-900">تنبيهات المؤسسات</h2>
+                  <span className="rounded-full bg-primary/15 px-2 py-1 text-sm font-medium text-slate-900">
+                    {filteredCompanyAlerts.length}
+                  </span>
+                </div>
+                <div className={alertGridClass}>
+                  {filteredCompanyAlerts.map((alert) => (
+                    <AlertCard
+                      key={alert.id}
+                      alert={alert}
+                      onShowCompanyCard={handleShowCompanyCard}
+                      onMarkAsRead={handleMarkAsRead}
+                      onMarkAsUnread={handleMarkAsUnread}
+                      isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
+                    />
+                  ))}
+                </div>
               </div>
-              <div className={alertGridClass}>
-                {filteredCompanyAlerts.map((alert) => (
-                  <AlertCard
-                    key={alert.id}
-                    alert={alert}
-                    onShowCompanyCard={handleShowCompanyCard}
-                    onMarkAsRead={handleMarkAsRead}
-                    onMarkAsUnread={handleMarkAsUnread}
-                    isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
           {/* تنبيهات الموظفين */}
-          {(activeTab === 'all' || activeTab === 'employees') && filteredEmployeeAlerts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-slate-700" />
-                <h2 className="text-xl font-bold text-gray-900">تنبيهات الموظفين</h2>
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700">
-                  {filteredEmployeeAlerts.length}
-                </span>
+          {(activeTab === 'all' || activeTab === 'employees') &&
+            filteredEmployeeAlerts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <Users className="w-6 h-6 text-slate-700" />
+                  <h2 className="text-xl font-bold text-neutral-900">تنبيهات الموظفين</h2>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700">
+                    {filteredEmployeeAlerts.length}
+                  </span>
+                </div>
+                <div className={alertGridClass}>
+                  {filteredEmployeeAlerts.map((alert) => (
+                    <EmployeeAlertCard
+                      key={alert.id}
+                      alert={alert}
+                      onViewEmployee={handleViewEmployee}
+                      onMarkAsRead={handleMarkAsRead}
+                      onMarkAsUnread={handleMarkAsUnread}
+                      isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
+                    />
+                  ))}
+                </div>
               </div>
-              <div className={alertGridClass}>
-                {filteredEmployeeAlerts.map((alert) => (
-                  <EmployeeAlertCard
-                    key={alert.id}
-                    alert={alert}
-                    onViewEmployee={handleViewEmployee}
-                    onMarkAsRead={handleMarkAsRead}
-                    onMarkAsUnread={handleMarkAsUnread}
-                    isRead={readAlerts.has(alert.id)} // [MODIFIED] تمرير حالة القراءة للبطاقة
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
           {/* لا توجد نتائج */}
-          {(filteredCompanyAlerts.length === 0 && filteredEmployeeAlerts.length === 0) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <Bell className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm 
-                  ? 'لا توجد نتائج' 
-                  : (readFilterTab === 'new' ? 'لا توجد تنبيهات جديدة' : 'لا توجد تنبيهات مقروءة')
-                }
+          {filteredCompanyAlerts.length === 0 && filteredEmployeeAlerts.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+              <Bell className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
+              <h3 className="text-lg font-medium text-neutral-900 mb-2">
+                {searchTerm
+                  ? 'لا توجد نتائج'
+                  : readFilterTab === 'new'
+                    ? 'لا توجد تنبيهات جديدة'
+                    : 'لا توجد تنبيهات مقروءة'}
               </h3>
-              <p className="text-gray-600">
-                {searchTerm 
+              <p className="text-neutral-600">
+                {searchTerm
                   ? `لم يتم العثور على تنبيهات تحتوي على "${searchTerm}"`
-                  : (readFilterTab === 'new' 
-                      ? 'جميع مؤسساتك وموظفيك محدثون ولا يحتاجون إلى إجراءات فورية'
-                      : 'لم تقم بالاطلاع على أي تنبيهات بعد'
-                    )
-                }
+                  : readFilterTab === 'new'
+                    ? 'جميع مؤسساتك وموظفيك محدثون ولا يحتاجون إلى إجراءات فورية'
+                    : 'لم تقم بالاطلاع على أي تنبيهات بعد'}
               </p>
             </div>
           )}
@@ -738,16 +754,12 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between px-6 py-4">
-              <h2 className="text-xl font-bold text-gray-900">تفاصيل المؤسسة</h2>
-              <Button
-                onClick={() => setShowCompanyCard(false)}
-                variant="ghost"
-                size="icon"
-              >
-                <X className="w-6 h-6 text-gray-500" />
+              <h2 className="text-xl font-bold text-neutral-900">تفاصيل المؤسسة</h2>
+              <Button onClick={() => setShowCompanyCard(false)} variant="ghost" size="icon">
+                <X className="w-6 h-6 text-neutral-500" />
               </Button>
             </div>
-            
+
             {/* Company Card */}
             <div className="p-6">
               <CompanyCard
@@ -755,12 +767,16 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                   ...selectedCompany,
                   employee_count: 0,
                   available_slots: 0,
-                  max_employees: selectedCompany.max_employees || 4
+                  max_employees: selectedCompany.max_employees || 4,
                 }}
                 onEdit={handleEditCompany}
                 onDelete={() => {}} // يمكن إضافة وظيفة حذف إذا لزم الأمر
-                getAvailableSlotsColor={(slots) => slots > 0 ? 'text-green-600' : 'text-red-600'}
-                getAvailableSlotsTextColor={(slots) => slots > 0 ? 'text-green-600' : 'text-red-600'}
+                getAvailableSlotsColor={(slots) =>
+                  slots > 0 ? 'text-success-600' : 'text-red-600'
+                }
+                getAvailableSlotsTextColor={(slots) =>
+                  slots > 0 ? 'text-success-600' : 'text-red-600'
+                }
                 getAvailableSlotsText={(slots) => `متاح: ${slots} أماكن`}
               />
             </div>
@@ -786,6 +802,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           onSuccess={handleEditModalSuccess}
         />
       )}
-      </Layout>
+    </Layout>
   )
 }

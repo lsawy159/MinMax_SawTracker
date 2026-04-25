@@ -83,7 +83,7 @@ export function GlobalSearch() {
   }
 
   const saveToRecentSearches = (searchQuery: string) => {
-    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5)
+    const updated = [searchQuery, ...recentSearches.filter((s) => s !== searchQuery)].slice(0, 5)
     setRecentSearches(updated)
     localStorage.setItem('recentSearches', JSON.stringify(updated))
   }
@@ -102,7 +102,7 @@ export function GlobalSearch() {
         .select('id, name, profession, nationality, companies(name)')
         .textSearch('search_vector', searchQuery, {
           type: 'websearch',
-          config: 'arabic'
+          config: 'arabic',
         })
         .limit(5)
 
@@ -112,24 +112,26 @@ export function GlobalSearch() {
         .select('id, name, unified_number, social_insurance_number')
         .textSearch('search_vector', searchQuery, {
           type: 'websearch',
-          config: 'arabic'
+          config: 'arabic',
         })
         .limit(5)
 
-      const employeeResults: SearchResult[] = (employees || []).map(emp => ({
+      const employeeResults: SearchResult[] = (employees || []).map((emp) => ({
         id: emp.id,
         type: 'employee' as const,
         title: emp.name,
         subtitle: emp.profession,
-        metadata: `${emp.nationality} - ${(emp as { companies?: { name?: string } }).companies?.name || 'ط¨ط¯ظˆظ† ظ…ط¤ط³ط³ط©'}`
+        metadata: `${emp.nationality} - ${(emp as { companies?: { name?: string } }).companies?.name || 'ط¨ط¯ظˆظ† ظ…ط¤ط³ط³ط©'}`,
       }))
 
-      const companyResults: SearchResult[] = (companies || []).map(comp => ({
+      const companyResults: SearchResult[] = (companies || []).map((comp) => ({
         id: comp.id,
         type: 'company' as const,
         title: comp.name,
         subtitle: `ط§ظ„ط±ظ‚ظ… ط§ظ„ظ…ظˆط­ط¯: ${comp.unified_number || 'ط؛ظٹط± ظ…ط­ط¯ط¯'}`,
-        metadata: comp.social_insurance_number ? `ط±ظ‚ظ… ط§ط´طھط±ط§ظƒ ط§ظ„طھط£ظ…ظٹظ†ط§طھ: ${comp.social_insurance_number}` : ''
+        metadata: comp.social_insurance_number
+          ? `ط±ظ‚ظ… ط§ط´طھط±ط§ظƒ ط§ظ„طھط£ظ…ظٹظ†ط§طھ: ${comp.social_insurance_number}`
+          : '',
       }))
 
       setResults([...employeeResults, ...companyResults])
@@ -183,11 +185,11 @@ export function GlobalSearch() {
           setIsOpen(true)
           setTimeout(() => inputRef.current?.focus(), 100)
         }}
-        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:shadow-[0_2px_4px_-1px_rgba(0,0,0,0.2),0_4px_5px_0_rgba(0,0,0,0.14)] transition-all duration-200 ease-in-out w-64 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 hover:shadow-[0_2px_4px_-1px_rgba(0,0,0,0.2),0_4px_5px_0_rgba(0,0,0,0.14)] transition-all duration-200 ease-in-out w-64 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       >
-        <Search className="w-4 h-4 text-gray-500" />
+        <Search className="w-4 h-4 text-neutral-500" />
         <span className="flex-1 text-right">ط¨ط­ط« ط´ط§ظ…ظ„...</span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-gray-300 bg-gray-50 px-1.5 font-mono text-[10px] font-medium text-gray-600 shadow-sm">
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-neutral-300 bg-neutral-50 px-1.5 font-mono text-[10px] font-medium text-neutral-600 shadow-sm">
           <span className="text-xs">âŒک</span>K
         </kbd>
       </button>
@@ -197,9 +199,9 @@ export function GlobalSearch() {
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setIsOpen(false)} />
-          
+
           {/* Search Panel - Material Design */}
-          <div className="absolute top-12 left-0 w-[600px] bg-white border border-gray-200 rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.2),0_6px_12px_0_rgba(0,0,0,0.14),0_2px_4px_0_rgba(0,0,0,0.12)] z-50 max-h-[500px] flex flex-col">
+          <div className="absolute top-12 left-0 w-[600px] bg-white border border-neutral-200 rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.2),0_6px_12px_0_rgba(0,0,0,0.14),0_2px_4px_0_rgba(0,0,0,0.12)] z-50 max-h-[500px] flex flex-col">
             {/* Search Input */}
             <div className="p-4 border-b">
               <div className="relative">
@@ -210,7 +212,7 @@ export function GlobalSearch() {
                   value={query}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="ط§ط¨ط­ط« ظپظٹ ط§ظ„ظ…ظˆط¸ظپظٹظ† ظˆط§ظ„ظ…ط¤ط³ط³ط§طھ..."
-                  className="w-full pr-10 pl-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                  className="w-full pr-10 pl-10 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                 />
                 {query && (
                   <button
@@ -244,7 +246,9 @@ export function GlobalSearch() {
                         <div className="font-medium">{result.title}</div>
                         <div className="text-sm text-muted-foreground">{result.subtitle}</div>
                         {result.metadata && (
-                          <div className="text-xs text-muted-foreground mt-1">{result.metadata}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {result.metadata}
+                          </div>
                         )}
                       </div>
                       <div className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
@@ -281,7 +285,9 @@ export function GlobalSearch() {
                         >
                           <Star className="w-4 h-4 text-yellow-500" />
                           <span className="flex-1">{saved.name}</span>
-                          <span className="text-xs text-muted-foreground">{saved.search_query}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {saved.search_query}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -328,4 +334,3 @@ export function GlobalSearch() {
     </div>
   )
 }
-

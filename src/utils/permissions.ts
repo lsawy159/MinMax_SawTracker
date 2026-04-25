@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   PERMISSION_SECTIONS,
   VALID_PERMISSION_SECTIONS,
-  getActionsForSection
+  getActionsForSection,
 } from './PERMISSIONS_SCHEMA'
 
 // واجهة الصلاحيات الموسعة لجميع الصفحات
@@ -15,7 +15,14 @@ export interface PermissionMatrix {
   adminSettings: { view: boolean; edit: boolean }
   centralizedSettings: { view: boolean; edit: boolean }
   projects: { view: boolean; create: boolean; edit: boolean; delete: boolean }
-  transferProcedures: { view: boolean; create: boolean; edit: boolean; delete: boolean; import: boolean; export: boolean }
+  transferProcedures: {
+    view: boolean
+    create: boolean
+    edit: boolean
+    delete: boolean
+    import: boolean
+    export: boolean
+  }
   reports: { view: boolean; export: boolean }
   payroll: { view: boolean; export: boolean }
   alerts: { view: boolean }
@@ -113,9 +120,11 @@ export const normalizePermissions = (
 
         // تطبيع إلى boolean مع دعم القيم القديمة (strings من قاعدة البيانات)
         if (value === true || value === 'true') {
-          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] = true
+          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] =
+            true
         } else {
-          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] = false // ← Deny by Default
+          ;(normalized as unknown as Record<string, Record<string, boolean>>)[section][action] =
+            false // ← Deny by Default
         }
       }
     }
@@ -124,7 +133,6 @@ export const normalizePermissions = (
 
   return normalized
 }
-
 
 /**
  * تحويل من format string[] المسطح إلى PermissionMatrix
@@ -192,7 +200,7 @@ export function normalizePermissionsFlat(
   }
 
   // تصفية وتحقق من صحة كل صلاحية
-  return permissions.filter(perm => {
+  return permissions.filter((perm) => {
     if (typeof perm !== 'string') return false
 
     const [section, action] = perm.split('.')
@@ -217,9 +225,7 @@ export function usePermissions() {
 
   // الحصول على الصلاحيات المطبعة (محسّنة بـ useMemo لتجنب الحسابات الزائدة)
   const permissions: PermissionMatrix = useMemo(
-    () => user
-      ? normalizePermissions(user.permissions, user.role)
-      : defaultPermissions,
+    () => (user ? normalizePermissions(user.permissions, user.role) : defaultPermissions),
     [user]
   )
 
@@ -228,10 +234,7 @@ export function usePermissions() {
    * @param section القسم (مثل 'employees', 'companies')
    * @param action الإجراء (مثل 'view', 'create', 'edit', 'delete')
    */
-  const hasPermission = (
-    section: keyof PermissionMatrix,
-    action: string
-  ): boolean => {
+  const hasPermission = (section: keyof PermissionMatrix, action: string): boolean => {
     if (!user) {
       return false
     }
@@ -264,23 +267,17 @@ export function usePermissions() {
   /**
    * دوال مساعدة للتحقق من الصلاحيات الشائعة
    */
-  const canView = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'view')
+  const canView = (section: keyof PermissionMatrix) => hasPermission(section, 'view')
 
-  const canCreate = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'create')
+  const canCreate = (section: keyof PermissionMatrix) => hasPermission(section, 'create')
 
-  const canEdit = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'edit')
+  const canEdit = (section: keyof PermissionMatrix) => hasPermission(section, 'edit')
 
-  const canDelete = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'delete')
+  const canDelete = (section: keyof PermissionMatrix) => hasPermission(section, 'delete')
 
-  const canExport = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'export')
+  const canExport = (section: keyof PermissionMatrix) => hasPermission(section, 'export')
 
-  const canImport = (section: keyof PermissionMatrix) =>
-    hasPermission(section, 'import')
+  const canImport = (section: keyof PermissionMatrix) => hasPermission(section, 'import')
 
   return {
     permissions,
@@ -291,7 +288,6 @@ export function usePermissions() {
     canDelete,
     canExport,
     canImport,
-    isAdmin: user?.role === 'admin'
+    isAdmin: user?.role === 'admin',
   }
 }
-

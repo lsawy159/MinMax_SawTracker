@@ -10,12 +10,15 @@ describe('payroll permissions', () => {
   })
 
   it('does not grant payroll access when only reports permissions exist', () => {
-    const normalized = normalizePermissions({
-      reports: {
-        view: true,
-        export: true,
+    const normalized = normalizePermissions(
+      {
+        reports: {
+          view: true,
+          export: true,
+        },
       },
-    }, 'user')
+      'user'
+    )
 
     expect(normalized.reports.view).toBe(true)
     expect(normalized.reports.export).toBe(true)

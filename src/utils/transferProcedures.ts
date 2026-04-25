@@ -29,6 +29,10 @@ export const isTransferProcedureStatus = (status: string): status is TransferPro
   return TRANSFER_PROCEDURE_STATUS_OPTIONS.includes(status as TransferProcedureStatus)
 }
 
-export const isNewTransferProcedureStatus = (status: string): status is Exclude<TransferProcedureStatus, 'منقول'> => {
-  return NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.includes(status as Exclude<TransferProcedureStatus, 'منقول'>)
+export const isNewTransferProcedureStatus = (
+  status: string
+): status is Exclude<TransferProcedureStatus, 'منقول'> => {
+  return NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.includes(
+    status as Exclude<TransferProcedureStatus, 'منقول'>
+  )
 }

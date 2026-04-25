@@ -16,7 +16,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
       'mock-anon-key'
     ) as unknown as SupabaseClient
   } else {
-    throw new Error("Supabase URL and Anon Key are required. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.")
+    throw new Error(
+      'Supabase URL and Anon Key are required. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.'
+    )
   }
 } else {
   supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -32,7 +34,7 @@ export interface Company {
   labor_subscription_number: string
   commercial_registration_expiry?: string
   // التأمينات الاجتماعية للمؤسسة
-  social_insurance_number?: string  // رقم اشتراك التأمينات الاجتماعية
+  social_insurance_number?: string // رقم اشتراك التأمينات الاجتماعية
   commercial_registration_status?: string
   additional_fields?: Record<string, unknown>
   // حقول انتهاء الاشتراكات الجديدة
@@ -75,16 +77,16 @@ export interface Employee {
   hired_worker_contract_expiry?: string
   residence_expiry: string
   project_id?: string
-  project_name?: string  // للتوافق مع البيانات القديمة
-  project?: Project  // Relation إلى جدول المشاريع
+  project_name?: string // للتوافق مع البيانات القديمة
+  project?: Project // Relation إلى جدول المشاريع
   bank_account?: string
   residence_image_url?: string
   // التأمين الصحي للموظف
-  health_insurance_expiry?: string  // بدلاً من ending_subscription_insurance_date
+  health_insurance_expiry?: string // بدلاً من ending_subscription_insurance_date
   salary?: number
   // حقل الملاحظات
   notes?: string
-  additional_fields?: Record<string, unknown>  // للحقول المخصصة من قاعدة البيانات فقط
+  additional_fields?: Record<string, unknown> // للحقول المخصصة من قاعدة البيانات فقط
   is_deleted?: boolean
   deleted_at?: string | null
   created_at: string
@@ -241,7 +243,10 @@ export interface CustomField {
   field_name: string
   field_label: string
   field_type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea'
-  field_options: Record<string, string | number | boolean | string[] | { label: string; value: string | number }[]>
+  field_options: Record<
+    string,
+    string | number | boolean | string[] | { label: string; value: string | number }[]
+  >
   is_required: boolean
   is_active: boolean
   display_order: number

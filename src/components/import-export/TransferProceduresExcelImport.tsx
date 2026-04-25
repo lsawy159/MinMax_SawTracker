@@ -14,7 +14,9 @@ interface TransferProceduresExcelImportProps {
   canImport: boolean
 }
 
-export default function TransferProceduresExcelImport({ canImport }: TransferProceduresExcelImportProps) {
+export default function TransferProceduresExcelImport({
+  canImport,
+}: TransferProceduresExcelImportProps) {
   const [importing, setImporting] = useState(false)
 
   const handleImportTransfers = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +60,9 @@ export default function TransferProceduresExcelImport({ canImport }: TransferPro
       }
 
       const fileColumns = Object.keys(rows[0])
-      const missingColumns = TRANSFER_PROCEDURE_TEMPLATE_COLUMNS.filter((column) => !fileColumns.includes(column))
+      const missingColumns = TRANSFER_PROCEDURE_TEMPLATE_COLUMNS.filter(
+        (column) => !fileColumns.includes(column)
+      )
       if (missingColumns.length > 0) {
         toast.error(`الأعمدة التالية مفقودة: ${missingColumns.join('، ')}`)
         return
@@ -82,7 +86,9 @@ export default function TransferProceduresExcelImport({ canImport }: TransferPro
         const iqamaRaw = String(row['رقم الإقامة'] || '').trim()
         const status = String(row['الحالة'] || '').trim()
         const currentUnifiedRaw = String(row['الرقم الموحد الحالي'] || '').trim()
-        const projectName = String(row['المشروع'] || '').trim().toLowerCase()
+        const projectName = String(row['المشروع'] || '')
+          .trim()
+          .toLowerCase()
         const notes = String(row['ملاحظات'] || '').trim()
 
         const requestDateParsed = parseDate(requestDateRaw)
@@ -97,7 +103,9 @@ export default function TransferProceduresExcelImport({ canImport }: TransferPro
         }
 
         if (!isNewTransferProcedureStatus(status)) {
-          errors.push(`الصف ${rowNumber}: حالة الطلب يجب أن تكون واحدة من: ${NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.join('، ')}`)
+          errors.push(
+            `الصف ${rowNumber}: حالة الطلب يجب أن تكون واحدة من: ${NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.join('، ')}`
+          )
           return
         }
 
@@ -157,7 +165,7 @@ export default function TransferProceduresExcelImport({ canImport }: TransferPro
       }
 
       if (errors.length > 0 || failedCount > 0) {
-        toast.warning(`تم استيراد ${successCount} صفوف، وتعذر ${failedCount + errors.length} صفوف`) 
+        toast.warning(`تم استيراد ${successCount} صفوف، وتعذر ${failedCount + errors.length} صفوف`)
       } else {
         toast.success(`تم استيراد ${successCount} طلب نقل بنجاح`)
       }

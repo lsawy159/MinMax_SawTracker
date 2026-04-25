@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/Sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/Sheet'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
+import { Plus, Trash2 } from 'lucide-react'
 
 interface Role {
-  id: string;
-  name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
 }
 
 interface RolesManagementSheetProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export function RolesManagementSheet({ isOpen, onOpenChange }: RolesManagementSheetProps) {
-  const queryClient = useQueryClient();
-  const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleDescription, setNewRoleDescription] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const queryClient = useQueryClient()
+  const [newRoleName, setNewRoleName] = useState('')
+  const [newRoleDescription, setNewRoleDescription] = useState('')
 
   const { data: roles = [], isLoading } = useQuery({
     queryKey: ['roles'],
@@ -40,65 +33,65 @@ export function RolesManagementSheet({ isOpen, onOpenChange }: RolesManagementSh
       const { data, error } = await supabase
         .from('roles')
         .select('id, name, description, created_at, updated_at')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
 
       if (error) {
-        logger.error('Error fetching roles:', error);
-        throw error;
+        logger.error('Error fetching roles:', error)
+        throw error
       }
-      return (data as Role[]) || [];
+      return (data as Role[]) || []
     },
-  });
+  })
 
   const createRoleMutation = useMutation({
     mutationFn: async () => {
-      if (!newRoleName.trim()) throw new Error('Role name is required');
+      if (!newRoleName.trim()) throw new Error('Role name is required')
 
       const { data, error } = await supabase
         .from('roles')
         .insert([{ name: newRoleName, description: newRoleDescription }])
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] });
-      setNewRoleName('');
-      setNewRoleDescription('');
-      toast.success('تم إنشاء الدور بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['roles'] })
+      setNewRoleName('')
+      setNewRoleDescription('')
+      toast.success('تم إنشاء الدور بنجاح')
     },
     onError: (error) => {
-      logger.error('Error creating role:', error);
-      toast.error('فشل إنشاء الدور');
+      logger.error('Error creating role:', error)
+      toast.error('فشل إنشاء الدور')
     },
-  });
+  })
 
   const deleteRoleMutation = useMutation({
     mutationFn: async (roleId: string) => {
-      const { error } = await supabase.from('roles').delete().eq('id', roleId);
-      if (error) throw error;
+      const { error } = await supabase.from('roles').delete().eq('id', roleId)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] });
-      toast.success('تم حذف الدور بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['roles'] })
+      toast.success('تم حذف الدور بنجاح')
     },
     onError: (error) => {
-      logger.error('Error deleting role:', error);
-      toast.error('فشل حذف الدور');
+      logger.error('Error deleting role:', error)
+      toast.error('فشل حذف الدور')
     },
-  });
+  })
 
   const handleCreateRole = async () => {
-    await createRoleMutation.mutateAsync();
-  };
+    await createRoleMutation.mutateAsync()
+  }
 
   const handleDeleteRole = async (roleId: string) => {
     if (window.confirm('هل تريد حذف هذا الدور؟')) {
-      await deleteRoleMutation.mutateAsync(roleId);
+      await deleteRoleMutation.mutateAsync(roleId)
     }
-  };
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -202,5 +195,5 @@ export function RolesManagementSheet({ isOpen, onOpenChange }: RolesManagementSh
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

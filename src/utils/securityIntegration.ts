@@ -67,7 +67,9 @@ export function useAuditLog() {
      * Log a data export
      */
     logExport: async (resourceType: string, resourceId: string, format: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user?.id) {
         await logger.logExport(user.id, resourceType, resourceId, format)
       }
@@ -77,7 +79,9 @@ export function useAuditLog() {
      * Log access denied
      */
     logAccessDenied: async (resource: string, reason: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       await logger.logAccessDenied(user?.id, resource, reason)
     },
   }
@@ -114,12 +118,12 @@ export async function checkPermission(): Promise<boolean> {
  */
 export function setupGlobalErrorLogging() {
   // Log unhandled promise rejections
-  window.addEventListener('unhandledrejection', event => {
+  window.addEventListener('unhandledrejection', (event) => {
     logger.error('Unhandled promise rejection:', event.reason)
   })
 
   // Log global errors
-  window.addEventListener('error', event => {
+  window.addEventListener('error', (event) => {
     logger.error('Global error:', event.error)
   })
 }
@@ -149,8 +153,8 @@ export class ActivityTracker {
 
     // Track user interactions
     const activities = ['mousedown', 'keydown', 'scroll', 'touchstart']
-    
-    activities.forEach(activity => {
+
+    activities.forEach((activity) => {
       document.addEventListener(activity, () => this.updateActivity(), true)
     })
 
@@ -178,7 +182,7 @@ export class ActivityTracker {
    */
   private checkInactivity(sessionTimeoutMinutes: number) {
     const inactiveTime = (Date.now() - this.lastActivityTime) / 1000 / 60 // Convert to minutes
-    
+
     if (inactiveTime > sessionTimeoutMinutes) {
       logger.warn(`User inactive for ${inactiveTime} minutes. Logging out.`)
       // Trigger logout

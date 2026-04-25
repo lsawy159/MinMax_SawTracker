@@ -14,27 +14,27 @@ import {
   Settings,
   Shield,
   Sliders,
-} from 'lucide-react';
-import type { ComponentType } from 'react';
+} from 'lucide-react'
+import type { ComponentType } from 'react'
 
-export type NavGroupId = 'operational' | 'admin';
+export type NavGroupId = 'operational' | 'admin'
 
 export interface NavItem {
-  id: string;
-  labelAr: string;
-  labelEn: string;
-  icon: ComponentType<{ className?: string }>;
-  to: string;
-  requiredPermission?: string;
-  group: NavGroupId;
-  order: number;
+  id: string
+  labelAr: string
+  labelEn: string
+  icon: ComponentType<{ className?: string }>
+  to: string
+  requiredPermission?: string
+  group: NavGroupId
+  order: number
 }
 
 export interface NavGroup {
-  id: NavGroupId;
-  labelAr: string;
-  labelEn: string;
-  items: NavItem[];
+  id: NavGroupId
+  labelAr: string
+  labelEn: string
+  items: NavItem[]
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -189,14 +189,16 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'admin',
     order: 4,
   },
-];
+]
 
 export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'operational',
     labelAr: 'العمليات',
     labelEn: 'Operational',
-    items: NAV_ITEMS.filter((item) => item.group === 'operational').sort((a, b) => a.order - b.order),
+    items: NAV_ITEMS.filter((item) => item.group === 'operational').sort(
+      (a, b) => a.order - b.order
+    ),
   },
   {
     id: 'admin',
@@ -204,4 +206,4 @@ export const NAV_GROUPS: NavGroup[] = [
     labelEn: 'Administration',
     items: NAV_ITEMS.filter((item) => item.group === 'admin').sort((a, b) => a.order - b.order),
   },
-];
+]

@@ -1,46 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { NAV_GROUPS } from './nav-config';
-import { useAuth } from '@/contexts/AuthContext';
-import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { NAV_GROUPS } from './nav-config'
+import { useAuth } from '@/contexts/AuthContext'
+import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
-  const location = useLocation();
-  const { user } = useAuth();
-  const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation()
+  const { user } = useAuth()
+  const [isMobile, setIsMobile] = useState(false)
 
   // Detect mobile viewport
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Close on route change (mobile)
   useEffect(() => {
     if (isMobile && onClose) {
-      onClose();
+      onClose()
     }
-  }, [location.pathname, isMobile, onClose]);
+  }, [location.pathname, isMobile, onClose])
 
   // Filter nav groups and items based on permissions and role
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin'
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
       // Admin items only visible to admins
-      if (item.requiredPermission && !isAdmin) return false;
-      return true;
+      if (item.requiredPermission && !isAdmin) return false
+      return true
     }),
-  })).filter((group) => group.items.length > 0);
+  })).filter((group) => group.items.length > 0)
 
   const sidebarContent = (
     <nav className="flex flex-col h-full bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-700">
@@ -73,8 +73,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             {/* Group Items */}
             <div className="space-y-1 px-2">
               {group.items.map((item) => {
-                const isActive = location.pathname === item.to;
-                const Icon = item.icon;
+                const isActive = location.pathname === item.to
+                const Icon = item.icon
 
                 return (
                   <Link
@@ -94,7 +94,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                       <div className="h-1 w-1 rounded-full bg-primary-600 dark:bg-primary-400" />
                     )}
                   </Link>
-                );
+                )
               })}
             </div>
 
@@ -110,7 +110,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {user && (
         <div className="border-t border-neutral-200 dark:border-neutral-700 p-4">
           <div className="text-xs text-neutral-600 dark:text-neutral-400">
-            <p className="font-medium text-neutral-900 dark:text-neutral-50">{user.full_name || user.username}</p>
+            <p className="font-medium text-neutral-900 dark:text-neutral-50">
+              {user.full_name || user.username}
+            </p>
             <p className="text-neutral-500 dark:text-neutral-400 capitalize">
               {user.role === 'admin' ? 'مدير' : user.role === 'manager' ? 'مسؤول' : 'مستخدم'}
             </p>
@@ -118,7 +120,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </div>
       )}
     </nav>
-  );
+  )
 
   // Mobile: render as off-canvas drawer
   if (isMobile) {
@@ -126,11 +128,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       <>
         {/* Backdrop */}
         {isOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={onClose}
-            aria-hidden="true"
-          />
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} aria-hidden="true" />
         )}
 
         {/* Drawer */}
@@ -143,7 +141,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {sidebarContent}
         </div>
       </>
-    );
+    )
   }
 
   // Desktop: render as fixed sidebar
@@ -151,5 +149,5 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     <div className="hidden md:block w-64 h-screen border-r border-neutral-200 dark:border-neutral-700">
       {sidebarContent}
     </div>
-  );
+  )
 }

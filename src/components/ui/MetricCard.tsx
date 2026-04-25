@@ -28,8 +28,17 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className }: M
         <div className="flex items-center justify-between text-xs">
           {subtitle ? <span className="text-muted-foreground">{subtitle}</span> : <span />}
           {typeof trend === 'number' ? (
-            <span className={cn('inline-flex items-center gap-1 font-semibold', isPositive ? 'text-success' : 'text-danger')}>
-              {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 font-semibold',
+                isPositive ? 'text-success' : 'text-danger'
+              )}
+            >
+              {isPositive ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
               {`${isPositive ? '+' : ''}${trend}%`}
             </span>
           ) : null}

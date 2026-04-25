@@ -1,34 +1,28 @@
-import React, { useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/Sheet';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/Select';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { useUpdateUserRole, useUpdateUserPermissions } from '@/hooks/useUserMutations';
-import { useConfirmation } from '@/hooks/useConfirmation';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
+import React, { useEffect, useCallback } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/Sheet'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/Select'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { useUpdateUserRole, useUpdateUserPermissions } from '@/hooks/useUserMutations'
+import { useConfirmation } from '@/hooks/useConfirmation'
+import { toast } from 'sonner'
+import { logger } from '@/utils/logger'
 
 interface PermissionDrawerProps {
-  userId: string | null;
-  onClose: () => void;
-  onSaved: (userId: string) => void;
+  userId: string | null
+  onClose: () => void
+  onSaved: (userId: string) => void
 }
 
 const permissionUpdateSchema = z.object({
   roleId: z.string().uuid().nullable(),
   permissions: z.record(z.string(), z.boolean()),
-});
+})
 
-type PermissionFormData = z.infer<typeof permissionUpdateSchema>;
+type PermissionFormData = z.infer<typeof permissionUpdateSchema>
 
 const AVAILABLE_PERMISSIONS = [
   'settings.users.read',
@@ -42,35 +36,32 @@ const AVAILABLE_PERMISSIONS = [
   'settings.employees.write',
   'settings.roles.read',
   'settings.roles.write',
-];
+]
 
 const AVAILABLE_ROLES = [
   { id: '1', name: 'Admin' },
   { id: '2', name: 'Manager' },
   { id: '3', name: 'User' },
-];
+]
 
 export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerProps) {
-  const isOpen = userId !== null;
-  const initialFocusRef = useRef<HTMLButtonElement>(null);
-  const { confirm } = useConfirmation();
+  const isOpen = userId !== null
+  const { confirm } = useConfirmation()
 
   const {
-    control,
     handleSubmit,
     formState: { isDirty, isValid, isSubmitting },
     reset,
-    watch,
   } = useForm<PermissionFormData>({
     resolver: zodResolver(permissionUpdateSchema),
     defaultValues: {
       roleId: null,
       permissions: AVAILABLE_PERMISSIONS.reduce((acc, perm) => ({ ...acc, [perm]: false }), {}),
     },
-  });
+  })
 
-  const updateRoleMutation = useUpdateUserRole();
-  const updatePermissionsMutation = useUpdateUserPermissions();
+  const updateRoleMutation = useUpdateUserRole()
+  const updatePermissionsMutation = useUpdateUserPermissions()
 
   const handleClose = async () => {
     if (isDirty) {
@@ -79,61 +70,65 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
         message: 'هل تريد المغادرة بدون حفظ التغييرات؟',
         confirmText: 'خروج',
         cancelText: 'إلغاء',
-      });
+      })
 
-      if (!confirmed) return;
+      if (!confirmed) return
     }
 
-    reset();
-    onClose();
-  };
+    reset()
+    onClose()
+  }
 
-  const onSubmit = async (data: PermissionFormData) => {
-    if (!userId) return;
+  const onSubmit = useCallback(
+    async (data: PermissionFormData) => {
+      if (!userId) return
 
-    try {
-      if (data.roleId) {
-        await updateRoleMutation.mutateAsync({
+      try {
+        if (data.roleId) {
+          await updateRoleMutation.mutateAsync({
+            userId,
+            roleId: data.roleId,
+          })
+        }
+
+        await updatePermissionsMutation.mutateAsync({
           userId,
-          roleId: data.roleId,
-        });
+          permissions: data.permissions,
+        })
+
+        toast.success('تم حفظ الصلاحيات بنجاح')
+        reset()
+        onSaved(userId)
+        onClose()
+      } catch (error) {
+        logger.error('Error saving permissions:', error)
+        const errorMessage =
+          error instanceof Error ? error.message : 'فشل حفظ الصلاحيات'
+        toast.error(errorMessage)
       }
-
-      await updatePermissionsMutation.mutateAsync({
-        userId,
-        permissions: data.permissions,
-      });
-
-      toast.success('تم حفظ الصلاحيات بنجاح');
-      reset();
-      onSaved(userId);
-      onClose();
-    } catch (error) {
-      logger.error('Error saving permissions:', error);
-      const errorMessage = error instanceof Error ? error.message : 'فشل حفظ الصلاحيات';
-      toast.error(errorMessage);
-    }
-  };
+    },
+    [userId, updateRoleMutation, updatePermissionsMutation, reset, onSaved, onClose]
+  )
 
   // Handle keyboard shortcut Ctrl+S / Cmd+S
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
+        e.preventDefault()
         if (isDirty && isValid) {
-          handleSubmit(onSubmit)();
+          handleSubmit(onSubmit)()
         }
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isDirty, isValid, handleSubmit]);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, isDirty, isValid, handleSubmit, onSubmit])
 
   // Respect prefers-reduced-motion
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -146,7 +141,9 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
         aria-labelledby="permission-drawer-title"
       >
         <SheetHeader>
-          <SheetTitle id="permission-drawer-title" className="text-right">صلاحيات المستخدم</SheetTitle>
+          <SheetTitle id="permission-drawer-title" className="text-right">
+            صلاحيات المستخدم
+          </SheetTitle>
         </SheetHeader>
 
         {userId ? (
@@ -175,7 +172,9 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
                 {AVAILABLE_PERMISSIONS.map((permission) => (
                   <label key={permission} className="flex items-center gap-2">
                     <input type="checkbox" className="rounded" defaultChecked={false} />
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300">{permission}</span>
+                    <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      {permission}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -214,5 +213,5 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
         )}
       </SheetContent>
     </Sheet>
-  );
+  )
 }

@@ -42,9 +42,18 @@ vi.mock('@/lib/supabase', () => ({
 }))
 
 vi.mock('@/components/employees/AddEmployeeModal', () => ({
-  default: ({ isOpen, initialData, onSuccess }: {
+  default: ({
+    isOpen,
+    initialData,
+    onSuccess,
+  }: {
     isOpen: boolean
-    initialData?: { name?: string; residence_number?: string; project_id?: string; joining_date?: string }
+    initialData?: {
+      name?: string
+      residence_number?: string
+      project_id?: string
+      joining_date?: string
+    }
     onSuccess: (employee?: {
       id: string
       name: string
@@ -58,7 +67,14 @@ vi.mock('@/components/employees/AddEmployeeModal', () => ({
       residence_expiry: string
       created_at: string
       updated_at: string
-      company: { id: string; name: string; unified_number: number; labor_subscription_number: string; created_at: string; updated_at: string }
+      company: {
+        id: string
+        name: string
+        unified_number: number
+        labor_subscription_number: string
+        created_at: string
+        updated_at: string
+      }
       project?: { id: string; name: string; created_at: string; updated_at: string }
     }) => void
   }) => {
@@ -70,34 +86,36 @@ vi.mock('@/components/employees/AddEmployeeModal', () => ({
         <div>{initialData?.residence_number}</div>
         <button
           type="button"
-          onClick={() => onSuccess({
-            id: 'employee-1',
-            name: initialData?.name || 'عامل منقول',
-            company_id: 'company-1',
-            profession: 'عامل',
-            nationality: 'مصري',
-            birth_date: '1990-01-01',
-            phone: '0500000000',
-            residence_number: Number(initialData?.residence_number || 0),
-            joining_date: initialData?.joining_date || '2026-04-22',
-            residence_expiry: '2027-04-22',
-            created_at: '2026-04-22T00:00:00.000Z',
-            updated_at: '2026-04-22T00:00:00.000Z',
-            company: {
-              id: 'company-1',
-              name: 'شركة الاختبار',
-              unified_number: 7001234567,
-              labor_subscription_number: '123456',
+          onClick={() =>
+            onSuccess({
+              id: 'employee-1',
+              name: initialData?.name || 'عامل منقول',
+              company_id: 'company-1',
+              profession: 'عامل',
+              nationality: 'مصري',
+              birth_date: '1990-01-01',
+              phone: '0500000000',
+              residence_number: Number(initialData?.residence_number || 0),
+              joining_date: initialData?.joining_date || '2026-04-22',
+              residence_expiry: '2027-04-22',
               created_at: '2026-04-22T00:00:00.000Z',
               updated_at: '2026-04-22T00:00:00.000Z',
-            },
-            project: {
-              id: initialData?.project_id || 'project-1',
-              name: 'مشروع الرياض',
-              created_at: '2026-04-22T00:00:00.000Z',
-              updated_at: '2026-04-22T00:00:00.000Z',
-            },
-          })}
+              company: {
+                id: 'company-1',
+                name: 'شركة الاختبار',
+                unified_number: 7001234567,
+                labor_subscription_number: '123456',
+                created_at: '2026-04-22T00:00:00.000Z',
+                updated_at: '2026-04-22T00:00:00.000Z',
+              },
+              project: {
+                id: initialData?.project_id || 'project-1',
+                name: 'مشروع الرياض',
+                created_at: '2026-04-22T00:00:00.000Z',
+                updated_at: '2026-04-22T00:00:00.000Z',
+              },
+            })
+          }
         >
           تأكيد إنشاء الموظف
         </button>
@@ -107,7 +125,13 @@ vi.mock('@/components/employees/AddEmployeeModal', () => ({
 }))
 
 vi.mock('@/components/employees/EmployeeCard', () => ({
-  default: ({ employee, defaultFinancialOverlayOpen }: { employee: { name: string }; defaultFinancialOverlayOpen?: boolean }) => (
+  default: ({
+    employee,
+    defaultFinancialOverlayOpen,
+  }: {
+    employee: { name: string }
+    defaultFinancialOverlayOpen?: boolean
+  }) => (
     <div data-testid="employee-card">
       <span>{employee.name}</span>
       <span>{defaultFinancialOverlayOpen ? 'financial-open' : 'financial-closed'}</span>

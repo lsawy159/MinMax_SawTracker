@@ -115,22 +115,22 @@ describe('alerts utils', () => {
   describe('generateCompanyAlertsSync', () => {
     it('should generate alerts for companies with expiring commercial registration', async () => {
       const alerts = await generateCompanyAlertsSync(mockCompanies)
-      
+
       expect(alerts).toBeDefined()
       expect(Array.isArray(alerts)).toBe(true)
-      
+
       // يجب أن تكون هناك تنبيهات للشركات التي ستنتهي خلال 60 يوم
       expect(alerts.length).toBeGreaterThan(0)
     })
 
     it('should sort alerts by priority and days remaining', async () => {
       const alerts = await generateCompanyAlertsSync(mockCompanies)
-      
+
       // التنبيهات العاجلة يجب أن تكون أولاً
-      const priorities = alerts.map(a => a.priority)
+      const priorities = alerts.map((a) => a.priority)
       const firstUrgentIndex = priorities.indexOf('urgent')
       const firstMediumIndex = priorities.indexOf('medium')
-      
+
       if (firstUrgentIndex !== -1 && firstMediumIndex !== -1) {
         expect(firstUrgentIndex).toBeLessThan(firstMediumIndex)
       }
@@ -138,8 +138,8 @@ describe('alerts utils', () => {
 
     it('should set correct priority based on days remaining', async () => {
       const alerts = await generateCompanyAlertsSync(mockCompanies)
-      
-      alerts.forEach(alert => {
+
+      alerts.forEach((alert) => {
         if (alert.days_remaining !== undefined) {
           if (alert.days_remaining < 0 || alert.days_remaining <= 30) {
             expect(alert.priority).toBe('urgent')
@@ -163,15 +163,15 @@ describe('alerts utils', () => {
           updated_at: '2024-01-01',
         },
       ]
-      
+
       const alerts = await generateCompanyAlertsSync(companiesWithoutDates)
       expect(alerts.length).toBe(0)
     })
 
     it('should include required fields in each alert', async () => {
       const alerts = await generateCompanyAlertsSync(mockCompanies)
-      
-      alerts.forEach(alert => {
+
+      alerts.forEach((alert) => {
         expect(alert).toHaveProperty('id')
         expect(alert).toHaveProperty('type')
         expect(alert).toHaveProperty('priority')
@@ -189,23 +189,23 @@ describe('alerts utils', () => {
   describe('filterAlertsByPriority', () => {
     it('should filter alerts by urgent priority', () => {
       const urgentAlerts = filterAlertsByPriority(mockAlerts, 'urgent')
-      
+
       expect(urgentAlerts.length).toBe(2)
-      urgentAlerts.forEach(alert => {
+      urgentAlerts.forEach((alert) => {
         expect(alert.priority).toBe('urgent')
       })
     })
 
     it('should filter alerts by medium priority', () => {
       const mediumAlerts = filterAlertsByPriority(mockAlerts, 'medium')
-      
+
       expect(mediumAlerts.length).toBe(1)
       expect(mediumAlerts[0].priority).toBe('medium')
     })
 
     it('should filter alerts by low priority', () => {
       const lowAlerts = filterAlertsByPriority(mockAlerts, 'low')
-      
+
       expect(lowAlerts.length).toBe(1)
       expect(lowAlerts[0].priority).toBe('low')
     })
@@ -219,9 +219,9 @@ describe('alerts utils', () => {
   describe('filterAlertsByType', () => {
     it('should filter alerts by commercial_registration_expiry type', () => {
       const commercialAlerts = filterAlertsByType(mockAlerts, 'commercial_registration_expiry')
-      
+
       expect(commercialAlerts.length).toBe(3)
-      commercialAlerts.forEach(alert => {
+      commercialAlerts.forEach((alert) => {
         expect(alert.type).toBe('commercial_registration_expiry')
       })
     })
@@ -235,23 +235,23 @@ describe('alerts utils', () => {
   describe('getAlertsStats', () => {
     it('should return correct statistics', () => {
       const stats = getAlertsStats(mockAlerts)
-      
+
       // الآن نعد المؤسسات الفريدة (4 شركات مختلفة)
       expect(stats.total).toBe(4)
-      
+
       // نعد الأولويات بناءً على أعلى أولوية لكل مؤسسة
       // شركة 1: urgent, شركة 2: urgent, شركة 3: medium, شركة 4: low
       expect(stats.urgent).toBe(2)
       expect(stats.medium).toBe(1)
       expect(stats.low).toBe(1)
-      
+
       // عد التنبيهات حسب النوع (عدد التنبيهات وليس المؤسسات)
-      expect(stats.commercialRegAlerts).toBe(3)  // IDs 1, 2, 3
+      expect(stats.commercialRegAlerts).toBe(3) // IDs 1, 2, 3
     })
 
     it('should return zeros for empty alerts array', () => {
       const stats = getAlertsStats([])
-      
+
       expect(stats.total).toBe(0)
       expect(stats.urgent).toBe(0)
       expect(stats.medium).toBe(0)
@@ -265,7 +265,7 @@ describe('alerts utils', () => {
         { ...mockAlerts[1], priority: 'urgent' },
         { ...mockAlerts[2], priority: 'urgent' },
       ]
-      
+
       const stats = getAlertsStats(mixedAlerts)
       expect(stats.urgent).toBe(3)
       expect(stats.medium).toBe(0)
@@ -276,23 +276,23 @@ describe('alerts utils', () => {
   describe('getUrgentAlerts', () => {
     it('should return only urgent alerts', () => {
       const urgentAlerts = getUrgentAlerts(mockAlerts)
-      
+
       expect(urgentAlerts.length).toBe(2)
-      urgentAlerts.forEach(alert => {
+      urgentAlerts.forEach((alert) => {
         expect(alert.priority).toBe('urgent')
       })
     })
 
     it('should return empty array if no urgent alerts', () => {
-      const nonUrgentAlerts = mockAlerts.filter(a => a.priority !== 'urgent')
+      const nonUrgentAlerts = mockAlerts.filter((a) => a.priority !== 'urgent')
       const urgentAlerts = getUrgentAlerts(nonUrgentAlerts)
-      
+
       expect(urgentAlerts).toEqual([])
     })
 
     it('should maintain alert order', () => {
       const urgentAlerts = getUrgentAlerts(mockAlerts)
-      
+
       // التحقق من أن الترتيب الأصلي محفوظ
       expect(urgentAlerts[0].id).toBe('1')
       expect(urgentAlerts[1].id).toBe('2')
@@ -302,27 +302,27 @@ describe('alerts utils', () => {
   describe('getExpiredAlerts', () => {
     it('should return only expired alerts', () => {
       const expiredAlerts = getExpiredAlerts(mockAlerts)
-      
+
       expect(expiredAlerts.length).toBe(1)
-      expiredAlerts.forEach(alert => {
+      expiredAlerts.forEach((alert) => {
         expect(alert.days_remaining).toBeLessThan(0)
       })
     })
 
     it('should not include alerts with positive days remaining', () => {
       const expiredAlerts = getExpiredAlerts(mockAlerts)
-      
-      expiredAlerts.forEach(alert => {
+
+      expiredAlerts.forEach((alert) => {
         expect(alert.days_remaining).not.toBeGreaterThanOrEqual(0)
       })
     })
 
     it('should return empty array if no expired alerts', () => {
-      const nonExpiredAlerts = mockAlerts.filter(a => 
-        a.days_remaining === undefined || a.days_remaining >= 0
+      const nonExpiredAlerts = mockAlerts.filter(
+        (a) => a.days_remaining === undefined || a.days_remaining >= 0
       )
       const expiredAlerts = getExpiredAlerts(nonExpiredAlerts)
-      
+
       expect(expiredAlerts).toEqual([])
     })
 
@@ -335,11 +335,11 @@ describe('alerts utils', () => {
           days_remaining: undefined,
         },
       ]
-      
+
       const expiredAlerts = getExpiredAlerts(alertsWithUndefined)
-      
+
       // لا يجب أن تشمل التنبيهات مع days_remaining غير معرف
-      expiredAlerts.forEach(alert => {
+      expiredAlerts.forEach((alert) => {
         expect(alert.days_remaining).toBeDefined()
       })
     })
@@ -361,9 +361,9 @@ describe('alerts utils', () => {
           updated_at: '2024-01-01',
         },
       ]
-      
+
       const alerts = await generateCompanyAlertsSync(invalidCompanies)
-      
+
       // يجب ألا يسبب خطأ، لكن قد لا ينتج تنبيهات
       expect(Array.isArray(alerts)).toBe(true)
     })
@@ -371,7 +371,7 @@ describe('alerts utils', () => {
     it('should handle very large days_remaining values', async () => {
       const futureDate = new Date()
       futureDate.setFullYear(futureDate.getFullYear() + 10)
-      
+
       const farFutureCompanies: Company[] = [
         {
           id: '1',
@@ -381,9 +381,9 @@ describe('alerts utils', () => {
           updated_at: '2024-01-01',
         },
       ]
-      
+
       const alerts = await generateCompanyAlertsSync(farFutureCompanies)
-      
+
       // لا يجب أن تنشئ تنبيهات للتواريخ البعيدة جداً
       expect(alerts.length).toBe(0)
     })

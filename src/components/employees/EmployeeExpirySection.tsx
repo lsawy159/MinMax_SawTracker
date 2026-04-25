@@ -13,7 +13,7 @@ export function EmployeeExpirySection({ employee }: EmployeeExpirySectionProps) 
   const healthInsuranceDays = calculateDaysRemaining(employee?.health_insurance_expiry)
 
   return (
-    <div className="p-6 space-y-3 bg-gray-50">
+    <div className="p-6 space-y-3 bg-neutral-50">
       <ExpiryStatusRow
         label="انتهاء الإقامة"
         date={employee?.residence_expiry}
