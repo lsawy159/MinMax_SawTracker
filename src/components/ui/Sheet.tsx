@@ -25,7 +25,7 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 border-border bg-card p-6 shadow-xl transition duration-[var(--motion-slower)] ease-[var(--ease-emphasize)] data-[state=closed]:animate-out data-[state=open]:animate-in',
+  'fixed z-50 gap-4 border-neutral-200 bg-white p-6 shadow-xl transition duration-[var(--duration-normal)] ease-[var(--easing-standard)] data-[state=closed]:animate-out data-[state=open]:animate-in dark:border-neutral-700 dark:bg-neutral-900',
   {
     variants: {
       side: {
@@ -55,7 +55,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <DialogPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
-      <DialogPrimitive.Close className="absolute left-4 top-4 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-50">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -84,7 +84,7 @@ const SheetDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
+  <DialogPrimitive.Description ref={ref} className={cn('text-sm text-neutral-500 dark:text-neutral-400', className)} {...props} />
 ))
 SheetDescription.displayName = DialogPrimitive.Description.displayName
 
