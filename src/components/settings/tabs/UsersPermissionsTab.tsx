@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, User } from '@/lib/supabase';
 import { PermissionDrawer } from './PermissionDrawer';
+import { RolesManagementSheet } from './RolesManagementSheet';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -10,6 +11,7 @@ import { Shield, Settings, Users as UsersIcon } from 'lucide-react';
 
 export function UsersPermissionsTab(): JSX.Element {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showRolesSheet, setShowRolesSheet] = useState(false);
 
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['users'],
@@ -63,6 +65,16 @@ export function UsersPermissionsTab(): JSX.Element {
             إدارة صلاحيات المستخدمين والأدوار
           </p>
         </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setShowRolesSheet(true)}
+          className="flex items-center gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          إدارة الأدوار
+        </Button>
       </div>
 
       {/* Users Table */}
@@ -142,6 +154,9 @@ export function UsersPermissionsTab(): JSX.Element {
         onClose={() => setSelectedUserId(null)}
         onSaved={() => setSelectedUserId(null)}
       />
+
+      {/* Roles Management Sheet */}
+      <RolesManagementSheet isOpen={showRolesSheet} onOpenChange={setShowRolesSheet} />
     </div>
   );
 }
