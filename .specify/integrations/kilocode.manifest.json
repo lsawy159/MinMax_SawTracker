@@ -1,7 +1,7 @@
 {
   "integration": "kilocode",
   "version": "0.8.1.dev0",
-  "installed_at": "2026-04-25T01:20:06.116905+00:00",
+  "installed_at": "2026-04-25T07:46:04.669600+00:00",
   "files": {
     ".kilocode/workflows/speckit.analyze.md": "56285817b93f55ae926eade0528673d25ffcf441e8109492323bfbe8941be8f7",
     ".kilocode/workflows/speckit.checklist.md": "53ce35462c1df402780e730ea54150a30872e6e0d6d44a8bd38dd8b5d42900a9",

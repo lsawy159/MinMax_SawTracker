@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import { Settings, Globe, Shield, FileText, Clock, Save, RefreshCw, Database as DatabaseIcon, Edit3, Palette, Bell, BarChart3, Users } from 'lucide-react'
@@ -48,7 +48,7 @@ export default function GeneralSettings() {
   const [showConfirmReset, setShowConfirmReset] = useState(false)
   const [resetTabKey, setResetTabKey] = useState<TabType | null>(null)
 
-  // التحقق من صلاحية العرض
+  // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµظ„ط§ط­ظٹط© ط§ظ„ط¹ط±ط¶
   const hasViewPermission = canView('adminSettings')
   const hasEditPermission = canEdit('adminSettings')
 
@@ -57,7 +57,7 @@ export default function GeneralSettings() {
     try {
       const { data, error } = await supabase
         .from('general_settings')
-        .select('*')
+        .select('id,setting_key,setting_value,created_at,updated_at')
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = table doesn't exist
         console.error('Error loading settings:', error)
@@ -109,8 +109,8 @@ export default function GeneralSettings() {
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">ط؛ظٹط± ظ…طµط±ط­</h2>
+            <p className="text-gray-600">ط¹ط°ط±ط§ظ‹طŒ ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.</p>
           </div>
         </div>
       </Layout>
@@ -120,14 +120,14 @@ export default function GeneralSettings() {
   const settingsCategories: SettingsCategory[] = [
     {
       key: 'system',
-      label: 'إعدادات النظام الأساسية',
+      label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط£ط³ط§ط³ظٹط©',
       icon: Globe,
       settings: [
         {
           setting_key: 'system_timezone',
           setting_value: 'Asia/Riyadh',
           category: 'system',
-          description: 'المنطقة الزمنية للنظام',
+          description: 'ط§ظ„ظ…ظ†ط·ظ‚ط© ط§ظ„ط²ظ…ظ†ظٹط© ظ„ظ„ظ†ط¸ط§ظ…',
           setting_type: 'select',
           options: ['Asia/Riyadh', 'UTC', 'Asia/Dubai', 'Asia/Kuwait']
         },
@@ -135,7 +135,7 @@ export default function GeneralSettings() {
           setting_key: 'system_language',
           setting_value: 'ar',
           category: 'system',
-          description: 'لغة النظام الافتراضية',
+          description: 'ظ„ط؛ط© ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©',
           setting_type: 'select',
           options: ['ar', 'en']
         },
@@ -143,7 +143,7 @@ export default function GeneralSettings() {
           setting_key: 'system_currency',
           setting_value: 'SAR',
           category: 'system',
-          description: 'العملة الافتراضية',
+          description: 'ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©',
           setting_type: 'select',
           options: ['SAR', 'USD', 'EUR', 'AED']
         },
@@ -151,7 +151,7 @@ export default function GeneralSettings() {
           setting_key: 'date_format',
           setting_value: 'yyyy-MM-dd',
           category: 'system',
-          description: 'تنسيق التاريخ',
+          description: 'طھظ†ط³ظٹظ‚ ط§ظ„طھط§ط±ظٹط®',
           setting_type: 'select',
           options: ['yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy']
         },
@@ -159,53 +159,53 @@ export default function GeneralSettings() {
           setting_key: 'working_hours_start',
           setting_value: '08:00',
           category: 'system',
-          description: 'بداية ساعات العمل',
+          description: 'ط¨ط¯ط§ظٹط© ط³ط§ط¹ط§طھ ط§ظ„ط¹ظ…ظ„',
           setting_type: 'time'
         },
         {
           setting_key: 'working_hours_end',
           setting_value: '17:00',
           category: 'system',
-          description: 'نهاية ساعات العمل',
+          description: 'ظ†ظ‡ط§ظٹط© ط³ط§ط¹ط§طھ ط§ظ„ط¹ظ…ظ„',
           setting_type: 'time'
         }
       ]
     },
     {
       key: 'fields',
-      label: 'إدارة الحقول المخصصة',
+      label: 'ط¥ط¯ط§ط±ط© ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©',
       icon: Edit3,
       component: CustomFieldManager
     },
 
     {
       key: 'sessions',
-      label: 'إدارة الجلسات النشطة',
+      label: 'ط¥ط¯ط§ط±ط© ط§ظ„ط¬ظ„ط³ط§طھ ط§ظ„ظ†ط´ط·ط©',
       icon: Users,
       component: SessionsManager
     },
     {
       key: 'audit',
-      label: 'لوحة المراجعة والتدقيق',
+      label: 'ظ„ظˆط­ط© ط§ظ„ظ…ط±ط§ط¬ط¹ط© ظˆط§ظ„طھط¯ظ‚ظٹظ‚',
       icon: BarChart3,
       component: AuditDashboard
     },
     {
       key: 'permissions',
-      label: 'إدارة الصلاحيات',
+      label: 'ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ',
       icon: Shield,
       component: PermissionsPanel
     },
     {
       key: 'ui',
-      label: 'إعدادات واجهة المستخدم',
+      label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ظˆط§ط¬ظ‡ط© ط§ظ„ظ…ط³طھط®ط¯ظ…',
       icon: Palette,
       settings: [
         {
           setting_key: 'ui_theme',
           setting_value: 'light',
           category: 'ui',
-          description: 'المظهر العام',
+          description: 'ط§ظ„ظ…ط¸ظ‡ط± ط§ظ„ط¹ط§ظ…',
           setting_type: 'select',
           options: ['light', 'dark', 'auto']
         },
@@ -213,7 +213,7 @@ export default function GeneralSettings() {
           setting_key: 'ui_primary_color',
           setting_value: 'blue',
           category: 'ui',
-          description: 'اللون الأساسي',
+          description: 'ط§ظ„ظ„ظˆظ† ط§ظ„ط£ط³ط§ط³ظٹ',
           setting_type: 'select',
           options: ['blue', 'green', 'purple', 'red', 'orange', 'teal']
         },
@@ -221,7 +221,7 @@ export default function GeneralSettings() {
           setting_key: 'ui_font_size',
           setting_value: 'medium',
           category: 'ui',
-          description: 'حجم الخط',
+          description: 'ط­ط¬ظ… ط§ظ„ط®ط·',
           setting_type: 'select',
           options: ['small', 'medium', 'large']
         },
@@ -229,7 +229,7 @@ export default function GeneralSettings() {
           setting_key: 'items_per_page',
           setting_value: 12,
           category: 'ui',
-          description: 'عدد العناصر المعروضة في كل صفحة',
+          description: 'ط¹ط¯ط¯ ط§ظ„ط¹ظ†ط§طµط± ط§ظ„ظ…ط¹ط±ظˆط¶ط© ظپظٹ ظƒظ„ طµظپط­ط©',
           setting_type: 'select',
           options: ['6', '12', '24', '48']
         },
@@ -237,28 +237,28 @@ export default function GeneralSettings() {
           setting_key: 'show_animations',
           setting_value: true,
           category: 'ui',
-          description: 'تفعيل الحركات والانتقالات',
+          description: 'طھظپط¹ظٹظ„ ط§ظ„ط­ط±ظƒط§طھ ظˆط§ظ„ط§ظ†طھظ‚ط§ظ„ط§طھ',
           setting_type: 'boolean'
         },
         {
           setting_key: 'compact_mode',
           setting_value: false,
           category: 'ui',
-          description: 'الوضع المضغوط (عرض أكثر كثافة)',
+          description: 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظ…ط¶ط؛ظˆط· (ط¹ط±ط¶ ط£ظƒط«ط± ظƒط«ط§ظپط©)',
           setting_type: 'boolean'
         }
       ]
     },
     {
       key: 'reports',
-      label: 'إعدادات التقارير',
+      label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„طھظ‚ط§ط±ظٹط±',
       icon: FileText,
       settings: [
         {
           setting_key: 'report_default_format',
           setting_value: 'excel',
           category: 'reports',
-          description: 'تنسيق التقارير الافتراضي',
+          description: 'طھظ†ط³ظٹظ‚ ط§ظ„طھظ‚ط§ط±ظٹط± ط§ظ„ط§ظپطھط±ط§ط¶ظٹ',
           setting_type: 'select',
           options: ['excel', 'csv']
         },
@@ -266,42 +266,42 @@ export default function GeneralSettings() {
           setting_key: 'report_auto_schedule',
           setting_value: false,
           category: 'reports',
-          description: 'تفعيل الجدولة التلقائية للتقارير',
+          description: 'طھظپط¹ظٹظ„ ط§ظ„ط¬ط¯ظˆظ„ط© ط§ظ„طھظ„ظ‚ط§ط¦ظٹط© ظ„ظ„طھظ‚ط§ط±ظٹط±',
           setting_type: 'boolean'
         },
         {
           setting_key: 'report_recipients',
           setting_value: '',
           category: 'reports',
-          description: 'المستلمون الافتراضيون للتقارير (البريد الإلكتروني)',
+          description: 'ط§ظ„ظ…ط³طھظ„ظ…ظˆظ† ط§ظ„ط§ظپطھط±ط§ط¶ظٹظˆظ† ظ„ظ„طھظ‚ط§ط±ظٹط± (ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ)',
           setting_type: 'text'
         },
         {
           setting_key: 'report_include_charts',
           setting_value: true,
           category: 'reports',
-          description: 'تضمين الرسوم البيانية في التقارير',
+          description: 'طھط¶ظ…ظٹظ† ط§ظ„ط±ط³ظˆظ… ط§ظ„ط¨ظٹط§ظ†ظٹط© ظپظٹ ط§ظ„طھظ‚ط§ط±ظٹط±',
           setting_type: 'boolean'
         },
         {
           setting_key: 'report_company_logo',
           setting_value: true,
           category: 'reports',
-          description: 'إضافة شعار الشركة للتقارير',
+          description: 'ط¥ط¶ط§ظپط© ط´ط¹ط§ط± ط§ظ„ط´ط±ظƒط© ظ„ظ„طھظ‚ط§ط±ظٹط±',
           setting_type: 'boolean'
         }
       ]
     },
     {
       key: 'advanced-notifications',
-      label: 'إعدادات الإشعارات المتقدمة',
+      label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ…طھظ‚ط¯ظ…ط©',
       icon: Bell,
       settings: [
         {
           setting_key: 'notification_methods',
           setting_value: 'in_app',
           category: 'notifications',
-          description: 'طرق الإرسال',
+          description: 'ط·ط±ظ‚ ط§ظ„ط¥ط±ط³ط§ظ„',
           setting_type: 'select',
           options: ['in_app', 'email', 'sms', 'all']
         },
@@ -309,7 +309,7 @@ export default function GeneralSettings() {
           setting_key: 'notification_frequency',
           setting_value: 'immediate',
           category: 'notifications',
-          description: 'تكرار الإشعارات',
+          description: 'طھظƒط±ط§ط± ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ',
           setting_type: 'select',
           options: ['immediate', 'hourly', 'daily', 'weekly']
         },
@@ -317,35 +317,35 @@ export default function GeneralSettings() {
           setting_key: 'urgent_notifications',
           setting_value: true,
           category: 'notifications',
-          description: 'تفعيل الإشعارات العاجلة',
+          description: 'طھظپط¹ظٹظ„ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط¹ط§ط¬ظ„ط©',
           setting_type: 'boolean'
         },
         {
           setting_key: 'residence_expiry_days',
           setting_value: 30,
           category: 'notifications',
-          description: 'التنبيه قبل انتهاء الإقامة (بالأيام)',
+          description: 'ط§ظ„طھظ†ط¨ظٹظ‡ ظ‚ط¨ظ„ ط§ظ†طھظ‡ط§ط، ط§ظ„ط¥ظ‚ط§ظ…ط© (ط¨ط§ظ„ط£ظٹط§ظ…)',
           setting_type: 'number'
         },
         {
           setting_key: 'contract_expiry_days',
           setting_value: 30,
           category: 'notifications',
-          description: 'التنبيه قبل انتهاء العقد (بالأيام)',
+          description: 'ط§ظ„طھظ†ط¨ظٹظ‡ ظ‚ط¨ظ„ ط§ظ†طھظ‡ط§ط، ط§ظ„ط¹ظ‚ط¯ (ط¨ط§ظ„ط£ظٹط§ظ…)',
           setting_type: 'number'
         },
         {
           setting_key: 'quiet_hours_start',
           setting_value: '22:00',
           category: 'notifications',
-          description: 'بداية فترة الصمت (لا إشعارات)',
+          description: 'ط¨ط¯ط§ظٹط© ظپطھط±ط© ط§ظ„طµظ…طھ (ظ„ط§ ط¥ط´ط¹ط§ط±ط§طھ)',
           setting_type: 'time'
         },
         {
           setting_key: 'quiet_hours_end',
           setting_value: '08:00',
           category: 'notifications',
-          description: 'نهاية فترة الصمت',
+          description: 'ظ†ظ‡ط§ظٹط© ظپطھط±ط© ط§ظ„طµظ…طھ',
           setting_type: 'time'
         }
       ]
@@ -354,26 +354,26 @@ export default function GeneralSettings() {
 
   const saveActiveTabSettings = async () => {
     if (!hasEditPermission) {
-      toast.error('ليس لديك صلاحية لتعديل الإعدادات')
+      toast.error('ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„طھط¹ط¯ظٹظ„ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ')
       return
     }
 
     const categoryToSave = settingsCategories.find(cat => cat.key === activeTab)
     if (!categoryToSave || !categoryToSave.settings) {
-      // تبويبات بدون settings تستخدم مكونات مستقلة (مثل الحقول المخصصة/الإعدادات الموحدة)
-      toast.info('هذا التبويب يدير الحفظ من داخل مكونه الخاص')
+      // طھط¨ظˆظٹط¨ط§طھ ط¨ط¯ظˆظ† settings طھط³طھط®ط¯ظ… ظ…ظƒظˆظ†ط§طھ ظ…ط³طھظ‚ظ„ط© (ظ…ط«ظ„ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©/ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ظˆط­ط¯ط©)
+      toast.info('ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨ ظٹط¯ظٹط± ط§ظ„ط­ظپط¸ ظ…ظ† ط¯ط§ط®ظ„ ظ…ظƒظˆظ†ظ‡ ط§ظ„ط®ط§طµ')
       return
     }
 
     setIsSaving(true)
     try {
-      // إعدادات التبويب الحالي فقط
+      // ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„طھط¨ظˆظٹط¨ ط§ظ„ط­ط§ظ„ظٹ ظپظ‚ط·
       const tabSettings = categoryToSave.settings.map(setting => ({
         ...setting,
         setting_value: settings[setting.setting_key] ?? setting.setting_value
       }))
 
-      // حذف الإعدادات الخاصة بهذا التبويب فقط
+      // ط­ط°ظپ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®ط§طµط© ط¨ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨ ظپظ‚ط·
       const { error: deleteError } = await supabase
         .from('general_settings')
         .delete()
@@ -381,7 +381,7 @@ export default function GeneralSettings() {
 
       if (deleteError) {
         console.error('Error deleting existing settings for tab:', deleteError)
-        toast.error('فشل حذف إعدادات هذا التبويب قبل الحفظ')
+        toast.error('ظپط´ظ„ ط­ط°ظپ ط¥ط¹ط¯ط§ط¯ط§طھ ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨ ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸')
         return
       }
 
@@ -405,17 +405,17 @@ export default function GeneralSettings() {
         })
 
         if (error.code === '23505') {
-          toast.error('يوجد تعارض في مفاتيح الإعدادات. تأكد من عدم تكرار نفس الاسم أكثر من مرة.')
+          toast.error('ظٹظˆط¬ط¯ طھط¹ط§ط±ط¶ ظپظٹ ظ…ظپط§طھظٹط­ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ. طھط£ظƒط¯ ظ…ظ† ط¹ط¯ظ… طھظƒط±ط§ط± ظ†ظپط³ ط§ظ„ط§ط³ظ… ط£ظƒط«ط± ظ…ظ† ظ…ط±ط©.')
         } else {
-          toast.error('فشل حفظ إعدادات هذا التبويب. يرجى المحاولة مرة أخرى.')
+          toast.error('ظپط´ظ„ ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')
         }
         return
       }
 
-      toast.success('تم حفظ إعدادات هذا التبويب بنجاح')
+      toast.success('طھظ… ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨ ط¨ظ†ط¬ط§ط­')
     } catch (error) {
       console.error('Error saving settings:', error)
-      toast.error('حدث خطأ أثناء حفظ إعدادات التبويب')
+      toast.error('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„طھط¨ظˆظٹط¨')
     } finally {
       setIsSaving(false)
     }
@@ -423,7 +423,7 @@ export default function GeneralSettings() {
 
   const resetToDefaults = (tabKey: TabType) => {
     if (!hasEditPermission) {
-      toast.error('ليس لديك صلاحية لتعديل الإعدادات')
+      toast.error('ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„طھط¹ط¯ظٹظ„ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ')
       return
     }
     setResetTabKey(tabKey)
@@ -435,7 +435,7 @@ export default function GeneralSettings() {
     
     const categoryToReset = settingsCategories.find(cat => cat.key === resetTabKey)
     
-    // إذا كان التبويب لا يحتوي على settings array (يستخدم component)، أرجع مصفوفة فارغة
+    // ط¥ط°ط§ ظƒط§ظ† ط§ظ„طھط¨ظˆظٹط¨ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ settings array (ظٹط³طھط®ط¯ظ… component)طŒ ط£ط±ط¬ط¹ ظ…طµظپظˆظپط© ظپط§ط±ط؛ط©
     if (!categoryToReset || !categoryToReset.settings) return []
     
     return categoryToReset.settings.filter(setting => {
@@ -466,15 +466,15 @@ export default function GeneralSettings() {
       ...defaultSettings
     }))
     
-    const categoryLabel = categoryToReset?.label || 'الإعدادات'
-    toast.success(`تم إعادة تعيين ${categoryLabel} إلى القيم الافتراضية`)
+    const categoryLabel = categoryToReset?.label || 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ'
+    toast.success(`طھظ… ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ${categoryLabel} ط¥ظ„ظ‰ ط§ظ„ظ‚ظٹظ… ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©`)
     setShowConfirmReset(false)
     setResetTabKey(null)
   }
 
   const updateSetting = (key: string, value: string | number | boolean | Record<string, unknown> | null) => {
     if (!hasEditPermission) {
-      toast.error('ليس لديك صلاحية لتعديل الإعدادات')
+      toast.error('ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„طھط¹ط¯ظٹظ„ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ')
       return
     }
     setSettings(prev => ({
@@ -521,7 +521,7 @@ export default function GeneralSettings() {
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
             />
             <span className="mr-2 text-sm text-gray-600">
-              {value ? 'مفعل' : 'معطل'}
+              {value ? 'ظ…ظپط¹ظ„' : 'ظ…ط¹ط·ظ„'}
             </span>
           </label>
         )
@@ -534,7 +534,7 @@ export default function GeneralSettings() {
             disabled={disabled}
           >
             <SelectTrigger className="disabled:cursor-not-allowed disabled:bg-gray-100">
-              <SelectValue placeholder="اختر قيمة" />
+              <SelectValue placeholder="ط§ط®طھط± ظ‚ظٹظ…ط©" />
             </SelectTrigger>
             <SelectContent>
               {setting.options?.map((option) => {
@@ -606,8 +606,8 @@ export default function GeneralSettings() {
             <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">إعدادات النظام</h1>
-            <p className="mt-0.5 text-xs text-gray-600">إدارة إعدادات النظام والإعدادات العامة</p>
+            <h1 className="text-xl font-bold text-gray-900">ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…</h1>
+            <p className="mt-0.5 text-xs text-gray-600">ط¥ط¯ط§ط±ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ… ظˆط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¹ط§ظ…ط©</p>
           </div>
         </div>
 
@@ -615,7 +615,7 @@ export default function GeneralSettings() {
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <div className="app-panel sticky top-3 p-2.5">
-              <h3 className="font-semibold text-gray-900 mb-2 text-xs">فئات الإعدادات</h3>
+              <h3 className="font-semibold text-gray-900 mb-2 text-xs">ظپط¦ط§طھ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</h3>
               <nav className="space-y-1">
                 {settingsCategories.map(category => {
                   const Icon = category.icon
@@ -650,7 +650,7 @@ export default function GeneralSettings() {
                       <div>
                         <h2 className="text-sm font-semibold text-gray-900">{activeCategory.label}</h2>
                         {activeCategory.settings && (
-                          <p className="text-xs text-gray-600">{activeCategory.settings.length} إعدادات</p>
+                          <p className="text-xs text-gray-600">{activeCategory.settings.length} ط¥ط¹ط¯ط§ط¯ط§طھ</p>
                         )}
                       </div>
                     </div>
@@ -663,7 +663,7 @@ export default function GeneralSettings() {
                           className="text-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          استعادة
+                          ط§ط³طھط¹ط§ط¯ط©
                         </Button>
                         <Button
                           onClick={saveActiveTabSettings}
@@ -672,7 +672,7 @@ export default function GeneralSettings() {
                           className="text-xs"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          {isSaving ? 'جاري...' : 'حفظ هذا التبويب'}
+                          {isSaving ? 'ط¬ط§ط±ظٹ...' : 'ط­ظپط¸ ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨'}
                         </Button>
                       </div>
                     )}
@@ -693,7 +693,7 @@ export default function GeneralSettings() {
                                 {setting.description}
                               </h3>
                               <p className="text-xs text-gray-500">
-                                المفتاح: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{setting.setting_key}</code>
+                                ط§ظ„ظ…ظپطھط§ط­: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{setting.setting_key}</code>
                               </p>
                             </div>
                             <div className="sm:w-56">
@@ -706,7 +706,7 @@ export default function GeneralSettings() {
                   ) : (
                     <div className="text-center py-6 text-gray-500">
                       <activeCategory.icon className="w-10 h-10 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs">لا توجد إعدادات متاحة في هذا القسم</p>
+                      <p className="text-xs">ظ„ط§ طھظˆط¬ط¯ ط¥ط¹ط¯ط§ط¯ط§طھ ظ…طھط§ط­ط© ظپظٹ ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ…</p>
                     </div>
                   )}
                 </div>
@@ -726,7 +726,7 @@ export default function GeneralSettings() {
                 <h3 className="font-bold text-xs text-gray-900">
                   {settingsCategories.reduce((acc, cat) => acc + (cat.settings?.length || 0), 0)}
                 </h3>
-                <p className="text-xs text-gray-600">إجمالي الإعدادات</p>
+                <p className="text-xs text-gray-600">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</p>
               </div>
             </div>
           </div>
@@ -738,7 +738,7 @@ export default function GeneralSettings() {
               </div>
               <div>
                 <h3 className="font-bold text-xs text-gray-900">{settingsCategories.length}</h3>
-                <p className="text-xs text-gray-600">فئات الإعدادات</p>
+                <p className="text-xs text-gray-600">ظپط¦ط§طھ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</p>
               </div>
             </div>
           </div>
@@ -752,7 +752,7 @@ export default function GeneralSettings() {
                 <h3 className="font-bold text-xs text-gray-900">
                   {new Date().toLocaleDateString('ar-SA')}
                 </h3>
-                <p className="text-xs text-gray-600">آخر تحديث</p>
+                <p className="text-xs text-gray-600">ط¢ط®ط± طھط­ط¯ظٹط«</p>
               </div>
             </div>
           </div>
@@ -765,33 +765,33 @@ export default function GeneralSettings() {
             setResetTabKey(null)
           }}
           onConfirm={handleConfirmReset}
-          title="إعادة تعيين الإعدادات"
-          message={`سيتم إعادة تعيين ${settingsCategories.find(cat => cat.key === resetTabKey)?.label || 'الإعدادات'} إلى القيم الافتراضية`}
-          confirmText="تأكيد"
-          cancelText="إلغاء"
+          title="ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ"
+          message={`ط³ظٹطھظ… ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ${settingsCategories.find(cat => cat.key === resetTabKey)?.label || 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ'} ط¥ظ„ظ‰ ط§ظ„ظ‚ظٹظ… ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©`}
+          confirmText="طھط£ظƒظٹط¯"
+          cancelText="ط¥ظ„ط؛ط§ط،"
           isDangerous={true}
           icon="alert"
         >
           {getChangedSettings().length > 0 && (
             <div className="app-info-block max-h-60 overflow-y-auto rounded-lg p-4">
-              <p className="mb-3 text-sm font-semibold text-slate-900">الإعدادات التي ستتغير:</p>
+              <p className="mb-3 text-sm font-semibold text-slate-900">ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„طھظٹ ط³طھطھط؛ظٹط±:</p>
               <div className="space-y-2">
                 {getChangedSettings().map(setting => (
                   <div key={setting.setting_key} className="rounded border border-primary/20 bg-white p-3">
                     <p className="text-sm font-medium text-gray-900">{setting.description}</p>
                     <div className="flex items-center justify-between mt-2 text-xs">
                       <div>
-                        <span className="text-gray-600">الحالي: </span>
+                        <span className="text-gray-600">ط§ظ„ط­ط§ظ„ظٹ: </span>
                         <code className="bg-gray-100 px-2 py-1 rounded text-gray-700 font-mono">
                           {String(setting.currentValue)}
                         </code>
                       </div>
-                      <div className="text-gray-400">←</div>
+                      <div className="text-gray-400">â†گ</div>
                       <div>
                         <code className="bg-green-100 px-2 py-1 rounded text-green-700 font-mono">
                           {String(setting.defaultValue)}
                         </code>
-                        <span className="text-gray-600"> :الافتراضي</span>
+                        <span className="text-gray-600"> :ط§ظ„ط§ظپطھط±ط§ط¶ظٹ</span>
                       </div>
                     </div>
                   </div>
@@ -802,7 +802,7 @@ export default function GeneralSettings() {
           {getChangedSettings().length === 0 && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-600">
-                ✓ جميع الإعدادات موجودة بالفعل على قيمها الافتراضية
+                âœ“ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ظ…ظˆط¬ظˆط¯ط© ط¨ط§ظ„ظپط¹ظ„ ط¹ظ„ظ‰ ظ‚ظٹظ…ظ‡ط§ ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©
               </p>
             </div>
           )}
@@ -811,3 +811,4 @@ export default function GeneralSettings() {
     </Layout>
   )
 }
+

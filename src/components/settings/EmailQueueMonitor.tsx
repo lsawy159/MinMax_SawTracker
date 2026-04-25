@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { RefreshCw, Mail, AlertTriangle } from 'lucide-react'
@@ -36,7 +36,7 @@ export default function EmailQueueMonitor() {
     try {
       const { data, error } = await supabase
         .from('email_queue')
-        .select('*')
+        .select('id')
         .order('created_at', { ascending: false })
         .limit(50)
 
@@ -80,12 +80,12 @@ export default function EmailQueueMonitor() {
 
       if (error) throw error
 
-      toast.success('تمت إعادة إضافة البريد إلى قائمة الانتظار')
+      toast.success('طھظ…طھ ط¥ط¹ط§ط¯ط© ط¥ط¶ط§ظپط© ط§ظ„ط¨ط±ظٹط¯ ط¥ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ط§ظ†طھط¸ط§ط±')
       await loadEmailQueue()
     } catch (error) {
       console.error('[Email Queue] Error retrying email:', error)
-      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
-      toast.error('فشل في إعادة المحاولة: ' + errorMessage)
+      const errorMessage = error instanceof Error ? error.message : 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'
+      toast.error('ظپط´ظ„ ظپظٹ ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©: ' + errorMessage)
     }
   }
 
@@ -108,7 +108,7 @@ export default function EmailQueueMonitor() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Mail className="w-4 h-4" />
-          <h3 className="text-md font-semibold">قائمة انتظار البريد الإلكتروني</h3>
+          <h3 className="text-md font-semibold">ظ‚ط§ط¦ظ…ط© ط§ظ†طھط¸ط§ط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</h3>
         </div>
         <button
           onClick={loadEmailQueue}
@@ -116,56 +116,56 @@ export default function EmailQueueMonitor() {
           className="app-button-secondary text-sm disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isLoadingEmailQueue ? 'animate-spin' : ''}`} />
-          تحديث
+          طھط­ط¯ظٹط«
         </button>
       </div>
 
       {/* Statistics Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         <div className="bg-gray-50 p-3 rounded-lg border">
-          <div className="text-xs text-gray-500 mb-1">الإجمالي</div>
+          <div className="text-xs text-gray-500 mb-1">ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</div>
           <div className="text-2xl font-bold text-gray-700">{stats.total}</div>
         </div>
         <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
           <div className="text-xs text-yellow-700 mb-1 flex items-center gap-1">
-            <span>🟡</span> قيد الانتظار
+            <span>ًںں،</span> ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±
           </div>
           <div className="text-2xl font-bold text-yellow-700">{stats.pending}</div>
         </div>
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
           <div className="text-xs text-blue-700 mb-1 flex items-center gap-1">
-            <span>🔵</span> قيد المعالجة
+            <span>ًں”µ</span> ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط©
           </div>
           <div className="text-2xl font-bold text-blue-700">{stats.processing}</div>
         </div>
         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
           <div className="text-xs text-green-700 mb-1 flex items-center gap-1">
-            <span>🟢</span> نجحت
+            <span>ًںں¢</span> ظ†ط¬ط­طھ
           </div>
           <div className="text-2xl font-bold text-green-700">{stats.completed}</div>
         </div>
         <div className="bg-red-50 p-3 rounded-lg border border-red-200">
           <div className="text-xs text-red-700 mb-1 flex items-center gap-1">
-            <span>🔴</span> فشلت
+            <span>ًں”´</span> ظپط´ظ„طھ
           </div>
           <div className="text-2xl font-bold text-red-700">{stats.failed}</div>
         </div>
       </div>
 
       {emailQueue.length === 0 ? (
-        <div className="text-center py-6 text-gray-500 text-sm">لا توجد بريد في قائمة الانتظار</div>
+        <div className="text-center py-6 text-gray-500 text-sm">ظ„ط§ طھظˆط¬ط¯ ط¨ط±ظٹط¯ ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„ط§ظ†طھط¸ط§ط±</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-right">الإيميلات المستلمة</th>
-                <th className="px-4 py-2 text-right">الموضوع</th>
-                <th className="px-4 py-2 text-right">الحالة</th>
-                <th className="px-4 py-2 text-right">تاريخ الإنشاء</th>
-                <th className="px-4 py-2 text-right">تاريخ المعالجة</th>
-                <th className="px-4 py-2 text-right">المحاولات</th>
-                <th className="px-4 py-2 text-right">الإجراءات</th>
+                <th className="px-4 py-2 text-right">ط§ظ„ط¥ظٹظ…ظٹظ„ط§طھ ط§ظ„ظ…ط³طھظ„ظ…ط©</th>
+                <th className="px-4 py-2 text-right">ط§ظ„ظ…ظˆط¶ظˆط¹</th>
+                <th className="px-4 py-2 text-right">ط§ظ„ط­ط§ظ„ط©</th>
+                <th className="px-4 py-2 text-right">طھط§ط±ظٹط® ط§ظ„ط¥ظ†ط´ط§ط،</th>
+                <th className="px-4 py-2 text-right">طھط§ط±ظٹط® ط§ظ„ظ…ط¹ط§ظ„ط¬ط©</th>
+                <th className="px-4 py-2 text-right">ط§ظ„ظ…ط­ط§ظˆظ„ط§طھ</th>
+                <th className="px-4 py-2 text-right">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
               </tr>
             </thead>
             <tbody>
@@ -189,30 +189,30 @@ export default function EmailQueueMonitor() {
                 const getStatusIcon = (status: string) => {
                   switch (status) {
                     case 'pending':
-                      return '🟡'
+                      return 'ًںں،'
                     case 'processing':
-                      return '🔵'
+                      return 'ًں”µ'
                     case 'completed':
                     case 'sent':
-                      return '🟢'
+                      return 'ًںں¢'
                     case 'failed':
-                      return '🔴'
+                      return 'ًں”´'
                     default:
-                      return '⚪'
+                      return 'âڑھ'
                   }
                 }
 
                 const getStatusText = (status: string) => {
                   switch (status) {
                     case 'pending':
-                      return 'قيد الانتظار'
+                      return 'ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±'
                     case 'processing':
-                      return 'قيد المعالجة'
+                      return 'ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط©'
                     case 'completed':
                     case 'sent':
-                      return 'نجح'
+                      return 'ظ†ط¬ط­'
                     case 'failed':
-                      return 'فشل'
+                      return 'ظپط´ظ„'
                     default:
                       return status
                   }
@@ -226,7 +226,7 @@ export default function EmailQueueMonitor() {
                           <span key={idx} className="text-xs font-mono">{email}</span>
                         ))}
                         {item.to_emails.length > 2 && (
-                          <span className="text-xs text-gray-500">+{item.to_emails.length - 2} آخر</span>
+                          <span className="text-xs text-gray-500">+{item.to_emails.length - 2} ط¢ط®ط±</span>
                         )}
                       </div>
                     </td>
@@ -266,7 +266,7 @@ export default function EmailQueueMonitor() {
                           <button
                             onClick={() => retryFailedEmail(item.id)}
                             className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                            title="إعادة المحاولة"
+                            title="ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©"
                           >
                             <RefreshCw className="w-4 h-4" />
                           </button>
@@ -274,13 +274,13 @@ export default function EmailQueueMonitor() {
                         {item.error_message && (
                           <button
                             onClick={() => {
-                              toast.error(item.error_message || 'خطأ غير معروف', {
-                                description: 'تفاصيل الخطأ',
+                              toast.error(item.error_message || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ', {
+                                description: 'طھظپط§طµظٹظ„ ط§ظ„ط®ط·ط£',
                                 duration: 10000
                               })
                             }}
                             className="p-1 text-red-600 hover:bg-red-100 rounded"
-                            title="عرض الخطأ"
+                            title="ط¹ط±ط¶ ط§ظ„ط®ط·ط£"
                           >
                             <AlertTriangle className="w-4 h-4" />
                           </button>
@@ -297,3 +297,4 @@ export default function EmailQueueMonitor() {
     </div>
   )
 }
+

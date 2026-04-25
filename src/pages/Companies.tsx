@@ -151,7 +151,7 @@ export default function Companies() {
       logger.debug('Fetching companies from database...')
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at')
         .order('name')
 
       logger.debug('📋 [DEBUG] Companies data fetched:', {

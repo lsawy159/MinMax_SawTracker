@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"\\\\.select\\('\\\\\\\\*'\\)\" src/components/search/GlobalSearch.tsx src/components/settings/CustomFieldManager.tsx src/components/settings/EmailQueueMonitor.tsx src/hooks/useEmployees.ts src/lib/backupService.ts src/pages/ActivityLogs.tsx)",
+      "Bash(grep -E \"\\\\\\\\.\")",
+      "Bash(xargs grep *)",
+      "Bash(pnpm exec *)",
+      "Read(//tmp/**)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

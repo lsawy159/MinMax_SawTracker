@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { supabase, CustomField } from '@/lib/supabase'
 import { Plus, Edit2, Trash2, Save, X, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -48,7 +48,7 @@ export default function CustomFieldManager() {
     try {
       const { data, error } = await supabase
         .from('custom_fields')
-        .select('*')
+        .select('id')
         .order('entity_type')
         .order('display_order')
 
@@ -56,7 +56,7 @@ export default function CustomFieldManager() {
       setFields(data || [])
     } catch (error) {
       console.error('Error loading custom fields:', error)
-      toast.error('فشل تحميل الحقول المخصصة')
+      toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©')
     } finally {
       setLoading(false)
     }
@@ -106,18 +106,18 @@ export default function CustomFieldManager() {
   }
 
   const handleSave = async () => {
-    // التحقق من البيانات
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ
     if (!formData.field_name || !formData.field_label) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة')
+      toast.error('ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©')
       return
     }
 
-    // معالجة خيارات القائمة المنسدلة
+    // ظ…ط¹ط§ظ„ط¬ط© ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©
     const finalFormData = { ...formData }
     if (formData.field_type === 'select') {
       const options = selectOptions.split('\n').filter(opt => opt.trim())
       if (options.length === 0) {
-        toast.error('يرجى إضافة خيار واحد على الأقل للقائمة المنسدلة')
+        toast.error('ظٹط±ط¬ظ‰ ط¥ط¶ط§ظپط© ط®ظٹط§ط± ظˆط§ط­ط¯ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ„ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©')
         return
       }
       finalFormData.field_options = { options }
@@ -126,29 +126,29 @@ export default function CustomFieldManager() {
     try {
       setIsSaving(true)
       if (editingField) {
-        // تحديث حقل موجود
+        // طھط­ط¯ظٹط« ط­ظ‚ظ„ ظ…ظˆط¬ظˆط¯
         const { error } = await supabase
           .from('custom_fields')
           .update(finalFormData)
           .eq('id', editingField.id)
 
         if (error) throw error
-        toast.success('تم تحديث الحقل بنجاح')
+        toast.success('طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
       } else {
-        // إضافة حقل جديد
+        // ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ط¬ط¯ظٹط¯
         const { error } = await supabase
           .from('custom_fields')
           .insert([finalFormData])
 
         if (error) throw error
-        toast.success('تم إضافة الحقل بنجاح')
+        toast.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
       }
 
       handleCloseForm()
       loadFields()
     } catch (error: unknown) {
       console.error('Error saving field:', error)
-      toast.error('فشل حفظ الحقل: ' + (error instanceof Error ? error.message : String(error)))
+      toast.error('ظپط´ظ„ ط­ظپط¸ ط§ظ„ط­ظ‚ظ„: ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 
@@ -167,13 +167,13 @@ export default function CustomFieldManager() {
         .eq('id', fieldToDelete.id)
 
       if (error) throw error
-      toast.success('تم حذف الحقل بنجاح')
+      toast.success('طھظ… ط­ط°ظپ ط§ظ„ط­ظ‚ظ„ ط¨ظ†ط¬ط§ط­')
       loadFields()
       setShowConfirmDelete(false)
       setFieldToDelete(null)
     } catch (error: unknown) {
       console.error('Error deleting field:', error)
-      toast.error('فشل حذف الحقل')
+      toast.error('ظپط´ظ„ ط­ط°ظپ ط§ظ„ط­ظ‚ظ„')
     }
   }
 
@@ -185,21 +185,21 @@ export default function CustomFieldManager() {
         .eq('id', field.id)
 
       if (error) throw error
-      toast.success(field.is_active ? 'تم إيقاف الحقل' : 'تم تفعيل الحقل')
+      toast.success(field.is_active ? 'طھظ… ط¥ظٹظ‚ط§ظپ ط§ظ„ط­ظ‚ظ„' : 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ط­ظ‚ظ„')
       loadFields()
     } catch {
-      toast.error('فشل تحديث حالة الحقل')    } finally {
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط­ظ‚ظ„')    } finally {
       setIsSaving(false)    }
   }
 
   const getFieldTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      text: 'نص',
-      number: 'رقم',
-      date: 'تاريخ',
-      select: 'قائمة منسدلة',
-      boolean: 'صح/خطأ',
-      textarea: 'نص طويل'
+      text: 'ظ†طµ',
+      number: 'ط±ظ‚ظ…',
+      date: 'طھط§ط±ظٹط®',
+      select: 'ظ‚ط§ط¦ظ…ط© ظ…ظ†ط³ط¯ظ„ط©',
+      boolean: 'طµط­/ط®ط·ط£',
+      textarea: 'ظ†طµ ط·ظˆظٹظ„'
     }
     return labels[type] || type
   }
@@ -213,9 +213,9 @@ export default function CustomFieldManager() {
       <div className="app-panel p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">الحقول المخصصة</h2>
+            <h2 className="text-xl font-bold text-gray-900">ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©</h2>
             <p className="text-gray-600 text-sm mt-1">
-              إدارة الحقول الإضافية للموظفين والمؤسسات
+              ط¥ط¯ط§ط±ط© ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ط¥ط¶ط§ظپظٹط© ظ„ظ„ظ…ظˆط¸ظپظٹظ† ظˆط§ظ„ظ…ط¤ط³ط³ط§طھ
             </p>
           </div>
           <button
@@ -223,7 +223,7 @@ export default function CustomFieldManager() {
             className="app-button-primary"
           >
             <Plus className="w-5 h-5" />
-            إضافة حقل جديد
+            ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ط¬ط¯ظٹط¯
           </button>
         </div>
       </div>
@@ -237,13 +237,13 @@ export default function CustomFieldManager() {
           {/* Employee Fields */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="font-semibold text-gray-900">حقول الموظفين ({employeeFields.length})</h3>
+              <h3 className="font-semibold text-gray-900">ط­ظ‚ظˆظ„ ط§ظ„ظ…ظˆط¸ظپظٹظ† ({employeeFields.length})</h3>
             </div>
             <div className="p-6">
               {employeeFields.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                  <p>لا توجد حقول مخصصة للموظفين</p>
+                  <p>ظ„ط§ طھظˆط¬ط¯ ط­ظ‚ظˆظ„ ظ…ط®طµطµط© ظ„ظ„ظ…ظˆط¸ظپظٹظ†</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -259,7 +259,7 @@ export default function CustomFieldManager() {
                             <h4 className="font-medium text-gray-900">{field.field_label}</h4>
                             {field.is_required && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
-                                مطلوب
+                                ظ…ط·ظ„ظˆط¨
                               </span>
                             )}
                           </div>
@@ -269,7 +269,7 @@ export default function CustomFieldManager() {
                                 {field.field_name}
                               </code>
                             </span>
-                            <span className="text-sm text-gray-500">•</span>
+                            <span className="text-sm text-gray-500">â€¢</span>
                             <span className="text-sm text-blue-600">
                               {getFieldTypeLabel(field.field_type)}
                             </span>
@@ -285,7 +285,7 @@ export default function CustomFieldManager() {
                               : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}
                         >
-                          {field.is_active ? 'إيقاف' : 'تفعيل'}
+                          {field.is_active ? 'ط¥ظٹظ‚ط§ظپ' : 'طھظپط¹ظٹظ„'}
                         </button>
                         <button
                           onClick={() => handleOpenForm(field)}
@@ -310,13 +310,13 @@ export default function CustomFieldManager() {
           {/* Company Fields */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="font-semibold text-gray-900">حقول المؤسسات ({companyFields.length})</h3>
+              <h3 className="font-semibold text-gray-900">ط­ظ‚ظˆظ„ ط§ظ„ظ…ط¤ط³ط³ط§طھ ({companyFields.length})</h3>
             </div>
             <div className="p-6">
               {companyFields.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                  <p>لا توجد حقول مخصصة للمؤسسات</p>
+                  <p>ظ„ط§ طھظˆط¬ط¯ ط­ظ‚ظˆظ„ ظ…ط®طµطµط© ظ„ظ„ظ…ط¤ط³ط³ط§طھ</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -332,7 +332,7 @@ export default function CustomFieldManager() {
                             <h4 className="font-medium text-gray-900">{field.field_label}</h4>
                             {field.is_required && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
-                                مطلوب
+                                ظ…ط·ظ„ظˆط¨
                               </span>
                             )}
                           </div>
@@ -342,7 +342,7 @@ export default function CustomFieldManager() {
                                 {field.field_name}
                               </code>
                             </span>
-                            <span className="text-sm text-gray-500">•</span>
+                            <span className="text-sm text-gray-500">â€¢</span>
                             <span className="text-sm text-blue-600">
                               {getFieldTypeLabel(field.field_type)}
                             </span>
@@ -358,7 +358,7 @@ export default function CustomFieldManager() {
                               : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}
                         >
-                          {field.is_active ? 'إيقاف' : 'تفعيل'}
+                          {field.is_active ? 'ط¥ظٹظ‚ط§ظپ' : 'طھظپط¹ظٹظ„'}
                         </button>
                         <button
                           onClick={() => handleOpenForm(field)}
@@ -389,7 +389,7 @@ export default function CustomFieldManager() {
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white">
               <h3 className="text-xl font-bold">
-                {editingField ? 'تعديل حقل مخصص' : 'إضافة حقل مخصص جديد'}
+                {editingField ? 'طھط¹ط¯ظٹظ„ ط­ظ‚ظ„ ظ…ط®طµطµ' : 'ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ظ…ط®طµطµ ط¬ط¯ظٹط¯'}
               </h3>
               <button
                 onClick={handleCloseForm}
@@ -404,7 +404,7 @@ export default function CustomFieldManager() {
               {/* Entity Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  نوع الكيان <span className="text-red-500">*</span>
+                  ظ†ظˆط¹ ط§ظ„ظƒظٹط§ظ† <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.entity_type}
@@ -412,37 +412,37 @@ export default function CustomFieldManager() {
                   className="app-input"
                   disabled={!!editingField || isSaving}
                 >
-                  <option value="employee">موظف</option>
-                  <option value="company">مؤسسة</option>
+                  <option value="employee">ظ…ظˆط¸ظپ</option>
+                  <option value="company">ظ…ط¤ط³ط³ط©</option>
                 </select>
               </div>
 
               {/* Field Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  اسم الحقل (بالإنجليزية) <span className="text-red-500">*</span>
+                  ط§ط³ظ… ط§ظ„ط­ظ‚ظ„ (ط¨ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.field_name}
                   onChange={(e) => setFormData({ ...formData, field_name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-                  placeholder="مثال: emergency_contact"
+                  placeholder="ظ…ط«ط§ظ„: emergency_contact"
                   className="app-input font-mono"
                   disabled={!!editingField || isSaving}
                 />
-                <p className="text-xs text-gray-500 mt-1">استخدم أحرف إنجليزية صغيرة وشرطة سفلية فقط</p>
+                <p className="text-xs text-gray-500 mt-1">ط§ط³طھط®ط¯ظ… ط£ط­ط±ظپ ط¥ظ†ط¬ظ„ظٹط²ظٹط© طµط؛ظٹط±ط© ظˆط´ط±ط·ط© ط³ظپظ„ظٹط© ظپظ‚ط·</p>
               </div>
 
               {/* Field Label */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  التسمية (للعرض) <span className="text-red-500">*</span>
+                  ط§ظ„طھط³ظ…ظٹط© (ظ„ظ„ط¹ط±ط¶) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.field_label}
                   onChange={(e) => setFormData({ ...formData, field_label: e.target.value })}
-                  placeholder="مثال: جهة الاتصال في حالات الطوارئ"
+                  placeholder="ظ…ط«ط§ظ„: ط¬ظ‡ط© ط§ظ„ط§طھطµط§ظ„ ظپظٹ ط­ط§ظ„ط§طھ ط§ظ„ط·ظˆط§ط±ط¦"
                   className="app-input"
                   disabled={isSaving}
                 />
@@ -451,19 +451,19 @@ export default function CustomFieldManager() {
               {/* Field Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  نوع الحقل <span className="text-red-500">*</span>
+                  ظ†ظˆط¹ ط§ظ„ط­ظ‚ظ„ <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.field_type}
                   onChange={(e) => setFormData({ ...formData, field_type: e.target.value as FieldType })}
                   className="app-input bg-white"
                 >
-                  <option value="text">نص قصير</option>
-                  <option value="textarea">نص طويل</option>
-                  <option value="number">رقم</option>
-                  <option value="date">تاريخ</option>
-                  <option value="select">قائمة منسدلة</option>
-                  <option value="boolean">صح/خطأ</option>
+                  <option value="text">ظ†طµ ظ‚طµظٹط±</option>
+                  <option value="textarea">ظ†طµ ط·ظˆظٹظ„</option>
+                  <option value="number">ط±ظ‚ظ…</option>
+                  <option value="date">طھط§ط±ظٹط®</option>
+                  <option value="select">ظ‚ط§ط¦ظ…ط© ظ…ظ†ط³ط¯ظ„ط©</option>
+                  <option value="boolean">طµط­/ط®ط·ط£</option>
                 </select>
               </div>
 
@@ -471,16 +471,16 @@ export default function CustomFieldManager() {
               {formData.field_type === 'select' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    خيارات القائمة <span className="text-red-500">*</span>
+                    ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ط§ط¦ظ…ط© <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={selectOptions}
                     onChange={(e) => setSelectOptions(e.target.value)}
-                    placeholder="اكتب كل خيار في سطر منفصل"
+                    placeholder="ط§ظƒطھط¨ ظƒظ„ ط®ظٹط§ط± ظپظٹ ط³ط·ط± ظ…ظ†ظپطµظ„"
                     rows={5}
                     className="app-input min-h-[120px] resize-none"
                   />
-                  <p className="text-xs text-gray-500 mt-1">اكتب كل خيار في سطر جديد</p>
+                  <p className="text-xs text-gray-500 mt-1">ط§ظƒطھط¨ ظƒظ„ ط®ظٹط§ط± ظپظٹ ط³ط·ط± ط¬ط¯ظٹط¯</p>
                 </div>
               )}
 
@@ -493,7 +493,7 @@ export default function CustomFieldManager() {
                     onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
                     className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
-                  <span className="text-sm text-gray-700">حقل مطلوب</span>
+                  <span className="text-sm text-gray-700">ط­ظ‚ظ„ ظ…ط·ظ„ظˆط¨</span>
                 </label>
 
                 <label className="flex items-center gap-2">
@@ -503,7 +503,7 @@ export default function CustomFieldManager() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                   />
-                  <span className="text-sm text-gray-700">مفعّل</span>
+                  <span className="text-sm text-gray-700">ظ…ظپط¹ظ‘ظ„</span>
                 </label>
               </div>
             </div>
@@ -515,7 +515,7 @@ export default function CustomFieldManager() {
                 disabled={isSaving}
                 className="app-button-secondary"
               >
-                إلغاء
+                ط¥ظ„ط؛ط§ط،
               </button>
               <button
                 onClick={handleSave}
@@ -523,7 +523,7 @@ export default function CustomFieldManager() {
                 className="app-button-primary"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {isSaving ? 'جارٍ الحفظ...' : editingField ? 'تحديث' : 'إضافة'}
+                {isSaving ? 'ط¬ط§ط±ظچ ط§ظ„ط­ظپط¸...' : editingField ? 'طھط­ط¯ظٹط«' : 'ط¥ط¶ط§ظپط©'}
               </button>
             </div>
           </div>
@@ -538,13 +538,14 @@ export default function CustomFieldManager() {
           setFieldToDelete(null)
         }}
         onConfirm={handleConfirmDelete}
-        title="حذف الحقل المخصص"
-        message={`هل أنت متأكد من حذف الحقل "${fieldToDelete?.field_label}"؟ لا يمكن التراجع عن هذا الإجراء.`}
-        confirmText="حذف"
-        cancelText="إلغاء"
+        title="ط­ط°ظپ ط§ظ„ط­ظ‚ظ„ ط§ظ„ظ…ط®طµطµ"
+        message={`ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ط§ظ„ط­ظ‚ظ„ "${fieldToDelete?.field_label}"طں ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،.`}
+        confirmText="ط­ط°ظپ"
+        cancelText="ط¥ظ„ط؛ط§ط،"
         isDangerous={true}
         icon="alert"
       />
     </div>
   )
 }
+

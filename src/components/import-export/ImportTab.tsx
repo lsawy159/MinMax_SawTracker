@@ -985,7 +985,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           // جلب عدد المؤسسات المراد حذفها
           const { count: totalCount } = await supabase
             .from('companies')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .neq('id', '00000000-0000-0000-0000-000000000000')
           
           const totalCompanies = totalCount || 0
@@ -1060,7 +1060,7 @@ export default function ImportTab({ initialImportType = 'employees', onImportSuc
           // جلب عدد الموظفين المراد حذفهم
           const { count: totalCount } = await supabase
             .from('employees')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .neq('id', '00000000-0000-0000-0000-000000000000')
           
           const totalEmployees = totalCount || 0

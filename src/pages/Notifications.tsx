@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { supabase, Notification } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import { 
@@ -41,7 +41,7 @@ export default function Notifications() {
   useEffect(() => {
     loadNotifications()
 
-    // الاشتراك في التحديثات الفورية
+    // ط§ظ„ط§ط´طھط±ط§ظƒ ظپظٹ ط§ظ„طھط­ط¯ظٹط«ط§طھ ط§ظ„ظپظˆط±ظٹط©
     const channel = supabase
       .channel('notifications-page')
       .on(
@@ -65,8 +65,7 @@ export default function Notifications() {
   const loadNotifications = async () => {
     try {
       const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
+        .from('notifications').select('id,type,title,message,entity_type,entity_id,priority,days_remaining,is_read,is_archived,created_at,read_at,target_date')
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
 
@@ -74,7 +73,7 @@ export default function Notifications() {
       setNotifications(data || [])
     } catch (error) {
       console.error('Error loading notifications:', error)
-      toast.error('فشل تحميل التنبيهات')
+      toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
     } finally {
       setLoading(false)
     }
@@ -87,11 +86,11 @@ export default function Notifications() {
       
       if (error) throw error
       
-      toast.success(`تم توليد ${data?.length || 0} تنبيه جديد`)
+      toast.success(`طھظ… طھظˆظ„ظٹط¯ ${data?.length || 0} طھظ†ط¨ظٹظ‡ ط¬ط¯ظٹط¯`)
       loadNotifications()
     } catch (error) {
       console.error('Error generating notifications:', error)
-      toast.error('فشل توليد التنبيهات')
+      toast.error('ظپط´ظ„ طھظˆظ„ظٹط¯ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
     } finally {
       setGenerating(false)
     }
@@ -106,9 +105,9 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم تحديد التنبيه كمقروء')
+      toast.success('طھظ… طھط­ط¯ظٹط¯ ط§ظ„طھظ†ط¨ظٹظ‡ ظƒظ…ظ‚ط±ظˆط،')
     } catch {
-      toast.error('فشل تحديث التنبيه')
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط§ظ„طھظ†ط¨ظٹظ‡')
     }
   }
 
@@ -122,9 +121,9 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم تحديد جميع التنبيهات كمقروءة')
+      toast.success('طھظ… طھط­ط¯ظٹط¯ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظƒظ…ظ‚ط±ظˆط،ط©')
     } catch {
-      toast.error('فشل تحديث التنبيهات')
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
     }
   }
 
@@ -137,9 +136,9 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم تحديد التنبيه كغير مقروء')
+      toast.success('طھظ… طھط­ط¯ظٹط¯ ط§ظ„طھظ†ط¨ظٹظ‡ ظƒط؛ظٹط± ظ…ظ‚ط±ظˆط،')
     } catch {
-      toast.error('فشل تحديث التنبيه')
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط§ظ„طھظ†ط¨ظٹظ‡')
     }
   }
 
@@ -153,9 +152,9 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم تحديد جميع التنبيهات كغير مقروءة')
+      toast.success('طھظ… طھط­ط¯ظٹط¯ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظƒط؛ظٹط± ظ…ظ‚ط±ظˆط،ط©')
     } catch {
-      toast.error('فشل تحديث التنبيهات')
+      toast.error('ظپط´ظ„ طھط­ط¯ظٹط« ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
     }
   }
 
@@ -175,11 +174,11 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم حذف التنبيه')
+      toast.success('طھظ… ط­ط°ظپ ط§ظ„طھظ†ط¨ظٹظ‡')
       setShowConfirmDeleteOne(false)
       setNotificationToDelete(null)
     } catch {
-      toast.error('فشل حذف التنبيه')
+      toast.error('ظپط´ظ„ ط­ط°ظپ ط§ظ„طھظ†ط¨ظٹظ‡')
     }
   }
 
@@ -196,10 +195,10 @@ export default function Notifications() {
 
       if (error) throw error
       loadNotifications()
-      toast.success('تم حذف جميع التنبيهات')
+      toast.success('طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
       setShowConfirmDeleteAll(false)
     } catch {
-      toast.error('فشل حذف التنبيهات')
+      toast.error('ظپط´ظ„ ط­ط°ظپ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ')
     }
   }
 
@@ -221,24 +220,24 @@ export default function Notifications() {
 
   const getPriorityLabel = (priority: string) => {
     const labels = {
-      urgent: 'عاجل',
-      high: 'عاجل',
-      medium: 'متوسط',
-      low: 'منخفض'
+      urgent: 'ط¹ط§ط¬ظ„',
+      high: 'ط¹ط§ط¬ظ„',
+      medium: 'ظ…طھظˆط³ط·',
+      low: 'ظ…ظ†ط®ظپط¶'
     }
     return labels[priority as keyof typeof labels] || priority
   }
 
-  // تطبيق الفلاتر
+  // طھط·ط¨ظٹظ‚ ط§ظ„ظپظ„ط§طھط±
   const filteredNotifications = notifications.filter(notification => {
-    // فلتر القراءة
+    // ظپظ„طھط± ط§ظ„ظ‚ط±ط§ط،ط©
     if (filterType === 'read' && !notification.is_read) return false
     if (filterType === 'unread' && notification.is_read) return false
 
-    // فلتر الأولوية
+    // ظپظ„طھط± ط§ظ„ط£ظˆظ„ظˆظٹط©
     if (priorityFilter !== 'all' && notification.priority !== priorityFilter) return false
 
-    // فلتر البحث
+    // ظپظ„طھط± ط§ظ„ط¨ط­ط«
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       return (
@@ -270,9 +269,9 @@ export default function Notifications() {
               <Bell className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">التنبيهات</h1>
+              <h1 className="text-3xl font-bold text-gray-900">ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</h1>
               <p className="text-gray-600 mt-1">
-                {unreadCount > 0 ? `لديك ${unreadCount} تنبيه غير مقروء` : 'جميع التنبيهات مقروءة'}
+                {unreadCount > 0 ? `ظ„ط¯ظٹظƒ ${unreadCount} طھظ†ط¨ظٹظ‡ ط؛ظٹط± ظ…ظ‚ط±ظˆط،` : 'ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظ…ظ‚ط±ظˆط،ط©'}
               </p>
             </div>
           </div>
@@ -281,7 +280,7 @@ export default function Notifications() {
             disabled={generating}
           >
             <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
-            {generating ? 'جاري التوليد...' : 'توليد تنبيهات جديدة'}
+            {generating ? 'ط¬ط§ط±ظٹ ط§ظ„طھظˆظ„ظٹط¯...' : 'طھظˆظ„ظٹط¯ طھظ†ط¨ظٹظ‡ط§طھ ط¬ط¯ظٹط¯ط©'}
           </Button>
         </div>
 
@@ -289,23 +288,23 @@ export default function Notifications() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="app-panel p-4">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-sm text-gray-600">إجمالي التنبيهات</div>
+            <div className="text-sm text-gray-600">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</div>
           </div>
           <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-4">
             <div className="text-2xl font-bold text-blue-600">{stats.unread}</div>
-            <div className="text-sm text-blue-700">غير مقروء</div>
+            <div className="text-sm text-blue-700">ط؛ظٹط± ظ…ظ‚ط±ظˆط،</div>
           </div>
           <div className="bg-red-50 rounded-xl shadow-sm border border-red-200 p-4">
             <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
-            <div className="text-sm text-red-700">عاجل</div>
+            <div className="text-sm text-red-700">ط¹ط§ط¬ظ„</div>
           </div>
           <div className="bg-orange-50 rounded-xl shadow-sm border border-orange-200 p-4">
             <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
-            <div className="text-sm text-orange-700">عاجل</div>
+            <div className="text-sm text-orange-700">ط¹ط§ط¬ظ„</div>
           </div>
           <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-4">
             <div className="text-2xl font-bold text-yellow-600">{stats.medium}</div>
-            <div className="text-sm text-yellow-700">متوسط</div>
+            <div className="text-sm text-yellow-700">ظ…طھظˆط³ط·</div>
           </div>
         </div>
 
@@ -318,7 +317,7 @@ export default function Notifications() {
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  placeholder="البحث في التنبيهات..."
+                  placeholder="ط§ظ„ط¨ط­ط« ظپظٹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-4 pr-10"
@@ -333,12 +332,12 @@ export default function Notifications() {
                 onValueChange={(value) => setFilterType(value as FilterType)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="حالة القراءة" />
+                  <SelectValue placeholder="ط­ط§ظ„ط© ط§ظ„ظ‚ط±ط§ط،ط©" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع التنبيهات</SelectItem>
-                  <SelectItem value="unread">غير مقروء</SelectItem>
-                  <SelectItem value="read">مقروء</SelectItem>
+                  <SelectItem value="all">ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</SelectItem>
+                  <SelectItem value="unread">ط؛ظٹط± ظ…ظ‚ط±ظˆط،</SelectItem>
+                  <SelectItem value="read">ظ…ظ‚ط±ظˆط،</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -350,14 +349,14 @@ export default function Notifications() {
                 onValueChange={(value) => setPriorityFilter(value as PriorityFilter)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="الأولوية" />
+                  <SelectValue placeholder="ط§ظ„ط£ظˆظ„ظˆظٹط©" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع الأولويات</SelectItem>
-                  <SelectItem value="urgent">عاجل فقط</SelectItem>
-                  <SelectItem value="high">عاجل فقط</SelectItem>
-                  <SelectItem value="medium">متوسط فقط</SelectItem>
-                  <SelectItem value="low">منخفض فقط</SelectItem>
+                  <SelectItem value="all">ط¬ظ…ظٹط¹ ط§ظ„ط£ظˆظ„ظˆظٹط§طھ</SelectItem>
+                  <SelectItem value="urgent">ط¹ط§ط¬ظ„ ظپظ‚ط·</SelectItem>
+                  <SelectItem value="high">ط¹ط§ط¬ظ„ ظپظ‚ط·</SelectItem>
+                  <SelectItem value="medium">ظ…طھظˆط³ط· ظپظ‚ط·</SelectItem>
+                  <SelectItem value="low">ظ…ظ†ط®ظپط¶ ظپظ‚ط·</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -372,7 +371,7 @@ export default function Notifications() {
                 size="sm"
               >
                 <Check className="w-4 h-4" />
-                تحديد الكل كمقروء
+                طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„ ظƒظ…ظ‚ط±ظˆط،
               </Button>
             )}
             {readCount > 0 && (
@@ -382,7 +381,7 @@ export default function Notifications() {
                 size="sm"
               >
                 <Mail className="w-4 h-4" />
-                تحديد الكل كغير مقروء
+                طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„ ظƒط؛ظٹط± ظ…ظ‚ط±ظˆط،
               </Button>
             )}
             {notifications.length > 0 && (
@@ -392,7 +391,7 @@ export default function Notifications() {
                 size="sm"
               >
                 <Trash2 className="w-4 h-4" />
-                حذف الكل
+                ط­ط°ظپ ط§ظ„ظƒظ„
               </Button>
             )}
           </div>
@@ -406,11 +405,11 @@ export default function Notifications() {
         ) : filteredNotifications.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <Bell className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد تنبيهات</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">ظ„ط§ طھظˆط¬ط¯ طھظ†ط¨ظٹظ‡ط§طھ</h3>
             <p className="text-gray-600">
               {notifications.length === 0 
-                ? 'لم يتم توليد أي تنبيهات بعد. اضغط على "توليد تنبيهات جديدة" أعلاه.'
-                : 'لا توجد نتائج تطابق الفلاتر المحددة'
+                ? 'ظ„ظ… ظٹطھظ… طھظˆظ„ظٹط¯ ط£ظٹ طھظ†ط¨ظٹظ‡ط§طھ ط¨ط¹ط¯. ط§ط¶ط؛ط· ط¹ظ„ظ‰ "طھظˆظ„ظٹط¯ طھظ†ط¨ظٹظ‡ط§طھ ط¬ط¯ظٹط¯ط©" ط£ط¹ظ„ط§ظ‡.'
+                : 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط§ظ„ظپظ„ط§طھط± ط§ظ„ظ…ط­ط¯ط¯ط©'
               }
             </p>
           </div>
@@ -458,8 +457,8 @@ export default function Notifications() {
                             : 'bg-blue-100 text-blue-700'
                         }`}>
                           {notification.days_remaining < 0 
-                            ? `منتهي منذ ${String(Math.abs(notification.days_remaining))} يوم`
-                            : `باقي ${String(notification.days_remaining)} يوم`
+                            ? `ظ…ظ†طھظ‡ظٹ ظ…ظ†ط° ${String(Math.abs(notification.days_remaining))} ظٹظˆظ…`
+                            : `ط¨ط§ظ‚ظٹ ${String(notification.days_remaining)} ظٹظˆظ…`
                           }
                         </span>
                       )}
@@ -474,7 +473,7 @@ export default function Notifications() {
                       {notification.target_date && (
                         <span className="text-sm text-gray-500">
                           <HijriDateDisplay date={notification.target_date}>
-                            التاريخ المستهدف: {formatDateShortWithHijri(notification.target_date)}
+                            ط§ظ„طھط§ط±ظٹط® ط§ظ„ظ…ط³طھظ‡ط¯ظپ: {formatDateShortWithHijri(notification.target_date)}
                           </HijriDateDisplay>
                         </span>
                       )}
@@ -489,7 +488,7 @@ export default function Notifications() {
                           size="sm"
                         >
                           <Check className="w-4 h-4" />
-                          تحديد كمقروء
+                          طھط­ط¯ظٹط¯ ظƒظ…ظ‚ط±ظˆط،
                         </Button>
                       ) : (
                         <Button
@@ -498,7 +497,7 @@ export default function Notifications() {
                           size="sm"
                         >
                           <Mail className="w-4 h-4" />
-                          تحديد كغير مقروء
+                          طھط­ط¯ظٹط¯ ظƒط؛ظٹط± ظ…ظ‚ط±ظˆط،
                         </Button>
                       )}
                       <Button
@@ -507,7 +506,7 @@ export default function Notifications() {
                         size="sm"
                       >
                         <Trash2 className="w-4 h-4" />
-                        حذف
+                        ط­ط°ظپ
                       </Button>
                     </div>
                   </div>
@@ -525,10 +524,10 @@ export default function Notifications() {
             setNotificationToDelete(null)
           }}
           onConfirm={handleConfirmDeleteOne}
-          title="حذف التنبيه"
-          message={`هل أنت متأكد من حذف هذا التنبيه: "${notificationToDelete?.title}"؟`}
-          confirmText="حذف"
-          cancelText="إلغاء"
+          title="ط­ط°ظپ ط§ظ„طھظ†ط¨ظٹظ‡"
+          message={`ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„طھظ†ط¨ظٹظ‡: "${notificationToDelete?.title}"طں`}
+          confirmText="ط­ط°ظپ"
+          cancelText="ط¥ظ„ط؛ط§ط،"
           isDangerous={true}
           icon="alert"
         />
@@ -537,10 +536,10 @@ export default function Notifications() {
           isOpen={showConfirmDeleteAll}
           onClose={() => setShowConfirmDeleteAll(false)}
           onConfirm={handleConfirmDeleteAll}
-          title="حذف جميع التنبيهات"
-          message="هل أنت متأكد من حذف جميع التنبيهات؟ هذا الإجراء لا يمكن التراجع عنه."
-          confirmText="حذف"
-          cancelText="إلغاء"
+          title="ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ"
+          message="ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھطں ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط، ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ†ظ‡."
+          confirmText="ط­ط°ظپ"
+          cancelText="ط¥ظ„ط؛ط§ط،"
           isDangerous={true}
           icon="alert"
         />
@@ -548,3 +547,4 @@ export default function Notifications() {
     </Layout>
   )
 }
+

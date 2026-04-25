@@ -1,0 +1,122 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build, Reports, and SSR
+dist
+dist-ssr
+coverage/
+test-results/
+.vercel/
+
+# Environment files (Secrets)
+.env       # <-- ✨ إضافة هامة جداً للأمان
+.env.local
+.env.*.local
+.env.local.email  # Email system secrets
+# *.local  # (تم استبداله بالأسطر الأكثر تحديداً في الأعلى)
+
+# Files containing sensitive information (API keys, passwords, tokens)
+replacements.txt
+*replacements*
+*secret*
+*password*.txt
+*key*.txt
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Documentation files (keep locally, exclude from git)
+# ملاحظة: نسمح بملفات الملخصات التوثيقية المهمة
+*.md
+!.github/**/*.md
+!CLEANUP_SUMMARY.md
+
+# Local-only instruction files (CRITICAL - never commit)
+.github/copilot-instructions.md
+
+# Temporary test pages (development only)
+src/pages/EnhancedAlertsTestPage.tsx
+src/pages/CommercialRegTestPage.tsx
+
+# Unused utility files
+src/utils/errorHandler.ts
+src/utils/insuranceSubscription.ts
+src/utils/commercialRegistration.ts
+
+# Temporary development scripts
+src/scripts/createSampleCompanies.ts
+src/scripts/populateCompanyDates.ts
+create_sample_companies.ts
+
+# Supabase temporary/fix functions (already applied)
+supabase/.temp/
+supabase/functions/add-columns/
+supabase/functions/fix-companies-table/
+supabase/functions/fix-database/
+supabase/functions/fix-statistics/
+supabase/functions/add-test-data/
+supabase/functions/add-companies/
+supabase/functions/add-expiry-dates/
+
+# SQL temporary/test files (ROOT ONLY - not migrations)
+/*.sql
+check_status.sql
+create_sample_companies.sql
+SIMPLE_CHECK.sql
+STORAGE_RLS_POLICIES.sql
+check_admin_user.sql
+execute_sql.py
+setup_cron_job.sql
+test_excel_digest.sql
+update_excel_logs_data.sql
+verify_security_setup.sql
+
+# Files with embedded API keys (SECURITY)
+test-phase1-security.ts
+apply_email_queue_migration.mjs
+check_email_status.py
+check_failed_emails.py
+scripts/clear_email_queue.py
+scripts/clearEmailQueue.mjs
+
+# Build logs and plan files
+build.log
+PLAN_OVERVIEW.txt
+replacements.txt
+public/use.txt
+
+# Local absolute path assets (development machine specific)
+assets/c__Users*
+assets/d__*
+assets/*__*
+
+# Local documentation directory - never commit to git
+docs-local/
+
+# AI Agent Memory - NEVER commit to git (contains session data)
+.agent-memory/
+
+# Development files and old fixes
+.dev-files/
+# Note: .dev-files/old-migrations/ contains dangerous or outdated migration files that should not be applied

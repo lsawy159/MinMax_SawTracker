@@ -1,0 +1,19 @@
+name: Process Email Queue
+
+on:
+  schedule:
+    # كل دقيقة
+    - cron: '*/1 * * * *'
+  workflow_dispatch:  # تشغيل يدوي
+
+jobs:
+  process-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Email Queue
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/process-email-queue"
+

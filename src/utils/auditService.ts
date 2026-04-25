@@ -81,7 +81,7 @@ export class AuditService {
     try {
       const { data, error } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit)
@@ -105,7 +105,7 @@ export class AuditService {
     try {
       const { data, error } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at')
         .eq('resource_type', resourceType)
         .eq('resource_id', resourceId)
         .order('created_at', { ascending: false })
@@ -129,7 +129,7 @@ export class AuditService {
     try {
       let query = supabase
         .from('security_events')
-        .select('*')
+        .select('id,event_type,severity,description,source_ip,user_id,is_resolved,created_at,resolved_at')
 
       if (unresolved_only) {
         query = query.eq('is_resolved', false)

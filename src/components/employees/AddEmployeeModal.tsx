@@ -179,7 +179,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
     try {
       const { data: companiesData, error } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at')
         .order('name')
 
       if (error) throw error
@@ -222,7 +222,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('id,name,description,status,created_at,updated_at')
         .eq('status', 'active')
         .order('name')
 
@@ -503,7 +503,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
       const { data: insertedEmployee, error } = await supabase
         .from('employees')
         .insert([employeeData])
-        .select('*, company:companies(*), project:projects(*)')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)')
         .single()
 
       if (error) {

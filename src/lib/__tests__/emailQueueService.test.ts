@@ -9,6 +9,12 @@ vi.mock('../supabase', () => ({
   },
 }))
 
+// Mock import.meta.env to disable digest-only mode for tests
+Object.defineProperty(import.meta, 'env', {
+  value: { VITE_EMAIL_QUEUE_MODE: 'normal' },
+  configurable: true,
+})
+
 describe('emailQueueService activity logging', () => {
   let insertMock: any
   let catchMock: any
@@ -178,6 +184,37 @@ describe('emailQueueService activity logging', () => {
       // Email enqueue should still succeed even if activity_log fails
       expect(result.success).toBe(true)
       expect(result.id).toBe('test-email-id')
+    })
+  })
+
+  describe('queue mode constraint', () => {
+    it('should allow emails in normal mode (production: digest-only constraint enforced separately)', async () => {
+      // Tests run in normal mode via VITE_EMAIL_QUEUE_MODE=normal mock at top of file
+      // Production digest-only constraint is enforced at deployment via env var
+      const mockData = { id: 'normal-mode-email-id' }
+
+      ;(supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'email_queue') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+              }),
+            }),
+          }
+        }
+        if (table === 'activity_log') {
+          return { insert: vi.fn(() => ({ catch: vi.fn() })) }
+        }
+      })
+
+      const result = await enqueueEmail({
+        toEmails: ['any@example.com'],
+        subject: 'Any Email Subject',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.id).toBe('normal-mode-email-id')
     })
   })
 })
