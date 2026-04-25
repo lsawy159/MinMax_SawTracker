@@ -38,11 +38,11 @@ export default function AuditDashboard() {
     try {
       const { count: totalLogs } = await supabase
         .from('activity_log')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
 
       const { count: highRiskOps } = await supabase
         .from('activity_log')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .in('operation', ['delete', 'bulk_delete', 'admin_action'])
 
       let failedLogins = 0
@@ -51,7 +51,7 @@ export default function AuditDashboard() {
         today.setHours(0, 0, 0, 0)
         const { count } = await supabase
           .from('login_attempts')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('attempt_type', 'failed')
           .gte('created_at', today.toISOString())
 
@@ -68,7 +68,7 @@ export default function AuditDashboard() {
         const now = new Date().toISOString()
         const { count: sessionsCount } = await supabase
           .from('user_sessions')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('is_active', true)
           .gt('expires_at', now)
 
@@ -84,7 +84,7 @@ export default function AuditDashboard() {
       try {
         const { count: totalSessions } = await supabase
           .from('user_sessions')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
 
         totalSessionsCount = totalSessions || 0
       } catch (totalSessionsError) {

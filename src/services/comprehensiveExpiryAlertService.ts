@@ -15,6 +15,7 @@ import { PRIMARY_ADMIN_EMAIL } from '@/lib/notificationTypes'
 import { logger } from '../utils/logger'
 import { getNotificationThresholds } from '../utils/alerts'
 import { getEmployeeNotificationThresholdsPublic } from '../utils/employeeAlerts'
+import { calculateDaysRemaining } from '@/utils/statusHelpers'
 
 // ========================
 // الأنواع والواجهات
@@ -146,15 +147,6 @@ const EMPLOYEE_DOCUMENT_CONFIGS: ExpiryMonitorConfig[] = [
 // الدوال المساعدة
 // ========================
 
-/**
- * حساب عدد الأيام المتبقية حتى تاريخ الانتهاء
- */
-function calculateDaysRemaining(expiryDate: string): number {
-  const today = new Date()
-  const expiry = new Date(expiryDate)
-  const timeDiff = expiry.getTime() - today.getTime()
-  return Math.ceil(timeDiff / (1000 * 3600 * 24))
-}
 
 /**
  * تحديد أولوية التنبيه بناءً على عدد الأيام المتبقية

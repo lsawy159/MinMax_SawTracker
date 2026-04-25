@@ -1,0 +1,38 @@
+# Claude Code worktrees (temporary exploration/editing)
+.claude/worktrees/
+
+# everything-claude-code plugin artifacts
+everything-claude-code/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Supabase
+.supabase/

@@ -11,7 +11,14 @@
       "Bash(git commit -m 'feat\\(permissions\\): phase 2 - database and backend updates *)",
       "Bash(pwsh -Command \".specify\\\\scripts\\\\powershell\\\\speckit.git.initialize.ps1\")",
       "Bash(xargs wc *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(pwsh -ExecutionPolicy Bypass -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks)",
+      "Bash(pnpm --version)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm validate *)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_tables",
+      "PowerShell(Move-Item -Path \"specs\\\\001-ui-redesign-unified-settings\" -Destination \"specs\\\\002-ui-redesign-unified-settings\" -Force)"
     ]
   }
 }

@@ -106,14 +106,14 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       // جلب الموظفين
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('*')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
 
       if (employeesError) throw employeesError
 
       // جلب المؤسسات
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
 
       if (companiesError) throw companiesError
 
@@ -156,7 +156,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
       // جلب بيانات الموظف من قاعدة البيانات
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
-        .select('*')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
         .eq('id', employeeId)
         .single()
 
@@ -166,7 +166,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         // جلب بيانات المؤسسة المرتبطة بالموظف
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
-          .select('*')
+          .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
           .eq('id', employeeData.company_id)
           .single()
 
@@ -217,7 +217,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     if (selectedCompany) {
       const { data: updatedCompany, error } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
         .eq('id', selectedCompany.id)
         .single()
       

@@ -8,7 +8,7 @@ export function useCompanies() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
         .order('created_at', { ascending: false })
       
       if (error) {
