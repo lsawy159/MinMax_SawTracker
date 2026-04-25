@@ -39,7 +39,7 @@ export default function NotificationDropdown() {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select('id,type,title,message,entity_type,entity_id,priority,days_remaining,is_read,is_archived,created_at,read_at,target_date')
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
         .limit(10)

@@ -112,8 +112,8 @@ export default function ExportTab({ initialExportType = 'employees', hideTypeSel
     try {
       setLoading(true)
       const [employeesRes, companiesRes] = await Promise.all([
-        supabase.from('employees').select('*, company:companies(id, name, unified_number), project:projects(id, name)').order('name'),
-        supabase.from('companies').select('*').order('name')
+        supabase.from('employees').select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number), project:projects(id,name)').order('name'),
+        supabase.from('companies').select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at').order('name')
       ])
 
       if (employeesRes.error) throw employeesRes.error
