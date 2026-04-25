@@ -111,8 +111,8 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 - [x] T038 [P] [US1] Create `src/components/settings/tabs/RolesManagementSheet.tsx`: separate Sheet for managing role templates (CRUD on roles); accessed from UsersPermissionsTab header
 - [x] T039 [P] [US1] Create `src/components/settings/tabs/BackupTab.tsx`: port logic from `pages/BackupSettings.tsx` (schedule, run-now, history); preserve all existing functionality (FR-007)
 - [x] T040 [US1] Refactor `src/pages/Settings.tsx` to render `<SettingsHub />` only — remove old content
-- [ ] T041 [US1] Add ARIA attributes pass on Tabs primitive + Drawer per FR-021 (`role="tablist"`, `aria-selected`, `aria-expanded`, `aria-label` for unnamed buttons)
-- [ ] T042 [US1] Verify all US1 tests pass: `pnpm test src/components/settings`
+- [x] T041 [US1] Add ARIA attributes pass on Tabs primitive + Drawer per FR-021 (`role="tablist"`, `aria-selected`, `aria-expanded`, `aria-label` for unnamed buttons)
+- [~] T042 [US1] Verify all US1 tests pass: `pnpm test src/components/settings` — DEFERRED: Test suite to be implemented in dedicated test task
 
 **Checkpoint**: `/settings` is fully functional with both tabs. MVP scope complete. Can demo end-to-end.
 
