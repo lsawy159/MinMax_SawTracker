@@ -473,7 +473,7 @@ export default function BackupSettingsPage() {
     try {
       const { data, error } = await supabase
         .from('backup_history')
-        .select('id,file_path,status,completed_at,backup_type')
+        .select('id,file_path,status,completed_at,backup_type,file_size,compression_ratio,started_at,error_message,tables_included')
         .order('started_at', { ascending: false })
         .limit(50)
 
@@ -618,7 +618,7 @@ export default function BackupSettingsPage() {
     try {
       const { data, error } = await supabase
         .from('security_settings')
-        .select('id,setting_key,setting_value,created_at,updated_at')
+        .select('id,setting_key,setting_value,description,setting_type,options,updated_at')
         .order('setting_key')
 
       if (error) throw error

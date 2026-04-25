@@ -820,7 +820,7 @@ export function useScopedPayrollEmployees(scopeType?: PayrollScopeType, scopeId?
         throw employeesError
       }
 
-      const employeeList = (employees ?? []) as ScopedPayrollEmployee[]
+      const employeeList = (employees ?? []) as unknown as ScopedPayrollEmployee[]
       if (employeeList.length === 0) {
         return [] as ScopedPayrollEmployee[]
       }

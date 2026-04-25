@@ -48,12 +48,12 @@ export default function CustomFieldManager() {
     try {
       const { data, error } = await supabase
         .from('custom_fields')
-        .select('id')
+        .select('id,entity_type,field_name,field_label,field_type,field_options,is_required,is_active,display_order,created_at,created_by,updated_at')
         .order('entity_type')
         .order('display_order')
 
       if (error) throw error
-      setFields(data || [])
+      setFields((data || []) as unknown as CustomField[])
     } catch (error) {
       console.error('Error loading custom fields:', error)
       toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط®طµطµط©')

@@ -85,7 +85,7 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       if (transferRes.error) throw transferRes.error
       if (projectsRes.error) throw projectsRes.error
 
-      const transferData = (transferRes.data || []) as TransferProcedureRow[]
+      const transferData = (transferRes.data || []) as unknown as TransferProcedureRow[]
       setTransferRows(transferData)
       setProjects((projectsRes.data || []) as Project[])
       setStatusDrafts(

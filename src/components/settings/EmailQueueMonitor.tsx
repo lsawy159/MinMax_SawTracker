@@ -36,7 +36,7 @@ export default function EmailQueueMonitor() {
     try {
       const { data, error } = await supabase
         .from('email_queue')
-        .select('id')
+        .select('id,to_emails,subject,status,priority,retry_count,max_retries,error_message,created_at,processed_at,completed_at')
         .order('created_at', { ascending: false })
         .limit(50)
 
@@ -49,7 +49,7 @@ export default function EmailQueueMonitor() {
         throw error
       }
 
-      setEmailQueue(data || [])
+      setEmailQueue((data || []) as unknown as EmailQueueItem[])
       logger.debug('[Email Queue] Queue loaded successfully, count:', data?.length || 0)
       
       // Calculate statistics

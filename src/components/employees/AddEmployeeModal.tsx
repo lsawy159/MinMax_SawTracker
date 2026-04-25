@@ -527,7 +527,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess, initialDa
       setIsProjectDropdownOpen(false)
 
       // إغلاق المودال وإعادة تحميل البيانات
-      onSuccess((insertedEmployee || undefined) as Employee & { company: Company; project?: Project } | undefined)
+      onSuccess((insertedEmployee as unknown as (Employee & { company: Company; project?: Project }) | undefined))
       onClose()
     } catch (error) {
       console.error('Error adding employee:', error)

@@ -82,7 +82,7 @@ export default function Settings() {
       // ط¬ظ„ط¨ ط¬ظ…ظٹط¹ ط§ظ„ط´ط±ظƒط§طھ
       const { data: companies, error: companiesError } = await supabase
         .from('companies')
-        .select('id').order('name')
+        .select('id,name,unified_number,max_employees').order('name')
 
       if (companiesError) throw companiesError
 

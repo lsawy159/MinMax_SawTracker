@@ -68,11 +68,11 @@ export function GlobalSearch() {
   const loadSavedSearches = async () => {
     const { data } = await supabase
       .from('saved_searches')
-      .select('id')
+      .select('id,name,search_query,search_type,filters')
       .order('created_at', { ascending: false })
       .limit(5)
-    
-    if (data) setSavedSearches(data)
+
+    if (data) setSavedSearches(data as unknown as SavedSearch[])
   }
 
   const loadRecentSearches = () => {

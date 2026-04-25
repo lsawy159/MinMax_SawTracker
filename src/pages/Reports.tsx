@@ -122,7 +122,6 @@ export default function Reports() {
           { type: 'سجل تجاري', expiry: company.commercial_registration_expiry },
           { type: 'اشتراك مقيم', expiry: company.ending_subscription_moqeem_date },
           { type: 'اشتراك قوى', expiry: company.ending_subscription_power_date },
-          { type: 'تأمينات اجتماعية', expiry: company.social_insurance_expiry },
         ]
 
         companyFields.forEach((field) => {

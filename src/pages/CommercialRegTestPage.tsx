@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import Layout from '@/components/layout/Layout'
 import { Building2 } from 'lucide-react'
-import { 
-  calculateDaysRemaining, 
-  getStatusColor, 
-  getStatusText, 
+import {
+  calculateDaysRemaining,
+  getStatusColor
+} from '@/utils/statusHelpers'
+import {
+  getStatusText,
   getStatusIcon,
   getStatusCategory,
   calculateCommercialRegStats,

@@ -46,7 +46,7 @@ export default function CompanyDetailModal({
         .order('name')
 
       if (error) throw error
-      setEmployees(data || [])
+      setEmployees((data || []) as unknown as (Employee & { company: Company; project?: Project })[])
     } catch (error) {
       console.error('Error loading employees:', error)
       toast.error('فشل تحميل الموظفين')

@@ -112,8 +112,8 @@ export default function Employees() {
         .order('name')
 
       if (error) throw error
-      
-      const employeesData = data || []
+
+      const employeesData = (data || []) as unknown as (Employee & { company: Company; project?: Project })[]
       setEmployees(employeesData)
       
       // استخراج القوائم الفريدة للفلاتر

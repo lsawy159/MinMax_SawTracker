@@ -92,33 +92,33 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
     if (error) {
       // Error logged to activity_log asynchronously
       // Non-blocking activity log: failure case
-      void supabase.from('activity_log').insert({
+      void Promise.resolve(supabase.from('activity_log').insert({
         entity_type: 'email_queue',
         action: 'create_failed',
         details: error.message,
-      }).catch(() => {
+      })).catch(() => {
         // Silently ignore activity_log failures — email queue operation must succeed
       });
       return { success: false, error: 'Failed to enqueue email.' };
     }
 
     // Non-blocking activity log: success case
-    void supabase.from('activity_log').insert({
+    void Promise.resolve(supabase.from('activity_log').insert({
       entity_type: 'email_queue',
       action: 'create_success',
       entity_id: data.id as unknown as string,
-    }).catch(() => {
+    })).catch(() => {
       // Silently ignore activity_log failures — email queue operation must succeed
     });
 
     return { success: true, id: data.id };
   } catch (err) {
     // Non-blocking activity log: exception case
-    void supabase.from('activity_log').insert({
+    void Promise.resolve(supabase.from('activity_log').insert({
       entity_type: 'email_queue',
       action: 'create_exception',
       details: (err as Error).message,
-    }).catch(() => {
+    })).catch(() => {
       // Silently ignore activity_log failures — email queue operation must succeed
     });
     return { success: false, error: 'An unexpected error occurred.' };

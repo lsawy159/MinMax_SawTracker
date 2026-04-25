@@ -234,7 +234,7 @@ export default function AdvancedSearch() {
     
     const { data, error } = await supabase
       .from('saved_searches')
-      .select('id,user_id,name,search_params,created_at,updated_at')
+      .select('id,user_id,name,search_query,search_type,filters,created_at,updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
     

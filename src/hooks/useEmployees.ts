@@ -1,5 +1,5 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, Employee } from '@/lib/supabase'
+import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
 
 export function useEmployees() {
@@ -10,12 +10,12 @@ export function useEmployees() {
         .from('employees')
         .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)')
         .order('created_at', { ascending: false })
-      
+
       if (error) {
         logger.error('Error fetching employees:', error)
         throw error
       }
-      return data as Employee[]
+      return data as unknown as (Employee & { company: Company; project?: Project })[]
     },
   })
 }
