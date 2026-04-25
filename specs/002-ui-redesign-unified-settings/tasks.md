@@ -103,14 +103,14 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 ### Implementation for User Story 1
 
-- [ ] T033 [P] [US1] Create `src/components/settings/useSettingsTabState.ts`: hook that reads `?tab=` searchParam, validates against `SettingsTabId` union, returns `{ activeTab, setActiveTab }`. Default fallback to `users-permissions`. Replace URL on invalid value
-- [ ] T034 [P] [US1] Create `src/hooks/useUnsavedChangesGuard.ts`: registers a `beforeunload` listener + provides `promptOnNavigate(): Promise<boolean>` for in-app navigation gating
-- [ ] T035 [US1] Create `src/components/settings/SettingsHub.tsx`: registers `SETTINGS_TABS` array per data-model.md, renders Radix `<Tabs>` with `dir="rtl"`, role-filtered tab list, lazy-loads each tab via `React.lazy` + `Suspense`, integrates `useSettingsTabState` and `useUnsavedChangesGuard` (depends T033, T034)
+- [x] T033 [P] [US1] Create `src/components/settings/useSettingsTabState.ts`: hook that reads `?tab=` searchParam, validates against `SettingsTabId` union, returns `{ activeTab, setActiveTab }`. Default fallback to `users-permissions`. Replace URL on invalid value
+- [x] T034 [P] [US1] Create `src/hooks/useUnsavedChangesGuard.ts`: registers a `beforeunload` listener + provides `promptOnNavigate(): Promise<boolean>` for in-app navigation gating
+- [x] T035 [US1] Create `src/components/settings/SettingsHub.tsx`: registers `SETTINGS_TABS` array per data-model.md, renders Radix `<Tabs>` with `dir="rtl"`, role-filtered tab list, lazy-loads each tab via `React.lazy` + `Suspense`, integrates `useSettingsTabState` and `useUnsavedChangesGuard` (depends T033, T034)
 - [ ] T036 [P] [US1] Create `src/components/settings/tabs/PermissionDrawer.tsx` per [contracts/permission-editor.md](./contracts/permission-editor.md): Radix Sheet, RHF + Zod `permissionUpdateSchema`, role select, permission checkboxes, footer Save/Cancel, focus trap, dirty-aware close, mutation via existing `useUpdateUserRole` + `useUpdateUserPermissions` hooks
 - [ ] T037 [US1] Create `src/components/settings/tabs/UsersPermissionsTab.tsx`: render users table (port logic from `pages/Users.tsx` + `pages/Permissions.tsx`), each row has "Permissions" button opening `PermissionDrawer` for `userId`, secondary "Manage Roles" button opens `RolesManagementSheet` (FR-007c) (depends T036)
 - [ ] T038 [P] [US1] Create `src/components/settings/tabs/RolesManagementSheet.tsx`: separate Sheet for managing role templates (CRUD on roles); accessed from UsersPermissionsTab header
 - [ ] T039 [P] [US1] Create `src/components/settings/tabs/BackupTab.tsx`: port logic from `pages/BackupSettings.tsx` (schedule, run-now, history); preserve all existing functionality (FR-007)
-- [ ] T040 [US1] Refactor `src/pages/Settings.tsx` to render `<SettingsHub />` only — remove old content
+- [x] T040 [US1] Refactor `src/pages/Settings.tsx` to render `<SettingsHub />` only — remove old content
 - [ ] T041 [US1] Add ARIA attributes pass on Tabs primitive + Drawer per FR-021 (`role="tablist"`, `aria-selected`, `aria-expanded`, `aria-label` for unnamed buttons)
 - [ ] T042 [US1] Verify all US1 tests pass: `pnpm test src/components/settings`
 
