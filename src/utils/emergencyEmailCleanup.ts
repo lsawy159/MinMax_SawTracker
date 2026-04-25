@@ -1,5 +1,5 @@
-/**
- * 🚨 EMERGENCY: Email Queue Cleanup Utilities
+﻿/**
+ * ًںڑ¨ EMERGENCY: Email Queue Cleanup Utilities
  * 
  * This module provides emergency functions to:
  * 1. Clear pending emails from queue
@@ -16,7 +16,7 @@ import { logger } from './logger'
  */
 export async function clearPendingEmailQueue(): Promise<number> {
   try {
-    logger.warn('🚨 EMERGENCY: Clearing all pending emails from queue...')
+    logger.warn('ًںڑ¨ EMERGENCY: Clearing all pending emails from queue...')
     
     const { data, error } = await supabase
       .from('email_queue')
@@ -30,7 +30,7 @@ export async function clearPendingEmailQueue(): Promise<number> {
     }
     
     const count = data?.length || 0
-    logger.warn(`✅ Cleared ${count} pending emails from queue`)
+    logger.warn(`âœ… Cleared ${count} pending emails from queue`)
     return count
   } catch (err) {
     logger.error('Emergency cleanup failed:', err)
@@ -85,12 +85,12 @@ export async function ensureDailyAlertLogsTable(): Promise<boolean> {
       .limit(1)
     
     if (!selectError) {
-      logger.info('✅ daily_alert_logs table already exists')
+      logger.info('âœ… daily_alert_logs table already exists')
       return true
     }
     
     // If table doesn't exist, we need to create it via SQL
-    logger.warn('⚠️  daily_alert_logs table does not exist - will need to be created via migration')
+    logger.warn('âڑ ï¸ڈ  daily_alert_logs table does not exist - will need to be created via migration')
     return false
   } catch (err) {
     logger.error('Error checking daily_alert_logs table:', err)
@@ -148,7 +148,7 @@ export async function getTodaysDailyLogs() {
     
     const { data, error } = await supabase
       .from('daily_alert_logs')
-      .select('*')
+      .select('id,alert_type,priority,message,created_at,processed_at')
       .gte('created_at', todayIso)
       .order('priority', { ascending: false })
       .order('created_at', { ascending: false })
@@ -185,3 +185,4 @@ export async function clearProcessedDailyLogs(processedIds: string[]): Promise<b
     return false
   }
 }
+

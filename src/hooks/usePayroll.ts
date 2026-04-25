@@ -342,7 +342,7 @@ function buildPayrollSlipNumber(run: PayrollRun, entry: PayrollEntry): string {
 async function syncPayrollSlipsForRun(run: PayrollRun) {
   const { data: entries, error: entriesError } = await supabase
     .from('payroll_entries')
-    .select('*')
+    .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
     .eq('payroll_run_id', run.id)
     .order('employee_name_snapshot', { ascending: true })
 
@@ -667,7 +667,7 @@ export function usePayrollRuns() {
     queryFn: async () => {
       const { data: runs, error: runsError } = await supabase
         .from('payroll_runs')
-        .select('*')
+        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
         .order('payroll_month', { ascending: false })
         .order('created_at', { ascending: false })
 
@@ -732,7 +732,7 @@ export function usePayrollRunEntries(runId?: string) {
 
       const { data, error } = await supabase
         .from('payroll_entries')
-        .select('*')
+        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
         .eq('payroll_run_id', runId)
         .order('employee_name_snapshot', { ascending: true })
 
@@ -805,7 +805,7 @@ export function useScopedPayrollEmployees(scopeType?: PayrollScopeType, scopeId?
 
       let employeeQuery = supabase
         .from('employees')
-        .select('*, company:companies(name), project:projects(name)')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, company:companies(name), project:projects(name)')
         .eq('is_deleted', false)
         .order('name', { ascending: true })
 
@@ -867,7 +867,7 @@ export function useCreatePayrollRun() {
           input_mode: input.input_mode,
           notes: input.notes ?? null,
         })
-        .select('*')
+        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
         .single()
 
       if (error) {
@@ -935,7 +935,7 @@ export function useUpsertPayrollEntry() {
       const { data, error } = await supabase
         .from('payroll_entries')
         .upsert(payload, { onConflict: 'payroll_run_id,employee_id' })
-        .select('*')
+        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
         .single()
 
       if (error) {
@@ -971,7 +971,7 @@ export function useUpdatePayrollRunStatus() {
         .from('payroll_runs')
         .update(payload)
         .eq('id', runId)
-        .select('*')
+        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
         .single()
 
       if (error) {
@@ -994,7 +994,7 @@ export function useUpdatePayrollRunStatus() {
 
       const { data: entryRows, error: entryRowsError } = await supabase
         .from('payroll_entries')
-        .select('*')
+        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
         .eq('payroll_run_id', runId)
 
       if (entryRowsError) {

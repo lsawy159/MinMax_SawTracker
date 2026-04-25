@@ -73,11 +73,11 @@ export default function TransferProceduresTab({ canImport, canExport }: { canImp
       const [transferRes, projectsRes] = await Promise.all([
         supabase
           .from('transfer_procedures')
-          .select('*, project:projects(*)')
+          .select('id,request_date,name,iqama,status,current_unified_number,project_id,created_by_user_id,notes,created_at,updated_at, project:projects(id,name,description,status,created_at,updated_at)')
           .order('created_at', { ascending: false }),
         supabase
           .from('projects')
-          .select('*')
+          .select('id,name,description,status,created_at,updated_at')
           .eq('status', 'active')
           .order('name'),
       ])

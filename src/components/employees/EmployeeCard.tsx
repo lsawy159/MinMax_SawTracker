@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Employee, Company, Project, CustomField, ObligationType, supabase } from '@/lib/supabase'
-import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, AlertTriangle, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
+import { Employee, Company, Project, ObligationType, supabase } from '@/lib/supabase'
+import { useEmployeeCardData } from '@/hooks/useEmployeeCardData'
+import { EmployeeExpirySection } from './EmployeeExpirySection'
+import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
@@ -20,25 +22,6 @@ import {
   getPayrollObligationBucketFromType,
   getPayrollObligationBucketLabel,
 } from '@/utils/payrollObligationBuckets'
-
-// Helper: توحيد معالجة التواريخ - الميلادي هو المصدر الأساسي
-const toValidDate = (value: string | Date | null | undefined): Date | null => {
-  if (!value) return null
-  const parsed = value instanceof Date ? value : new Date(value)
-  return isNaN(parsed.getTime()) ? null : parsed
-}
-
-const calculateDaysRemaining = (date: string | Date | null | undefined): number | null => {
-  const validDate = toValidDate(date)
-  if (!validDate) return null
-  
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  validDate.setHours(0, 0, 0, 0)
-  
-  const diffTime = validDate.getTime() - today.getTime()
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-}
 
 const formatMoney = (value: number): string => {
   return value.toLocaleString('en-US', {
@@ -71,9 +54,7 @@ interface EmployeeCardProps {
 
 export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, defaultFinancialOverlayOpen = false }: EmployeeCardProps) {
   const { canEdit, canDelete } = usePermissions()
-  const [customFields, setCustomFields] = useState<CustomField[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
+  const { customFields, companies, projects } = useEmployeeCardData()
   const currentMonth = new Date().toISOString().slice(0, 7)
   
   // Define form data type with precise field types
@@ -187,11 +168,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     notes: '',
   })
 
-  useEffect(() => {
-    void loadCustomFields()
-    void loadCompanies()
-    void loadProjects()
-  }, [])
 
   // إغلاق القوائم عند النقر خارجها
   useEffect(() => {
@@ -264,50 +240,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.project_id, projects])
 
-  const loadCustomFields = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('custom_fields')
-        .select('*')
-        .eq('entity_type', 'employee')
-        .eq('is_active', true)
-        .order('display_order')
-
-      if (error) throw error
-      setCustomFields(data || [])
-    } catch (error) {
-      logger.error('Error loading custom fields:', error)
-    }
-  }
-
-  const loadCompanies = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .order('name')
-
-      if (error) throw error
-      setCompanies(data || [])
-    } catch (error) {
-      logger.error('Error loading companies:', error)
-    }
-  }
-
-  const loadProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'active')
-        .order('name')
-
-      if (error) throw error
-      setProjects(data || [])
-    } catch (error) {
-      logger.error('Error loading projects:', error)
-    }
-  }
 
   // تصفية المؤسسات: البحث في الاسم أو الرقم الموحد
   const filteredCompanies = companies.filter(company => {
@@ -377,8 +309,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         return
       }
 
-      // تحديث قائمة المشاريع
-      await loadProjects()
+      // تحديث قائمة المشاريع - يتم عبر hook
+      // await loadProjects()
 
       // اختيار المشروع الجديد تلقائياً
       setFormData({ ...formData, project_id: newProject.id, project_name: newProject.name })
@@ -395,22 +327,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     } finally {
       setCreatingProject(false)
     }
-  }
-
-  // تم نقل calculateDaysRemaining إلى أعلى الملف كـ helper موحد
-
-  const getStatusColor = (days: number | null) => {
-    // إذا كان null (لا يوجد تاريخ انتهاء)، يعتبر ساري
-    if (days === null) return 'text-green-600 bg-green-50 border-green-200'
-    // منتهي أو أقل من أو يساوي 7 أيام: أحمر (طارئ)
-    if (days < 0) return 'text-red-600 bg-red-50 border-red-200'
-    if (days <= 7) return 'text-red-600 bg-red-50 border-red-200'
-    // 8-15 يوم: برتقالي (عاجل)
-    if (days <= 15) return 'text-orange-600 bg-orange-50 border-orange-200'
-    // 16-30 يوم: أصفر (تحذير)
-    if (days <= 30) return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-    // أكثر من 30 يوم: أخضر (ساري)
-    return 'text-green-600 bg-green-50 border-green-200'
   }
 
   const getFieldLabel = (key: string): string => {
@@ -501,7 +417,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
       // جلب البيانات الحالية قبل التحديث لضمان وجود old_data موثوق
       const { data: existingEmployee, error: fetchError } = await supabase
         .from('employees')
-        .select('*')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
         .eq('id', employee.id)
         .single()
 
@@ -658,10 +574,6 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     }
   }
 
-  const residenceDays = calculateDaysRemaining(employee?.residence_expiry)
-  const contractDays = calculateDaysRemaining(employee?.contract_expiry)
-  const hiredWorkerContractDays = calculateDaysRemaining(employee?.hired_worker_contract_expiry)
-  const healthInsuranceDays = calculateDaysRemaining(employee?.health_insurance_expiry)
   const employeeBusinessFields = getEmployeeBusinessFields({
     additional_fields: formData.additional_fields,
     hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
@@ -870,83 +782,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         </div>
 
         {/* Status Alerts */}
-        <div className="p-6 space-y-3 bg-gray-50">
-          <div className={`flex items-center gap-3 p-4 rounded-lg border-2 ${getStatusColor(residenceDays)}`}>
-            <AlertTriangle className="w-5 h-5" />
-            <div className="flex-1">
-              <div className="font-medium">انتهاء الإقامة</div>
-              <div className="text-sm">
-                {employee?.residence_expiry ? (
-                  <>
-                    <HijriDateDisplay date={employee.residence_expiry}>
-                      {formatDateShortWithHijri(employee.residence_expiry)}
-                    </HijriDateDisplay>
-                    {residenceDays !== null && (residenceDays < 0 ? ' (منتهية)' : ` (بعد ${residenceDays} يوم)`)}
-                  </>
-                ) : (
-                  'غير محدد'
-                )}
-              </div>
-            </div>
-          </div>
-
-          {contractDays !== null && (
-            <div className={`flex items-center gap-3 p-4 rounded-lg border-2 ${getStatusColor(contractDays)}`}>
-              <AlertTriangle className="w-5 h-5" />
-              <div className="flex-1">
-                <div className="font-medium">انتهاء العقد</div>
-                <div className="text-sm">
-                  {employee?.contract_expiry && (
-                    <HijriDateDisplay date={employee.contract_expiry}>
-                      {formatDateShortWithHijri(employee.contract_expiry)}
-                    </HijriDateDisplay>
-                  )}
-                  {contractDays !== null && (contractDays < 0 ? ' (منتهي)' : ` (بعد ${contractDays} يوم)`)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {hiredWorkerContractDays !== null && (
-            <div className={`flex items-center gap-3 p-4 rounded-lg border-2 ${getStatusColor(hiredWorkerContractDays)}`}>
-              <AlertTriangle className="w-5 h-5" />
-              <div className="flex-1">
-                <div className="font-medium">انتهاء عقد أجير</div>
-                <div className="text-sm">
-                  {employee?.hired_worker_contract_expiry && (
-                    <HijriDateDisplay date={employee.hired_worker_contract_expiry}>
-                      {formatDateShortWithHijri(employee.hired_worker_contract_expiry)}
-                    </HijriDateDisplay>
-                  )}
-                  {hiredWorkerContractDays !== null && (hiredWorkerContractDays < 0 ? ' (منتهي)' : ` (بعد ${hiredWorkerContractDays} يوم)`)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* تنبيه التأمين الصحي */}
-          <div className={`flex items-center gap-3 p-4 rounded-lg border-2 ${getStatusColor(healthInsuranceDays)}`}>
-            <AlertTriangle className="w-5 h-5" />
-            <div className="flex-1">
-              <div className="font-medium">انتهاء التأمين الصحي</div>
-              <div className="text-sm">
-                {healthInsuranceDays === null ? (
-                  'لا يوجد تاريخ انتهاء'
-                ) : (
-                  <>
-                    {healthInsuranceDays < 0 ? 'منتهي (' : 'ساري حتى '}
-                    {employee?.health_insurance_expiry && (
-                      <HijriDateDisplay date={employee.health_insurance_expiry}>
-                        {formatDateShortWithHijri(employee.health_insurance_expiry)}
-                      </HijriDateDisplay>
-                    )}
-                    {healthInsuranceDays < 0 ? ')' : ` (بعد ${healthInsuranceDays} يوم)`}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <EmployeeExpirySection employee={employee} />
 
         {/* Tabs */}
         <div className="border-b border-gray-200 p-3">

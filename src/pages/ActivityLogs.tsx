@@ -76,7 +76,7 @@ export default function ActivityLogs() {
     try {
       const { data, error } = await supabase
         .from('activity_log')
-        .select('*')
+        .select('id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at')
         .order('created_at', { ascending: false })
         .limit(500)
 

@@ -1,13 +1,9 @@
-import { differenceInDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { logger } from './logger'
+import { calculateDaysRemaining } from './statusHelpers'
 
-// Helper to normalize date inputs and guard against invalid values
-const toValidDate = (value: string | Date | null | undefined): Date | null => {
-  if (!value) return null
-  const parsed = value instanceof Date ? value : new Date(value)
-  return isNaN(parsed.getTime()) ? null : parsed
-}
+// Re-export for backward compatibility with existing tests/code
+export { calculateDaysRemaining }
 
 /**
  * القيم الافتراضية لإعدادات الحالات (موحد مع الموظفين)
@@ -79,20 +75,6 @@ function getStatusThresholdsSync(): typeof DEFAULT_STATUS_THRESHOLDS {
   return statusThresholdsCache || DEFAULT_STATUS_THRESHOLDS
 }
 
-/**
- * حساب عدد الأيام المتبقية على انتهاء تاريخ معين
- */
-export const calculateDaysRemaining = (date: string | Date | null | undefined): number => {
-  const expiryDate = toValidDate(date)
-  if (!expiryDate) return 0
-  
-  const today = new Date()
-  // إعادة تعيين الوقت لضمان المقارنة الصحيحة (الميلادي هو المصدر الرئيسي)
-  today.setHours(0, 0, 0, 0)
-  expiryDate.setHours(0, 0, 0, 0)
-  
-  return differenceInDays(expiryDate, today)
-}
 
 /**
  * دالة عامة موحدة لحساب الحالة (للموظفين والمؤسسات)

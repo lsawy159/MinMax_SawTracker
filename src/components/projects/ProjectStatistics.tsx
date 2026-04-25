@@ -27,7 +27,7 @@ export default function ProjectStatistics() {
       // جلب جميع المشاريع
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('*')
+        .select('id,name,description,status,created_at,updated_at')
         .order('name')
 
       if (projectsError) throw projectsError

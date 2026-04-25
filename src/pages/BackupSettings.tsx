@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import Layout from '@/components/layout/Layout'
 import EmailQueueMonitor from '@/components/settings/EmailQueueMonitor'
 import { supabase } from '@/lib/supabase'
@@ -54,11 +54,11 @@ const SETTINGS_KEYS = ['admin_email', 'backup_email_notifications', 'backup_noti
 const DEFAULT_ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'Ahmad.alsawy159@gmail.com'
 
 const REFRESH_OPTIONS = [
-  { value: 30000, label: '30 ثانية' },
-  { value: 60000, label: 'دقيقة واحدة' },
-  { value: 120000, label: 'دقيقتان' },
-  { value: 300000, label: '5 دقائق' },
-  { value: 0, label: 'تعطيل التحديث التلقائي' }
+  { value: 30000, label: '30 ط«ط§ظ†ظٹط©' },
+  { value: 60000, label: 'ط¯ظ‚ظٹظ‚ط© ظˆط§ط­ط¯ط©' },
+  { value: 120000, label: 'ط¯ظ‚ظٹظ‚طھط§ظ†' },
+  { value: 300000, label: '5 ط¯ظ‚ط§ط¦ظ‚' },
+  { value: 0, label: 'طھط¹ط·ظٹظ„ ط§ظ„طھط­ط¯ظٹط« ط§ظ„طھظ„ظ‚ط§ط¦ظٹ' }
 ]
 
 export default function BackupSettingsPage() {
@@ -71,7 +71,7 @@ export default function BackupSettingsPage() {
   // Tab State
   const [activeTab, setActiveTab] = useState<TabType>('general')
 
-  // 🔐 NEW: Notification Recipients Config State
+  // ًں”گ NEW: Notification Recipients Config State
   const [notificationConfig, setNotificationConfig] = useState<NotificationRecipientsConfig>(createDefaultConfig())
   const [newRecipientEmail, setNewRecipientEmail] = useState('')
 
@@ -118,19 +118,19 @@ export default function BackupSettingsPage() {
 
   const systemPulse = useMemo(() => {
     if (!stats.lastSuccessTime) {
-      return { label: 'عامل الانتظار', tone: 'warning' as const }
+      return { label: 'ط¹ط§ظ…ظ„ ط§ظ„ط§ظ†طھط¸ط§ط±', tone: 'warning' as const }
     }
     const diffMinutes = (Date.now() - new Date(stats.lastSuccessTime).getTime()) / 60000
     return diffMinutes > 10
-      ? { label: 'عامل الانتظار', tone: 'warning' as const }
-      : { label: 'نشط', tone: 'success' as const }
+      ? { label: 'ط¹ط§ظ…ظ„ ط§ظ„ط§ظ†طھط¸ط§ط±', tone: 'warning' as const }
+      : { label: 'ظ†ط´ط·', tone: 'success' as const }
   }, [stats.lastSuccessTime])
 
   // ============================================================================
   // EMAIL CONFIGURATION FUNCTIONS - NEW SYSTEM WITH FALLBACK
   // ============================================================================
 
-  // 🔐 Load notification recipients from new notification_recipients setting
+  // ًں”گ Load notification recipients from new notification_recipients setting
   const loadNotificationRecipients = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -214,7 +214,7 @@ export default function BackupSettingsPage() {
       setRecipients(parsedRecipients)
     } catch (error) {
       logger.error('[BackupSettings] Failed to load email settings:', error)
-      toast.error('تعذر تحميل إعدادات البريد الإلكتروني')
+      toast.error('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ')
     } finally {
       setLoading(false)
     }
@@ -230,7 +230,7 @@ export default function BackupSettingsPage() {
 
   const saveEmailSettings = async () => {
     if (!hasEditPermission) {
-      toast.error('ليس لديك صلاحية لتعديل إعدادات البريد')
+      toast.error('ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„طھط¹ط¯ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¨ط±ظٹط¯')
       return
     }
 
@@ -276,27 +276,27 @@ export default function BackupSettingsPage() {
 
       if (legacyError) throw legacyError
 
-      toast.success('تم حفظ جميع الإعدادات بنجاح')
+      toast.success('طھظ… ط­ظپط¸ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­')
       await loadEmailSettings()
     } catch (error) {
       logger.error('[BackupSettings] Failed to save email settings:', error)
-      toast.error('فشل حفظ الإعدادات')
+      toast.error('ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ')
     } finally {
       setSaving(false)
     }
   }
 
-  // 🔐 Add new recipient to notification list
+  // ًں”گ Add new recipient to notification list
   const addRecipient = () => {
     const email = newRecipientEmail.trim()
     if (!email) return
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      toast.error('بريد غير صالح')
+      toast.error('ط¨ط±ظٹط¯ ط؛ظٹط± طµط§ظ„ط­')
       return
     }
     if (notificationConfig.additional_recipients.some(r => r.email === email)) {
-      toast.info('هذا البريد موجود بالفعل')
+      toast.info('ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯ ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„ظپط¹ظ„')
       return
     }
     const newRecipient: AdditionalRecipient = {
@@ -313,19 +313,19 @@ export default function BackupSettingsPage() {
       additional_recipients: [...prev.additional_recipients, newRecipient]
     }))
     setNewRecipientEmail('')
-    toast.success('تم إضافة المستقبل الجديد')
+    toast.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظ…ط³طھظ‚ط¨ظ„ ط§ظ„ط¬ط¯ظٹط¯')
   }
 
-  // 🔐 Remove recipient from notification list
+  // ًں”گ Remove recipient from notification list
   const removeRecipient = (id: string) => {
     setNotificationConfig(prev => ({
       ...prev,
       additional_recipients: prev.additional_recipients.filter(r => r.id !== id)
     }))
-    toast.success('تم حذف المستقبل')
+    toast.success('طھظ… ط­ط°ظپ ط§ظ„ظ…ط³طھظ‚ط¨ظ„')
   }
 
-  // 🔐 Update recipient notification flags
+  // ًں”گ Update recipient notification flags
   const updateRecipientFlags = (id: string, updates: Partial<Omit<AdditionalRecipient, 'id' | 'email' | 'added_at' | 'added_by'>>) => {
     setNotificationConfig(prev => ({
       ...prev,
@@ -408,11 +408,11 @@ export default function BackupSettingsPage() {
     try {
       const admin = emailConfig.admin_email || DEFAULT_ADMIN_EMAIL
       if (!admin) {
-        toast.error('لا يوجد بريد إداري محدد لإرسال الاختبار')
+        toast.error('ظ„ط§ ظٹظˆط¬ط¯ ط¨ط±ظٹط¯ ط¥ط¯ط§ط±ظٹ ظ…ط­ط¯ط¯ ظ„ط¥ط±ط³ط§ظ„ ط§ظ„ط§ط®طھط¨ط§ط±')
         return
       }
-      const subject = 'اختبار مسار المراسلات - عاجل'
-      const html = `<p>هذا بريد اختبار تشخيصي لتأكيد المسار.</p><p>الوقت: ${new Date().toISOString()}</p>`
+      const subject = 'ط§ط®طھط¨ط§ط± ظ…ط³ط§ط± ط§ظ„ظ…ط±ط§ط³ظ„ط§طھ - ط¹ط§ط¬ظ„'
+      const html = `<p>ظ‡ط°ط§ ط¨ط±ظٹط¯ ط§ط®طھط¨ط§ط± طھط´ط®ظٹطµظٹ ظ„طھط£ظƒظٹط¯ ط§ظ„ظ…ط³ط§ط±.</p><p>ط§ظ„ظˆظ‚طھ: ${new Date().toISOString()}</p>`
       const res = await enqueueEmail({
         toEmails: [admin],
         subject,
@@ -420,17 +420,17 @@ export default function BackupSettingsPage() {
         priority: 'urgent'
       })
       if (res.success) {
-        toast.success('تم إضافة البريد الاختباري إلى قائمة الانتظار بنجاح - سيتم الإرسال قريباً')
+        toast.success('طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط§ط®طھط¨ط§ط±ظٹ ط¥ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ط§ظ†طھط¸ط§ط± ط¨ظ†ط¬ط§ط­ - ط³ظٹطھظ… ط§ظ„ط¥ط±ط³ط§ظ„ ظ‚ط±ظٹط¨ط§ظ‹')
         await loadStatsAndActivity()
       } else {
-        // رسالة خطأ أكثر تفصيلاً
-        const errorMsg = res.error || 'فشل في إضافة البريد إلى الطابور'
+        // ط±ط³ط§ظ„ط© ط®ط·ط£ ط£ظƒط«ط± طھظپطµظٹظ„ط§ظ‹
+        const errorMsg = res.error || 'ظپط´ظ„ ظپظٹ ط¥ط¶ط§ظپط© ط§ظ„ط¨ط±ظٹط¯ ط¥ظ„ظ‰ ط§ظ„ط·ط§ط¨ظˆط±'
         console.error('[BackupSettings] Enqueue error:', res.error)
-        toast.error(`فشل: ${errorMsg}`)
+        toast.error(`ظپط´ظ„: ${errorMsg}`)
       }
     } catch (err) {
       console.error('[BackupSettings] sendTestEmail error:', err)
-      toast.error('حدث خطأ أثناء إرسال البريد الاختباري')
+      toast.error('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط§ط®طھط¨ط§ط±ظٹ')
     }
   }
 
@@ -441,11 +441,11 @@ export default function BackupSettingsPage() {
         .update({ status: 'pending', retry_count: 0, error_message: null })
         .eq('status', 'failed')
       if (error) throw error
-      toast.success('تمت إعادة محاولة جميع الرسائل الفاشلة')
+      toast.success('طھظ…طھ ط¥ط¹ط§ط¯ط© ظ…ط­ط§ظˆظ„ط© ط¬ظ…ظٹط¹ ط§ظ„ط±ط³ط§ط¦ظ„ ط§ظ„ظپط§ط´ظ„ط©')
       await loadStatsAndActivity()
     } catch (err) {
       console.error('[BackupSettings] retryAllFailed error:', err)
-      toast.error('فشل في إعادة المحاولة الجماعية')
+      toast.error('ظپط´ظ„ ظپظٹ ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط© ط§ظ„ط¬ظ…ط§ط¹ظٹط©')
     }
   }
 
@@ -456,11 +456,11 @@ export default function BackupSettingsPage() {
         .delete()
         .in('status', ['completed', 'failed'])
       if (error) throw error
-      toast.success('تم مسح سجل النسخ الاحتياطي (الناجحة/الفاشلة)')
+      toast.success('طھظ… ظ…ط³ط­ ط³ط¬ظ„ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹ (ط§ظ„ظ†ط§ط¬ط­ط©/ط§ظ„ظپط§ط´ظ„ط©)')
       await loadStatsAndActivity()
     } catch (err) {
       console.error('[BackupSettings] clearHistory error:', err)
-      toast.error('فشل في مسح السجل')
+      toast.error('ظپط´ظ„ ظپظٹ ظ…ط³ط­ ط§ظ„ط³ط¬ظ„')
     }
   }
 
@@ -473,13 +473,13 @@ export default function BackupSettingsPage() {
     try {
       const { data, error } = await supabase
         .from('backup_history')
-        .select('*')
+        .select('id,file_path,status,completed_at,backup_type')
         .order('started_at', { ascending: false })
         .limit(50)
 
       if (error) {
         console.error('[Backup] Error loading backups:', error)
-        toast.error('فشل في تحميل قائمة النسخ الاحتياطية')
+        toast.error('ظپط´ظ„ ظپظٹ طھط­ظ…ظٹظ„ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©')
         return
       }
 
@@ -487,7 +487,7 @@ export default function BackupSettingsPage() {
       logger.debug('[Backup] Backups loaded successfully, count:', data?.length || 0)
     } catch (error) {
       console.error('[Backup] Error in loadBackups:', error)
-      toast.error('حدث خطأ أثناء تحميل النسخ الاحتياطية')
+      toast.error('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ…ظٹظ„ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©')
     } finally {
       setBackupsLoading(false)
     }
@@ -498,11 +498,11 @@ export default function BackupSettingsPage() {
       setIsSendingDigest(true)
       setDigestMessage(null)
 
-      // التحقق من وجود جلسة نشطة
+      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط¬ظ„ط³ط© ظ†ط´ط·ط©
       if (!session?.access_token) {
         setDigestMessage({
           type: 'error',
-          text: 'تم انقطاع الجلسة. يرجى تحديث الصفحة وتسجيل الدخول مجدداً.'
+          text: 'طھظ… ط§ظ†ظ‚ط·ط§ط¹ ط§ظ„ط¬ظ„ط³ط©. ظٹط±ط¬ظ‰ طھط­ط¯ظٹط« ط§ظ„طµظپط­ط© ظˆطھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط¬ط¯ط¯ط§ظ‹.'
         })
         setIsSendingDigest(false)
         return
@@ -528,13 +528,13 @@ export default function BackupSettingsPage() {
       const result = await response.json()
       setDigestMessage({
         type: 'success',
-        text: `تم إرسال البريد بنجاح! (${result.message || 'تم إرسال التنبيهات'})`
+        text: `طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ط±ظٹط¯ ط¨ظ†ط¬ط§ط­! (${result.message || 'طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ'})`
       })
     } catch (err) {
       console.error('Error sending digest:', err)
       setDigestMessage({
         type: 'error',
-        text: `خطأ في إرسال البريد: ${err instanceof Error ? err.message : 'حاول مرة أخرى'}`
+        text: `ط®ط·ط£ ظپظٹ ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ط±ظٹط¯: ${err instanceof Error ? err.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰'}`
       })
     } finally {
       setIsSendingDigest(false)
@@ -546,12 +546,12 @@ export default function BackupSettingsPage() {
     setManualBackupLoading(true)
     try {
       await triggerManualBackupAndNotify()
-      toast.success('تم إطلاق النسخة الاحتياطية بنجاح')
+      toast.success('طھظ… ط¥ط·ظ„ط§ظ‚ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­')
       await loadBackups()
       await loadStatsAndActivity()
     } catch (err) {
       console.error('[BackupSettings] manual backup error:', err)
-      toast.error('فشل إطلاق النسخة الاحتياطية اليدوية')
+      toast.error('ظپط´ظ„ ط¥ط·ظ„ط§ظ‚ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط§ظ„ظٹط¯ظˆظٹط©')
     } finally {
       setManualBackupLoading(false)
     }
@@ -573,27 +573,27 @@ export default function BackupSettingsPage() {
       a.click()
       URL.revokeObjectURL(url)
 
-      toast.success(`تم تحميل ${fileName} بنجاح`)
+      toast.success(`طھظ… طھط­ظ…ظٹظ„ ${fileName} ط¨ظ†ط¬ط§ط­`)
     } catch (err) {
       console.error('Download failed:', err)
-      toast.error('فشل تحميل النسخة الاحتياطية')
+      toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©')
     } finally {
       setDownloadingBackup(null)
     }
   }
 
   const deleteBackup = async (backupId: string, filePath: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه النسخة الاحتياطية؟')) return
+    if (!confirm('ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©طں')) return
 
     try {
-      // حذف من التخزين
+      // ط­ط°ظپ ظ…ظ† ط§ظ„طھط®ط²ظٹظ†
       const { error: storageError } = await supabase.storage
         .from('backups')
         .remove([filePath])
 
       if (storageError) console.warn('[Backup] Storage deletion warning:', storageError)
 
-      // حذف من قاعدة البيانات
+      // ط­ط°ظپ ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
       const { error: dbError } = await supabase
         .from('backup_history')
         .delete()
@@ -602,10 +602,10 @@ export default function BackupSettingsPage() {
       if (dbError) throw dbError
 
       setBackups(prev => prev.filter(b => b.id !== backupId))
-      toast.success('تم حذف النسخة الاحتياطية بنجاح')
+      toast.success('طھظ… ط­ط°ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­')
     } catch (err) {
       console.error('[Backup] Delete error:', err)
-      toast.error('فشل حذف النسخة الاحتياطية')
+      toast.error('ظپط´ظ„ ط­ط°ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©')
     }
   }
 
@@ -618,7 +618,7 @@ export default function BackupSettingsPage() {
     try {
       const { data, error } = await supabase
         .from('security_settings')
-        .select('*')
+        .select('id,setting_key,setting_value,created_at,updated_at')
         .order('setting_key')
 
       if (error) throw error
@@ -634,7 +634,7 @@ export default function BackupSettingsPage() {
       setSecuritySettings(filtered)
     } catch (error) {
       console.error('Error loading security settings:', error)
-      toast.error('فشل تحميل إعدادات الأمان')
+      toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†')
     } finally {
       setSecurityLoading(false)
     }
@@ -656,8 +656,8 @@ export default function BackupSettingsPage() {
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">ط؛ظٹط± ظ…طµط±ط­</h2>
+            <p className="text-gray-600">ط¹ط°ط±ط§ظ‹طŒ ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.</p>
           </div>
         </div>
       </Layout>
@@ -675,8 +675,8 @@ export default function BackupSettingsPage() {
                 <HardDrive className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">إدارة النسخ الاحتياطية والأمان</h1>
-                <p className="mt-1 text-slate-700">لوحة تحكم متكاملة للنسخ الاحتياطية والبريد الإلكتروني وإعدادات الأمان</p>
+                <h1 className="text-3xl font-bold">ط¥ط¯ط§ط±ط© ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ظˆط§ظ„ط£ظ…ط§ظ†</h1>
+                <p className="mt-1 text-slate-700">ظ„ظˆط­ط© طھط­ظƒظ… ظ…طھظƒط§ظ…ظ„ط© ظ„ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ظˆط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظˆط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†</p>
               </div>
             </div>
             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${
@@ -696,10 +696,10 @@ export default function BackupSettingsPage() {
         <div className="app-panel">
           <div className="flex border-b border-border">
             {[
-              { id: 'general', label: 'الإعدادات العامة', icon: SettingsIcon },
-              { id: 'email', label: 'إدارة البريد والإشعارات', icon: Mail },
-              { id: 'backup-history', label: 'سجل النسخ الاحتياطية', icon: Database },
-              { id: 'security', label: 'إعدادات الأمان', icon: Shield }
+              { id: 'general', label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¹ط§ظ…ط©', icon: SettingsIcon },
+              { id: 'email', label: 'ط¥ط¯ط§ط±ط© ط§ظ„ط¨ط±ظٹط¯ ظˆط§ظ„ط¥ط´ط¹ط§ط±ط§طھ', icon: Mail },
+              { id: 'backup-history', label: 'ط³ط¬ظ„ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©', icon: Database },
+              { id: 'security', label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†', icon: Shield }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -727,7 +727,7 @@ export default function BackupSettingsPage() {
                 <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">المرسل اليوم</p>
+                      <p className="text-sm text-gray-600">ط§ظ„ظ…ط±ط³ظ„ ط§ظ„ظٹظˆظ…</p>
                       <p className="mt-2 text-3xl font-bold text-slate-900">{stats.sentToday}</p>
                     </div>
                     <CheckCircle className="w-12 h-12 text-primary" />
@@ -736,7 +736,7 @@ export default function BackupSettingsPage() {
                 <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">قيد الانتظار</p>
+                      <p className="text-sm text-gray-600">ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±</p>
                       <p className="mt-2 text-3xl font-bold text-yellow-600">{stats.pending}</p>
                     </div>
                     <RefreshCw className="w-12 h-12 text-yellow-500" />
@@ -745,7 +745,7 @@ export default function BackupSettingsPage() {
                 <div className="app-panel p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">رسائل فاشلة</p>
+                      <p className="text-sm text-gray-600">ط±ط³ط§ط¦ظ„ ظپط§ط´ظ„ط©</p>
                       <p className="mt-2 text-3xl font-bold text-red-600">{stats.failed}</p>
                     </div>
                     <AlertTriangle className="w-12 h-12 text-red-400" />
@@ -753,7 +753,7 @@ export default function BackupSettingsPage() {
                 </div>
                 <div className="app-panel p-6">
                   <div>
-                    <p className="text-sm text-gray-600">آخر عملية نجحت</p>
+                    <p className="text-sm text-gray-600">ط¢ط®ط± ط¹ظ…ظ„ظٹط© ظ†ط¬ط­طھ</p>
                     <p className="text-sm font-mono text-gray-800 mt-2 truncate">
                       {stats.lastSuccessTime ? (
                         <HijriDateDisplay date={stats.lastSuccessTime}>
@@ -769,7 +769,7 @@ export default function BackupSettingsPage() {
 
               {/* Quick Actions */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">الإجراءات السريعة</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ ط§ظ„ط³ط±ظٹط¹ط©</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     onClick={handleManualBackup}
@@ -781,7 +781,7 @@ export default function BackupSettingsPage() {
                     ) : (
                       <HardDrive className="w-5 h-5" />
                     )}
-                    {manualBackupLoading ? 'جاري إنشاء النسخة...' : 'نسخة احتياطية يدوية'}
+                    {manualBackupLoading ? 'ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط©...' : 'ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ظٹط¯ظˆظٹط©'}
                   </Button>
                   <Button
                     onClick={sendTestEmail}
@@ -789,7 +789,7 @@ export default function BackupSettingsPage() {
                     className="w-full justify-center"
                   >
                     <Mail className="w-5 h-5" />
-                    بريد اختبار
+                    ط¨ط±ظٹط¯ ط§ط®طھط¨ط§ط±
                   </Button>
                   <Button
                     onClick={retryAllFailed}
@@ -797,18 +797,18 @@ export default function BackupSettingsPage() {
                     className="w-full justify-center"
                   >
                     <RefreshCw className="w-5 h-5" />
-                    إعادة محاولة الفاشلة
+                    ط¥ط¹ط§ط¯ط© ظ…ط­ط§ظˆظ„ط© ط§ظ„ظپط§ط´ظ„ط©
                   </Button>
                 </div>
               </div>
 
               {/* Refresh Interval Control */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">تحكم التحديث التلقائي</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">طھط­ظƒظ… ط§ظ„طھط­ط¯ظٹط« ط§ظ„طھظ„ظ‚ط§ط¦ظٹ</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      فترة التحديث التلقائي لمراقبة البريد
+                      ظپطھط±ط© ط§ظ„طھط­ط¯ظٹط« ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ظ„ظ…ط±ط§ظ‚ط¨ط© ط§ظ„ط¨ط±ظٹط¯
                     </label>
                     <Select
                       value={String(refreshInterval)}
@@ -816,7 +816,7 @@ export default function BackupSettingsPage() {
                       disabled={!hasEditPermission}
                     >
                       <SelectTrigger className="w-full rounded-xl disabled:bg-gray-100">
-                        <SelectValue placeholder="اختر فترة التحديث" />
+                        <SelectValue placeholder="ط§ط®طھط± ظپطھط±ط© ط§ظ„طھط­ط¯ظٹط«" />
                       </SelectTrigger>
                       <SelectContent>
                         {REFRESH_OPTIONS.map((opt) => (
@@ -825,18 +825,18 @@ export default function BackupSettingsPage() {
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-gray-600 mt-2">
-                      كلما قلّ الرقم، كلما كانت التحديثات أسرع لكن تزيد ضغط الخادم
+                      ظƒظ„ظ…ط§ ظ‚ظ„ظ‘ ط§ظ„ط±ظ‚ظ…طŒ ظƒظ„ظ…ط§ ظƒط§ظ†طھ ط§ظ„طھط­ط¯ظٹط«ط§طھ ط£ط³ط±ط¹ ظ„ظƒظ† طھط²ظٹط¯ ط¶ط؛ط· ط§ظ„ط®ط§ط¯ظ…
                     </p>
                   </div>
 
                   <div className="app-info-block flex gap-3 p-4">
                     <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-900" />
                     <div className="text-sm text-slate-800">
-                      <p className="font-semibold mb-1">💡 ملاحظة:</p>
+                      <p className="font-semibold mb-1">ًں’، ظ…ظ„ط§ط­ط¸ط©:</p>
                       <ul className="list-disc list-inside space-y-1">
-                        <li>الحد الأدنى: 30 ثانية</li>
-                        <li>الحد الأقصى: 5 دقائق</li>
-                        <li>إذا اخترت "تعطيل"، سيتوقف التحديث التلقائي</li>
+                        <li>ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰: 30 ط«ط§ظ†ظٹط©</li>
+                        <li>ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰: 5 ط¯ظ‚ط§ط¦ظ‚</li>
+                        <li>ط¥ط°ط§ ط§ط®طھط±طھ "طھط¹ط·ظٹظ„"طŒ ط³ظٹطھظˆظ‚ظپ ط§ظ„طھط­ط¯ظٹط« ط§ظ„طھظ„ظ‚ط§ط¦ظٹ</li>
                       </ul>
                     </div>
                   </div>
@@ -851,12 +851,12 @@ export default function BackupSettingsPage() {
                       <Mail className="w-5 h-5 text-slate-900" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">إرسال بريد التنبيهات</h2>
+                      <h2 className="text-xl font-bold text-gray-900">ط¥ط±ط³ط§ظ„ ط¨ط±ظٹط¯ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</h2>
                       <p className="text-gray-600 text-sm mt-1">
-                        أرسل جميع التنبيهات الحالية غير المحلولة إلى بريدك الإداري الآن
+                        ط£ط±ط³ظ„ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ط§ظ„ط­ط§ظ„ظٹط© ط؛ظٹط± ط§ظ„ظ…ط­ظ„ظˆظ„ط© ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ط¯ط§ط±ظٹ ط§ظ„ط¢ظ†
                       </p>
                       <p className="text-gray-500 text-xs mt-2">
-                        البريد سيُرسل تلقائياً كل يوم الساعة 03:00 صباحاً مع جميع التنبيهات النشطة
+                        ط§ظ„ط¨ط±ظٹط¯ ط³ظٹظڈط±ط³ظ„ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ظƒظ„ ظٹظˆظ… ط§ظ„ط³ط§ط¹ط© 03:00 طµط¨ط§ط­ط§ظ‹ ظ…ط¹ ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ط§ظ„ظ†ط´ط·ط©
                       </p>
                     </div>
                   </div>
@@ -868,10 +868,10 @@ export default function BackupSettingsPage() {
                     {isSendingDigest ? (
                       <span className="flex items-center gap-2">
                         <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                        جاري الإرسال...
+                        ط¬ط§ط±ظٹ ط§ظ„ط¥ط±ط³ط§ظ„...
                       </span>
                     ) : (
-                      'إرسال الآن'
+                      'ط¥ط±ط³ط§ظ„ ط§ظ„ط¢ظ†'
                     )}
                   </Button>
                 </div>
@@ -897,16 +897,16 @@ export default function BackupSettingsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">مراقبة قائمة الانتظار</h2>
+                    <h2 className="text-xl font-bold text-gray-900">ظ…ط±ط§ظ‚ط¨ط© ظ‚ط§ط¦ظ…ط© ط§ظ„ط§ظ†طھط¸ط§ط±</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      تحديث آلي {refreshInterval === 0 ? 'معطّل' : `كل ${Math.round(refreshInterval / 1000)} ثانية`}
+                      طھط­ط¯ظٹط« ط¢ظ„ظٹ {refreshInterval === 0 ? 'ظ…ط¹ط·ظ‘ظ„' : `ظƒظ„ ${Math.round(refreshInterval / 1000)} ط«ط§ظ†ظٹط©`}
                     </p>
                   </div>
                   <button
                     onClick={clearHistory}
                     className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-semibold text-sm"
                   >
-                    مسح السجل
+                    ظ…ط³ط­ ط§ظ„ط³ط¬ظ„
                   </button>
                 </div>
                 <EmailQueueMonitor />
@@ -915,9 +915,9 @@ export default function BackupSettingsPage() {
               {/* Email Configuration - NEW SYSTEM */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">إدارة مستقبلي الإشعارات</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">ط¥ط¯ط§ط±ط© ظ…ط³طھظ‚ط¨ظ„ظٹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ</h2>
                   <p className="text-sm text-gray-600">
-                    🔐 نظام إدارة إشعارات متقدم - البريد الأساسي (ahmad.alsawy159@gmail.com) يتلقى جميع الإشعارات دائماً
+                    ًں”گ ظ†ط¸ط§ظ… ط¥ط¯ط§ط±ط© ط¥ط´ط¹ط§ط±ط§طھ ظ…طھظ‚ط¯ظ… - ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط£ط³ط§ط³ظٹ (ahmad.alsawy159@gmail.com) ظٹطھظ„ظ‚ظ‰ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط¯ط§ط¦ظ…ط§ظ‹
                   </p>
                 </div>
 
@@ -926,7 +926,7 @@ export default function BackupSettingsPage() {
                   <div className="app-info-block rounded-lg p-4">
                     <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
                       <Shield className="w-4 h-4" />
-                      البريد الأساسي (محمي - يتلقى جميع الإشعارات)
+                      ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط£ط³ط§ط³ظٹ (ظ…ط­ظ…ظٹ - ظٹطھظ„ظ‚ظ‰ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -935,16 +935,16 @@ export default function BackupSettingsPage() {
                         disabled={true}
                         className="flex-1 cursor-not-allowed rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 font-semibold text-slate-900"
                       />
-                      <span className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">✓ ثابت</span>
+                      <span className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold">âœ“ ط«ط§ط¨طھ</span>
                     </div>
                   </div>
 
                   {/* Additional Recipients Management */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">مستقبلون إضافيون</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">ظ…ط³طھظ‚ط¨ظ„ظˆظ† ط¥ط¶ط§ظپظٹظˆظ†</label>
                     
                     {notificationConfig.additional_recipients.length === 0 ? (
-                      <p className="text-sm text-gray-500 mb-4">لا توجد مستقبلون إضافيون حالياً</p>
+                      <p className="text-sm text-gray-500 mb-4">ظ„ط§ طھظˆط¬ط¯ ظ…ط³طھظ‚ط¨ظ„ظˆظ† ط¥ط¶ط§ظپظٹظˆظ† ط­ط§ظ„ظٹط§ظ‹</p>
                     ) : (
                       <div className="space-y-3 mb-4">
                         {notificationConfig.additional_recipients.map((recipient) => (
@@ -953,7 +953,7 @@ export default function BackupSettingsPage() {
                               <div className="flex-1">
                                 <p className="font-semibold text-gray-900">{recipient.email}</p>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  أضيف بواسطة: {recipient.added_by === user?.id ? 'أنت' : 'مسؤول آخر'} • {new Date(recipient.added_at).toLocaleDateString('ar-SA')}
+                                  ط£ط¶ظٹظپ ط¨ظˆط§ط³ط·ط©: {recipient.added_by === user?.id ? 'ط£ظ†طھ' : 'ظ…ط³ط¤ظˆظ„ ط¢ط®ط±'} â€¢ {new Date(recipient.added_at).toLocaleDateString('ar-SA')}
                                 </p>
                               </div>
                               <button
@@ -961,7 +961,7 @@ export default function BackupSettingsPage() {
                                 disabled={!hasEditPermission}
                                 className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 text-sm font-medium"
                               >
-                                حذف
+                                ط­ط°ظپ
                               </button>
                             </div>
 
@@ -975,7 +975,7 @@ export default function BackupSettingsPage() {
                                   disabled={!hasEditPermission}
                                   className="w-4 h-4 rounded"
                                 />
-                                <span className="text-sm text-gray-700">تنبيهات انتهاء الصلاحية</span>
+                                <span className="text-sm text-gray-700">طھظ†ط¨ظٹظ‡ط§طھ ط§ظ†طھظ‡ط§ط، ط§ظ„طµظ„ط§ط­ظٹط©</span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -985,7 +985,7 @@ export default function BackupSettingsPage() {
                                   disabled={!hasEditPermission}
                                   className="w-4 h-4 rounded"
                                 />
-                                <span className="text-sm text-gray-700">إشعارات النسخ الاحتياطية</span>
+                                <span className="text-sm text-gray-700">ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©</span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -995,7 +995,7 @@ export default function BackupSettingsPage() {
                                   disabled={!hasEditPermission}
                                   className="w-4 h-4 rounded"
                                 />
-                                <span className="text-sm text-gray-700">الملخص اليومي</span>
+                                <span className="text-sm text-gray-700">ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظٹظˆظ…ظٹ</span>
                               </label>
                             </div>
                           </div>
@@ -1011,7 +1011,7 @@ export default function BackupSettingsPage() {
                           value={newRecipientEmail}
                           onChange={(e) => setNewRecipientEmail(e.target.value)}
                           disabled={!hasEditPermission}
-                          placeholder="أضف بريد إلكتروني جديد..."
+                          placeholder="ط£ط¶ظپ ط¨ط±ظٹط¯ ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط¬ط¯ظٹط¯..."
                           className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus-ring-brand disabled:bg-gray-100"
                           onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
                         />
@@ -1020,10 +1020,10 @@ export default function BackupSettingsPage() {
                           disabled={!hasEditPermission || !newRecipientEmail.trim()}
                           size="sm"
                         >
-                          إضافة
+                          ط¥ط¶ط§ظپط©
                         </Button>
                       </div>
-                      <p className="text-xs text-gray-500">سيتمكن المستقبل الجديد من تلقي الإشعارات بناءً على الصناديق المختارة</p>
+                      <p className="text-xs text-gray-500">ط³ظٹطھظ…ظƒظ† ط§ظ„ظ…ط³طھظ‚ط¨ظ„ ط§ظ„ط¬ط¯ظٹط¯ ظ…ظ† طھظ„ظ‚ظٹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„طµظ†ط§ط¯ظٹظ‚ ط§ظ„ظ…ط®طھط§ط±ط©</p>
                     </div>
                   </div>
 
@@ -1031,8 +1031,8 @@ export default function BackupSettingsPage() {
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">تفعيل إشعارات النسخ الاحتياطية</p>
-                        <p className="text-xs text-gray-600 mt-1">إرسال/إيقاف البريد الإلكتروني عند إتمام النسخة الاحتياطية</p>
+                        <p className="text-sm font-semibold text-gray-900">طھظپط¹ظٹظ„ ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©</p>
+                        <p className="text-xs text-gray-600 mt-1">ط¥ط±ط³ط§ظ„/ط¥ظٹظ‚ط§ظپ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط¹ظ†ط¯ ط¥طھظ…ط§ظ… ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©</p>
                       </div>
                       <label className="inline-flex items-center cursor-pointer">
                         <input
@@ -1063,7 +1063,7 @@ export default function BackupSettingsPage() {
                       disabled={saving || !hasEditPermission}
                     >
                       {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                      {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+                      {saving ? 'ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...' : 'ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ'}
                     </Button>
                   </div>
                 </div>
@@ -1077,8 +1077,8 @@ export default function BackupSettingsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">سجل النسخ الاحتياطية</h2>
-                    <p className="text-sm text-gray-600 mt-1">جميع النسخ الاحتياطية المحفوظة مع إمكانية التحميل والحذف</p>
+                    <h2 className="text-xl font-bold text-gray-900">ط³ط¬ظ„ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط©</h2>
+                    <p className="text-sm text-gray-600 mt-1">ط¬ظ…ظٹط¹ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط§ظ„ظ…ط­ظپظˆط¸ط© ظ…ط¹ ط¥ظ…ظƒط§ظ†ظٹط© ط§ظ„طھط­ظ…ظٹظ„ ظˆط§ظ„ط­ط°ظپ</p>
                   </div>
                   <Button
                     onClick={loadBackups}
@@ -1086,7 +1086,7 @@ export default function BackupSettingsPage() {
                     variant="outline"
                   >
                     <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
-                    تحديث
+                    طھط­ط¯ظٹط«
                   </Button>
                 </div>
 
@@ -1097,18 +1097,18 @@ export default function BackupSettingsPage() {
                 ) : backups.length === 0 ? (
                   <div className="text-center py-12">
                     <Database className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600">لا توجد نسخ احتياطية بعد</p>
+                    <p className="text-gray-600">ظ„ط§ طھظˆط¬ط¯ ظ†ط³ط® ط§ط­طھظٹط§ط·ظٹط© ط¨ط¹ط¯</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                          <th className="text-right px-6 py-3 font-semibold text-gray-900">النوع</th>
-                          <th className="text-right px-6 py-3 font-semibold text-gray-900">الحجم</th>
-                          <th className="text-right px-6 py-3 font-semibold text-gray-900">الحالة</th>
-                          <th className="text-right px-6 py-3 font-semibold text-gray-900">التاريخ</th>
-                          <th className="text-right px-6 py-3 font-semibold text-gray-900">الإجراءات</th>
+                          <th className="text-right px-6 py-3 font-semibold text-gray-900">ط§ظ„ظ†ظˆط¹</th>
+                          <th className="text-right px-6 py-3 font-semibold text-gray-900">ط§ظ„ط­ط¬ظ…</th>
+                          <th className="text-right px-6 py-3 font-semibold text-gray-900">ط§ظ„ط­ط§ظ„ط©</th>
+                          <th className="text-right px-6 py-3 font-semibold text-gray-900">ط§ظ„طھط§ط±ظٹط®</th>
+                          <th className="text-right px-6 py-3 font-semibold text-gray-900">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -1116,7 +1116,7 @@ export default function BackupSettingsPage() {
                           <tr key={backup.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4">
                               <span className="rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold text-slate-900">
-                                {backup.backup_type === 'full' ? 'كاملة' : backup.backup_type === 'incremental' ? 'تزايدية' : 'يدوية'}
+                                {backup.backup_type === 'full' ? 'ظƒط§ظ…ظ„ط©' : backup.backup_type === 'incremental' ? 'طھط²ط§ظٹط¯ظٹط©' : 'ظٹط¯ظˆظٹط©'}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-gray-900 font-mono">
@@ -1124,11 +1124,11 @@ export default function BackupSettingsPage() {
                             </td>
                             <td className="px-6 py-4">
                               {backup.status === 'completed' ? (
-                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">✓ مكتملة</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">âœ“ ظ…ظƒطھظ…ظ„ط©</span>
                               ) : backup.status === 'failed' ? (
-                                <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">✕ فاشلة</span>
+                                <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">âœ• ظپط§ط´ظ„ط©</span>
                               ) : (
-                                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">⏳ جاري</span>
+                                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">âڈ³ ط¬ط§ط±ظٹ</span>
                               )}
                             </td>
                             <td className="px-6 py-4 text-gray-600 text-xs">
@@ -1147,14 +1147,14 @@ export default function BackupSettingsPage() {
                                 ) : (
                                   <Download className="w-4 h-4" />
                                 )}
-                                تحميل
+                                طھط­ظ…ظٹظ„
                               </button>
                               <button
                                 onClick={() => deleteBackup(backup.id, backup.file_path)}
                                 className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-xs font-semibold"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                حذف
+                                ط­ط°ظپ
                               </button>
                             </td>
                           </tr>
@@ -1171,7 +1171,7 @@ export default function BackupSettingsPage() {
           {activeTab === 'security' && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">إعدادات الأمان</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†</h2>
 
                 {securityLoading ? (
                   <div className="flex justify-center py-12">
@@ -1180,7 +1180,7 @@ export default function BackupSettingsPage() {
                 ) : securitySettings.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg">
                     <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600">لا توجد إعدادات أمان متاحة</p>
+                    <p className="text-gray-600">ظ„ط§ طھظˆط¬ط¯ ط¥ط¹ط¯ط§ط¯ط§طھ ط£ظ…ط§ظ† ظ…طھط§ط­ط©</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1205,3 +1205,5 @@ export default function BackupSettingsPage() {
     </Layout>
   )
 }
+
+

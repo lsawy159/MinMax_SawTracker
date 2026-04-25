@@ -101,7 +101,7 @@ export async function fetchTodayAlerts(): Promise<AlertLogRecord[]> {
   try {
     const { data, error } = await supabase
       .from('daily_excel_logs_today')
-      .select('*')
+      .select('id,alert_type,priority,message,created_at,processed_at')
       .order('priority', { ascending: false })
       .order('created_at', { ascending: false })
 
@@ -127,7 +127,7 @@ export async function fetchAlertsByType(alertType: string): Promise<AlertLogReco
 
     const { data, error } = await supabase
       .from('daily_excel_logs')
-      .select('*')
+      .select('id,alert_type,priority,message,created_at,processed_at')
       .eq('alert_type', alertType)
       .gte('created_at', todayStart.toISOString())
       .is('processed_at', null)
@@ -312,7 +312,7 @@ export async function getUnprocessedAlertCount(): Promise<number> {
   try {
     const { count, error } = await supabase
       .from('daily_excel_logs_today')
-      .select('*', { count: 'exact' })
+      .select('id', { count: 'exact' })
 
     if (error) {
       logger.error('[Excel] Error getting unprocessed count:', error)

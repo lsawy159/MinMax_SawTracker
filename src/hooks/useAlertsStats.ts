@@ -62,8 +62,8 @@ export function useAlertsStats() {
 
       // جلب البيانات من قاعدة البيانات
       const [companiesResult, employeesResult] = await Promise.all([
-        supabase.from('companies').select('*'),
-        supabase.from('employees').select('*')
+        supabase.from('companies').select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'),
+        supabase.from('employees').select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
       ])
 
       if (companiesResult.error) throw companiesResult.error

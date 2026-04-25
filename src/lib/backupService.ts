@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+﻿import { supabase } from '@/lib/supabase'
 import { enqueueEmail } from '@/lib/emailQueueService'
 import { getNotificationRecipients } from '@/lib/notificationRecipientService'
 import { PRIMARY_ADMIN_EMAIL } from '@/lib/notificationTypes'
@@ -17,11 +17,11 @@ interface SystemSetting {
   setting_value: unknown
 }
 
-// 🔐 NEW: إرسال إشعار النسخة الاحتياطية مع نظام الإشعارات المتقدم
-// استخدام new notification system مع fallback آمن
+// ًں”گ NEW: ط¥ط±ط³ط§ظ„ ط¥ط´ط¹ط§ط± ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ظ…ط¹ ظ†ط¸ط§ظ… ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ…طھظ‚ط¯ظ…
+// ط§ط³طھط®ط¯ط§ظ… new notification system ظ…ط¹ fallback ط¢ظ…ظ†
 async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
   try {
-    // ✅ استخدم نظام الإشعارات الجديد
+    // âœ… ط§ط³طھط®ط¯ظ… ظ†ط¸ط§ظ… ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط¬ط¯ظٹط¯
     const recipients = await getNotificationRecipients({
       notificationType: 'backupNotifications',
       timeout: 5000,
@@ -34,14 +34,14 @@ async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
     }
 
     const storagePath = backup.file_path
-    const subject = 'تم إنشاء نسخة احتياطية جديدة للنظام'
-    const bodyText = `تم إنشاء نسخة احتياطية بنجاح.\nالمعرف: ${backup.id}\nالمسار: backups/${storagePath}\nالحالة: ${backup.status}\nالوقت: ${backup.completed_at || backup.started_at}`
-    const bodyHtml = `<p>تم إنشاء نسخة احتياطية بنجاح.</p>
+    const subject = 'طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¬ط¯ظٹط¯ط© ظ„ظ„ظ†ط¸ط§ظ…'
+    const bodyText = `طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­.\nط§ظ„ظ…ط¹ط±ظپ: ${backup.id}\nط§ظ„ظ…ط³ط§ط±: backups/${storagePath}\nط§ظ„ط­ط§ظ„ط©: ${backup.status}\nط§ظ„ظˆظ‚طھ: ${backup.completed_at || backup.started_at}`
+    const bodyHtml = `<p>طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­.</p>
         <ul>
-          <li><strong>المعرف:</strong> ${backup.id}</li>
-          <li><strong>المسار:</strong> <code>backups/${storagePath}</code></li>
-          <li><strong>الحالة:</strong> ${backup.status}</li>
-          <li><strong>الوقت:</strong> ${backup.completed_at || backup.started_at}</li>
+          <li><strong>ط§ظ„ظ…ط¹ط±ظپ:</strong> ${backup.id}</li>
+          <li><strong>ط§ظ„ظ…ط³ط§ط±:</strong> <code>backups/${storagePath}</code></li>
+          <li><strong>ط§ظ„ط­ط§ظ„ط©:</strong> ${backup.status}</li>
+          <li><strong>ط§ظ„ظˆظ‚طھ:</strong> ${backup.completed_at || backup.started_at}</li>
         </ul>`
 
     logger.debug(`[BackupService] Sending backup notification to ${recipients.length} recipient(s)`)
@@ -57,7 +57,7 @@ async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
     logger.info(`[BackupService] Backup notification sent successfully to ${recipients.join(', ')}`)
   } catch (err) {
     logger.error(`[BackupService] maybeNotifyBackupNew error: ${err instanceof Error ? err.message : String(err)}`)
-    // 🔐 FALLBACK: Try legacy system
+    // ًں”گ FALLBACK: Try legacy system
     try {
       await maybeNotifyBackupLegacy(backup)
       logger.warn('[BackupService] Fell back to legacy notification system')
@@ -67,8 +67,8 @@ async function maybeNotifyBackupNew(backup: BackupRecord): Promise<void> {
   }
 }
 
-// 📦 LEGACY: إرسال إشعار النسخة الاحتياطية إذا كانت مفعّلة في system_settings
-// نحتفظ به للتوافقية والعودة الآمنة (fallback)
+// ًں“¦ LEGACY: ط¥ط±ط³ط§ظ„ ط¥ط´ط¹ط§ط± ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط¥ط°ط§ ظƒط§ظ†طھ ظ…ظپط¹ظ‘ظ„ط© ظپظٹ system_settings
+// ظ†ط­طھظپط¸ ط¨ظ‡ ظ„ظ„طھظˆط§ظپظ‚ظٹط© ظˆط§ظ„ط¹ظˆط¯ط© ط§ظ„ط¢ظ…ظ†ط© (fallback)
 async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
   try {
     const { data: settings, error } = await supabase
@@ -91,14 +91,14 @@ async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
     if (toList.length === 0) return
 
     const storagePath = backup.file_path
-    const subject = 'تم إنشاء نسخة احتياطية جديدة للنظام'
-    const bodyText = `تم إنشاء نسخة احتياطية بنجاح.\nالمعرف: ${backup.id}\nالمسار: backups/${storagePath}\nالحالة: ${backup.status}\nالوقت: ${backup.completed_at || backup.started_at}`
-    const bodyHtml = `<p>تم إنشاء نسخة احتياطية بنجاح.</p>
+    const subject = 'طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¬ط¯ظٹط¯ط© ظ„ظ„ظ†ط¸ط§ظ…'
+    const bodyText = `طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­.\nط§ظ„ظ…ط¹ط±ظپ: ${backup.id}\nط§ظ„ظ…ط³ط§ط±: backups/${storagePath}\nط§ظ„ط­ط§ظ„ط©: ${backup.status}\nط§ظ„ظˆظ‚طھ: ${backup.completed_at || backup.started_at}`
+    const bodyHtml = `<p>طھظ… ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط¨ظ†ط¬ط§ط­.</p>
         <ul>
-          <li><strong>المعرف:</strong> ${backup.id}</li>
-          <li><strong>المسار:</strong> <code>backups/${storagePath}</code></li>
-          <li><strong>الحالة:</strong> ${backup.status}</li>
-          <li><strong>الوقت:</strong> ${backup.completed_at || backup.started_at}</li>
+          <li><strong>ط§ظ„ظ…ط¹ط±ظپ:</strong> ${backup.id}</li>
+          <li><strong>ط§ظ„ظ…ط³ط§ط±:</strong> <code>backups/${storagePath}</code></li>
+          <li><strong>ط§ظ„ط­ط§ظ„ط©:</strong> ${backup.status}</li>
+          <li><strong>ط§ظ„ظˆظ‚طھ:</strong> ${backup.completed_at || backup.started_at}</li>
         </ul>`
 
     await enqueueEmail({
@@ -113,13 +113,13 @@ async function maybeNotifyBackupLegacy(backup: BackupRecord): Promise<void> {
   }
 }
 
-// ✅ PUBLIC EXPORT: استخدم هذه الدالة (توجه إلى النظام الجديد مع fallback)
+// âœ… PUBLIC EXPORT: ط§ط³طھط®ط¯ظ… ظ‡ط°ظ‡ ط§ظ„ط¯ط§ظ„ط© (طھظˆط¬ظ‡ ط¥ظ„ظ‰ ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط¬ط¯ظٹط¯ ظ…ط¹ fallback)
 export async function maybeNotifyBackup(backup: BackupRecord): Promise<void> {
   // Try new system first, fall back to legacy if needed
   await maybeNotifyBackupNew(backup)
 }
 
-// إنشاء نسخة احتياطية يدوية وإرسال إشعار عند النجاح
+// ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ظٹط¯ظˆظٹط© ظˆط¥ط±ط³ط§ظ„ ط¥ط´ط¹ط§ط± ط¹ظ†ط¯ ط§ظ„ظ†ط¬ط§ط­
 export async function triggerManualBackupAndNotify(): Promise<BackupRecord | null> {
   const { data, error } = await supabase.functions.invoke('automated-backup', {
     body: { backup_type: 'manual' }
@@ -142,13 +142,13 @@ export async function triggerManualBackupAndNotify(): Promise<BackupRecord | nul
   if (!responseData || (typeof responseData === 'object' && responseData !== null && 'success' in responseData && !responseData.success)) {
     const message = (responseData && typeof responseData === 'object' && responseData !== null && 'error' in responseData && typeof responseData.error === 'string') 
       ? responseData.error 
-      : 'فشل في إنشاء النسخة الاحتياطية'
+      : 'ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©'
     throw new Error(message)
   }
 
   const { data: latest, error: latestErr } = await supabase
     .from('backup_history')
-    .select('*')
+    .select('id')
     .order('started_at', { ascending: false })
     .limit(1)
 
@@ -168,3 +168,4 @@ export async function triggerManualBackupAndNotify(): Promise<BackupRecord | nul
 
   return null
 }
+

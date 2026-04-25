@@ -192,7 +192,7 @@ export default function AdvancedSearch() {
       // Load employees with additional_fields
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('*, companies(name)')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(name)')
         .order('name')
 
       if (employeesData) {
@@ -212,7 +212,7 @@ export default function AdvancedSearch() {
       // Load companies with additional_fields
       const { data: companiesData } = await supabase
         .from('companies')
-        .select('*')
+        .select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count')
         .order('name')
 
       if (companiesData) {
@@ -234,7 +234,7 @@ export default function AdvancedSearch() {
     
     const { data, error } = await supabase
       .from('saved_searches')
-      .select('*')
+      .select('id,user_id,name,search_params,created_at,updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
     
@@ -997,7 +997,7 @@ export default function AdvancedSearch() {
     try {
       const { data, error } = await supabase
         .from('employees')
-        .select('*, companies(*)')
+        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count)')
         .eq('id', employee.id)
         .single()
 

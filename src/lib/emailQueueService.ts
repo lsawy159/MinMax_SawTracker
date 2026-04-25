@@ -75,21 +75,37 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
     }).select('id').single();
 
     if (error) {
-      // Log the detailed error internally, but return a generic one to the client
-      console.error('Error enqueuing email:', error);
-      // TODO: Log to activity_log table for review (Step 2.1 Security Action)
-      // await supabase.from('activity_log').insert({ entity_type: 'email_queue', action: 'create_failed', details: error.message });
+      // Error logged to activity_log asynchronously
+      // Non-blocking activity log: failure case
+      void supabase.from('activity_log').insert({
+        entity_type: 'email_queue',
+        action: 'create_failed',
+        details: error.message,
+      }).catch(() => {
+        // Silently ignore activity_log failures — email queue operation must succeed
+      });
       return { success: false, error: 'Failed to enqueue email.' };
     }
 
-    // TODO: Log successful enqueue to activity_log (Step 2.1 Security Action)
-    // await supabase.from('activity_log').insert({ entity_type: 'email_queue', action: 'create_success', resource_id: data.id });
+    // Non-blocking activity log: success case
+    void supabase.from('activity_log').insert({
+      entity_type: 'email_queue',
+      action: 'create_success',
+      entity_id: data.id as unknown as string,
+    }).catch(() => {
+      // Silently ignore activity_log failures — email queue operation must succeed
+    });
 
     return { success: true, id: data.id };
   } catch (err) {
-    console.error('Unexpected error enqueuing email:', err);
-    // TODO: Log to activity_log table for review (Step 2.1 Security Action)
-    // await supabase.from('activity_log').insert({ entity_type: 'email_queue', action: 'create_exception', details: (err as Error).message });
+    // Non-blocking activity log: exception case
+    void supabase.from('activity_log').insert({
+      entity_type: 'email_queue',
+      action: 'create_exception',
+      details: (err as Error).message,
+    }).catch(() => {
+      // Silently ignore activity_log failures — email queue operation must succeed
+    });
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }

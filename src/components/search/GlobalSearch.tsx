@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 import { Search, X, Clock, Star, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -68,7 +68,7 @@ export function GlobalSearch() {
   const loadSavedSearches = async () => {
     const { data } = await supabase
       .from('saved_searches')
-      .select('*')
+      .select('id')
       .order('created_at', { ascending: false })
       .limit(5)
     
@@ -121,22 +121,22 @@ export function GlobalSearch() {
         type: 'employee' as const,
         title: emp.name,
         subtitle: emp.profession,
-        metadata: `${emp.nationality} - ${(emp as { companies?: { name?: string } }).companies?.name || 'بدون مؤسسة'}`
+        metadata: `${emp.nationality} - ${(emp as { companies?: { name?: string } }).companies?.name || 'ط¨ط¯ظˆظ† ظ…ط¤ط³ط³ط©'}`
       }))
 
       const companyResults: SearchResult[] = (companies || []).map(comp => ({
         id: comp.id,
         type: 'company' as const,
         title: comp.name,
-        subtitle: `الرقم الموحد: ${comp.unified_number || 'غير محدد'}`,
-        metadata: comp.social_insurance_number ? `رقم اشتراك التأمينات: ${comp.social_insurance_number}` : ''
+        subtitle: `ط§ظ„ط±ظ‚ظ… ط§ظ„ظ…ظˆط­ط¯: ${comp.unified_number || 'ط؛ظٹط± ظ…ط­ط¯ط¯'}`,
+        metadata: comp.social_insurance_number ? `ط±ظ‚ظ… ط§ط´طھط±ط§ظƒ ط§ظ„طھط£ظ…ظٹظ†ط§طھ: ${comp.social_insurance_number}` : ''
       }))
 
       setResults([...employeeResults, ...companyResults])
       saveToRecentSearches(searchQuery)
     } catch (error) {
       logger.error('Search error:', error)
-      toast.error('حدث خطأ أثناء البحث')
+      toast.error('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط¨ط­ط«')
     } finally {
       setIsLoading(false)
     }
@@ -147,7 +147,7 @@ export function GlobalSearch() {
     async (searchQuery: string) => {
       await performSearch(searchQuery)
     },
-    500 // تأخير 500ms
+    500 // طھط£ط®ظٹط± 500ms
   )
 
   const handleSearchChange = (value: string) => {
@@ -186,9 +186,9 @@ export function GlobalSearch() {
         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:shadow-[0_2px_4px_-1px_rgba(0,0,0,0.2),0_4px_5px_0_rgba(0,0,0,0.14)] transition-all duration-200 ease-in-out w-64 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       >
         <Search className="w-4 h-4 text-gray-500" />
-        <span className="flex-1 text-right">بحث شامل...</span>
+        <span className="flex-1 text-right">ط¨ط­ط« ط´ط§ظ…ظ„...</span>
         <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-gray-300 bg-gray-50 px-1.5 font-mono text-[10px] font-medium text-gray-600 shadow-sm">
-          <span className="text-xs">⌘</span>K
+          <span className="text-xs">âŒک</span>K
         </kbd>
       </button>
 
@@ -209,7 +209,7 @@ export function GlobalSearch() {
                   type="text"
                   value={query}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="ابحث في الموظفين والمؤسسات..."
+                  placeholder="ط§ط¨ط­ط« ظپظٹ ط§ظ„ظ…ظˆط¸ظپظٹظ† ظˆط§ظ„ظ…ط¤ط³ط³ط§طھ..."
                   className="w-full pr-10 pl-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                 />
                 {query && (
@@ -232,7 +232,7 @@ export function GlobalSearch() {
               {results.length > 0 && (
                 <div className="p-2">
                   <div className="text-xs font-semibold text-muted-foreground px-2 py-1">
-                    نتائج البحث ({results.length})
+                    ظ†طھط§ط¦ط¬ ط§ظ„ط¨ط­ط« ({results.length})
                   </div>
                   {results.map((result) => (
                     <button
@@ -248,7 +248,7 @@ export function GlobalSearch() {
                         )}
                       </div>
                       <div className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        {result.type === 'employee' ? 'موظف' : 'مؤسسة'}
+                        {result.type === 'employee' ? 'ظ…ظˆط¸ظپ' : 'ظ…ط¤ط³ط³ط©'}
                       </div>
                     </button>
                   ))}
@@ -259,7 +259,7 @@ export function GlobalSearch() {
               {query && !isLoading && results.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground">
                   <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>لا توجد نتائج لـ "{query}"</p>
+                  <p>ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ„ظ€ "{query}"</p>
                 </div>
               )}
 
@@ -271,7 +271,7 @@ export function GlobalSearch() {
                     <div className="mb-4">
                       <div className="text-xs font-semibold text-muted-foreground px-2 py-1 flex items-center gap-2">
                         <Star className="w-3 h-3" />
-                        البحوث المحفوظة
+                        ط§ظ„ط¨ط­ظˆط« ط§ظ„ظ…ط­ظپظˆط¸ط©
                       </div>
                       {savedSearches.map((saved) => (
                         <button
@@ -292,7 +292,7 @@ export function GlobalSearch() {
                     <div>
                       <div className="text-xs font-semibold text-muted-foreground px-2 py-1 flex items-center gap-2">
                         <Clock className="w-3 h-3" />
-                        عمليات البحث الأخيرة
+                        ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط¨ط­ط« ط§ظ„ط£ط®ظٹط±ط©
                       </div>
                       {recentSearches.map((recent, idx) => (
                         <button
@@ -316,7 +316,7 @@ export function GlobalSearch() {
                       }}
                       className="w-full text-center py-2 text-sm text-primary hover:underline"
                     >
-                      البحث المتقدم والفلترة
+                      ط§ظ„ط¨ط­ط« ط§ظ„ظ…طھظ‚ط¯ظ… ظˆط§ظ„ظپظ„طھط±ط©
                     </button>
                   </div>
                 </div>
@@ -328,3 +328,4 @@ export function GlobalSearch() {
     </div>
   )
 }
+
