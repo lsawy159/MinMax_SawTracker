@@ -58,9 +58,9 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 ### Restyled UI Primitives (shadcn `src/components/ui/*`)
 
-- [ ] T013 [P] Restyle `src/components/ui/button.tsx` to consume v2 tokens (primary/secondary/ghost/danger variants) with focus ring (≥2px outline, contrast ≥3:1)
-- [ ] T014 [P] Restyle `src/components/ui/card.tsx` with v2 surface tokens, radius, shadow
-- [ ] T015 [P] Restyle `src/components/ui/input.tsx`, `textarea.tsx`, `select.tsx` with v2 tokens, error/focus states
+- [x] T013 [P] Restyle `src/components/ui/button.tsx` to consume v2 tokens (primary/secondary/ghost/danger variants) with focus ring (≥2px outline, contrast ≥3:1)
+- [x] T014 [P] Restyle `src/components/ui/card.tsx` with v2 surface tokens, radius, shadow
+- [ ] T015 [P] Restyle `src/components/ui/input.tsx` with v2 tokens, error/focus states (textarea.tsx, select.tsx deferred)
 - [ ] T016 [P] Restyle `src/components/ui/table.tsx` (row height, hover, header bg, RTL borders)
 - [ ] T017 [P] Restyle `src/components/ui/tabs.tsx` (Radix tabs) — explicit `aria-orientation`, indicator color from `--color-primary-500`
 - [ ] T018 [P] Restyle `src/components/ui/sheet.tsx` (will be reused as Drawer) — slide direction respects `dir=rtl`
