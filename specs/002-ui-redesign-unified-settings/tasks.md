@@ -48,13 +48,13 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 - [x] T007 Author full token system in `src/styles/tokens.css` per [contracts/design-tokens.md](./contracts/design-tokens.md): primary scale, neutral scale, semantic colors, typography sizes/weights/families, spacing, radius, shadow, motion. Light + dark variants
 - [x] T008 Add `@font-face` declarations + `font-display: swap` for IBM Plex Sans Arabic, IBM Plex Sans, Cairo in `src/styles/index.css`; import `tokens.css` from `index.css`
-- [ ] T009 [P] Update `tailwind.config.js` to extend `theme.colors`, `fontFamily`, `spacing`, `borderRadius`, `boxShadow`, `transitionDuration` to reference `var(--*)` tokens per [contracts/design-tokens.md](./contracts/design-tokens.md)
-- [ ] T010 [P] Create `src/lib/tokens.ts` exporting `TOKEN` const + `ColorTokenName` type for autocomplete in components per data-model.md
+- [x] T009 [P] Update `tailwind.config.js` to extend `theme.colors`, `fontFamily`, `spacing`, `borderRadius`, `boxShadow`, `transitionDuration` to reference `var(--*)` tokens per [contracts/design-tokens.md](./contracts/design-tokens.md)
+- [x] T010 [P] Create `src/lib/tokens.ts` exporting `TOKEN` const + `ColorTokenName` type for autocomplete in components per data-model.md
 - [x] T011 Add global `@media (prefers-reduced-motion: reduce)` rule in `src/styles/index.css` zeroing `transition-duration` and `animation-duration`
 
 ### Token Tests
 
-- [ ] T012 [P] Create `src/styles/__tests__/tokens.test.ts`: assert token names match between `tokens.css`, `lib/tokens.ts`, and `tailwind.config.js`; verify light/dark body-text contrast ≥ 4.5:1 (compute from HSL values)
+- [x] T012 [P] Create `src/styles/__tests__/tokens.test.ts`: assert token names match between `tokens.css`, `lib/tokens.ts`, and `tailwind.config.js`; verify light/dark body-text contrast ≥ 4.5:1 (compute from HSL values)
 
 ### Restyled UI Primitives (shadcn `src/components/ui/*`)
 

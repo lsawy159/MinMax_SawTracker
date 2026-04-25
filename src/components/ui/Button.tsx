@@ -6,22 +6,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "touch-feedback inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:shadow-focus active:scale-[0.98]",
+  "touch-feedback inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-[var(--duration-fast)] ease-[var(--easing-standard)] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm",
-        secondary: "border border-border bg-white/70 text-foreground shadow-xs dark:bg-slate-900/70",
-        outline: "border border-border bg-surface/70 text-foreground backdrop-blur",
-        ghost: "text-foreground",
-        destructive: "bg-danger text-white shadow-sm",
-        success: "bg-success text-white shadow-sm",
-        warning: "bg-warning text-white shadow-sm",
+        default: "bg-primary-500 text-white shadow-md hover:bg-primary-600",
+        secondary: "border border-neutral-200 bg-white text-neutral-900 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800",
+        ghost: "text-neutral-900 hover:bg-neutral-100 dark:text-neutral-50 dark:hover:bg-neutral-800",
+        destructive: "bg-danger-500 text-white shadow-md hover:bg-danger-700",
+        success: "bg-success-500 text-white shadow-md hover:bg-success-700",
+        warning: "bg-warning-500 text-white shadow-md hover:bg-warning-700",
       },
       size: {
         default: "h-11 px-4 py-2",
-        sm: "h-9 rounded-lg px-3 text-xs",
-        lg: "h-12 rounded-lg px-6",
+        sm: "h-9 rounded-md px-3 text-xs",
+        lg: "h-12 rounded-md px-6",
         icon: "h-11 w-11",
       },
     },
@@ -44,19 +43,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp
         className={cn(
-          buttonVariants({ variant, size, className }),
-          "data-[state=open]:bg-primary/90",
-          "motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-md",
-          "hover:bg-primary-hover",
-          variant === "secondary" && "hover:bg-muted",
-          variant === "outline" && "hover:bg-muted",
-          variant === "ghost" && "hover:bg-muted",
-          variant === "destructive" && "hover:brightness-95",
-          variant === "success" && "hover:brightness-95",
-          variant === "warning" && "hover:brightness-95"
+          buttonVariants({ variant, size, className })
         )}
         ref={ref}
         {...props}
+        style={{
+          ...props.style,
+        } as React.CSSProperties}
       />
     )
   }
