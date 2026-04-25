@@ -8,7 +8,7 @@ import { saveAs } from 'file-saver'
 import { loadXlsx } from '@/utils/lazyXlsx'
 import { DEFAULT_STATUS_THRESHOLDS, getStatusThresholds } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 

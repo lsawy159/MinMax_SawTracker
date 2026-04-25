@@ -33,7 +33,7 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 const PERMISSION_HIGHLIGHTS: Array<{
   title: string
@@ -879,7 +879,7 @@ export default function Users() {
                   <Button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={saving}
                   >
@@ -965,7 +965,7 @@ export default function Users() {
                       setDeleteingUser(null)
                     }}
                     className="flex-1"
-                    variant="outline"
+                    variant="secondary"
                   >
                     إلغاء
                   </Button>

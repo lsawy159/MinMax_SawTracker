@@ -16,7 +16,7 @@ import { LogsFilters } from '@/components/activity/LogsFilters'
 import { DeleteConfirmModal } from '@/components/activity/DeleteConfirmModal'
 import { LogDetailsModal } from '@/components/activity/LogDetailsModal'
 import { LogsTable } from '@/components/activity/LogsTable'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
@@ -1062,7 +1062,7 @@ export default function ActivityLogs() {
             <Button
               onClick={loadLogs}
               size="sm"
-              variant="outline"
+              variant="secondary"
               className="text-xs"
             >
               <RefreshCw className="w-3 sm:w-4 h-3 sm:h-4" />

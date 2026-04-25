@@ -16,7 +16,7 @@ import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectTrigger,
@@ -1183,7 +1183,7 @@ export default function AdvancedSearch() {
                 <div className="app-toggle-shell">
                   <Button
                     onClick={() => setViewMode('grid')}
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    variant={viewMode === 'grid' ? 'default' : 'secondary'}
                     size="icon"
                     title="عرض شبكي"
                   >
@@ -1191,7 +1191,7 @@ export default function AdvancedSearch() {
                   </Button>
                   <Button
                     onClick={() => setViewMode('table')}
-                    variant={viewMode === 'table' ? 'default' : 'outline'}
+                    variant={viewMode === 'table' ? 'default' : 'secondary'}
                     size="icon"
                     title="عرض جدول"
                   >
@@ -1203,7 +1203,7 @@ export default function AdvancedSearch() {
                 <div className="app-toggle-shell">
                   <Button
                     onClick={() => setViewMode('grid')}
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    variant={viewMode === 'grid' ? 'default' : 'secondary'}
                     size="icon"
                     title="عرض شبكي"
                   >
@@ -1785,7 +1785,7 @@ export default function AdvancedSearch() {
                 <Button
                   onClick={clearFilters}
                   disabled={activeFiltersCount === 0}
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                 >
                   <X className="w-3.5 h-3.5" />

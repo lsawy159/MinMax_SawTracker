@@ -60,12 +60,12 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 - [x] T013 [P] Restyle `src/components/ui/button.tsx` to consume v2 tokens (primary/secondary/ghost/danger variants) with focus ring (≥2px outline, contrast ≥3:1)
 - [x] T014 [P] Restyle `src/components/ui/card.tsx` with v2 surface tokens, radius, shadow
-- [ ] T015 [P] Restyle `src/components/ui/input.tsx` with v2 tokens, error/focus states (textarea.tsx, select.tsx deferred)
-- [ ] T016 [P] Restyle `src/components/ui/table.tsx` (row height, hover, header bg, RTL borders)
-- [ ] T017 [P] Restyle `src/components/ui/tabs.tsx` (Radix tabs) — explicit `aria-orientation`, indicator color from `--color-primary-500`
-- [ ] T018 [P] Restyle `src/components/ui/sheet.tsx` (will be reused as Drawer) — slide direction respects `dir=rtl`
-- [ ] T019 [P] Restyle `src/components/ui/dialog.tsx` with v2 tokens
-- [ ] T020 [P] Restyle `src/components/ui/badge.tsx`, `alert.tsx`, `toast.tsx` for semantic colors
+- [x] T015 [P] Restyle `src/components/ui/input.tsx` with v2 tokens, error/focus states
+- [ ] T016 [P] Skip — No table.tsx UI primitive in codebase (tables/ contains page-specific components)
+- [ ] T017 [P] Skip — No tabs.tsx UI primitive in codebase; Radix primitive only
+- [x] T018 [P] Restyle `src/components/ui/sheet.tsx` — slide direction respects `dir=rtl`
+- [x] T019 [P] Restyle `src/components/ui/dialog.tsx` with v2 tokens
+- [x] T020 [P] Restyle `src/components/ui/badge.tsx` for semantic colors (alert.tsx, toast.tsx: check if exist)
 - [ ] T021 [P] Create new `src/components/ui/empty-state.tsx` (icon + title + description + action button slot) using v2 tokens
 - [ ] T022 [P] Create new `src/components/ui/loading-state.tsx` (skeleton variants + spinner) using v2 tokens
 - [ ] T023 [P] Create new `src/components/ui/error-state.tsx` (icon + message + retry slot) using v2 tokens

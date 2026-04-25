@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { LogIn, Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { useThemeMode } from '@/hooks/useUiPreferences'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 export default function Login() {
   const [username, setUsername] = useState('')

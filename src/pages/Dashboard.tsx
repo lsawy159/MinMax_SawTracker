@@ -4,7 +4,7 @@ import { Users, Building2, AlertTriangle, Calendar, XCircle, Clock, ArrowRight, 
 import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MetricCard } from '@/components/ui/MetricCard'
@@ -553,7 +553,7 @@ export default function Dashboard() {
                 breadcrumbs={[{ label: 'الرئيسية' }]}
                 actions={
                   <>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/alerts')}>
+                    <Button variant="secondary" size="sm" onClick={() => navigate('/alerts')}>
                       جميع التنبيهات
                     </Button>
                     <Button size="sm" onClick={() => navigate('/reports')}>

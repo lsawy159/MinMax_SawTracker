@@ -16,7 +16,7 @@ import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { triggerManualBackupAndNotify } from '@/lib/backupService'
 import { logger } from '@/utils/logger'
 import { NotificationRecipientsConfig, AdditionalRecipient, createDefaultConfig } from '@/lib/notificationTypes'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 interface EmailConfig {
@@ -1083,7 +1083,7 @@ export default function BackupSettingsPage() {
                   <Button
                     onClick={loadBackups}
                     disabled={backupsLoading}
-                    variant="outline"
+                    variant="secondary"
                   >
                     <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
                     طھط­ط¯ظٹط«

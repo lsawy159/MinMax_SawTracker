@@ -1,7 +1,7 @@
 import Layout from '@/components/layout/Layout'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/Card'
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/Badge'
 import {
   Select,
@@ -177,7 +177,7 @@ const DesignSystem = () => {
               <div className="flex flex-wrap items-center gap-3">
                 <Button>Default</Button>
                 <Button variant="secondary">Secondary</Button>
-                <Button variant="outline">Outline</Button>
+                <Button variant="secondary">Outline</Button>
                 <Button variant="ghost">Ghost</Button>
                 <Button variant="success">Success</Button>
                 <Button variant="warning">Warning</Button>
@@ -210,7 +210,7 @@ const DesignSystem = () => {
             </CardContent>
             <CardFooter className="gap-2">
               <Button size="sm">Primary Action</Button>
-              <Button variant="outline" size="sm">Secondary Action</Button>
+              <Button variant="secondary" size="sm">Secondary Action</Button>
             </CardFooter>
           </Card>
         </section>
@@ -221,7 +221,7 @@ const DesignSystem = () => {
           <FilterBar
             actions={
               <>
-                <Button size="sm" variant="outline">Reset</Button>
+                <Button size="sm" variant="secondary">Reset</Button>
                 <Button size="sm">Apply</Button>
               </>
             }
@@ -249,7 +249,7 @@ const DesignSystem = () => {
           <DataCard
             title="الفريق المسؤول"
             description="نموذج لبطاقة بيانات مع محتوى ديناميكي وإجراء جانبي."
-            action={<Button size="sm" variant="outline">Manage</Button>}
+            action={<Button size="sm" variant="secondary">Manage</Button>}
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <AvatarGroup

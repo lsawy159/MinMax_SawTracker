@@ -12,7 +12,7 @@ import { useCardColumns } from '@/hooks/useUiPreferences'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 type SortField = 'name' | 'created_at' | 'status' | 'employee_count' | 'total_salaries'
 type SortDirection = 'asc' | 'desc'
@@ -399,7 +399,7 @@ export default function Projects() {
               <div className="flex items-center justify-end gap-3">
                 <Button
                   onClick={handleModalClose}
-                  variant="outline"
+                  variant="secondary"
                 >
                   إلغاء
                 </Button>

@@ -12,8 +12,8 @@ import SessionsManager from '@/components/settings/SessionsManager'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 interface GeneralSetting {
@@ -658,7 +658,7 @@ export default function GeneralSettings() {
                       <div className="flex items-center gap-2">
                         <Button
                           onClick={() => resetToDefaults(activeTab)}
-                          variant="outline"
+                          variant="secondary"
                           size="sm"
                           className="text-xs"
                         >

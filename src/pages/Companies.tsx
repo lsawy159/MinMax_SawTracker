@@ -16,7 +16,7 @@ import { normalizeArabic } from '@/utils/textUtils'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { 
   calculateCommercialRegistrationStatus, 
   calculatePowerSubscriptionStatus,
@@ -927,7 +927,7 @@ export default function Companies() {
 
           <Button
             onClick={() => setShowAlertsOnly(prev => !prev)}
-            variant="outline"
+            variant="secondary"
             className={`relative border-red-200 text-red-700 ${showAlertsOnly ? 'bg-red-50' : ''}`}
             title="عرض المؤسسات ذات التنبيهات فقط"
           >
@@ -1271,7 +1271,7 @@ export default function Companies() {
                     <div className="flex items-center gap-2">
                       <Button
                         onClick={() => setSelectedCompanyIds([])}
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                       >
                         إلغاء التحديد
@@ -1396,7 +1396,7 @@ export default function Companies() {
                                 {canEdit('companies') && (
                                   <Button
                                     onClick={() => handleEditCompany(company)}
-                                    variant="outline"
+                                    variant="secondary"
                                     size="sm"
                                   >
                                     تعديل
@@ -1433,7 +1433,7 @@ export default function Companies() {
                   <Button
                     onClick={goToPreviousPage}
                     disabled={currentPage === 1}
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -1443,7 +1443,7 @@ export default function Companies() {
                     <Button
                       key={pageNum}
                       onClick={() => goToPage(pageNum)}
-                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      variant={currentPage === pageNum ? 'default' : 'secondary'}
                       size="sm"
                       className="min-w-9"
                     >
@@ -1454,7 +1454,7 @@ export default function Companies() {
                   <Button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -1470,7 +1470,7 @@ export default function Companies() {
             {activeFiltersCount > 0 && (
               <Button
                 onClick={clearFilters}
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 className="mt-4"
               >

@@ -16,7 +16,7 @@ import { useCardColumns } from '@/hooks/useUiPreferences'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -1085,7 +1085,7 @@ export default function Employees() {
                 <TooltipTrigger asChild>
                   <Button
                     onClick={() => setShowAlertsOnly(prev => !prev)}
-                    variant="outline"
+                    variant="secondary"
                     className={`relative border-red-200 text-red-700 ${showAlertsOnly ? 'bg-red-50' : ''}`}
                     title="عرض الموظفين ذوي التنبيهات فقط"
                   >
@@ -1531,7 +1531,7 @@ export default function Employees() {
                   <Button
                     onClick={clearFilters}
                     disabled={activeFiltersCount === 0}
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                   >
                     <X className="w-4 h-4" />
@@ -1996,7 +1996,7 @@ export default function Employees() {
                     setEmployeeToDelete(null)
                   }}
                   className="flex-1"
-                  variant="outline"
+                  variant="secondary"
                 >
                   إلغاء
                 </Button>
@@ -2139,7 +2139,7 @@ function BulkDeleteModal({
               onClick={handleCancel}
               disabled={isDeleting}
               className="flex-1"
-              variant="outline"
+              variant="secondary"
             >
               إلغاء
             </Button>
@@ -2209,7 +2209,7 @@ function BulkDateModal({
                 type="button"
                 onClick={onCancel}
                 className="flex-1"
-                variant="outline"
+                variant="secondary"
               >
                 إلغاء
               </Button>
