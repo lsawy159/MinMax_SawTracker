@@ -132,10 +132,10 @@ Single-project SPA per [plan.md](./plan.md). All paths relative to repo root: `d
 
 ### Implementation for User Story 2
 
-- [ ] T046 [P] [US2] Create `src/components/layout/nav-config.ts` exporting `NAV_GROUPS: NavGroup[]` per data-model.md: Operational group (Dashboard, Employees, Companies, Projects, TransferProcedures, AdvancedSearch, Alerts, Reports, PayrollDeductions, ActivityLogs, ImportExport, Notifications) + Admin group (Settings, AlertSettings, AdminSettings/GeneralSettings, SecurityManagement) with `requiredPermission` keys
-- [ ] T047 [US2] Wire `Sidebar.tsx` to consume `NAV_GROUPS` from T046; render visual divider between groups; filter items by user permissions via `useAuth()` (depends T027, T046)
-- [ ] T048 [US2] Implement mobile responsive behavior in `Sidebar.tsx`: collapse to off-canvas drawer below 768px, hamburger trigger in `Header.tsx`, focus trap when open
-- [ ] T049 [US2] Wire `Header.tsx` final content: profile dropdown (avatar, name, role, logout), notifications bell with unread count from existing `useNotifications`, theme toggle from `useThemeMode`, advanced search button opening existing AdvancedSearch route or modal
+- [x] T046 [P] [US2] Create `src/components/layout/nav-config.ts` exporting `NAV_GROUPS: NavGroup[]` per data-model.md: Operational group (Dashboard, Employees, Companies, Projects, TransferProcedures, AdvancedSearch, Alerts, Reports, PayrollDeductions, ActivityLogs, ImportExport, Notifications) + Admin group (Settings, AlertSettings, AdminSettings/GeneralSettings, SecurityManagement) with `requiredPermission` keys
+- [x] T047 [US2] Wire `Sidebar.tsx` to consume `NAV_GROUPS` from T046; render visual divider between groups; filter items by user permissions via `useAuth()` (depends T027, T046)
+- [x] T048 [US2] Implement mobile responsive behavior in `Sidebar.tsx`: collapse to off-canvas drawer below 768px, hamburger trigger in `Header.tsx`, focus trap when open
+- [x] T049 [US2] Wire `Header.tsx` final content: profile dropdown (avatar, name, role, logout), notifications bell with unread count from existing `useNotifications`, theme toggle from `useThemeMode`, advanced search button opening existing AdvancedSearch route or modal
 - [ ] T050 [US2] Modify `src/App.tsx`: wrap protected routes with `<AppShell>` so Sidebar+Header render once at app level. Remove per-page Sidebar usage if any. Verify Login page does NOT render AppShell
 - [ ] T051 [US2] Verify Sidebar items hide based on permission: test with mock admin and mock operational user via `useAuth` mock in tests
 - [ ] T052 [US2] Verify all US2 tests pass: `pnpm test src/components/layout`
