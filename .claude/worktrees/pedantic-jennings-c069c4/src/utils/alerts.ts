@@ -1,0 +1,709 @@
+import { Alert } from '../components/alerts/AlertCard'
+import { supabase } from '../lib/supabase'
+import { logger } from './logger'
+
+// Default thresholds for alerts
+const DEFAULT_THRESHOLDS = {
+  residence_urgent_days: 7,
+  residence_high_days: 15,
+  residence_medium_days: 30,
+  contract_urgent_days: 7,
+  contract_high_days: 15,
+  contract_medium_days: 30,
+  commercial_reg_urgent_days: 30,
+  commercial_reg_high_days: 45,
+  commercial_reg_medium_days: 60,
+  health_insurance_urgent_days: 30,
+  health_insurance_high_days: 45,
+  health_insurance_medium_days: 60,
+  power_subscription_urgent_days: 30,
+  power_subscription_high_days: 45,
+  power_subscription_medium_days: 60,
+  moqeem_subscription_urgent_days: 30,
+  moqeem_subscription_high_days: 45,
+  moqeem_subscription_medium_days: 60
+}
+
+// Cache for notification thresholds
+let thresholdsCache: typeof DEFAULT_THRESHOLDS | null = null
+let cacheTimestamp: number = 0
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
+
+// Function to invalidate the cache (call this when settings are saved)
+export function invalidateNotificationThresholdsCache() {
+  thresholdsCache = null
+  cacheTimestamp = 0
+}
+
+// Get notification thresholds from database settings with caching
+export async function getNotificationThresholds() {
+  // In test environment, avoid network calls and use defaults
+  if (import.meta.env.MODE === 'test') {
+    return DEFAULT_THRESHOLDS
+  }
+
+  // Check if cache is valid
+  const now = Date.now()
+  if (thresholdsCache && (now - cacheTimestamp) < CACHE_TTL) {
+    return thresholdsCache
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'notification_thresholds')
+      .maybeSingle()
+
+    if (error || !data || !data.setting_value) {
+      logger.debug('Using default notification thresholds')
+      // Cache the defaults
+      thresholdsCache = DEFAULT_THRESHOLDS
+      cacheTimestamp = now
+      return DEFAULT_THRESHOLDS
+    }
+
+    // Merge with defaults to ensure all required fields exist
+    const mergedThresholds = { ...DEFAULT_THRESHOLDS, ...data.setting_value }
+    // Update cache
+    thresholdsCache = mergedThresholds
+    cacheTimestamp = now
+    return mergedThresholds
+  } catch (error) {
+    console.error('Error loading notification thresholds:', error)
+    // Cache the defaults on error
+    thresholdsCache = DEFAULT_THRESHOLDS
+    cacheTimestamp = now
+    return DEFAULT_THRESHOLDS
+  }
+}
+
+export interface Company {
+  id: string
+  name: string
+  unified_number?: number
+  commercial_registration_number?: string
+  commercial_registration_expiry?: string
+  ending_subscription_power_date?: string
+  ending_subscription_moqeem_date?: string
+  created_at: string
+  updated_at: string
+}
+
+const loggedCompanyDigestKeys = new Set<string>()
+
+function getTodayAlertDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getCompanyDigestKey(alert: Alert): string {
+  return `${alert.company?.id ?? 'unknown'}:${alert.type}:${alert.expiry_date ?? getTodayAlertDate()}`
+}
+
+function logCompanyAlertsForDigest(alerts: Alert[]) {
+  if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
+    return
+  }
+
+  const logPromises = alerts
+    .filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
+    .map(async (alert) => {
+      const digestKey = getCompanyDigestKey(alert)
+      if (loggedCompanyDigestKeys.has(digestKey)) {
+        return
+      }
+
+      loggedCompanyDigestKeys.add(digestKey)
+
+      try {
+        const startOfToday = new Date()
+        startOfToday.setHours(0, 0, 0, 0)
+
+        const startOfTomorrow = new Date(startOfToday)
+        startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+
+        const { data: existingLog, error: lookupError } = await supabase
+          .from('daily_excel_logs')
+          .select('id')
+          .eq('company_id', alert.company?.id || '')
+          .eq('alert_type', alert.type)
+          .gte('created_at', startOfToday.toISOString())
+          .lt('created_at', startOfTomorrow.toISOString())
+          .maybeSingle()
+
+        if (lookupError && lookupError.code !== 'PGRST116') {
+          loggedCompanyDigestKeys.delete(digestKey)
+          logger.error(`Failed to check existing company alert ${alert.id} in daily_excel_logs:`, lookupError)
+          return
+        }
+
+        if (existingLog) {
+          return
+        }
+
+        const { error } = await supabase
+          .from('daily_excel_logs')
+          .insert({
+            company_id: alert.company?.id || null,
+            alert_type: alert.type,
+            priority: alert.priority,
+            title: alert.title,
+            message: alert.message,
+            action_required: alert.action_required,
+            expiry_date: alert.expiry_date,
+            details: {
+              company_name: alert.company?.name,
+              company_commercial_id: alert.company?.commercial_registration_number,
+              unified_number: alert.company?.unified_number,
+            },
+          })
+
+        if (error) {
+          if (error.code === '23505') {
+            return
+          }
+
+          loggedCompanyDigestKeys.delete(digestKey)
+          logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
+          return
+        }
+
+        logger.debug(`✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`)
+      } catch (logError) {
+        loggedCompanyDigestKeys.delete(digestKey)
+        logger.error(`Exception logging company alert ${alert.id}:`, logError)
+      }
+    })
+
+  void Promise.allSettled(logPromises).catch((err) => {
+    logger.error('Error settling company log promises:', err)
+  })
+}
+
+/**
+ * دالة مساعدة لإنشاء جميع تنبيهات المؤسسات
+ */
+export async function generateCompanyAlerts(companies: Company[]): Promise<Alert[]> {
+  const alerts: Alert[] = []
+  
+  for (const company of companies) {
+    // إضافة تنبيهات السجل التجاري
+    const commercialRegAlert = await checkCommercialRegistrationExpiry(company)
+    if (commercialRegAlert) {
+      alerts.push(commercialRegAlert)
+    }
+    
+    // إضافة تنبيهات اشتراك قوى
+    const powerAlert = await checkPowerSubscriptionExpiry(company)
+    if (powerAlert) {
+      alerts.push(powerAlert)
+    }
+    
+    // إضافة تنبيهات اشتراك مقيم
+    const moqeemAlert = await checkMoqeemSubscriptionExpiry(company)
+    if (moqeemAlert) {
+      alerts.push(moqeemAlert)
+    }
+  }
+  
+  logCompanyAlertsForDigest(alerts)
+  
+  return alerts.sort((a, b) => {
+    // ترتيب حسب الأولوية (عاجل أولاً)
+    const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
+    if (priorityDiff !== 0) return priorityDiff
+    
+    // ثم حسب عدد الأيام المتبقية (أقل عدد أيام أولاً)
+    const daysA = a.days_remaining ?? Infinity
+    const daysB = b.days_remaining ?? Infinity
+    return daysA - daysB
+  })
+}
+
+// Backward compatibility function - now async to load settings
+export async function generateCompanyAlertsSync(companies: Company[]): Promise<Alert[]> {
+  const alerts: Alert[] = []
+  const thresholds = await getNotificationThresholds()
+  
+  companies.forEach(company => {
+      if (company.commercial_registration_expiry) {
+        const today = new Date()
+        const expiryDate = new Date(company.commercial_registration_expiry)
+        const timeDiff = expiryDate.getTime() - today.getTime()
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+        
+        if (daysRemaining <= thresholds.commercial_reg_medium_days) {
+          let priority: Alert['priority']
+          if (daysRemaining < 0) {
+            priority = 'urgent'
+          } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+            priority = 'urgent'
+          } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+            priority = 'high'
+          } else {
+            priority = 'medium'
+          }
+          
+          alerts.push({
+            id: `commercial_${company.id}_${company.commercial_registration_expiry}`,
+            type: 'commercial_registration_expiry',
+            priority,
+            title: 'انتهاء صلاحية السجل التجاري',
+            message: `ينتهي السجل التجاري للمؤسسة "${company.name}" ${daysRemaining < 0 ? `منذ ${Math.abs(daysRemaining)} يوم` : `خلال ${daysRemaining} يوم`}`,
+            company: {
+              id: company.id,
+              name: company.name,
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
+            },
+            expiry_date: company.commercial_registration_expiry,
+            days_remaining: daysRemaining,
+            action_required: `قم بتجديد السجل التجاري للمؤسسة "${company.name}"`,
+            created_at: new Date().toISOString()
+          })
+        }
+      }
+      
+      // إضافة تنبيهات اشتراك قوى (في النسخة المتزامنة)
+      if (company.ending_subscription_power_date) {
+        const today = new Date()
+        const expiryDate = new Date(company.ending_subscription_power_date)
+        const timeDiff = expiryDate.getTime() - today.getTime()
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+        
+        // استخدام إعدادات اشتراك قوى المخصصة، أو استخدام إعدادات السجل التجاري كبديل
+        const urgentDays = thresholds.power_subscription_urgent_days ?? thresholds.commercial_reg_urgent_days
+        const highDays = thresholds.power_subscription_high_days ?? thresholds.commercial_reg_high_days
+        const mediumDays = thresholds.power_subscription_medium_days ?? thresholds.commercial_reg_medium_days
+        
+        if (daysRemaining <= mediumDays) {
+          let priority: Alert['priority']
+          let message: string
+          let actionRequired: string
+          
+          if (daysRemaining < 0) {
+            priority = 'urgent'
+            const daysExpired = Math.abs(daysRemaining)
+            message = `انتهت صلاحية اشتراك قوى للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+            actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+          } else if (daysRemaining <= urgentDays) {
+            priority = 'urgent'
+            message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+            actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+          } else if (daysRemaining <= (highDays || urgentDays + 15)) {
+            priority = 'high'
+            message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+            actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+          } else {
+            priority = 'medium'
+            message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} يوم.`
+            actionRequired = `قم بمتابعة تجديد اشتراك قوى للمؤسسة "${company.name}" عند الحاجة.`
+          }
+          
+          alerts.push({
+            id: `power_${company.id}_${company.ending_subscription_power_date}`,
+            type: 'power_subscription_expiry',
+            priority,
+            title: 'انتهاء صلاحية اشتراك قوى',
+            message,
+            company: {
+              id: company.id,
+              name: company.name,
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
+            },
+            expiry_date: company.ending_subscription_power_date,
+            days_remaining: daysRemaining,
+            action_required: actionRequired,
+            created_at: new Date().toISOString()
+          })
+        }
+      }
+      
+      // إضافة تنبيهات اشتراك مقيم (في النسخة المتزامنة)
+      if (company.ending_subscription_moqeem_date) {
+        const today = new Date()
+        const expiryDate = new Date(company.ending_subscription_moqeem_date)
+        const timeDiff = expiryDate.getTime() - today.getTime()
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+        
+        // استخدام إعدادات اشتراك مقيم المخصصة، أو استخدام إعدادات السجل التجاري كبديل
+        const urgentDays = thresholds.moqeem_subscription_urgent_days ?? thresholds.commercial_reg_urgent_days
+        const highDays = thresholds.moqeem_subscription_high_days ?? thresholds.commercial_reg_high_days
+        const mediumDays = thresholds.moqeem_subscription_medium_days ?? thresholds.commercial_reg_medium_days
+        
+        if (daysRemaining <= mediumDays) {
+          let priority: Alert['priority']
+          let message: string
+          let actionRequired: string
+          
+          if (daysRemaining < 0) {
+            priority = 'urgent'
+            const daysExpired = Math.abs(daysRemaining)
+            message = `انتهت صلاحية اشتراك مقيم للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+            actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+          } else if (daysRemaining <= urgentDays) {
+            priority = 'urgent'
+            message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+            actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+          } else if (daysRemaining <= (highDays || urgentDays + 15)) {
+            priority = 'high'
+            message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+            actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+          } else {
+            priority = 'medium'
+            message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} يوم.`
+            actionRequired = `قم بمتابعة تجديد اشتراك مقيم للمؤسسة "${company.name}" عند الحاجة.`
+          }
+          
+          alerts.push({
+            id: `moqeem_${company.id}_${company.ending_subscription_moqeem_date}`,
+            type: 'moqeem_subscription_expiry',
+            priority,
+            title: 'انتهاء صلاحية اشتراك مقيم',
+            message,
+            company: {
+              id: company.id,
+              name: company.name,
+              commercial_registration_number: company.commercial_registration_number,
+              unified_number: company.unified_number
+            },
+            expiry_date: company.ending_subscription_moqeem_date,
+            days_remaining: daysRemaining,
+            action_required: actionRequired,
+            created_at: new Date().toISOString()
+          })
+        }
+      }
+  })
+  
+  logCompanyAlertsForDigest(alerts)
+
+  return alerts.sort((a, b) => {
+    const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
+    if (priorityDiff !== 0) return priorityDiff
+    
+    const daysA = a.days_remaining ?? Infinity
+    const daysB = b.days_remaining ?? Infinity
+    return daysA - daysB
+  })
+}
+
+/**
+ * فحص انتهاء صلاحية السجل التجاري للمؤسسة
+ */
+export async function checkCommercialRegistrationExpiry(company: Company): Promise<Alert | null> {
+  if (!company.commercial_registration_expiry) {
+    return null
+  }
+  
+  const today = new Date()
+  const expiryDate = new Date(company.commercial_registration_expiry)
+  const timeDiff = expiryDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+  
+  const thresholds = await getNotificationThresholds()
+  
+  // لا يوجد تنبيه إذا كان التاريخ سارياً لأكثر من الحد الأقصى
+  if (daysRemaining > thresholds.commercial_reg_medium_days) {
+    return null
+  }
+  
+  // تحديد الأولوية حسب عدد الأيام المتبقية
+  let priority: Alert['priority']
+  
+  if (daysRemaining < 0) {
+    priority = 'urgent'
+  } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+    priority = 'urgent'
+  } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+    priority = 'high'
+  } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
+    priority = 'medium'
+  } else {
+    priority = 'low'
+  }
+  
+  // إنشاء رسالة التنبيه
+  let message: string
+  let actionRequired: string
+  
+  if (daysRemaining < 0) {
+    const daysExpired = Math.abs(daysRemaining)
+    message = `انتهت صلاحية السجل التجاري للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً لتجنب المشاكل القانونية.`
+    actionRequired = `قم بتجديد السجل التجاري للمؤسسة "${company.name}" في أقرب وقت ممكن لضمان استمرار النشاط القانوني.`
+  } else if (daysRemaining === 0) {
+    message = `ينتهي السجل التجاري للمؤسسة "${company.name}" اليوم. يجب تجديده قبل نهاية اليوم.`
+    actionRequired = `قم بتجديد السجل التجاري للمؤسسة "${company.name}" قبل نهاية اليوم.`
+  } else if (daysRemaining === 1) {
+    message = `ينتهي السجل التجاري للمؤسسة "${company.name}" غداً. يفضل تجديده اليوم.`
+    actionRequired = `قم بتجديد السجل التجاري للمؤسسة "${company.name}" قبل انتهاء مدته غداً.`
+  } else {
+    message = `ينتهي السجل التجاري للمؤسسة "${company.name}" خلال ${daysRemaining} يوم. يفضل تجديده قبل انتهاء المدة.`
+    actionRequired = `قم بترتيب تجديد السجل التجاري للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+  }
+  
+  return {
+    id: `commercial_${company.id}_${company.commercial_registration_expiry}`,
+    type: 'commercial_registration_expiry',
+    priority,
+    title: 'انتهاء صلاحية السجل التجاري',
+    message,
+    company: {
+      id: company.id,
+      name: company.name,
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
+    },
+    expiry_date: company.commercial_registration_expiry,
+    days_remaining: daysRemaining,
+    action_required: actionRequired,
+    created_at: new Date().toISOString()
+  }
+}
+
+/**
+ * فحص انتهاء صلاحية اشتراك قوى للمؤسسة
+ */
+export async function checkPowerSubscriptionExpiry(company: Company): Promise<Alert | null> {
+  if (!company.ending_subscription_power_date) {
+    return null
+  }
+  
+  const today = new Date()
+  const expiryDate = new Date(company.ending_subscription_power_date)
+  const timeDiff = expiryDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+  
+  const thresholds = await getNotificationThresholds()
+  
+  // لا يوجد تنبيه إذا كان التاريخ سارياً لأكثر من الحد الأقصى
+  if (daysRemaining > thresholds.commercial_reg_medium_days) {
+    return null
+  }
+  
+  // تحديد الأولوية حسب عدد الأيام المتبقية
+  let priority: Alert['priority']
+  
+  if (daysRemaining < 0) {
+    priority = 'urgent'
+  } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+    priority = 'urgent'
+  } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+    priority = 'high'
+  } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
+    priority = 'medium'
+  } else {
+    priority = 'low'
+  }
+  
+  // إنشاء رسالة التنبيه
+  let message: string
+  let actionRequired: string
+  
+  if (daysRemaining < 0) {
+    const daysExpired = Math.abs(daysRemaining)
+    message = `انتهت صلاحية اشتراك قوى للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+  } else if (daysRemaining === 0) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" اليوم. يجب تجديده قبل نهاية اليوم.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" قبل نهاية اليوم.`
+  } else if (daysRemaining === 1) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" غداً. يفضل تجديده اليوم.`
+    actionRequired = `قم بتجديد اشتراك قوى للمؤسسة "${company.name}" قبل انتهاء مدته غداً.`
+  } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+    actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+  } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+    actionRequired = `قم بترتيب تجديد اشتراك قوى للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+  } else {
+    message = `ينتهي اشتراك قوى للمؤسسة "${company.name}" خلال ${daysRemaining} يوم.`
+    actionRequired = `قم بمتابعة تجديد اشتراك قوى للمؤسسة "${company.name}" عند الحاجة.`
+  }
+  
+  return {
+    id: `power_${company.id}_${company.ending_subscription_power_date}`,
+    type: 'power_subscription_expiry',
+    priority,
+    title: 'انتهاء صلاحية اشتراك قوى',
+    message,
+    company: {
+      id: company.id,
+      name: company.name,
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
+    },
+    expiry_date: company.ending_subscription_power_date,
+    days_remaining: daysRemaining,
+    action_required: actionRequired,
+    created_at: new Date().toISOString()
+  }
+}
+
+/**
+ * فحص انتهاء صلاحية اشتراك مقيم للمؤسسة
+ */
+export async function checkMoqeemSubscriptionExpiry(company: Company): Promise<Alert | null> {
+  if (!company.ending_subscription_moqeem_date) {
+    return null
+  }
+  
+  const today = new Date()
+  const expiryDate = new Date(company.ending_subscription_moqeem_date)
+  const timeDiff = expiryDate.getTime() - today.getTime()
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+  
+  const thresholds = await getNotificationThresholds()
+  
+  // لا يوجد تنبيه إذا كان التاريخ سارياً لأكثر من الحد الأقصى
+  if (daysRemaining > thresholds.commercial_reg_medium_days) {
+    return null
+  }
+  
+  // تحديد الأولوية حسب عدد الأيام المتبقية
+  let priority: Alert['priority']
+  
+  if (daysRemaining < 0) {
+    priority = 'urgent'
+  } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+    priority = 'urgent'
+  } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+    priority = 'high'
+  } else if (daysRemaining <= thresholds.commercial_reg_medium_days) {
+    priority = 'medium'
+  } else {
+    priority = 'low'
+  }
+  
+  // إنشاء رسالة التنبيه
+  let message: string
+  let actionRequired: string
+  
+  if (daysRemaining < 0) {
+    const daysExpired = Math.abs(daysRemaining)
+    message = `انتهت صلاحية اشتراك مقيم للمؤسسة "${company.name}" منذ ${daysExpired} يوم. يجب تجديده فوراً.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" في أقرب وقت ممكن.`
+  } else if (daysRemaining === 0) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" اليوم. يجب تجديده قبل نهاية اليوم.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" قبل نهاية اليوم.`
+  } else if (daysRemaining === 1) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" غداً. يفضل تجديده اليوم.`
+    actionRequired = `قم بتجديد اشتراك مقيم للمؤسسة "${company.name}" قبل انتهاء مدته غداً.`
+  } else if (daysRemaining <= thresholds.commercial_reg_urgent_days) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} أيام - إجراء فوري مطلوب.`
+    actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} أيام القادمة.`
+  } else if (daysRemaining <= (thresholds.commercial_reg_high_days || thresholds.commercial_reg_urgent_days + 15)) {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} يوم - متابعة مطلوبة.`
+    actionRequired = `قم بترتيب تجديد اشتراك مقيم للمؤسسة "${company.name}" خلال ال ${daysRemaining} يوم القادمة.`
+  } else {
+    message = `ينتهي اشتراك مقيم للمؤسسة "${company.name}" خلال ${daysRemaining} يوم.`
+    actionRequired = `قم بمتابعة تجديد اشتراك مقيم للمؤسسة "${company.name}" عند الحاجة.`
+  }
+  
+  return {
+    id: `moqeem_${company.id}_${company.ending_subscription_moqeem_date}`,
+    type: 'moqeem_subscription_expiry',
+    priority,
+    title: 'انتهاء صلاحية اشتراك مقيم',
+    message,
+    company: {
+      id: company.id,
+      name: company.name,
+      commercial_registration_number: company.commercial_registration_number,
+      unified_number: company.unified_number
+    },
+    expiry_date: company.ending_subscription_moqeem_date,
+    days_remaining: daysRemaining,
+    action_required: actionRequired,
+    created_at: new Date().toISOString()
+  }
+}
+
+/**
+ * فلترة التنبيهات حسب الأولوية
+ */
+export function filterAlertsByPriority(alerts: Alert[], priority: Alert['priority']): Alert[] {
+  return alerts.filter(alert => alert.priority === priority)
+}
+
+/**
+ * فلترة التنبيهات حسب نوعها
+ */
+export function filterAlertsByType(alerts: Alert[], type: Alert['type']): Alert[] {
+  return alerts.filter(alert => alert.type === type)
+}
+
+/**
+ * الحصول على إحصائيات التنبيهات
+ * تحسب عدد المؤسسات الفريدة التي لديها تنبيهات وليس عدد التنبيهات
+ */
+export function getAlertsStats(alerts: Alert[]) {
+  // عد التنبيهات الكلية
+  const totalAlerts = alerts.length
+  
+  // عد المؤسسات الفريدة التي لديها تنبيهات
+  const uniqueCompanyIds = new Set(alerts.map(a => a.company?.id).filter(Boolean))
+  const total = uniqueCompanyIds.size
+  
+  // حساب الأولويات بناءً على المؤسسات الفريدة
+  // للمؤسسة الواحدة، نستخدم أعلى أولوية لديها
+  const companyMaxPriority = new Map<string, 'urgent' | 'high' | 'medium' | 'low'>()
+  const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+  
+  alerts.forEach(alert => {
+    const companyId = alert.company?.id
+    if (!companyId) return
+    
+    // إذا لم تكن المؤسسة موجودة في الخريطة، أضفها
+    if (!companyMaxPriority.has(companyId)) {
+      companyMaxPriority.set(companyId, alert.priority)
+    } else {
+      // إذا كانت موجودة، احتفظ بالأولوية الأعلى
+      const currentPriority = companyMaxPriority.get(companyId)!
+      if (priorityOrder[alert.priority] > priorityOrder[currentPriority]) {
+        companyMaxPriority.set(companyId, alert.priority)
+      }
+    }
+  })
+  
+  const urgent = Array.from(companyMaxPriority.values()).filter(p => p === 'urgent').length
+  const high = Array.from(companyMaxPriority.values()).filter(p => p === 'high').length
+  const medium = Array.from(companyMaxPriority.values()).filter(p => p === 'medium').length
+  const low = Array.from(companyMaxPriority.values()).filter(p => p === 'low').length
+  
+  // عد التنبيهات حسب النوع (عدد التنبيهات، ليس المؤسسات)
+  const commercialRegAlerts = alerts.filter(a => a.type === 'commercial_registration_expiry').length
+  const powerAlerts = alerts.filter(a => a.type === 'power_subscription_expiry').length
+  const moqeemAlerts = alerts.filter(a => a.type === 'moqeem_subscription_expiry').length
+  
+  return {
+    total,  // عدد المؤسسات الفريدة
+    totalAlerts,  // عدد التنبيهات الكلية (للمرجع)
+    urgent,
+    high,
+    medium,
+    low,
+    commercialRegAlerts,
+    powerAlerts,
+    moqeemAlerts
+  }
+}
+
+/**
+ * الحصول على التنبيهات العاجلة والعالية فقط
+ */
+export function getUrgentAlerts(alerts: Alert[]): Alert[] {
+  return alerts.filter(alert => alert.priority === 'urgent' || alert.priority === 'high')
+}
+
+/**
+ * الحصول على تنبيهات منتهية الصلاحية
+ */
+export function getExpiredAlerts(alerts: Alert[]): Alert[] {
+  return alerts.filter(alert => 
+    alert.days_remaining !== undefined && alert.days_remaining < 0
+  )
+}

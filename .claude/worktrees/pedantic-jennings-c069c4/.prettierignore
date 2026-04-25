@@ -1,0 +1,20 @@
+# Build output
+dist
+build
+.vite
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Generated files
+coverage
+*.log
+
+# Archives
+archive/
+
+# Config files (preserve formatting)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

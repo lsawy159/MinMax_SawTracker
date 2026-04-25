@@ -23,6 +23,25 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Maximum recipients per email
 const MAX_RECIPIENTS = 100;
 
+// Check if email is allowed by current queue mode constraint
+function validateQueueModeConstraint(options: EnqueueEmailOptions): { allowed: boolean; error?: string } {
+  const mode = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE || 'digest-only'
+
+  if (mode === 'digest-only') {
+    const isDigest = typeof options.subject === 'string' && options.subject.toLowerCase().includes('daily digest')
+    const adminOnly = options.toEmails.length === 1 && options.toEmails[0] === 'ahmad.alsawy159@gmail.com'
+
+    if (!isDigest || !adminOnly) {
+      return {
+        allowed: false,
+        error: 'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.'
+      }
+    }
+  }
+
+  return { allowed: true }
+}
+
 export async function enqueueEmail(options: EnqueueEmailOptions): Promise<EnqueueEmailResult> {
   const {
     toEmails,
@@ -35,14 +54,10 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
     scheduledAt,
   } = options;
 
-  // Safety mode: restrict queue to Daily Digest only when enabled
-  const mode = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE || 'digest-only'
-  if (mode === 'digest-only') {
-    const isDigest = typeof subject === 'string' && subject.toLowerCase().includes('daily digest')
-    const adminOnly = toEmails.length === 1 && toEmails[0] === 'ahmad.alsawy159@gmail.com'
-    if (!isDigest || !adminOnly) {
-      return { success: false, error: 'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.' }
-    }
+  // Validate queue mode constraint (digest-only or normal)
+  const modeCheck = validateQueueModeConstraint(options)
+  if (!modeCheck.allowed) {
+    return { success: false, error: modeCheck.error }
   }
 
   // 1. Email validation

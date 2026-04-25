@@ -1,0 +1,194 @@
+import { toHijri } from 'hijri-converter'
+import { normalizeDate as parseNormalizeDate, isValidDate as parseIsValidDate } from './dateParser'
+
+const NO_VALUE_TEXT = 'لا يوجد'
+
+const isNoValue = (value: string | Date | null | undefined): boolean => {
+  if (value === null || value === undefined) return true
+  if (typeof value === 'string') return value.trim() === NO_VALUE_TEXT || value.trim() === ''
+  return false
+}
+
+/**
+ * تحويل التاريخ الميلادي إلى هجري
+ */
+export function toHijriDate(date: Date | null | undefined): { year: number; month: number; day: number } {
+  if (!date || date === null || date === undefined) {
+    return { year: 0, month: 0, day: 0 }
+  }
+  
+  try {
+    const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate())
+    return {
+      year: hijri.hy,
+      month: hijri.hm,
+      day: hijri.hd
+    }
+  } catch (error) {
+    console.error('خطأ في تحويل التاريخ إلى هجري:', error)
+    return { year: 0, month: 0, day: 0 }
+  }
+}
+
+/**
+ * تنسيق التاريخ الهجري كنص
+ */
+export function formatHijriDate(date: Date | null | undefined): string {
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const hijri = toHijriDate(date)
+  if (hijri.year === 0) return ''
+  
+  const monthNames = [
+    'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة',
+    'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+  ]
+  
+  return `${hijri.day} ${monthNames[hijri.month - 1]} ${hijri.year} هـ`
+}
+
+/**
+ * تنسيق التاريخ الميلادي كنص عربي
+ */
+export function formatGregorianDate(date: Date | string | null | undefined, includeTime: boolean = false): string {
+  // التحقق من القيم الفارغة
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    calendar: 'gregory',
+    numberingSystem: 'arab'
+  }
+  
+  if (includeTime) {
+    options.hour = '2-digit'
+    options.minute = '2-digit'
+  }
+  
+  return dateObj.toLocaleDateString('ar-SA', options)
+}
+
+
+/**
+ * تنسيق التاريخ الميلادي فقط (بدون الهجري)
+ */
+export function formatDateWithHijri(date: Date | string | null | undefined, includeTime: boolean = false): string {
+  // التحقق من القيم الفارغة
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  return formatGregorianDate(dateObj, includeTime)
+}
+
+/**
+ * تنسيق التاريخ بصيغة yyyy-MM-dd (الميلادي فقط)
+ */
+export function formatDateShortWithHijri(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * تنسيق التاريخ مع الوقت بصيغة yyyy-MM-dd HH:mm (الميلادي فقط)
+ */
+export function formatDateTimeWithHijri(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const hours = String(dateObj.getHours()).padStart(2, '0')
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+/**
+ * تنسيق التاريخ بصيغة dd-mmm-yyyy (مثل: 03-May-2026)
+ */
+export function formatDateDDMMMYYYY(date: Date | string | null | undefined): string {
+  // التحقق من القيم الفارغة
+  if (isNoValue(date)) {
+    return NO_VALUE_TEXT
+  }
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // التحقق من أن dateObj صحيح
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return ''
+  }
+  
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ]
+  
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const month = monthNames[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+  
+  return `${day}-${month}-${year}`
+}
+
+/**
+ * تحويل أي صيغة تاريخ إلى YYYY-MM-DD
+ * يدعم جميع الصيغ المدعومة في dateParser
+ */
+export function normalizeDate(dateStr: string | null | undefined): string | null {
+  return parseNormalizeDate(dateStr)
+}
+
+/**
+ * التحقق من صحة التاريخ
+ * يدعم جميع الصيغ المدعومة في dateParser
+ */
+export function isValidDate(dateStr: string | null | undefined): boolean {
+  return parseIsValidDate(dateStr)
+}
