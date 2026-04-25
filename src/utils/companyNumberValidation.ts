@@ -12,7 +12,9 @@ export const isNoValue = (value: string | number | null | undefined): boolean =>
   return String(value).trim() === NO_VALUE_TEXT
 }
 
-export const normalizeNoValue = (value: string | number | null | undefined): string | number | null => {
+export const normalizeNoValue = (
+  value: string | number | null | undefined
+): string | number | null => {
   if (value === null || value === undefined) return null
   return isNoValue(value) ? null : value
 }
@@ -22,7 +24,9 @@ export const normalizeNoValue = (value: string | number | null | undefined): str
  * @param unifiedNumber - الرقم الموحد
  * @returns { valid: boolean, error?: string }
  */
-export const validateUnifiedNumber = (unifiedNumber: string | number | null | undefined): { valid: boolean; error?: string } => {
+export const validateUnifiedNumber = (
+  unifiedNumber: string | number | null | undefined
+): { valid: boolean; error?: string } => {
   if (!unifiedNumber) {
     return { valid: false, error: 'الرقم الموحد مطلوب' }
   }
@@ -40,12 +44,18 @@ export const validateUnifiedNumber = (unifiedNumber: string | number | null | un
 
   // التحقق من أن الطول يساوي 10 أرقام
   if (numberStr.length !== 10) {
-    return { valid: false, error: `الرقم الموحد يجب أن يكون 10 أرقام (الحالي: ${numberStr.length} أرقام)` }
+    return {
+      valid: false,
+      error: `الرقم الموحد يجب أن يكون 10 أرقام (الحالي: ${numberStr.length} أرقام)`,
+    }
   }
 
   // التحقق من أن يبدأ برقم 7
   if (!numberStr.startsWith('7')) {
-    return { valid: false, error: `الرقم الموحد يجب أن يبدأ برقم 7 (الحالي: يبدأ برقم ${numberStr[0]})` }
+    return {
+      valid: false,
+      error: `الرقم الموحد يجب أن يبدأ برقم 7 (الحالي: يبدأ برقم ${numberStr[0]})`,
+    }
   }
 
   return { valid: true }
@@ -56,7 +66,9 @@ export const validateUnifiedNumber = (unifiedNumber: string | number | null | un
  * @param laborSubscription - رقم قوى (يجب أن يكون على شكل 13-XXXXXXX)
  * @returns { valid: boolean, error?: string }
  */
-export const validateLaborSubscription = (laborSubscription: string | number | null | undefined): { valid: boolean; error?: string } => {
+export const validateLaborSubscription = (
+  laborSubscription: string | number | null | undefined
+): { valid: boolean; error?: string } => {
   if (!laborSubscription) {
     // إذا كان فارغاً، لا مشكلة (حقل اختياري)
     return { valid: true }
@@ -70,13 +82,13 @@ export const validateLaborSubscription = (laborSubscription: string | number | n
 
   // التحقق من الصيغة: 13-XXXXXXX
   const laborSubPattern = /^13-\d{7}$/
-  
+
   if (!laborSubPattern.test(numberStr)) {
     // رسالة خطأ مفصلة بناءً على المشكلة
     if (!numberStr.startsWith('13')) {
       return { valid: false, error: 'رقم قوى يجب أن يبدأ ب 13' }
     }
-    
+
     if (!numberStr.includes('-')) {
       return { valid: false, error: 'رقم قوى يجب أن يكون بالصيغة: 13-XXXXXXX (مثال: 13-4084802)' }
     }
@@ -87,7 +99,10 @@ export const validateLaborSubscription = (laborSubscription: string | number | n
     }
 
     if (!/^\d{7}$/.test(parts[1])) {
-      return { valid: false, error: `الجزء الثاني من رقم قوى يجب أن يكون 7 أرقام بالضبط (الحالي: ${parts[1].length} أرقام)` }
+      return {
+        valid: false,
+        error: `الجزء الثاني من رقم قوى يجب أن يكون 7 أرقام بالضبط (الحالي: ${parts[1].length} أرقام)`,
+      }
     }
 
     return { valid: false, error: 'الصيغة الصحيحة لرقم قوى: 13-XXXXXXX (مثال: 13-4084802)' }
@@ -99,13 +114,16 @@ export const validateLaborSubscription = (laborSubscription: string | number | n
 /**
  * دالة مساعدة للتحقق من رقمي المؤسسة معاً
  */
-export const validateCompanyNumbers = (unifiedNumber: string | number | null | undefined, laborSubscription: string | number | null | undefined) => {
+export const validateCompanyNumbers = (
+  unifiedNumber: string | number | null | undefined,
+  laborSubscription: string | number | null | undefined
+) => {
   const unifiedValidation = validateUnifiedNumber(unifiedNumber)
   const laborValidation = validateLaborSubscription(laborSubscription)
 
   return {
     unifiedNumber: unifiedValidation,
     laborSubscription: laborValidation,
-    isValid: unifiedValidation.valid && laborValidation.valid
+    isValid: unifiedValidation.valid && laborValidation.valid,
   }
 }

@@ -117,14 +117,14 @@ function AuthStatus() {
 describe('AuthProvider session validation', () => {
   beforeEach(() => {
     vi.useRealTimers()
-    vi.spyOn(global, 'setInterval').mockImplementation((((handler: TimerHandler) => {
+    vi.spyOn(global, 'setInterval').mockImplementation(((handler: TimerHandler) => {
       if (typeof handler === 'function') {
         queueMicrotask(() => {
           void handler()
         })
       }
       return 1 as unknown as ReturnType<typeof setInterval>
-    }) as unknown) as typeof setInterval)
+    }) as unknown as typeof setInterval)
     vi.spyOn(global, 'clearInterval').mockImplementation(() => undefined)
 
     getSessionMock.mockResolvedValue({ data: { session: mockSession }, error: null })
@@ -161,10 +161,13 @@ describe('AuthProvider session validation', () => {
       expect(screen.getByText('admin@test.com')).toBeInTheDocument()
     })
 
-    await waitFor(() => {
-      expect(signOutMock).not.toHaveBeenCalled()
-      expect(screen.getByText('admin@test.com')).toBeInTheDocument()
-      expect(screen.queryByText('تم إنهاء جلستك من قبل المسؤول')).not.toBeInTheDocument()
-    }, { timeout: 4000 })
+    await waitFor(
+      () => {
+        expect(signOutMock).not.toHaveBeenCalled()
+        expect(screen.getByText('admin@test.com')).toBeInTheDocument()
+        expect(screen.queryByText('تم إنهاء جلستك من قبل المسؤول')).not.toBeInTheDocument()
+      },
+      { timeout: 4000 }
+    )
   })
 })

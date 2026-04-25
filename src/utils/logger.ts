@@ -46,12 +46,16 @@ class Logger {
   private logs: LogEntry[] = []
   private maxLogs = 100
 
-  private recordLog(level: LogLevel, formattedMessage: string, context?: Record<string, unknown>): void {
+  private recordLog(
+    level: LogLevel,
+    formattedMessage: string,
+    context?: Record<string, unknown>
+  ): void {
     const entry: LogEntry = {
       level,
       message: formattedMessage,
       timestamp: new Date().toISOString(),
-      context
+      context,
     }
 
     this.logs.push(entry)
@@ -77,9 +81,9 @@ class Logger {
       [LogLevel.WARN]: '⚠️ [WARN]',
       [LogLevel.ERROR]: '❌ [ERROR]',
     }[level]
-    return `${prefix} ${args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-    ).join(' ')}`
+    return `${prefix} ${args
+      .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)))
+      .join(' ')}`
   }
 
   debug(...args: unknown[]): void {
@@ -117,4 +121,3 @@ class Logger {
 }
 
 export const logger = new Logger()
-

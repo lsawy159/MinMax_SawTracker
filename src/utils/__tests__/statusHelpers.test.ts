@@ -115,7 +115,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       })
     })
 
@@ -124,7 +124,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       })
     })
 
@@ -133,7 +133,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-yellow-50',
         textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
+        borderColor: 'border-yellow-200',
       })
     })
 
@@ -142,7 +142,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-green-50',
         textColor: 'text-green-700',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200',
       })
     })
 
@@ -151,7 +151,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-green-50',
         textColor: 'text-green-700',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200',
       })
     })
 
@@ -160,7 +160,7 @@ describe('statusHelpers', () => {
       expect(color).toEqual({
         backgroundColor: 'bg-green-50',
         textColor: 'text-green-700',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200',
       })
     })
 
@@ -180,7 +180,7 @@ describe('statusHelpers', () => {
 
     it('always returns object with all required keys', () => {
       const testCases = [-1, 0, 7, 8, 30, 31, null, undefined]
-      testCases.forEach(days => {
+      testCases.forEach((days) => {
         const color = getStatusColor(days)
         expect(color).toHaveProperty('backgroundColor')
         expect(color).toHaveProperty('textColor')

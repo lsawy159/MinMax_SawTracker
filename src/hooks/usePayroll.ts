@@ -1,7 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Employee, ObligationType, PayrollEntry, PayrollInputMode, PayrollRun, PayrollScopeType, supabase } from '@/lib/supabase'
+import {
+  Employee,
+  ObligationType,
+  PayrollEntry,
+  PayrollInputMode,
+  PayrollRun,
+  PayrollScopeType,
+  supabase,
+} from '@/lib/supabase'
 import { logger } from '@/utils/logger'
-import { calculatePayrollTotals, normalizePayrollEntryAmounts, roundPayrollAmount } from '@/utils/payrollMath'
+import {
+  calculatePayrollTotals,
+  normalizePayrollEntryAmounts,
+  roundPayrollAmount,
+} from '@/utils/payrollMath'
 import {
   EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
   PayrollObligationBreakdown,
@@ -157,7 +169,10 @@ async function restorePayrollEntryAllocations(entryIds: string[]) {
     .not('source_line_id', 'is', null)
 
   if (existingComponentsError) {
-    logger.error('Error fetching payroll components for allocation restore:', existingComponentsError)
+    logger.error(
+      'Error fetching payroll components for allocation restore:',
+      existingComponentsError
+    )
     throw existingComponentsError
   }
 
@@ -301,7 +316,7 @@ async function ensureAutoPayrollObligationLine(
     .update({
       amount_due: amount,
       amount_paid: amount <= 0 ? 0 : line.amount_paid,
-      payroll_entry_id: amount <= 0 ? null : line.payroll_entry_id ?? null,
+      payroll_entry_id: amount <= 0 ? null : (line.payroll_entry_id ?? null),
       line_status: amount <= 0 ? 'paid' : getLineStatus(amount, Number(line.amount_paid) || 0),
       notes: marker,
     })
@@ -316,7 +331,7 @@ async function ensureAutoPayrollObligationLine(
     ...line,
     amount_due: amount,
     amount_paid: amount <= 0 ? 0 : line.amount_paid,
-    payroll_entry_id: amount <= 0 ? null : line.payroll_entry_id ?? null,
+    payroll_entry_id: amount <= 0 ? null : (line.payroll_entry_id ?? null),
     line_status: amount <= 0 ? 'paid' : getLineStatus(amount, Number(line.amount_paid) || 0),
   }
 }
@@ -342,7 +357,9 @@ function buildPayrollSlipNumber(run: PayrollRun, entry: PayrollEntry): string {
 async function syncPayrollSlipsForRun(run: PayrollRun) {
   const { data: entries, error: entriesError } = await supabase
     .from('payroll_entries')
-    .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
+    .select(
+      'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+    )
     .eq('payroll_run_id', run.id)
     .order('employee_name_snapshot', { ascending: true })
 
@@ -359,7 +376,9 @@ async function syncPayrollSlipsForRun(run: PayrollRun) {
   const entryIds = entryList.map((entry) => entry.id)
   const { data: components, error: componentsError } = await supabase
     .from('payroll_entry_components')
-    .select('payroll_entry_id, component_type, component_code, amount, notes, source_line_id, sort_order')
+    .select(
+      'payroll_entry_id, component_type, component_code, amount, notes, source_line_id, sort_order'
+    )
     .in('payroll_entry_id', entryIds)
     .order('sort_order', { ascending: true })
 
@@ -407,7 +426,11 @@ async function syncPayrollSlipsForRun(run: PayrollRun) {
   return slipsPayload.length
 }
 
-async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayrollEntryInput, shouldApplyAllocations = false) {
+async function syncPayrollEntryComponents(
+  entry: PayrollEntry,
+  input: UpsertPayrollEntryInput,
+  shouldApplyAllocations = false
+) {
   const { data: existingComponents, error: existingComponentsError } = await supabase
     .from('payroll_entry_components')
     .select('id, amount, source_line_id, component_code, payroll_entry_id')
@@ -431,19 +454,21 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
     }
 
     const currentAmount = previousAllocationByLineId.get(component.source_line_id) ?? 0
-    previousAllocationByLineId.set(component.source_line_id, currentAmount + (Number(component.amount) || 0))
+    previousAllocationByLineId.set(
+      component.source_line_id,
+      currentAmount + (Number(component.amount) || 0)
+    )
   }
 
   const breakdown = normalizePayrollObligationBreakdown(
-    input.deduction_breakdown ?? (
-      getPayrollObligationBreakdownTotal(existingBreakdown) > 0
+    input.deduction_breakdown ??
+      (getPayrollObligationBreakdownTotal(existingBreakdown) > 0
         ? existingBreakdown
         : {
             ...EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
             penalty: input.deductions_amount,
             advance: input.installment_deducted_amount,
-          }
-    )
+          })
   )
 
   const { data: dueMonthLines, error: dueMonthLinesError } = await supabase
@@ -459,7 +484,9 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
   }
 
   const normalizedLines = (dueMonthLines ?? []) as ObligationLineAllocationRow[]
-  const headerIds = Array.from(new Set(normalizedLines.map((line) => line.header_id).filter(Boolean)))
+  const headerIds = Array.from(
+    new Set(normalizedLines.map((line) => line.header_id).filter(Boolean))
+  )
   const headerMap = new Map<string, ObligationHeaderRow>()
 
   if (headerIds.length > 0) {
@@ -478,21 +505,38 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
     }
   }
 
-  const restoredLineUpdates: Array<{ id: string; amount_paid: number; payroll_entry_id: string | null; line_status: 'unpaid' | 'partial' | 'paid' }> = []
-  const appliedLineUpdates = new Map<string, { id: string; amount_paid: number; payroll_entry_id: string | null; line_status: 'unpaid' | 'partial' | 'paid' }>()
+  const restoredLineUpdates: Array<{
+    id: string
+    amount_paid: number
+    payroll_entry_id: string | null
+    line_status: 'unpaid' | 'partial' | 'paid'
+  }> = []
+  const appliedLineUpdates = new Map<
+    string,
+    {
+      id: string
+      amount_paid: number
+      payroll_entry_id: string | null
+      line_status: 'unpaid' | 'partial' | 'paid'
+    }
+  >()
   const componentsToInsert: PayrollEntryComponentRow[] = []
   let sortOrder = 1
 
   const workingLines = normalizedLines.map((line) => {
     const previousAllocatedAmount = previousAllocationByLineId.get(line.id) ?? 0
-    const restoredAmountPaid = Math.max((Number(line.amount_paid) || 0) - previousAllocatedAmount, 0)
+    const restoredAmountPaid = Math.max(
+      (Number(line.amount_paid) || 0) - previousAllocatedAmount,
+      0
+    )
     const header = headerMap.get(line.header_id)
 
     if (previousAllocatedAmount > 0 || line.payroll_entry_id === entry.id) {
       restoredLineUpdates.push({
         id: line.id,
         amount_paid: Number(restoredAmountPaid.toFixed(2)),
-        payroll_entry_id: line.payroll_entry_id === entry.id ? null : line.payroll_entry_id ?? null,
+        payroll_entry_id:
+          line.payroll_entry_id === entry.id ? null : (line.payroll_entry_id ?? null),
         line_status: getLineStatus(Number(line.amount_due) || 0, restoredAmountPaid),
       })
     }
@@ -526,7 +570,10 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
       component_type: bucket === 'penalty' || bucket === 'other' ? 'deduction' : 'installment',
       component_code: getPayrollComponentCode(bucket),
       amount: Number(amount.toFixed(2)),
-      notes: bucket === 'penalty' || bucket === 'other' ? (input.deductions_notes ?? null) : (input.notes ?? null),
+      notes:
+        bucket === 'penalty' || bucket === 'other'
+          ? (input.deductions_notes ?? null)
+          : (input.notes ?? null),
       sort_order: sortOrder++,
     })
   }
@@ -537,14 +584,19 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
       remaining = 0
     }
 
-    const manualLines = workingLines.filter((line) => lineMatchesBucket(line.obligation_type, bucket) && !line.is_auto_synced)
+    const manualLines = workingLines.filter(
+      (line) => lineMatchesBucket(line.obligation_type, bucket) && !line.is_auto_synced
+    )
 
     for (const line of manualLines) {
       if (remaining <= 0) {
         break
       }
 
-      const availableAmount = Math.max((Number(line.amount_due) || 0) - Number(line.restoredAmountPaid || 0), 0)
+      const availableAmount = Math.max(
+        (Number(line.amount_due) || 0) - Number(line.restoredAmountPaid || 0),
+        0
+      )
       if (availableAmount <= 0) {
         continue
       }
@@ -572,7 +624,12 @@ async function syncPayrollEntryComponents(entry: PayrollEntry, input: UpsertPayr
       })
     }
 
-    const autoLine = await ensureAutoPayrollObligationLine(input.employee_id, input.payroll_month, bucket, remaining)
+    const autoLine = await ensureAutoPayrollObligationLine(
+      input.employee_id,
+      input.payroll_month,
+      bucket,
+      remaining
+    )
 
     if (autoLine && remaining > 0) {
       const nextPaid = Number(remaining.toFixed(2))
@@ -667,7 +724,9 @@ export function usePayrollRuns() {
     queryFn: async () => {
       const { data: runs, error: runsError } = await supabase
         .from('payroll_runs')
-        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
+        .select(
+          'id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at'
+        )
         .order('payroll_month', { ascending: false })
         .order('created_at', { ascending: false })
 
@@ -684,7 +743,9 @@ export function usePayrollRuns() {
       const runIds = runList.map((run) => run.id)
       const { data: entries, error: entriesError } = await supabase
         .from('payroll_entries')
-        .select('payroll_run_id, basic_salary_snapshot, attendance_days, paid_leave_days, overtime_amount, gross_amount, net_amount, installment_deducted_amount')
+        .select(
+          'payroll_run_id, basic_salary_snapshot, attendance_days, paid_leave_days, overtime_amount, gross_amount, net_amount, installment_deducted_amount'
+        )
         .in('payroll_run_id', runIds)
 
       if (entriesError) {
@@ -711,9 +772,16 @@ export function usePayrollRuns() {
 
         const normalized = normalizePayrollEntryAmounts(entry as Partial<PayrollEntry>)
         summary.entry_count += 1
-        summary.total_gross_amount = roundPayrollAmount(summary.total_gross_amount + normalized.grossAmount)
-        summary.total_net_amount = roundPayrollAmount(summary.total_net_amount + normalized.netAmount)
-        summary.total_installment_deducted_amount = roundPayrollAmount(summary.total_installment_deducted_amount + (Number(entry.installment_deducted_amount) || 0))
+        summary.total_gross_amount = roundPayrollAmount(
+          summary.total_gross_amount + normalized.grossAmount
+        )
+        summary.total_net_amount = roundPayrollAmount(
+          summary.total_net_amount + normalized.netAmount
+        )
+        summary.total_installment_deducted_amount = roundPayrollAmount(
+          summary.total_installment_deducted_amount +
+            (Number(entry.installment_deducted_amount) || 0)
+        )
       }
 
       return runList.map((run) => totalsByRunId.get(run.id) as PayrollRunSummary)
@@ -732,7 +800,9 @@ export function usePayrollRunEntries(runId?: string) {
 
       const { data, error } = await supabase
         .from('payroll_entries')
-        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
+        .select(
+          'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+        )
         .eq('payroll_run_id', runId)
         .order('employee_name_snapshot', { ascending: true })
 
@@ -794,7 +864,11 @@ export function usePayrollRunSlips(runId?: string) {
   })
 }
 
-export function useScopedPayrollEmployees(scopeType?: PayrollScopeType, scopeId?: string, payrollMonth?: string) {
+export function useScopedPayrollEmployees(
+  scopeType?: PayrollScopeType,
+  scopeId?: string,
+  payrollMonth?: string
+) {
   return useQuery({
     queryKey: ['payroll-scope-employees', scopeType, scopeId, payrollMonth],
     enabled: Boolean(scopeType && scopeId && payrollMonth),
@@ -805,13 +879,16 @@ export function useScopedPayrollEmployees(scopeType?: PayrollScopeType, scopeId?
 
       let employeeQuery = supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, company:companies(name), project:projects(name)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at, company:companies(name), project:projects(name)'
+        )
         .eq('is_deleted', false)
         .order('name', { ascending: true })
 
-      employeeQuery = scopeType === 'company'
-        ? employeeQuery.eq('company_id', scopeId)
-        : employeeQuery.eq('project_id', scopeId)
+      employeeQuery =
+        scopeType === 'company'
+          ? employeeQuery.eq('company_id', scopeId)
+          : employeeQuery.eq('project_id', scopeId)
 
       const { data: employees, error: employeesError } = await employeeQuery
 
@@ -841,7 +918,10 @@ export function useScopedPayrollEmployees(scopeType?: PayrollScopeType, scopeId?
       const suggestedInstallments = new Map<string, number>()
       for (const line of obligationLines ?? []) {
         const existing = suggestedInstallments.get(line.employee_id as string) ?? 0
-        const remaining = Math.max((Number(line.amount_due) || 0) - (Number(line.amount_paid) || 0), 0)
+        const remaining = Math.max(
+          (Number(line.amount_due) || 0) - (Number(line.amount_paid) || 0),
+          0
+        )
         suggestedInstallments.set(line.employee_id as string, existing + remaining)
       }
 
@@ -867,14 +947,18 @@ export function useCreatePayrollRun() {
           input_mode: input.input_mode,
           notes: input.notes ?? null,
         })
-        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
+        .select(
+          'id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at'
+        )
         .single()
 
       if (error) {
         logger.error('Error creating payroll run:', error)
 
         if (error.code === '23505') {
-          throw new Error('يوجد مسير رواتب بالفعل لهذا الشهر ولنفس المشروع أو المؤسسة. افتح المسير الموجود بدل إنشاء مسير جديد.')
+          throw new Error(
+            'يوجد مسير رواتب بالفعل لهذا الشهر ولنفس المشروع أو المؤسسة. افتح المسير الموجود بدل إنشاء مسير جديد.'
+          )
         }
 
         throw error
@@ -925,7 +1009,8 @@ export function useUpsertPayrollEntry() {
         overtime_notes: input.overtime_notes ?? null,
         deductions_amount: normalizedBreakdown.penalty + normalizedBreakdown.other,
         deductions_notes: input.deductions_notes ?? null,
-        installment_deducted_amount: normalizedBreakdown.transfer_renewal + normalizedBreakdown.advance,
+        installment_deducted_amount:
+          normalizedBreakdown.transfer_renewal + normalizedBreakdown.advance,
         gross_amount: normalizedTotals.grossAmount,
         net_amount: normalizedTotals.netAmount,
         entry_status: input.entry_status,
@@ -935,7 +1020,9 @@ export function useUpsertPayrollEntry() {
       const { data, error } = await supabase
         .from('payroll_entries')
         .upsert(payload, { onConflict: 'payroll_run_id,employee_id' })
-        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
+        .select(
+          'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+        )
         .single()
 
       if (error) {
@@ -971,7 +1058,9 @@ export function useUpdatePayrollRunStatus() {
         .from('payroll_runs')
         .update(payload)
         .eq('id', runId)
-        .select('id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at')
+        .select(
+          'id,payroll_month,scope_type,scope_id,input_mode,status,uploaded_file_path,notes,created_by_user_id,approved_by_user_id,created_at,updated_at,approved_at'
+        )
         .single()
 
       if (error) {
@@ -994,7 +1083,9 @@ export function useUpdatePayrollRunStatus() {
 
       const { data: entryRows, error: entryRowsError } = await supabase
         .from('payroll_entries')
-        .select('id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at')
+        .select(
+          'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+        )
         .eq('payroll_run_id', runId)
 
       if (entryRowsError) {
@@ -1006,29 +1097,33 @@ export function useUpdatePayrollRunStatus() {
 
       if (status === 'finalized') {
         for (const entry of runEntries) {
-          await syncPayrollEntryComponents(entry, {
-            payroll_run_id: run.id,
-            payroll_run_status: 'finalized',
-            payroll_month: run.payroll_month,
-            employee_id: entry.employee_id,
-            residence_number_snapshot: entry.residence_number_snapshot,
-            employee_name_snapshot: entry.employee_name_snapshot,
-            company_name_snapshot: entry.company_name_snapshot ?? null,
-            project_name_snapshot: entry.project_name_snapshot ?? null,
-            basic_salary_snapshot: entry.basic_salary_snapshot,
-            daily_rate_snapshot: entry.daily_rate_snapshot,
-            attendance_days: entry.attendance_days,
-            paid_leave_days: entry.paid_leave_days,
-            overtime_amount: entry.overtime_amount,
-            overtime_notes: entry.overtime_notes ?? null,
-            deductions_amount: entry.deductions_amount,
-            deductions_notes: entry.deductions_notes ?? null,
-            installment_deducted_amount: entry.installment_deducted_amount,
-            gross_amount: entry.gross_amount,
-            net_amount: entry.net_amount,
-            entry_status: entry.entry_status,
-            notes: entry.notes ?? null,
-          }, true)
+          await syncPayrollEntryComponents(
+            entry,
+            {
+              payroll_run_id: run.id,
+              payroll_run_status: 'finalized',
+              payroll_month: run.payroll_month,
+              employee_id: entry.employee_id,
+              residence_number_snapshot: entry.residence_number_snapshot,
+              employee_name_snapshot: entry.employee_name_snapshot,
+              company_name_snapshot: entry.company_name_snapshot ?? null,
+              project_name_snapshot: entry.project_name_snapshot ?? null,
+              basic_salary_snapshot: entry.basic_salary_snapshot,
+              daily_rate_snapshot: entry.daily_rate_snapshot,
+              attendance_days: entry.attendance_days,
+              paid_leave_days: entry.paid_leave_days,
+              overtime_amount: entry.overtime_amount,
+              overtime_notes: entry.overtime_notes ?? null,
+              deductions_amount: entry.deductions_amount,
+              deductions_notes: entry.deductions_notes ?? null,
+              installment_deducted_amount: entry.installment_deducted_amount,
+              gross_amount: entry.gross_amount,
+              net_amount: entry.net_amount,
+              entry_status: entry.entry_status,
+              notes: entry.notes ?? null,
+            },
+            true
+          )
         }
 
         await syncPayrollSlipsForRun(run)
@@ -1099,10 +1194,7 @@ export function useDeletePayrollRun() {
         }
       }
 
-      const { error: runDeleteError } = await supabase
-        .from('payroll_runs')
-        .delete()
-        .eq('id', runId)
+      const { error: runDeleteError } = await supabase.from('payroll_runs').delete().eq('id', runId)
 
       if (runDeleteError) {
         logger.error('Error deleting payroll run:', runDeleteError)

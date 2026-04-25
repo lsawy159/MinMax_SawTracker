@@ -56,7 +56,7 @@ export function getErrorStatus(error: unknown): number | undefined {
  */
 export function getInputValue(value: unknown): string {
   if (typeof value === 'boolean') {
-    return ''  // Do not assign boolean to input
+    return '' // Do not assign boolean to input
   }
   if (value === null || value === undefined) {
     return ''

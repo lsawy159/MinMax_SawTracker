@@ -162,7 +162,7 @@ export async function generateAlertExcelWorkbook(): Promise<WorkBook | null> {
 
     // Group alerts by type
     const alertsByType: Record<string, AlertLogRecord[]> = {}
-    alerts.forEach(alert => {
+    alerts.forEach((alert) => {
       if (!alertsByType[alert.alert_type]) {
         alertsByType[alert.alert_type] = []
       }
@@ -175,11 +175,11 @@ export async function generateAlertExcelWorkbook(): Promise<WorkBook | null> {
     // Add summary sheet
     const summaryData = Object.entries(alertsByType).map(([type, records]) => ({
       'نوع التنبيه': type,
-      'العدد': records.length,
-      'عاجل': records.filter(r => r.priority === 'urgent').length,
-      'هام': records.filter(r => r.priority === 'high').length,
-      'متوسط': records.filter(r => r.priority === 'medium').length,
-      'منخفض': records.filter(r => r.priority === 'low').length,
+      العدد: records.length,
+      عاجل: records.filter((r) => r.priority === 'urgent').length,
+      هام: records.filter((r) => r.priority === 'high').length,
+      متوسط: records.filter((r) => r.priority === 'medium').length,
+      منخفض: records.filter((r) => r.priority === 'low').length,
     }))
 
     const summarySheet = XLSX.utils.json_to_sheet(summaryData, {
@@ -198,17 +198,19 @@ export async function generateAlertExcelWorkbook(): Promise<WorkBook | null> {
     // Add sheet for each alert type
     Object.entries(alertsByType).forEach(([alertType, records]) => {
       const dedupedRecords = dedupeRecordsByEntity(records)
-      const sheetData = dedupedRecords.map(record => ({
-        'التاريخ': new Date(record.created_at).toLocaleString('ar-SA', {
+      const sheetData = dedupedRecords.map((record) => ({
+        التاريخ: new Date(record.created_at).toLocaleString('ar-SA', {
           timeZone: 'Asia/Riyadh',
         }),
-        'الأولوية': getPriorityArabic(record.priority),
-        'العنوان': record.title,
-        'الرسالة': record.message,
+        الأولوية: getPriorityArabic(record.priority),
+        العنوان: record.title,
+        الرسالة: record.message,
         'الإجراء المطلوب': record.action_required || '-',
-        'تاريخ الانتهاء': record.expiry_date ? new Date(record.expiry_date).toLocaleDateString('ar-SA') : '-',
-        'الكيان': record.employee_id ? 'موظف' : 'شركة',
-        'ملاحظات': JSON.stringify(record.details || {}),
+        'تاريخ الانتهاء': record.expiry_date
+          ? new Date(record.expiry_date).toLocaleDateString('ar-SA')
+          : '-',
+        الكيان: record.employee_id ? 'موظف' : 'شركة',
+        ملاحظات: JSON.stringify(record.details || {}),
       }))
 
       const sheet = XLSX.utils.json_to_sheet(sheetData, {
@@ -265,7 +267,10 @@ function getPriorityArabic(priority: string): string {
 /**
  * Download workbook as file
  */
-export async function downloadWorkbook(wb: WorkBook, filename: string = 'التنبيهات_اليومية.xlsx'): Promise<void> {
+export async function downloadWorkbook(
+  wb: WorkBook,
+  filename: string = 'التنبيهات_اليومية.xlsx'
+): Promise<void> {
   try {
     const XLSX = await loadXlsx()
     XLSX.writeFile(wb, filename)

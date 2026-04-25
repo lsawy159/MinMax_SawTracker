@@ -38,7 +38,9 @@ export function getPayrollObligationBucketLabel(bucket: PayrollObligationBucketK
   return PAYROLL_OBLIGATION_BUCKET_LABELS[bucket]
 }
 
-export function getPayrollObligationBucketFromType(type: ObligationType): PayrollObligationBucketKey {
+export function getPayrollObligationBucketFromType(
+  type: ObligationType
+): PayrollObligationBucketKey {
   if (type === 'transfer' || type === 'renewal') return 'transfer_renewal'
   if (type === 'penalty') return 'penalty'
   if (type === 'advance') return 'advance'
@@ -74,7 +76,9 @@ export function getPayrollComponentBucket(code?: string | null): PayrollObligati
   }
 }
 
-export function getPayrollObligationBreakdownTotal(value?: Partial<PayrollObligationBreakdown> | null): number {
+export function getPayrollObligationBreakdownTotal(
+  value?: Partial<PayrollObligationBreakdown> | null
+): number {
   const normalized = normalizePayrollObligationBreakdown(value)
   return normalized.transfer_renewal + normalized.penalty + normalized.advance + normalized.other
 }

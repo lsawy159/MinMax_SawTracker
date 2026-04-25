@@ -15,7 +15,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'active' as 'active' | 'inactive' | 'completed'
+    status: 'active' as 'active' | 'inactive' | 'completed',
   })
 
   const isEditing = !!project
@@ -26,13 +26,13 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
         setFormData({
           name: project.name || '',
           description: project.description || '',
-          status: project.status || 'active'
+          status: project.status || 'active',
         })
       } else {
         setFormData({
           name: '',
           description: '',
-          status: 'active'
+          status: 'active',
         })
       }
     }
@@ -41,7 +41,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
   // معالجة ESC لإغلاق المودال
   useEffect(() => {
     if (!isOpen) return
-    
+
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         // التحقق من أن المستخدم لا يكتب في حقل إدخال
@@ -58,7 +58,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name.trim()) {
       toast.error('يرجى إدخال اسم المشروع')
       return
@@ -69,7 +69,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
       if (isEditing && project) {
         // التحقق من تغيير اسم المشروع
         const nameChanged = project.name !== formData.name.trim()
-        
+
         // تحديث المشروع
         const { error } = await supabase
           .from('projects')
@@ -77,7 +77,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             name: formData.name.trim(),
             description: formData.description.trim() || null,
             status: formData.status,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', project.id)
 
@@ -99,13 +99,11 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
         toast.success('تم تحديث المشروع بنجاح')
       } else {
         // إنشاء مشروع جديد
-        const { error } = await supabase
-          .from('projects')
-          .insert({
-            name: formData.name.trim(),
-            description: formData.description.trim() || null,
-            status: formData.status
-          })
+        const { error } = await supabase.from('projects').insert({
+          name: formData.name.trim(),
+          description: formData.description.trim() || null,
+          status: formData.status,
+        })
 
         if (error) {
           if (error.code === '23505') {
@@ -140,14 +138,11 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             <div className="app-icon-chip">
               <FolderKanban className="w-5 h-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-neutral-900">
               {isEditing ? 'تعديل المشروع' : 'إضافة مشروع جديد'}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 transition">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -156,8 +151,8 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* اسم المشروع */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              اسم المشروع <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              اسم المشروع <span className="text-danger-500">*</span>
             </label>
             <input
               type="text"
@@ -172,9 +167,7 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
 
           {/* الوصف */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              الوصف
-            </label>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">الوصف</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -187,12 +180,15 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
 
           {/* الحالة */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              الحالة
-            </label>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">الحالة</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'completed' })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  status: e.target.value as 'active' | 'inactive' | 'completed',
+                })
+              }
               className="app-input"
               disabled={loading}
             >
@@ -212,13 +208,9 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              className="app-button-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="app-button-primary" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? 'جاري الحفظ...' : (isEditing ? 'تحديث' : 'إنشاء')}
+              {loading ? 'جاري الحفظ...' : isEditing ? 'تحديث' : 'إنشاء'}
             </button>
           </div>
         </form>
@@ -226,4 +218,3 @@ export default function ProjectModal({ isOpen, project, onClose, onSuccess }: Pr
     </div>
   )
 }
-

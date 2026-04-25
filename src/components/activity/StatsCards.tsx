@@ -1,4 +1,13 @@
-import { Activity, Plus, Edit, Trash2, Calendar, Clock, User as UserIcon, Building2 } from 'lucide-react'
+import {
+  Activity,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  Clock,
+  User as UserIcon,
+  Building2,
+} from 'lucide-react'
 
 interface StatsCardsProps {
   total: number
@@ -22,14 +31,62 @@ export function StatsCards({
   companyCount,
 }: StatsCardsProps) {
   const items = [
-    { label: 'السجلات', value: total, icon: Activity, tone: 'border-slate-200 bg-white text-slate-900', iconTone: 'bg-slate-100 text-slate-800' },
-    { label: 'إنشاء', value: createCount, icon: Plus, tone: 'border-green-200 bg-green-50 text-green-700', iconTone: 'bg-green-100 text-green-700' },
-    { label: 'تحديث', value: updateCount, icon: Edit, tone: 'border-amber-200 bg-amber-50 text-amber-700', iconTone: 'bg-amber-100 text-amber-700' },
-    { label: 'حذف', value: deleteCount, icon: Trash2, tone: 'border-red-200 bg-red-50 text-red-700', iconTone: 'bg-red-100 text-red-700' },
-    { label: 'اليوم', value: todayCount, icon: Calendar, tone: 'border-primary/40 bg-primary/10 text-slate-900', iconTone: 'bg-primary/20 text-slate-900' },
-    { label: 'الأسبوع', value: weekCount, icon: Clock, tone: 'border-slate-200 bg-slate-50 text-slate-800', iconTone: 'bg-slate-200 text-slate-800' },
-    { label: 'الموظفين', value: employeeCount, icon: UserIcon, tone: 'border-primary/40 bg-primary/10 text-slate-900', iconTone: 'bg-primary/20 text-slate-900' },
-    { label: 'المؤسسات', value: companyCount, icon: Building2, tone: 'border-slate-200 bg-white text-slate-900', iconTone: 'bg-primary/15 text-slate-900' },
+    {
+      label: 'السجلات',
+      value: total,
+      icon: Activity,
+      tone: 'border-slate-200 bg-white text-slate-900',
+      iconTone: 'bg-slate-100 text-slate-800',
+    },
+    {
+      label: 'إنشاء',
+      value: createCount,
+      icon: Plus,
+      tone: 'border-green-200 bg-green-50 text-success-700',
+      iconTone: 'bg-green-100 text-success-700',
+    },
+    {
+      label: 'تحديث',
+      value: updateCount,
+      icon: Edit,
+      tone: 'border-amber-200 bg-amber-50 text-amber-700',
+      iconTone: 'bg-amber-100 text-amber-700',
+    },
+    {
+      label: 'حذف',
+      value: deleteCount,
+      icon: Trash2,
+      tone: 'border-red-200 bg-red-50 text-red-700',
+      iconTone: 'bg-red-100 text-red-700',
+    },
+    {
+      label: 'اليوم',
+      value: todayCount,
+      icon: Calendar,
+      tone: 'border-primary/40 bg-primary/10 text-slate-900',
+      iconTone: 'bg-primary/20 text-slate-900',
+    },
+    {
+      label: 'الأسبوع',
+      value: weekCount,
+      icon: Clock,
+      tone: 'border-slate-200 bg-slate-50 text-slate-800',
+      iconTone: 'bg-slate-200 text-slate-800',
+    },
+    {
+      label: 'الموظفين',
+      value: employeeCount,
+      icon: UserIcon,
+      tone: 'border-primary/40 bg-primary/10 text-slate-900',
+      iconTone: 'bg-primary/20 text-slate-900',
+    },
+    {
+      label: 'المؤسسات',
+      value: companyCount,
+      icon: Building2,
+      tone: 'border-slate-200 bg-white text-slate-900',
+      iconTone: 'bg-primary/15 text-slate-900',
+    },
   ]
 
   return (
@@ -37,7 +94,10 @@ export function StatsCards({
       {items.map((item) => {
         const Icon = item.icon
         return (
-          <div key={item.label} className={`rounded-xl border p-2 sm:p-3 transition-shadow hover:shadow-md ${item.tone}`}>
+          <div
+            key={item.label}
+            className={`rounded-xl border p-2 sm:p-3 transition-shadow hover:shadow-md ${item.tone}`}
+          >
             <div className="mb-1 flex items-center justify-between">
               <div className="min-w-0">
                 <div className="text-base font-bold sm:text-lg lg:text-xl">{item.value}</div>

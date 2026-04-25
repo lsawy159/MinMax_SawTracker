@@ -6,10 +6,7 @@ import { AuthProvider } from '../contexts/AuthContext'
 /**
  * Custom render function that wraps components with necessary providers
  */
-export function renderWithProviders(
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) {
+export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <BrowserRouter>

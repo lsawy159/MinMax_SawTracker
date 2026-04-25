@@ -1,10 +1,10 @@
 // Import React directly to ensure consistent React instance
-import React, { type ErrorInfo } from 'react';
+import React, { type ErrorInfo } from 'react'
 
 interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  hasError: boolean
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
 
 export class ErrorBoundary extends React.Component<
@@ -12,42 +12,42 @@ export class ErrorBoundary extends React.Component<
   ErrorBoundaryState
 > {
   constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    super(props)
+    this.state = { hasError: false, error: null, errorInfo: null }
   }
 
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error, errorInfo: null };
+    return { hasError: true, error, errorInfo: null }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console for debugging
-    console.error('ErrorBoundary caught an error:', error);
-    console.error('Error Info:', errorInfo);
-    console.error('Component Stack:', errorInfo.componentStack);
-    
+    console.error('ErrorBoundary caught an error:', error)
+    console.error('Error Info:', errorInfo)
+    console.error('Component Stack:', errorInfo.componentStack)
+
     // Update state with error info
     this.setState({
       error,
       errorInfo,
-    });
+    })
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
-  };
+    this.setState({ hasError: false, error: null, errorInfo: null })
+  }
 
   render() {
     if (this.state.hasError) {
-      const isDev = import.meta.env.DEV;
-      
+      const isDev = import.meta.env.DEV
+
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
           <div className="app-panel max-w-2xl w-full border border-red-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-8 w-8 text-red-500"
+                  className="h-8 w-8 text-danger-500"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -60,32 +60,30 @@ export class ErrorBoundary extends React.Component<
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-red-600">
-                حدث خطأ في التطبيق
-              </h2>
+              <h2 className="text-2xl font-bold text-red-600">حدث خطأ في التطبيق</h2>
             </div>
-            
-            <p className="text-gray-700 mb-4">
+
+            <p className="text-neutral-700 mb-4">
               عذراً، حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو تحديث الصفحة.
             </p>
 
             {isDev && this.state.error && (
               <div className="mb-4">
                 <details className="mb-2">
-                  <summary className="cursor-pointer text-sm font-semibold text-gray-700 mb-2">
+                  <summary className="cursor-pointer text-sm font-semibold text-neutral-700 mb-2">
                     تفاصيل الخطأ (للمطورين)
                   </summary>
-                  <div className="mt-2 p-3 bg-gray-100 rounded border border-gray-300">
+                  <div className="mt-2 p-3 bg-neutral-100 rounded border border-neutral-300">
                     <div className="mb-2">
                       <strong className="text-red-600">الرسالة:</strong>
-                      <pre className="mt-1 text-xs text-gray-800 whitespace-pre-wrap break-words">
+                      <pre className="mt-1 text-xs text-neutral-800 whitespace-pre-wrap break-words">
                         {this.state.error?.message || 'Unknown error'}
                       </pre>
                     </div>
                     {this.state.error?.stack && (
                       <div className="mb-2">
                         <strong className="text-red-600">Stack Trace:</strong>
-                        <pre className="mt-1 text-xs text-gray-800 whitespace-pre-wrap break-words max-h-40 overflow-auto">
+                        <pre className="mt-1 text-xs text-neutral-800 whitespace-pre-wrap break-words max-h-40 overflow-auto">
                           {this.state.error.stack}
                         </pre>
                       </div>
@@ -93,7 +91,7 @@ export class ErrorBoundary extends React.Component<
                     {this.state.errorInfo?.componentStack && (
                       <div>
                         <strong className="text-red-600">Component Stack:</strong>
-                        <pre className="mt-1 text-xs text-gray-800 whitespace-pre-wrap break-words max-h-40 overflow-auto">
+                        <pre className="mt-1 text-xs text-neutral-800 whitespace-pre-wrap break-words max-h-40 overflow-auto">
                           {this.state.errorInfo.componentStack}
                         </pre>
                       </div>
@@ -104,24 +102,18 @@ export class ErrorBoundary extends React.Component<
             )}
 
             <div className="flex gap-3">
-              <button
-                onClick={this.handleRetry}
-                className="app-button-primary"
-              >
+              <button onClick={this.handleRetry} className="app-button-primary">
                 إعادة المحاولة
               </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="app-button-secondary"
-              >
+              <button onClick={() => window.location.reload()} className="app-button-secondary">
                 تحديث الصفحة
               </button>
             </div>
           </div>
         </div>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }

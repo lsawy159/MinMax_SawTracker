@@ -92,26 +92,26 @@ export const getStatusColor = (
       return {
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       }
     case 'critical':
       return {
         backgroundColor: 'bg-red-50',
         textColor: 'text-red-700',
-        borderColor: 'border-red-200'
+        borderColor: 'border-red-200',
       }
     case 'warning':
       return {
         backgroundColor: 'bg-yellow-50',
         textColor: 'text-yellow-700',
-        borderColor: 'border-yellow-200'
+        borderColor: 'border-yellow-200',
       }
     case 'ok':
     default:
       return {
         backgroundColor: 'bg-green-50',
         textColor: 'text-green-700',
-        borderColor: 'border-green-200'
+        borderColor: 'border-green-200',
       }
   }
 }

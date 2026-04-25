@@ -26,12 +26,19 @@ export default function TransferProcedures() {
             <RefreshCcw className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <div className="text-left sm:text-right">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">إجراءات النقل</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">إدارة طلبات النقل وتحويلها لاحقاً إلى موظفين بعد اكتمال الحالة</p>
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              إجراءات النقل
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">
+              إدارة طلبات النقل وتحويلها لاحقاً إلى موظفين بعد اكتمال الحالة
+            </p>
           </div>
         </div>
 
-        <TransferProceduresTab canImport={canImport('transferProcedures')} canExport={canExport('transferProcedures')} />
+        <TransferProceduresTab
+          canImport={canImport('transferProcedures')}
+          canExport={canExport('transferProcedures')}
+        />
       </div>
     </Layout>
   )

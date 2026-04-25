@@ -15,7 +15,10 @@ import {
   VALID_PERMISSION_SECTIONS,
 } from '@/utils/PERMISSIONS_SCHEMA'
 
-type PermissionRowUser = Pick<User, 'id' | 'full_name' | 'username' | 'email' | 'role' | 'permissions' | 'is_active'>
+type PermissionRowUser = Pick<
+  User,
+  'id' | 'full_name' | 'username' | 'email' | 'role' | 'permissions' | 'is_active'
+>
 
 const permissionKeySchema = z.string().refine((value) => {
   const [section, action] = value.split('.')
@@ -23,12 +26,16 @@ const permissionKeySchema = z.string().refine((value) => {
     return false
   }
 
-  const validSection = VALID_PERMISSION_SECTIONS.includes(section as keyof typeof PERMISSION_SECTIONS)
+  const validSection = VALID_PERMISSION_SECTIONS.includes(
+    section as keyof typeof PERMISSION_SECTIONS
+  )
   if (!validSection) {
     return false
   }
 
-  return PERMISSION_SECTIONS[section as keyof typeof PERMISSION_SECTIONS].actions.includes(action as never)
+  return PERMISSION_SECTIONS[section as keyof typeof PERMISSION_SECTIONS].actions.includes(
+    action as never
+  )
 }, 'صلاحية غير صحيحة')
 
 const updatePermissionsSchema = z.object({
@@ -114,7 +121,9 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
 
     updateMutation.mutate({
       userId: editingUser.id,
-      permissions: selectedPermissions.filter((permission) => availablePermissionKeys.includes(permission)),
+      permissions: selectedPermissions.filter((permission) =>
+        availablePermissionKeys.includes(permission)
+      ),
     })
   }
 
@@ -124,7 +133,9 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">إدارة الصلاحيات</h1>
-            <p className="text-sm text-slate-600">عدّل صلاحيات كل مستخدم حسب الأقسام المطلوبة له فقط.</p>
+            <p className="text-sm text-slate-600">
+              عدّل صلاحيات كل مستخدم حسب الأقسام المطلوبة له فقط.
+            </p>
           </div>
         </div>
 
@@ -154,9 +165,13 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                         <div className="font-semibold text-slate-900">{user.full_name}</div>
                         <div className="text-xs text-slate-500">{user.username}</div>
                       </td>
-                      <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        <RoleBadge role={user.role} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                        >
                           {user.is_active ? 'نشط' : 'غير نشط'}
                         </span>
                       </td>
@@ -206,16 +221,26 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {VALID_PERMISSION_SECTIONS.map((section) => (
-                    <div key={section} className="rounded-xl border border-gray-200 bg-slate-50/60 p-3">
-                      <h3 className="mb-2 text-sm font-semibold text-slate-900">{PERMISSION_SECTIONS[section].label}</h3>
-                      <p className="mb-2 text-xs text-slate-500">{PERMISSION_SECTIONS[section].description}</p>
+                    <div
+                      key={section}
+                      className="rounded-xl border border-gray-200 bg-slate-50/60 p-3"
+                    >
+                      <h3 className="mb-2 text-sm font-semibold text-slate-900">
+                        {PERMISSION_SECTIONS[section].label}
+                      </h3>
+                      <p className="mb-2 text-xs text-slate-500">
+                        {PERMISSION_SECTIONS[section].description}
+                      </p>
                       <div className="space-y-1.5">
                         {PERMISSION_SECTIONS[section].actions.map((action) => {
                           const permissionKey = `${section}.${action}`
                           const checked = selectedPermissions.includes(permissionKey)
 
                           return (
-                            <label key={permissionKey} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 hover:bg-white">
+                            <label
+                              key={permissionKey}
+                              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 hover:bg-white"
+                            >
                               <input
                                 type="checkbox"
                                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"

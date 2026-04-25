@@ -1,9 +1,9 @@
-import { clsx, ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { differenceInDays } from 'date-fns';
+import { clsx, ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+import { differenceInDays } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 /**

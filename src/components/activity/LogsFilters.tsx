@@ -36,7 +36,7 @@ export function LogsFilters(props: LogsFiltersProps) {
     <div className="app-filter-surface mb-6 p-3 sm:p-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">الفلاتر</h3>
+          <h3 className="text-sm font-semibold text-neutral-900">الفلاتر</h3>
           {hasActiveFilters && (
             <button
               onClick={onReset}
@@ -51,13 +51,13 @@ export function LogsFilters(props: LogsFiltersProps) {
           {/* Search */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 sm:w-5 h-4 sm:h-5" />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 sm:w-5 h-4 sm:h-5" />
               <input
                 type="text"
                 placeholder="البحث..."
                 value={searchTerm}
                 onChange={(e) => onSearchTermChange(e.target.value)}
-                className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pr-9 sm:pr-10 pl-3 sm:pl-4 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -67,7 +67,7 @@ export function LogsFilters(props: LogsFiltersProps) {
             <select
               value={actionFilter}
               onChange={(e) => onActionFilterChange(e.target.value as ActionFilter)}
-              className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full px-2 sm:px-4 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="all">جميع العمليات</option>
               <option value="create">إنشاء</option>
@@ -82,7 +82,7 @@ export function LogsFilters(props: LogsFiltersProps) {
             <select
               value={entityFilter}
               onChange={(e) => onEntityFilterChange(e.target.value as EntityFilter)}
-              className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full px-2 sm:px-4 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="all">جميع الأنواع</option>
               <option value="employee">موظفين</option>
@@ -97,7 +97,7 @@ export function LogsFilters(props: LogsFiltersProps) {
             <select
               value={dateFilter}
               onChange={(e) => onDateFilterChange(e.target.value as DateFilter)}
-              className="w-full px-2 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full px-2 sm:px-4 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="all">جميع التواريخ</option>
               <option value="today">اليوم</option>

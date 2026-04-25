@@ -98,17 +98,19 @@ if (typeof React.createElement !== 'function') {
 // Try to render the app
 try {
   const rootElement = document.getElementById('root')
-  
+
   if (!rootElement) {
-    throw new Error('Root element not found! Make sure there is a <div id="root"></div> in index.html')
+    throw new Error(
+      'Root element not found! Make sure there is a <div id="root"></div> in index.html'
+    )
   }
 
   logger.debug('Root element found, creating React root...')
-  
+
   const root = createRoot(rootElement)
-  
+
   logger.debug('React root created, rendering app...')
-  
+
   root.render(
     <StrictMode>
       <ErrorBoundary>
@@ -116,13 +118,13 @@ try {
         <SpeedInsights />
         <Analytics />
       </ErrorBoundary>
-    </StrictMode>,
+    </StrictMode>
   )
-  
+
   logger.debug('App rendered successfully')
 } catch (error) {
   console.error('Failed to render app:', error)
-  
+
   // Display error in the root element if it exists
   const rootElement = document.getElementById('root')
   if (rootElement) {

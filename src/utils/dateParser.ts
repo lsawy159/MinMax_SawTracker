@@ -20,18 +20,30 @@ const isNoValue = (value: string | null | undefined): boolean => {
  * أسماء الأشهر بالإنجليزية (كاملة ومختصرة)
  */
 const MONTH_NAMES: { [key: string]: number } = {
-  january: 1, jan: 1,
-  february: 2, feb: 2,
-  march: 3, mar: 3,
-  april: 4, apr: 4,
+  january: 1,
+  jan: 1,
+  february: 2,
+  feb: 2,
+  march: 3,
+  mar: 3,
+  april: 4,
+  apr: 4,
   may: 5,
-  june: 6, jun: 6,
-  july: 7, jul: 7,
-  august: 8, aug: 8,
-  september: 9, sep: 9, sept: 9,
-  october: 10, oct: 10,
-  november: 11, nov: 11,
-  december: 12, dec: 12
+  june: 6,
+  jun: 6,
+  july: 7,
+  jul: 7,
+  august: 8,
+  aug: 8,
+  september: 9,
+  sep: 9,
+  sept: 9,
+  october: 10,
+  oct: 10,
+  november: 11,
+  nov: 11,
+  december: 12,
+  dec: 12,
 }
 
 /**
@@ -49,10 +61,7 @@ function excelSerialToDate(serial: number): Date {
  * محاولة تحليل التاريخ بصيغة YYYY-MM-DD أو YYYY/MM/DD
  */
 function parseYYYYMMDD(dateStr: string): Date | null {
-  const patterns = [
-    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/,
-    /^(\d{4})(\d{2})(\d{2})$/
-  ]
+  const patterns = [/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/, /^(\d{4})(\d{2})(\d{2})$/]
 
   for (const pattern of patterns) {
     const match = dateStr.trim().match(pattern)
@@ -60,7 +69,7 @@ function parseYYYYMMDD(dateStr: string): Date | null {
       const year = parseInt(match[1], 10)
       const month = parseInt(match[2], 10) - 1 // JavaScript months are 0-indexed
       const day = parseInt(match[3], 10)
-      
+
       if (year >= 1900 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
         const date = new Date(year, month, day)
         if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
@@ -78,12 +87,12 @@ function parseYYYYMMDD(dateStr: string): Date | null {
 function parseDDMMYYYY(dateStr: string): Date | null {
   const pattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/
   const match = dateStr.trim().match(pattern)
-  
+
   if (match) {
     const day = parseInt(match[1], 10)
     const month = parseInt(match[2], 10) - 1 // JavaScript months are 0-indexed
     const year = parseInt(match[3], 10)
-    
+
     if (year >= 1900 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const date = new Date(year, month, day)
       if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
@@ -100,12 +109,12 @@ function parseDDMMYYYY(dateStr: string): Date | null {
 function parseMMDDYYYY(dateStr: string): Date | null {
   const pattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/
   const match = dateStr.trim().match(pattern)
-  
+
   if (match) {
     const month = parseInt(match[1], 10) - 1 // JavaScript months are 0-indexed
     const day = parseInt(match[2], 10)
     const year = parseInt(match[3], 10)
-    
+
     if (year >= 1900 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const date = new Date(year, month, day)
       if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
@@ -124,14 +133,14 @@ function parseDDMonYYYY(dateStr: string): Date | null {
   const normalized = dateStr.trim()
   // Pattern for DD-Mon-YYYY or DD/Mon/YYYY (e.g., 04/Jun/1997, 03-May-2026)
   const pattern = /^(\d{1,2})[-/]([a-z]{3,})[-/](\d{4})$/i
-  
+
   const match = normalized.match(pattern)
   if (match) {
     const day = parseInt(match[1], 10)
     const monthName = match[2].toLowerCase()
     const year = parseInt(match[3], 10)
     const month = MONTH_NAMES[monthName]
-    
+
     if (month && year >= 1900 && year <= 2100 && day >= 1 && day <= 31) {
       const date = new Date(year, month - 1, day)
       if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
@@ -139,7 +148,7 @@ function parseDDMonYYYY(dateStr: string): Date | null {
       }
     }
   }
-  
+
   return null
 }
 
@@ -151,14 +160,14 @@ function parseYYYYMonDD(dateStr: string): Date | null {
   const normalized = dateStr.trim()
   // Pattern for YYYY-Mon-DD or YYYY/Mon/DD
   const pattern = /^(\d{4})[-/]([a-z]{3,})[-/](\d{1,2})$/i
-  
+
   const match = normalized.match(pattern)
   if (match) {
     const year = parseInt(match[1], 10)
     const monthName = match[2].toLowerCase()
     const day = parseInt(match[3], 10)
     const month = MONTH_NAMES[monthName]
-    
+
     if (month && year >= 1900 && year <= 2100 && day >= 1 && day <= 31) {
       const date = new Date(year, month - 1, day)
       if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
@@ -166,7 +175,7 @@ function parseYYYYMonDD(dateStr: string): Date | null {
       }
     }
   }
-  
+
   return null
 }
 
@@ -178,17 +187,17 @@ function parseYYYYMonDD(dateStr: string): Date | null {
 function parseDDMMYY(dateStr: string): Date | null {
   const pattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{2})$/
   const match = dateStr.trim().match(pattern)
-  
+
   if (match) {
     const day = parseInt(match[1], 10)
     const month = parseInt(match[2], 10) - 1 // JavaScript months are 0-indexed
     const yearTwoDigit = parseInt(match[3], 10)
-    
+
     // تحويل السنة المكونة من رقمين إلى 4 أرقام
     // إذا كانت السنة <= 50، افترض أنها 20XX (مثل 27 → 2027)
     // إذا كانت السنة > 50، افترض أنها 19XX (مثل 95 → 1995)
     const year = yearTwoDigit <= 50 ? 2000 + yearTwoDigit : 1900 + yearTwoDigit
-    
+
     if (year >= 1900 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
       const date = new Date(year, month, day)
       if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
@@ -196,7 +205,7 @@ function parseDDMMYY(dateStr: string): Date | null {
       }
     }
   }
-  
+
   return null
 }
 
@@ -208,14 +217,14 @@ function parseMonYYYYDD(dateStr: string): Date | null {
   const normalized = dateStr.trim()
   // Pattern for Mon/YYYY/DD or Mon-YYYY-DD where YYYY is 4 digits
   const pattern = /^([a-z]{3,})[-/](\d{4})[-/](\d{1,2})$/i
-  
+
   const match = normalized.match(pattern)
   if (match) {
     const monthName = match[1].toLowerCase()
     const year = parseInt(match[2], 10)
     const day = parseInt(match[3], 10)
     const month = MONTH_NAMES[monthName]
-    
+
     if (month && year >= 1900 && year <= 2100 && day >= 1 && day <= 31) {
       const date = new Date(year, month - 1, day)
       if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
@@ -223,7 +232,7 @@ function parseMonYYYYDD(dateStr: string): Date | null {
       }
     }
   }
-  
+
   return null
 }
 
@@ -242,18 +251,18 @@ function parseMonYYYDD(dateStr: string): Date | null {
   const normalized = dateStr.trim()
   // Pattern for Mon/YYY/DD or Mon-YYY-DD where YYY is 3 digits
   const pattern = /^([a-z]{3,})[-/](\d{3})[-/](\d{1,2})$/i
-  
+
   const match = normalized.match(pattern)
   if (match) {
     const monthName = match[1].toLowerCase()
     const yearThreeDigit = parseInt(match[2], 10)
     const day = parseInt(match[3], 10)
     const month = MONTH_NAMES[monthName]
-    
+
     if (!month || day < 1 || day > 31) {
       return null
     }
-    
+
     // إصلاح السنة المكونة من 3 أرقام
     // 199 → 1999 (أضف 9 في النهاية)
     // 202 → 2026 (حسب السياق المذكور)
@@ -279,7 +288,7 @@ function parseMonYYYDD(dateStr: string): Date | null {
     } else {
       return null
     }
-    
+
     if (year >= 1900 && year <= 2100) {
       const date = new Date(year, month - 1, day)
       if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
@@ -287,7 +296,7 @@ function parseMonYYYDD(dateStr: string): Date | null {
       }
     }
   }
-  
+
   return null
 }
 
@@ -297,7 +306,7 @@ function parseMonYYYDD(dateStr: string): Date | null {
  */
 function parseTextDate(dateStr: string): Date | null {
   const normalized = dateStr.trim().toLowerCase()
-  
+
   // Patterns for text dates
   const patterns = [
     // DD-month-YYYY or DD month YYYY
@@ -305,7 +314,7 @@ function parseTextDate(dateStr: string): Date | null {
     // month DD, YYYY or month DD YYYY
     /^([a-z]+)[-/\s]+(\d{1,2})[,]?[-/\s]*(\d{4})$/,
     // YYYY-month-DD
-    /^(\d{4})[-/\s]+([a-z]+)[-/\s]+(\d{1,2})$/
+    /^(\d{4})[-/\s]+([a-z]+)[-/\s]+(\d{1,2})$/,
   ]
 
   for (const pattern of patterns) {
@@ -338,13 +347,17 @@ function parseTextDate(dateStr: string): Date | null {
 
       if (month && year >= 1900 && year <= 2100 && day >= 1 && day <= 31) {
         const date = new Date(year, month - 1, day) // month is 1-indexed in our map
-        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+        if (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        ) {
           return date
         }
       }
     }
   }
-  
+
   return null
 }
 
@@ -357,7 +370,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
   if (!dateStr || typeof dateStr !== 'string') {
     return {
       date: null,
-      error: 'تاريخ فارغ أو غير صحيح'
+      error: 'تاريخ فارغ أو غير صحيح',
     }
   }
 
@@ -365,14 +378,14 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
   if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
     return {
       date: null,
-      error: 'تاريخ فارغ'
+      error: 'تاريخ فارغ',
     }
   }
 
   if (isNoValue(trimmed)) {
     return {
       date: null,
-      format: 'no_value'
+      format: 'no_value',
     }
   }
 
@@ -388,7 +401,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
     { name: 'YYYY-MM-DD', parser: parseYYYYMMDD },
     { name: 'DD-MM-YY', parser: parseDDMMYY },
     { name: 'MM/DD/YYYY', parser: parseMMDDYYYY },
-    { name: 'text_date', parser: parseTextDate }
+    { name: 'text_date', parser: parseTextDate },
   ]
 
   for (const { name, parser } of parsers) {
@@ -406,7 +419,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
           }
           return {
             date,
-            format: name
+            format: name,
           }
         }
       }
@@ -425,10 +438,14 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
         if (!isNaN(date.getTime())) {
           const year = date.getFullYear()
           // التحقق من أن التاريخ منطقي وليس تاريخ افتراضي
-          if (year >= 1900 && year <= 2100 && !(year === 1900 && date.getMonth() === 0 && date.getDate() <= 31)) {
+          if (
+            year >= 1900 &&
+            year <= 2100 &&
+            !(year === 1900 && date.getMonth() === 0 && date.getDate() <= 31)
+          ) {
             return {
               date,
-              format: 'excel_serial'
+              format: 'excel_serial',
             }
           }
         }
@@ -453,7 +470,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
           }
           return {
             date,
-            format: name
+            format: name,
           }
         }
       }
@@ -471,7 +488,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
       if (year >= 1900 && year <= 2100) {
         return {
           date,
-          format: 'auto_detected'
+          format: 'auto_detected',
         }
       }
     }
@@ -481,7 +498,7 @@ export function parseDate(dateStr: string | null | undefined): ParseDateResult {
 
   return {
     date: null,
-    error: `لا يمكن تحليل التاريخ: "${trimmed}". الصيغ المدعومة: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, أو تواريخ نصية إنجليزية`
+    error: `لا يمكن تحليل التاريخ: "${trimmed}". الصيغ المدعومة: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, أو تواريخ نصية إنجليزية`,
   }
 }
 
@@ -508,4 +525,3 @@ export function isValidDate(dateStr: string | null | undefined): boolean {
   const result = parseDate(dateStr)
   return result.date !== null
 }
-

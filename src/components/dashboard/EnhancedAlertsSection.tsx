@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { 
-  Bell, 
-  AlertTriangle, 
+import {
+  Bell,
+  AlertTriangle,
   TrendingUp,
   DollarSign,
   Users,
@@ -16,14 +16,14 @@ import {
   Download,
   Settings,
   Target,
-  Shield as ShieldIcon
+  Shield as ShieldIcon,
 } from 'lucide-react'
 import { EnhancedAlert } from '@/components/alerts/EnhancedAlertCard'
 import { EnhancedAlertCard } from '@/components/alerts/EnhancedAlertCard'
-import { 
-  getEnhancedAlertsStats, 
-  getCriticalAlerts, 
-  generateAlertSummaryReport
+import {
+  getEnhancedAlertsStats,
+  getCriticalAlerts,
+  generateAlertSummaryReport,
 } from '@/utils/enhancedCompanyAlerts'
 
 interface EnhancedAlertsSectionProps {
@@ -39,7 +39,7 @@ export function EnhancedAlertsSection({
   onViewCompany,
   onRenewAction,
   onMarkAsRead,
-  showAllAlerts = false
+  showAllAlerts = false,
 }: EnhancedAlertsSectionProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'summary' | 'analytics'>('cards')
   const [filterMode, setFilterMode] = useState<'all' | 'critical' | 'urgent'>('all')
@@ -54,15 +54,16 @@ export function EnhancedAlertsSection({
     if (filterMode === 'critical') {
       filtered = getCriticalAlerts(filtered)
     } else if (filterMode === 'urgent') {
-      filtered = filtered.filter(alert => alert.priority === 'urgent')
+      filtered = filtered.filter((alert) => alert.priority === 'urgent')
     }
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(alert =>
-        alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.message.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (alert) =>
+          alert.company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          alert.message.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -83,9 +84,11 @@ export function EnhancedAlertsSection({
             <Bell className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">تنبيهات المؤسسات المحسنة</h2>
-            <p className="text-gray-600 mt-1">
-              {alerts.length > 0 ? `${alerts.length} تنبيه نشط - ${criticalAlerts.length} طارئ` : 'لا توجد تنبيهات حالياً'}
+            <h2 className="text-2xl font-bold text-neutral-900">تنبيهات المؤسسات المحسنة</h2>
+            <p className="text-neutral-600 mt-1">
+              {alerts.length > 0
+                ? `${alerts.length} تنبيه نشط - ${criticalAlerts.length} طارئ`
+                : 'لا توجد تنبيهات حالياً'}
             </p>
           </div>
         </div>
@@ -94,7 +97,7 @@ export function EnhancedAlertsSection({
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
             <input
               type="text"
               placeholder="البحث في التنبيهات..."
@@ -142,7 +145,9 @@ export function EnhancedAlertsSection({
         <div className="app-filter-surface mb-6 p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب الأولوية</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                تصفية حسب الأولوية
+              </label>
               <select
                 value={filterMode}
                 onChange={(e) => {
@@ -158,9 +163,11 @@ export function EnhancedAlertsSection({
                 <option value="critical">طارئ فقط</option>
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب النوع</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                تصفية حسب النوع
+              </label>
               <select className="app-input">
                 <option value="all">جميع الأنواع</option>
                 <option value="commercial_registration_expiry">السجل التجاري</option>
@@ -170,7 +177,9 @@ export function EnhancedAlertsSection({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">تصفية حسب القسم</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                تصفية حسب القسم
+              </label>
               <select className="app-input">
                 <option value="all">جميع الأقسام</option>
                 <option value="legal">الشؤون القانونية</option>
@@ -180,14 +189,10 @@ export function EnhancedAlertsSection({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">إجراءات</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">إجراءات</label>
               <div className="flex gap-2">
-                <button className="app-button-primary flex-1 justify-center">
-                  تطبيق الفلاتر
-                </button>
-                <button className="app-button-secondary justify-center">
-                  مسح
-                </button>
+                <button className="app-button-primary flex-1 justify-center">تطبيق الفلاتر</button>
+                <button className="app-button-secondary justify-center">مسح</button>
               </div>
             </div>
           </div>
@@ -209,10 +214,10 @@ export function EnhancedAlertsSection({
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm">تنبيهات عاجلة</p>
+              <p className="text-warning-100 text-sm">تنبيهات عاجلة</p>
               <p className="text-2xl font-bold">{stats.urgent}</p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-orange-200" />
+            <AlertTriangle className="h-8 w-8 text-warning-200" />
           </div>
         </div>
 
@@ -229,13 +234,14 @@ export function EnhancedAlertsSection({
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">التكلفة المقدرة</p>
+              <p className="text-success-100 text-sm">التكلفة المقدرة</p>
               <p className="text-xl font-bold">
-                {summaryReport.estimatedRenewalCosts.currency} {summaryReport.estimatedRenewalCosts.min.toLocaleString()} - 
+                {summaryReport.estimatedRenewalCosts.currency}{' '}
+                {summaryReport.estimatedRenewalCosts.min.toLocaleString()} -
                 {summaryReport.estimatedRenewalCosts.max.toLocaleString()}
               </p>
             </div>
-            <DollarSign className="h-8 w-8 text-green-200" />
+            <DollarSign className="h-8 w-8 text-success-200" />
           </div>
         </div>
       </div>
@@ -245,13 +251,12 @@ export function EnhancedAlertsSection({
         <div className="space-y-4">
           {filteredAlerts.length === 0 ? (
             <div className="text-center py-12">
-              <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد تنبيهات</h3>
-              <p className="text-gray-600">
-                {alerts.length === 0 
+              <CheckCircle className="h-16 w-16 mx-auto mb-4 text-success-400" />
+              <h3 className="text-lg font-medium text-neutral-900 mb-2">لا توجد تنبيهات</h3>
+              <p className="text-neutral-600">
+                {alerts.length === 0
                   ? 'جميع مؤسساتك محدثة ولا تحتاج إلى إجراءات فورية'
-                  : 'لا توجد تنبيهات تطابق معايير البحث الحالية'
-                }
+                  : 'لا توجد تنبيهات تطابق معايير البحث الحالية'}
               </p>
             </div>
           ) : (
@@ -273,7 +278,9 @@ export function EnhancedAlertsSection({
             <div className="text-center">
               <button
                 className="app-button-primary"
-                onClick={() => {/* Show all alerts */}}
+                onClick={() => {
+                  /* Show all alerts */
+                }}
               >
                 عرض جميع التنبيهات ({filteredAlerts.length})
               </button>
@@ -285,45 +292,51 @@ export function EnhancedAlertsSection({
       {viewMode === 'summary' && (
         <div className="space-y-6">
           {/* Summary Report */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-neutral-50 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
               تقرير الملخص
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Timeline Summary */}
               <div className="bg-white rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   التوزيع الزمني
                 </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">متأخرة</span>
-                    <span className="font-medium text-red-600">{summaryReport.timeline.overdue}</span>
+                    <span className="text-sm text-neutral-600">متأخرة</span>
+                    <span className="font-medium text-red-600">
+                      {summaryReport.timeline.overdue}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">عاجلة</span>
-                    <span className="font-medium text-orange-600">{summaryReport.timeline.urgent}</span>
+                    <span className="text-sm text-neutral-600">عاجلة</span>
+                    <span className="font-medium text-warning-600">
+                      {summaryReport.timeline.urgent}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">قادمة</span>
-                    <span className="font-medium text-blue-600">{summaryReport.timeline.upcoming}</span>
+                    <span className="text-sm text-neutral-600">قادمة</span>
+                    <span className="font-medium text-blue-600">
+                      {summaryReport.timeline.upcoming}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Department Distribution */}
               <div className="bg-white rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   التوزيع حسب القسم
                 </h4>
                 <div className="space-y-2">
                   {Object.entries(summaryReport.departments).map(([dept, count]) => (
                     <div key={dept} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">{dept}</span>
+                      <span className="text-sm text-neutral-600">{dept}</span>
                       <span className="font-medium">{count}</span>
                     </div>
                   ))}
@@ -332,19 +345,23 @@ export function EnhancedAlertsSection({
 
               {/* Cost Estimation */}
               <div className="bg-white rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-neutral-900 mb-3 flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
                   تقدير التكلفة
                 </h4>
                 <div className="space-y-2">
-                  <div className="text-sm text-gray-600">
-                    الحد الأدنى: <span className="font-medium text-green-600">
-                      {summaryReport.estimatedRenewalCosts.currency} {summaryReport.estimatedRenewalCosts.min.toLocaleString()}
+                  <div className="text-sm text-neutral-600">
+                    الحد الأدنى:{' '}
+                    <span className="font-medium text-success-600">
+                      {summaryReport.estimatedRenewalCosts.currency}{' '}
+                      {summaryReport.estimatedRenewalCosts.min.toLocaleString()}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    الحد الأقصى: <span className="font-medium text-red-600">
-                      {summaryReport.estimatedRenewalCosts.currency} {summaryReport.estimatedRenewalCosts.max.toLocaleString()}
+                  <div className="text-sm text-neutral-600">
+                    الحد الأقصى:{' '}
+                    <span className="font-medium text-red-600">
+                      {summaryReport.estimatedRenewalCosts.currency}{' '}
+                      {summaryReport.estimatedRenewalCosts.max.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -359,65 +376,73 @@ export function EnhancedAlertsSection({
           {/* Analytics Dashboard */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Risk Distribution */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-neutral-50 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
                 <ShieldIcon className="h-5 w-5" />
                 توزيع المخاطر
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-gray-600">طارئ</span>
+                    <XCircle className="h-4 w-4 text-danger-500" />
+                    <span className="text-sm text-neutral-600">طارئ</span>
                   </div>
                   <span className="font-medium text-red-600">{stats.byRisk.critical}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm text-gray-600">عاجل</span>
+                    <AlertTriangle className="h-4 w-4 text-warning-500" />
+                    <span className="text-sm text-neutral-600">عاجل</span>
                   </div>
-                  <span className="font-medium text-orange-600">{stats.byRisk.high}</span>
+                  <span className="font-medium text-warning-600">{stats.byRisk.high}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-gray-600">متوسط</span>
+                    <span className="text-sm text-neutral-600">متوسط</span>
                   </div>
                   <span className="font-medium text-yellow-600">{stats.byRisk.medium}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-gray-600">منخفض</span>
+                    <CheckCircle className="h-4 w-4 text-success-500" />
+                    <span className="text-sm text-neutral-600">منخفض</span>
                   </div>
-                  <span className="font-medium text-green-600">{stats.byRisk.low}</span>
+                  <span className="font-medium text-success-600">{stats.byRisk.low}</span>
                 </div>
               </div>
             </div>
 
             {/* Business Impact */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-neutral-50 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
                 التأثير على الأعمال
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">طارئ</span>
-                  <span className="font-medium text-red-600">{stats.byBusinessImpact.critical}</span>
+                  <span className="text-sm text-neutral-600">طارئ</span>
+                  <span className="font-medium text-red-600">
+                    {stats.byBusinessImpact.critical}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">كبير</span>
-                  <span className="font-medium text-orange-600">{stats.byBusinessImpact.significant}</span>
+                  <span className="text-sm text-neutral-600">كبير</span>
+                  <span className="font-medium text-warning-600">
+                    {stats.byBusinessImpact.significant}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">متوسط</span>
-                  <span className="font-medium text-yellow-600">{stats.byBusinessImpact.moderate}</span>
+                  <span className="text-sm text-neutral-600">متوسط</span>
+                  <span className="font-medium text-yellow-600">
+                    {stats.byBusinessImpact.moderate}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">صغير</span>
-                  <span className="font-medium text-green-600">{stats.byBusinessImpact.minimal}</span>
+                  <span className="text-sm text-neutral-600">صغير</span>
+                  <span className="font-medium text-success-600">
+                    {stats.byBusinessImpact.minimal}
+                  </span>
                 </div>
               </div>
             </div>
@@ -425,7 +450,7 @@ export function EnhancedAlertsSection({
 
           {/* Quick Actions */}
           <div className="app-filter-surface p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <Target className="h-5 w-5" />
               إجراءات سريعة
             </h3>
@@ -435,7 +460,7 @@ export function EnhancedAlertsSection({
                 <span className="text-sm font-medium">تجديد جميع التنبيهات الطارئة</span>
               </button>
               <button className="app-button-secondary w-full justify-start py-3">
-                <Download className="h-4 w-4 text-green-600" />
+                <Download className="h-4 w-4 text-success-600" />
                 <span className="text-sm font-medium">تصدير تقرير مفصل</span>
               </button>
               <button className="app-button-secondary w-full justify-start py-3">

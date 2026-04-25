@@ -81,7 +81,9 @@ export class AuditService {
     try {
       const { data, error } = await supabase
         .from('audit_log')
-        .select('id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at')
+        .select(
+          'id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at'
+        )
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit)
@@ -97,15 +99,13 @@ export class AuditService {
   /**
    * Get recent audit logs for a resource
    */
-  static async getResourceAuditLogs(
-    resourceType: string,
-    resourceId: string,
-    limit: number = 50
-  ) {
+  static async getResourceAuditLogs(resourceType: string, resourceId: string, limit: number = 50) {
     try {
       const { data, error } = await supabase
         .from('audit_log')
-        .select('id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at')
+        .select(
+          'id,user_id,action,entity_type,entity_id,details,ip_address,user_agent,session_id,operation,operation_status,affected_rows,old_data,new_data,created_at'
+        )
         .eq('resource_type', resourceType)
         .eq('resource_id', resourceId)
         .order('created_at', { ascending: false })
@@ -122,22 +122,19 @@ export class AuditService {
   /**
    * Get security events
    */
-  static async getSecurityEvents(
-    limit: number = 100,
-    unresolved_only: boolean = false
-  ) {
+  static async getSecurityEvents(limit: number = 100, unresolved_only: boolean = false) {
     try {
       let query = supabase
         .from('security_events')
-        .select('id,event_type,severity,description,source_ip,user_id,is_resolved,created_at,resolved_at')
+        .select(
+          'id,event_type,severity,description,source_ip,user_id,is_resolved,created_at,resolved_at'
+        )
 
       if (unresolved_only) {
         query = query.eq('is_resolved', false)
       }
 
-      const { data, error } = await query
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
 
       if (error) throw error
       return data
@@ -192,7 +189,7 @@ export class AuditService {
         failures: 0,
       }
 
-      data?.forEach(log => {
+      data?.forEach((log) => {
         stats.byAction[log.action_type] = (stats.byAction[log.action_type] || 0) + 1
         stats.byStatus[log.status] = (stats.byStatus[log.status] || 0) + 1
         if (log.status === 'failure') stats.failures++

@@ -19,9 +19,7 @@ export default function PermissionGuard({
 }: PermissionGuardProps) {
   const { checkPermissions, hasAnyPermission } = usePermissions()
 
-  const hasAccess = mode === 'all'
-    ? checkPermissions(permissions)
-    : hasAnyPermission(permissions)
+  const hasAccess = mode === 'all' ? checkPermissions(permissions) : hasAnyPermission(permissions)
 
   if (hasAccess) {
     return <>{children}</>
@@ -38,7 +36,7 @@ export default function PermissionGuard({
   return (
     <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-red-200 bg-red-50/50 p-6 text-center">
       <div>
-        <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-red-500" />
+        <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-danger-500" />
         <h2 className="mb-2 text-xl font-bold text-slate-900">غير مصرح</h2>
         <p className="text-sm text-slate-600">عذرًا، ليس لديك الصلاحيات المطلوبة لعرض هذا القسم.</p>
       </div>

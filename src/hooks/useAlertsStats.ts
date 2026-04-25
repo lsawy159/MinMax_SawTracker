@@ -25,7 +25,7 @@ export function useAlertsStats() {
     employeeUrgent: 0,
     commercialRegAlerts: 0,
     contractAlerts: 0,
-    residenceAlerts: 0
+    residenceAlerts: 0,
   })
   const [loading, setLoading] = useState(true)
   const [, setReadAlerts] = useState<Set<string>>(new Set())
@@ -33,7 +33,9 @@ export function useAlertsStats() {
   // [MODIFIED] أعدنا دالة جلب المقروء
   const loadReadAlerts = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
@@ -43,7 +45,7 @@ export function useAlertsStats() {
 
       if (error) throw error
 
-      const readAlertIds = new Set(data?.map(r => r.alert_id) || [])
+      const readAlertIds = new Set(data?.map((r) => r.alert_id) || [])
       setReadAlerts(readAlertIds)
       return readAlertIds
     } catch (error) {
@@ -62,8 +64,16 @@ export function useAlertsStats() {
 
       // جلب البيانات من قاعدة البيانات
       const [companiesResult, employeesResult] = await Promise.all([
-        supabase.from('companies').select('id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'),
-        supabase.from('employees').select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
+        supabase
+          .from('companies')
+          .select(
+            'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+          ),
+        supabase
+          .from('employees')
+          .select(
+            'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at'
+          ),
       ])
 
       if (companiesResult.error) throw companiesResult.error
@@ -78,58 +88,68 @@ export function useAlertsStats() {
       const employeeAlerts = enrichEmployeeAlertsWithCompanyData(employeeAlertsGenerated, companies)
 
       // --- الخطوة 2: توليد القوائم "غير المقروءة" (لشارة "التنبيهات") - فقط urgent و high ---
-      const unreadCompanyAlerts = companyAlerts.filter(alert => 
-        !readAlertsSet.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
+      const unreadCompanyAlerts = companyAlerts.filter(
+        (alert) =>
+          !readAlertsSet.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
       )
-      const unreadEmployeeAlerts = employeeAlerts.filter(alert => 
-        !readAlertsSet.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
+      const unreadEmployeeAlerts = employeeAlerts.filter(
+        (alert) =>
+          !readAlertsSet.has(alert.id) && (alert.priority === 'urgent' || alert.priority === 'high')
       )
 
       // --- الخطوة 3: حساب الإحصائيات (المنطق المزدوج) ---
 
       // إحصائيات "المشاكل" (لشارات المؤسسات والموظفين - تتجاهل المقروء) - فقط urgent و high
-      const companyProblemAlerts = companyAlerts.filter(alert => 
-        alert.priority === 'urgent' || alert.priority === 'high'
+      const companyProblemAlerts = companyAlerts.filter(
+        (alert) => alert.priority === 'urgent' || alert.priority === 'high'
       ).length
       // Badge المؤسسات: الحالات العاجلة والعالية (urgent/high) فقط للأنواع المحددة
-      const companyProblemUrgent = companyAlerts.filter(alert => 
-        (alert.priority === 'urgent' || alert.priority === 'high') && (
-          alert.type === 'commercial_registration_expiry' ||
-          alert.type === 'power_subscription_expiry' ||
-          alert.type === 'moqeem_subscription_expiry'
-        )
+      const companyProblemUrgent = companyAlerts.filter(
+        (alert) =>
+          (alert.priority === 'urgent' || alert.priority === 'high') &&
+          (alert.type === 'commercial_registration_expiry' ||
+            alert.type === 'power_subscription_expiry' ||
+            alert.type === 'moqeem_subscription_expiry')
       ).length
-      
-      const employeeProblemAlerts = employeeAlerts.filter(alert => 
-        alert.priority === 'urgent' || alert.priority === 'high'
+
+      const employeeProblemAlerts = employeeAlerts.filter(
+        (alert) => alert.priority === 'urgent' || alert.priority === 'high'
       ).length
       // Badge الموظفين: الحالات العاجلة والعالية (urgent/high) فقط للأنواع المحددة
-      const employeeProblemUrgent = employeeAlerts.filter(alert => 
-        (alert.priority === 'urgent' || alert.priority === 'high') && (
-          alert.type === 'contract_expiry' ||
-          alert.type === 'residence_expiry' ||
-          alert.type === 'health_insurance_expiry' ||
-          alert.type === 'hired_worker_contract_expiry'
-        )
+      const employeeProblemUrgent = employeeAlerts.filter(
+        (alert) =>
+          (alert.priority === 'urgent' || alert.priority === 'high') &&
+          (alert.type === 'contract_expiry' ||
+            alert.type === 'residence_expiry' ||
+            alert.type === 'health_insurance_expiry' ||
+            alert.type === 'hired_worker_contract_expiry')
       ).length
-      
-  const commercialRegAlerts = companyAlerts.filter(alert => alert.type === 'commercial_registration_expiry').length
-      const contractAlerts = employeeAlerts.filter(alert => alert.type === 'contract_expiry').length
-      const residenceAlerts = employeeAlerts.filter(alert => alert.type === 'residence_expiry').length
+
+      const commercialRegAlerts = companyAlerts.filter(
+        (alert) => alert.type === 'commercial_registration_expiry'
+      ).length
+      const contractAlerts = employeeAlerts.filter(
+        (alert) => alert.type === 'contract_expiry'
+      ).length
+      const residenceAlerts = employeeAlerts.filter(
+        (alert) => alert.type === 'residence_expiry'
+      ).length
 
       // إحصائيات "غير المقروء" (لشارة التنبيهات الرئيسية - تعتمد على المقروء) - فقط urgent و high
       const totalUnread = unreadCompanyAlerts.length + unreadEmployeeAlerts.length
-      const urgentUnread = unreadCompanyAlerts.filter(alert => 
-        alert.priority === 'urgent' || alert.priority === 'high'
-      ).length + unreadEmployeeAlerts.filter(alert => 
-        alert.priority === 'urgent' || alert.priority === 'high'
-      ).length
+      const urgentUnread =
+        unreadCompanyAlerts.filter(
+          (alert) => alert.priority === 'urgent' || alert.priority === 'high'
+        ).length +
+        unreadEmployeeAlerts.filter(
+          (alert) => alert.priority === 'urgent' || alert.priority === 'high'
+        ).length
 
       const stats: AlertsStats = {
         // [MODIFIED] total و urgent أصبحت لـ "غير المقروء"
         total: totalUnread,
         urgent: urgentUnread,
-        
+
         // [MODIFIED] companyAlerts و employeeAlerts أصبحت لـ "كل المشاكل"
         companyAlerts: companyProblemAlerts,
         companyUrgent: companyProblemUrgent,
@@ -139,7 +159,7 @@ export function useAlertsStats() {
         // هذه الإحصائيات التفصيلية يجب أن تعكس "كل المشاكل" أيضاً
         commercialRegAlerts: commercialRegAlerts,
         contractAlerts: contractAlerts,
-        residenceAlerts: residenceAlerts
+        residenceAlerts: residenceAlerts,
       }
 
       setAlertsStats(stats)
@@ -152,25 +172,25 @@ export function useAlertsStats() {
 
   useEffect(() => {
     fetchAlertsStats()
-    
+
     // [MODIFIED] أعدنا المستمع، ليقوم بتحديث شارة "التنبيهات"
     const handleAlertMarkedAsRead = () => {
       fetchAlertsStats()
     }
-    
+
     // إضافة مستمعين لتحديثات الموظفين والمؤسسات
     const handleEmployeeUpdated = () => {
       fetchAlertsStats()
     }
-    
+
     const handleCompanyUpdated = () => {
       fetchAlertsStats()
     }
-    
+
     window.addEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
     window.addEventListener('employeeUpdated', handleEmployeeUpdated)
     window.addEventListener('companyUpdated', handleCompanyUpdated)
-    
+
     return () => {
       window.removeEventListener('alertMarkedAsRead', handleAlertMarkedAsRead)
       window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
@@ -183,22 +203,25 @@ export function useAlertsStats() {
   }, [fetchAlertsStats])
 
   // [MODIFIED] أعدنا هذه الدالة
-  const markAlertAsRead = useCallback((alertId: string) => {
-    setReadAlerts(prev => {
-      const newSet = new Set(prev)
-      newSet.add(alertId)
-      return newSet
-    })
-    // إعادة حساب الإحصائيات بعد تحديث readAlerts
-    setTimeout(() => {
-      fetchAlertsStats()
-    }, 100)
-  }, [fetchAlertsStats])
+  const markAlertAsRead = useCallback(
+    (alertId: string) => {
+      setReadAlerts((prev) => {
+        const newSet = new Set(prev)
+        newSet.add(alertId)
+        return newSet
+      })
+      // إعادة حساب الإحصائيات بعد تحديث readAlerts
+      setTimeout(() => {
+        fetchAlertsStats()
+      }, 100)
+    },
+    [fetchAlertsStats]
+  )
 
   return {
     alertsStats,
     loading,
     refreshStats,
-    markAlertAsRead // [MODIFIED] أعدنا إرجاعها
+    markAlertAsRead, // [MODIFIED] أعدنا إرجاعها
   }
 }

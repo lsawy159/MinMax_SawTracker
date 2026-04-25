@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { 
-  LayoutDashboard, 
-  Menu, 
-  X,
-} from 'lucide-react'
+import { LayoutDashboard, Menu, X } from 'lucide-react'
 
 interface NavItem {
   path: string
@@ -24,23 +20,21 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
 
   // العناصر الرئيسية (الظاهرة دائماً في Bottom Nav)
   const mainItems = [
-    navItems.find(item => item.path === '/dashboard'),
-    navItems.find(item => item.path === '/employees'),
-    navItems.find(item => item.path === '/companies'),
-    navItems.find(item => item.path === '/alerts'),
+    navItems.find((item) => item.path === '/dashboard'),
+    navItems.find((item) => item.path === '/employees'),
+    navItems.find((item) => item.path === '/companies'),
+    navItems.find((item) => item.path === '/alerts'),
   ].filter(Boolean) as NavItem[]
 
   // العناصر الإضافية (في قائمة More)
-  const moreItems = navItems.filter(
-    item => !mainItems.find(main => main.path === item.path)
-  )
+  const moreItems = navItems.filter((item) => !mainItems.find((main) => main.path === item.path))
 
   return (
     <>
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 shadow-[0_-10px_30px_-18px_rgba(17,24,39,0.25)] backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between px-1.5 py-1">
-          {mainItems.map(item => {
+          {mainItems.map((item) => {
             const isActive = location.pathname === item.path
             const Icon = item.icon
 
@@ -122,9 +116,7 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
           {/* Menu Container — slide-up bottom sheet */}
           <div className="fixed bottom-16 left-0 right-0 z-40 max-h-96 overflow-y-auto rounded-t-2xl border-t border-border bg-white shadow-[0_-12px_35px_-20px_rgba(17,24,39,0.3)] lg:hidden animate-[app-slide-up_var(--motion-base)_var(--ease-emphasize)_both]">
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md">
-              <h3 className="font-semibold text-gray-900 text-sm">
-                المزيد من الخيارات
-              </h3>
+              <h3 className="font-semibold text-neutral-900 text-sm">المزيد من الخيارات</h3>
               <button
                 onClick={() => setIsMoreOpen(false)}
                 className="rounded-lg p-1 text-slate-500 hover:bg-primary/10"
@@ -137,7 +129,7 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
             {/* Menu Items */}
             <div className="divide-y divide-gray-100">
               {moreItems.length > 0 ? (
-                moreItems.map(item => {
+                moreItems.map((item) => {
                   const isActive = location.pathname === item.path
                   const Icon = item.icon
 
@@ -165,7 +157,7 @@ export function MobileBottomNav({ navItems }: MobileBottomNavProps) {
                   )
                 })
               ) : (
-                <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                <div className="px-4 py-6 text-center text-neutral-500 text-sm">
                   لا توجد عناصر إضافية
                 </div>
               )}

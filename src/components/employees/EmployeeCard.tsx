@@ -2,7 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import { Employee, Company, Project, ObligationType, supabase } from '@/lib/supabase'
 import { useEmployeeCardData } from '@/hooks/useEmployeeCardData'
 import { EmployeeExpirySection } from './EmployeeExpirySection'
-import { X, Calendar, Phone, MapPin, Briefcase, CreditCard, FileText, Save, RotateCcw, Search, ChevronDown, FolderKanban, Plus, Loader2 } from 'lucide-react'
+import {
+  X,
+  Calendar,
+  Phone,
+  MapPin,
+  Briefcase,
+  CreditCard,
+  FileText,
+  Save,
+  RotateCcw,
+  Search,
+  ChevronDown,
+  FolderKanban,
+  Plus,
+  Loader2,
+} from 'lucide-react'
 import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
@@ -52,11 +67,17 @@ interface EmployeeCardProps {
   defaultFinancialOverlayOpen?: boolean
 }
 
-export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, defaultFinancialOverlayOpen = false }: EmployeeCardProps) {
+export default function EmployeeCard({
+  employee,
+  onClose,
+  onUpdate,
+  onDelete,
+  defaultFinancialOverlayOpen = false,
+}: EmployeeCardProps) {
   const { canEdit, canDelete } = usePermissions()
   const { customFields, companies, projects } = useEmployeeCardData()
   const currentMonth = new Date().toISOString().slice(0, 7)
-  
+
   // Define form data type with precise field types
   type EmployeeFormData = {
     id?: string
@@ -115,12 +136,15 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         return String(value)
     }
   }
-  
+
   const [formData, setFormData] = useState<EmployeeFormData>({
     ...employee,
     company_id: employee?.company_id ?? '',
     project_id: employee?.project_id ?? employee?.project?.id ?? null,
-    additional_fields: (employee?.additional_fields ?? {}) as Record<string, string | number | boolean | null>,
+    additional_fields: (employee?.additional_fields ?? {}) as Record<
+      string,
+      string | number | boolean | null
+    >,
     health_insurance_expiry: employee?.health_insurance_expiry ?? '',
     hired_worker_contract_expiry: employee?.hired_worker_contract_expiry ?? '',
     salary: employee?.salary ?? 0,
@@ -130,9 +154,9 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     joining_date: employee?.joining_date ?? '',
     residence_expiry: employee?.residence_expiry ?? '',
     contract_expiry: employee?.contract_expiry ?? '',
-    residence_number: employee?.residence_number ?? 0
+    residence_number: employee?.residence_number ?? 0,
   })
-  
+
   // حفظ البيانات الأصلية من employee مباشرة (بدون معالجة) لاستخدامها في المقارنة
   const [originalData] = useState(employee)
   const [saving, setSaving] = useState(false)
@@ -168,14 +192,19 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     notes: '',
   })
 
-
   // إغلاق القوائم عند النقر خارجها
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+      if (
+        companyDropdownRef.current &&
+        !companyDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsCompanyDropdownOpen(false)
       }
-      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+      if (
+        projectDropdownRef.current &&
+        !projectDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsProjectDropdownOpen(false)
       }
     }
@@ -209,7 +238,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
   // تحديث نص البحث عند تغيير الشركة المختارة
   useEffect(() => {
     if (formData.company_id && companies.length > 0) {
-      const selectedCompany = companies.find(c => c.id === formData.company_id)
+      const selectedCompany = companies.find((c) => c.id === formData.company_id)
       if (selectedCompany) {
         const displayText = `${selectedCompany.name} (${selectedCompany.unified_number})`
         // تحديث فقط إذا كان النص مختلف (لتجنب التداخل مع الكتابة)
@@ -227,7 +256,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
   // تحديث نص البحث عند تغيير المشروع المختار
   useEffect(() => {
     if (formData.project_id && projects.length > 0) {
-      const selectedProject = projects.find(p => p.id === formData.project_id)
+      const selectedProject = projects.find((p) => p.id === formData.project_id)
       if (selectedProject) {
         const displayText = selectedProject.name
         if (projectSearchQuery !== displayText) {
@@ -240,9 +269,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.project_id, projects])
 
-
   // تصفية المؤسسات: البحث في الاسم أو الرقم الموحد
-  const filteredCompanies = companies.filter(company => {
+  const filteredCompanies = companies.filter((company) => {
     if (companySearchQuery.trim()) {
       const query = companySearchQuery.toLowerCase().trim()
       const nameMatch = company.name?.toLowerCase().includes(query)
@@ -253,7 +281,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
   })
 
   // تصفية المشاريع: البحث في الاسم
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = projects.filter((project) => {
     if (projectSearchQuery.trim()) {
       const query = projectSearchQuery.toLowerCase().trim()
       return project.name?.toLowerCase().includes(query)
@@ -262,9 +290,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
   })
 
   // التحقق من وجود مشروع بالاسم المدخل
-  const hasExactMatch = projectSearchQuery.trim() && 
-    projects.some(p => p.name.toLowerCase() === projectSearchQuery.toLowerCase().trim())
-  
+  const hasExactMatch =
+    projectSearchQuery.trim() &&
+    projects.some((p) => p.name.toLowerCase() === projectSearchQuery.toLowerCase().trim())
+
   const showCreateOption = projectSearchQuery.trim() && !hasExactMatch && isProjectDropdownOpen
 
   // دالة إنشاء مشروع جديد
@@ -276,7 +305,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
     // التحقق من عدم وجود مشروع بنفس الاسم
     const existingProject = projects.find(
-      p => p.name.toLowerCase() === newProjectName.trim().toLowerCase()
+      (p) => p.name.toLowerCase() === newProjectName.trim().toLowerCase()
     )
 
     if (existingProject) {
@@ -295,7 +324,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         .from('projects')
         .insert({
           name: newProjectName.trim(),
-          status: 'active'
+          status: 'active',
         })
         .select()
         .single()
@@ -331,52 +360,57 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
   const getFieldLabel = (key: string): string => {
     const fieldLabels: Record<string, string> = {
-      'name': 'الاسم',
-      'phone': 'رقم الهاتف',
-      'profession': 'المهنة',
-      'nationality': 'الجنسية',
-      'residence_number': 'رقم الإقامة',
-      'passport_number': 'رقم الجواز',
-      'bank_account': 'الحساب البنكي',
-      'salary': 'الراتب',
-      'project_id': 'المشروع',
-      'birth_date': 'تاريخ الميلاد',
-      'joining_date': 'تاريخ الالتحاق',
-      'residence_expiry': 'تاريخ انتهاء الإقامة',
-      'contract_expiry': 'تاريخ انتهاء العقد',
-      'hired_worker_contract_expiry': 'تاريخ انتهاء عقد أجير',
-      'health_insurance_expiry': 'تاريخ انتهاء التأمين الصحي',
-      'notes': 'الملاحظات',
-      'company_id': 'المؤسسة'
+      name: 'الاسم',
+      phone: 'رقم الهاتف',
+      profession: 'المهنة',
+      nationality: 'الجنسية',
+      residence_number: 'رقم الإقامة',
+      passport_number: 'رقم الجواز',
+      bank_account: 'الحساب البنكي',
+      salary: 'الراتب',
+      project_id: 'المشروع',
+      birth_date: 'تاريخ الميلاد',
+      joining_date: 'تاريخ الالتحاق',
+      residence_expiry: 'تاريخ انتهاء الإقامة',
+      contract_expiry: 'تاريخ انتهاء العقد',
+      hired_worker_contract_expiry: 'تاريخ انتهاء عقد أجير',
+      health_insurance_expiry: 'تاريخ انتهاء التأمين الصحي',
+      notes: 'الملاحظات',
+      company_id: 'المؤسسة',
     }
     return fieldLabels[key] || key
   }
 
-  const logActivity = async (action: string, changes: Record<string, unknown>, oldDataFull: Record<string, unknown>, newDataFull: Record<string, unknown>) => {
+  const logActivity = async (
+    action: string,
+    changes: Record<string, unknown>,
+    oldDataFull: Record<string, unknown>,
+    newDataFull: Record<string, unknown>
+  ) => {
     try {
       // تحديد اسم العملية الفعلي بناءً على التغييرات
       let actionName = action
       const changedFields = Object.keys(changes)
-      
+
       // بناء تفاصيل التغييرات بصيغة {old, new} لكل حقل
       const detailedChanges: Record<string, { old: unknown; new: unknown }> = {}
       const translatedChanges: Record<string, unknown> = {}
-      
-      changedFields.forEach(field => {
+
+      changedFields.forEach((field) => {
         const label = getFieldLabel(field)
         const oldVal = oldDataFull[field]
         const newVal = newDataFull[field]
-        
+
         // حفظ التغيير بصيغة مفصلة {old, new}
         detailedChanges[label] = {
           old: oldVal,
-          new: newVal
+          new: newVal,
         }
-        
+
         // حفظ القيمة الجديدة فقط (للتوافق مع النسخ القديمة)
         translatedChanges[label] = newVal
       })
-      
+
       // إذا كان هناك حقل واحد فقط، استخدم اسمه في العملية
       if (changedFields.length === 1) {
         const fieldName = changedFields[0]
@@ -386,21 +420,19 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         actionName = `تحديث متعدد (${changedFields.length} حقول)`
       }
 
-      await supabase
-        .from('activity_log')
-        .insert({
-          entity_type: 'employee',
-          entity_id: employee.id,
-          action: actionName,
-          details: {
-            employee_name: employee.name,
-            changes: detailedChanges,
-            changes_simple: translatedChanges,
-            timestamp: new Date().toISOString()
-          },
-          old_data: oldDataFull,
-          new_data: newDataFull
-        })
+      await supabase.from('activity_log').insert({
+        entity_type: 'employee',
+        entity_id: employee.id,
+        action: actionName,
+        details: {
+          employee_name: employee.name,
+          changes: detailedChanges,
+          changes_simple: translatedChanges,
+          timestamp: new Date().toISOString(),
+        },
+        old_data: oldDataFull,
+        new_data: newDataFull,
+      })
     } catch (error) {
       logger.error('Error logging activity:', error)
     }
@@ -417,7 +449,9 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
       // جلب البيانات الحالية قبل التحديث لضمان وجود old_data موثوق
       const { data: existingEmployee, error: fetchError } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,residence_expiry,project_name,bank_account,residence_image_url,salary,health_insurance_expiry,additional_fields,created_at,updated_at,notes,hired_worker_contract_expiry,project_id,is_deleted,deleted_at'
+        )
         .eq('id', employee.id)
         .single()
 
@@ -429,35 +463,60 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
       // بناء actualUpdateData بناءً على الحقول التي تغيرت فقط (بدون تحضير جميع الحقول)
       const fieldsToCheck = [
-        'name', 'phone', 'profession', 'nationality', 'residence_number',
-        'passport_number', 'bank_account', 'salary', 'project_id',
-        'birth_date', 'joining_date', 'residence_expiry', 'contract_expiry',
-        'hired_worker_contract_expiry', 'health_insurance_expiry', 'notes', 'company_id'
+        'name',
+        'phone',
+        'profession',
+        'nationality',
+        'residence_number',
+        'passport_number',
+        'bank_account',
+        'salary',
+        'project_id',
+        'birth_date',
+        'joining_date',
+        'residence_expiry',
+        'contract_expiry',
+        'hired_worker_contract_expiry',
+        'health_insurance_expiry',
+        'notes',
+        'company_id',
       ]
 
       const actualUpdateData: Record<string, unknown> = {}
       const changes: Record<string, { old_value: unknown; new_value: unknown }> = {}
 
-      const normalizedAdditionalFields = buildEmployeeBusinessAdditionalFields(formData.additional_fields, {
-        ...getEmployeeBusinessFields({
-          additional_fields: formData.additional_fields,
+      const normalizedAdditionalFields = buildEmployeeBusinessAdditionalFields(
+        formData.additional_fields,
+        {
+          ...getEmployeeBusinessFields({
+            additional_fields: formData.additional_fields,
+            hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+          }),
           hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
-        }),
-        hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
-      })
+        }
+      )
 
       // فحص كل حقل للتأكد من تغييره فقط
-      fieldsToCheck.forEach(field => {
+      fieldsToCheck.forEach((field) => {
         const oldValue = baselineData[field]
         let newValue: unknown = formData[field as keyof typeof formData]
 
         // تطبيق نفس التحويلات على القيمة الجديدة مثل updateData
-        if (field === 'birth_date' || field === 'joining_date' || field === 'residence_expiry' || 
-            field === 'contract_expiry' || field === 'health_insurance_expiry') {
+        if (
+          field === 'birth_date' ||
+          field === 'joining_date' ||
+          field === 'residence_expiry' ||
+          field === 'contract_expiry' ||
+          field === 'health_insurance_expiry'
+        ) {
           newValue = normalizeDate(formData[field] as string | null | undefined)
         } else if (field === 'residence_number' || field === 'salary') {
           newValue = Number(formData[field]) || (field === 'salary' ? 0 : 0)
-        } else if (field === 'residence_image_url' || field === 'hired_worker_contract_expiry' || field === 'notes') {
+        } else if (
+          field === 'residence_image_url' ||
+          field === 'hired_worker_contract_expiry' ||
+          field === 'notes'
+        ) {
           newValue = formData[field] || null
         } else if (field === 'project_id') {
           newValue = formData.project_id || null
@@ -467,19 +526,20 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         const oldVal = oldValue === null || oldValue === undefined ? null : oldValue
         const newVal = newValue === null || newValue === undefined ? null : newValue
 
-
-
         // مقارنة القيمتين: إذا اختلفتا، أضفهما إلى actualUpdateData
         if (oldVal !== newVal) {
           actualUpdateData[field] = newValue
           changes[field] = {
             old_value: oldVal,
-            new_value: newVal
+            new_value: newVal,
           }
         }
       })
 
-      const baselineAdditionalFields = (baselineData.additional_fields ?? {}) as Record<string, unknown>
+      const baselineAdditionalFields = (baselineData.additional_fields ?? {}) as Record<
+        string,
+        unknown
+      >
       if (JSON.stringify(baselineAdditionalFields) !== JSON.stringify(normalizedAdditionalFields)) {
         actualUpdateData.additional_fields = normalizedAdditionalFields
         changes.additional_fields = {
@@ -495,12 +555,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         return
       }
 
-
-
       // تحديث project_name إذا تم تعديل project_id
       if (actualUpdateData.project_id !== undefined) {
         if (actualUpdateData.project_id) {
-          const selectedProject = projects.find(p => p.id === actualUpdateData.project_id)
+          const selectedProject = projects.find((p) => p.id === actualUpdateData.project_id)
           if (selectedProject) {
             actualUpdateData.project_name = selectedProject.name
           }
@@ -525,7 +583,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
       // تسجيل النشاط مع التغييرات الفعلية فقط
       let actionType = 'full_edit'
-      if (actualUpdateData.company_id !== undefined && actualUpdateData.company_id !== originalData.company_id) {
+      if (
+        actualUpdateData.company_id !== undefined &&
+        actualUpdateData.company_id !== originalData.company_id
+      ) {
         actionType = 'company_transfer'
       }
 
@@ -533,10 +594,10 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
       toast.success('تم حفظ التعديلات بنجاح')
       setIsEditMode(false)
-      
+
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
-      
+
       onUpdate()
     } catch (error) {
       logger.error('Error saving employee:', error)
@@ -552,13 +613,16 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
       ...employee,
       company_id: employee.company_id,
       project_id: employee.project_id || employee.project?.id || null,
-      additional_fields: (employee.additional_fields || {}) as Record<string, string | number | boolean | null>,
-      health_insurance_expiry: employee.health_insurance_expiry || '',  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+      additional_fields: (employee.additional_fields || {}) as Record<
+        string,
+        string | number | boolean | null
+      >,
+      health_insurance_expiry: employee.health_insurance_expiry || '', // تحديث: ending_subscription_insurance_date → health_insurance_expiry
       hired_worker_contract_expiry: employee.hired_worker_contract_expiry || '',
       salary: employee.salary || 0,
       notes: employee.notes || '',
       residence_image_url: employee.residence_image_url || '',
-      residence_number: employee.residence_number || 0
+      residence_number: employee.residence_number || 0,
     })
     setIsEditMode(false)
     setIsCompanyDropdownOpen(false)
@@ -683,7 +747,11 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
     }
   }
 
-  const startEditingObligationLine = (lineId: string, amountPaid: number, notes?: string | null) => {
+  const startEditingObligationLine = (
+    lineId: string,
+    amountPaid: number,
+    notes?: string | null
+  ) => {
     setEditingObligationLineId(lineId)
     setObligationPaymentForm({
       amount_paid: amountPaid,
@@ -736,18 +804,20 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`sticky top-0 z-30 flex items-center justify-between border-b border-white/10 p-6 text-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.7)] ${
-          isEditMode 
-            ? 'bg-gradient-to-l from-amber-600 to-orange-500' 
-            : 'bg-gradient-to-l from-slate-950 via-slate-900 to-slate-800'
-        }`}>
+        <div
+          className={`sticky top-0 z-30 flex items-center justify-between border-b border-white/10 p-6 text-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.7)] ${
+            isEditMode
+              ? 'bg-gradient-to-l from-amber-600 to-orange-500'
+              : 'bg-gradient-to-l from-slate-950 via-slate-900 to-slate-800'
+          }`}
+        >
           <div>
             <h2 className="text-2xl font-bold">{employee.name}</h2>
-            <p className={`mt-1 ${isEditMode ? 'text-orange-100' : 'text-slate-300'}`}>
+            <p className={`mt-1 ${isEditMode ? 'text-warning-100' : 'text-slate-300'}`}>
               {employee.profession} - {employee?.company?.name ?? 'غير محدد'}
             </p>
             {isEditMode && (
-              <p className="text-sm mt-1 text-orange-100">
+              <p className="text-sm mt-1 text-warning-100">
                 وضع التعديل نشط - يمكنك تعديل البيانات أدناه
               </p>
             )}
@@ -772,10 +842,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                 </button>
               )
             )}
-            <button
-              onClick={onClose}
-              className="rounded-xl p-2 transition hover:bg-white/15"
-            >
+            <button onClick={onClose} className="rounded-xl p-2 transition hover:bg-white/15">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -785,7 +852,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
         <EmployeeExpirySection employee={employee} />
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 p-3">
+        <div className="border-b border-neutral-200 p-3">
           <div className="app-toggle-shell w-full">
             <button
               onClick={() => setActiveTab('basic')}
@@ -809,528 +876,568 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. الاسم */}
                 <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
-                <input
-                  type="text"
-                  value={formData.name ?? ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    الاسم الكامل
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name ?? ''}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 2. مهنة الإقامة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" />
-                  مهنة الإقامة
-                </label>
-                <input
-                  type="text"
-                  value={formData.profession ?? ''}
-                  onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 2. مهنة الإقامة */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    مهنة الإقامة
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.profession ?? ''}
+                    onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 3. الجنسية */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  الجنسية
-                </label>
-                <input
-                  type="text"
-                  value={formData.nationality ?? ''}
-                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 3. الجنسية */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    الجنسية
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nationality ?? ''}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 4. رقم الإقامة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  رقم الإقامة
-                </label>
-                <input
-                  type="text"
-                  value={formData.residence_number || ''}
-                  onChange={(e) => setFormData({ ...formData, residence_number: parseInt(e.target.value) || 0 })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 font-mono ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 4. رقم الإقامة */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    رقم الإقامة
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.residence_number || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, residence_number: parseInt(e.target.value) || 0 })
+                    }
+                    disabled={!isEditMode}
+                    className={`app-input py-2 font-mono ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 5. رقم الجواز */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">رقم جواز السفر</label>
-                <input
-                  type="text"
-                  value={formData.passport_number ?? ''}
-                  onChange={(e) => setFormData({ ...formData, passport_number: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 5. رقم الجواز */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    رقم جواز السفر
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.passport_number ?? ''}
+                    onChange={(e) => setFormData({ ...formData, passport_number: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 6. تاريخ الميلاد */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  تاريخ الميلاد
-                </label>
-                <input
-                  type="date"
-                  value={formData.birth_date || ''}
-                  onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 6. تاريخ الميلاد */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    تاريخ الميلاد
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.birth_date || ''}
+                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 7. رقم الهاتف */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  رقم الهاتف
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 7. رقم الهاتف */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    رقم الهاتف
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phone || ''}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 8. الحساب البنكي */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  الحساب البنكي
-                </label>
-                <input
-                  type="text"
-                  value={formData.bank_account || ''}
-                  onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 8. الحساب البنكي */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    الحساب البنكي
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.bank_account || ''}
+                    onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 9. اسم البنك */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  اسم البنك
-                </label>
-                <input
-                  type="text"
-                  value={employeeBusinessFields.bank_name}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    additional_fields: {
-                      ...formData.additional_fields,
-                      bank_name: e.target.value,
-                    },
-                  })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
+                {/* 9. اسم البنك */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    اسم البنك
+                  </label>
+                  <input
+                    type="text"
+                    value={employeeBusinessFields.bank_name}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        additional_fields: {
+                          ...formData.additional_fields,
+                          bank_name: e.target.value,
+                        },
+                      })
+                    }
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
 
-              {/* 10. الراتب */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  الراتب
-                </label>
-                <input
-                  type="number"
-                  value={formData.salary || 0}
-                  onChange={(e) => setFormData({ ...formData, salary: Number(e.target.value) })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                  placeholder="الراتب الشهري"
-                />
-              </div>
+                {/* 10. الراتب */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    الراتب
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.salary || 0}
+                    onChange={(e) => setFormData({ ...formData, salary: Number(e.target.value) })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                    placeholder="الراتب الشهري"
+                  />
+                </div>
 
-              {/* 11. الشركة أو المؤسسة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  الشركة أو المؤسسة
-                </label>
-                <div className="relative" ref={companyDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={companySearchQuery}
-                      onChange={(e) => {
-                        setCompanySearchQuery(e.target.value)
-                        setIsCompanyDropdownOpen(true)
-                      }}
-                      onFocus={() => {
-                        if (isEditMode) {
+                {/* 11. الشركة أو المؤسسة */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    الشركة أو المؤسسة
+                  </label>
+                  <div className="relative" ref={companyDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={companySearchQuery}
+                        onChange={(e) => {
+                          setCompanySearchQuery(e.target.value)
                           setIsCompanyDropdownOpen(true)
-                        }
-                      }}
-                      placeholder="ابحث بالاسم أو الرقم الموحد..."
-                      disabled={!isEditMode}
-                      className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                    />
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <Search className="w-5 h-5 text-gray-400" />
-                    </div>
-                    {isEditMode && (
-                      <button
-                        type="button"
-                        onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronDown className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {isCompanyDropdownOpen && isEditMode && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                      {filteredCompanies.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
-                        </div>
-                      ) : (
-                        filteredCompanies.map(company => (
-                          <button
-                            key={company.id}
-                            type="button"
-                            onClick={() => {
-                              setFormData({ ...formData, company_id: company.id })
-                              setCompanySearchQuery(`${company.name} (${company.unified_number})`)
-                              setIsCompanyDropdownOpen(false)
-                            }}
-                            className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
-                          >
-                            {company.name} ({company.unified_number})
-                          </button>
-                        ))
+                        }}
+                        onFocus={() => {
+                          if (isEditMode) {
+                            setIsCompanyDropdownOpen(true)
+                          }
+                        }}
+                        placeholder="ابحث بالاسم أو الرقم الموحد..."
+                        disabled={!isEditMode}
+                        className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                      />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <Search className="w-5 h-5 text-neutral-400" />
+                      </div>
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                        >
+                          <ChevronDown
+                            className={`w-5 h-5 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`}
+                          />
+                        </button>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* 12. المشروع */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <FolderKanban className="w-4 h-4" />
-                  المشروع
-                </label>
-                <div className="relative" ref={projectDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={projectSearchQuery}
-                      onChange={(e) => {
-                        setProjectSearchQuery(e.target.value)
-                        setIsProjectDropdownOpen(true)
-                      }}
-                      onFocus={() => {
-                        if (isEditMode) {
-                          setIsProjectDropdownOpen(true)
-                        }
-                      }}
-                      placeholder="ابحث عن مشروع..."
-                      disabled={!isEditMode}
-                      className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                    />
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <Search className="w-5 h-5 text-gray-400" />
-                    </div>
-                    {isEditMode && (
-                      <button
-                        type="button"
-                        onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronDown className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {isProjectDropdownOpen && isEditMode && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({ ...formData, project_id: null })
-                          setProjectSearchQuery('')
-                          setIsProjectDropdownOpen(false)
-                        }}
-                        className="w-full px-4 py-2.5 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
-                      >
-                        بدون مشروع
-                      </button>
-                      {filteredProjects.length === 0 && !showCreateOption ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          {projectSearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مشاريع متاحة'}
-                        </div>
-                      ) : (
-                        <>
-                          {filteredProjects.map(project => (
+                    {isCompanyDropdownOpen && isEditMode && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        {filteredCompanies.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-neutral-500 text-center">
+                            {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
+                          </div>
+                        ) : (
+                          filteredCompanies.map((company) => (
                             <button
-                              key={project.id}
+                              key={company.id}
                               type="button"
                               onClick={() => {
-                                setFormData({ ...formData, project_id: project.id, project_name: project.name })
-                                setProjectSearchQuery(project.name)
-                                setIsProjectDropdownOpen(false)
+                                setFormData({ ...formData, company_id: company.id })
+                                setCompanySearchQuery(`${company.name} (${company.unified_number})`)
+                                setIsCompanyDropdownOpen(false)
                               }}
                               className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
                             >
-                              <div className="flex items-center justify-between">
-                                <span>{project.name}</span>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                  project.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                  'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {project.status === 'active' ? 'نشط' : project.status === 'inactive' ? 'متوقف' : 'مكتمل'}
-                                </span>
-                              </div>
+                              {company.name} ({company.unified_number})
                             </button>
-                          ))}
-                          {showCreateOption && (
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 12. المشروع */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <FolderKanban className="w-4 h-4" />
+                    المشروع
+                  </label>
+                  <div className="relative" ref={projectDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={projectSearchQuery}
+                        onChange={(e) => {
+                          setProjectSearchQuery(e.target.value)
+                          setIsProjectDropdownOpen(true)
+                        }}
+                        onFocus={() => {
+                          if (isEditMode) {
+                            setIsProjectDropdownOpen(true)
+                          }
+                        }}
+                        placeholder="ابحث عن مشروع..."
+                        disabled={!isEditMode}
+                        className={`app-input py-2 pr-10 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                      />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <Search className="w-5 h-5 text-neutral-400" />
+                      </div>
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                        >
+                          <ChevronDown
+                            className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                      )}
+                    </div>
+
+                    {isProjectDropdownOpen && isEditMode && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, project_id: null })
+                            setProjectSearchQuery('')
+                            setIsProjectDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2.5 text-right text-sm hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none transition-colors text-neutral-600"
+                        >
+                          بدون مشروع
+                        </button>
+                        {filteredProjects.length === 0 && !showCreateOption ? (
+                          <div className="px-4 py-3 text-sm text-neutral-500 text-center">
+                            {projectSearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مشاريع متاحة'}
+                          </div>
+                        ) : (
+                          <>
+                            {filteredProjects.map((project) => (
+                              <button
+                                key={project.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    project_id: project.id,
+                                    project_name: project.name,
+                                  })
+                                  setProjectSearchQuery(project.name)
+                                  setIsProjectDropdownOpen(false)
+                                }}
+                                className="w-full px-4 py-2.5 text-right text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span>{project.name}</span>
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded-full ${
+                                      project.status === 'active'
+                                        ? 'bg-green-100 text-success-800'
+                                        : project.status === 'inactive'
+                                          ? 'bg-neutral-100 text-neutral-800'
+                                          : 'bg-blue-100 text-blue-800'
+                                    }`}
+                                  >
+                                    {project.status === 'active'
+                                      ? 'نشط'
+                                      : project.status === 'inactive'
+                                        ? 'متوقف'
+                                        : 'مكتمل'}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                            {showCreateOption && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewProjectName(projectSearchQuery.trim())
+                                  setShowCreateProjectModal(true)
+                                }}
+                                className="w-full px-4 py-2.5 text-right text-sm hover:bg-green-50 focus:bg-green-50 focus:outline-none transition-colors border-t border-neutral-200 text-success-700 font-medium"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-2">
+                                    <Plus className="w-4 h-4" />
+                                    إنشاء مشروع جديد: {projectSearchQuery.trim()}
+                                  </span>
+                                </div>
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* مودال إضافة مشروع جديد */}
+                    {showCreateProjectModal && (
+                      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[60] p-4">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                          <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                            <Plus className="w-5 h-5 text-success-600" />
+                            إضافة مشروع جديد
+                          </h3>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                              اسم المشروع <span className="text-danger-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={newProjectName}
+                              onChange={(e) => setNewProjectName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !creatingProject) {
+                                  handleCreateProject()
+                                }
+                              }}
+                              className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              placeholder="أدخل اسم المشروع"
+                              autoFocus
+                              disabled={creatingProject}
+                            />
+                          </div>
+                          <div className="flex items-center justify-end gap-3">
                             <button
                               type="button"
                               onClick={() => {
-                                setNewProjectName(projectSearchQuery.trim())
-                                setShowCreateProjectModal(true)
+                                setShowCreateProjectModal(false)
+                                setNewProjectName('')
                               }}
-                              className="w-full px-4 py-2.5 text-right text-sm hover:bg-green-50 focus:bg-green-50 focus:outline-none transition-colors border-t border-gray-200 text-green-700 font-medium"
+                              className="px-4 py-2 border border-neutral-300 rounded-lg text-neutral-700 hover:bg-neutral-50 transition"
+                              disabled={creatingProject}
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                  <Plus className="w-4 h-4" />
-                                  إنشاء مشروع جديد: {projectSearchQuery.trim()}
-                                </span>
-                              </div>
+                              إلغاء
                             </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* مودال إضافة مشروع جديد */}
-                  {showCreateProjectModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[60] p-4">
-                      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <Plus className="w-5 h-5 text-green-600" />
-                          إضافة مشروع جديد
-                        </h3>
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            اسم المشروع <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={newProjectName}
-                            onChange={(e) => setNewProjectName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !creatingProject) {
-                                handleCreateProject()
-                              }
-                            }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            placeholder="أدخل اسم المشروع"
-                            autoFocus
-                            disabled={creatingProject}
-                          />
-                        </div>
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowCreateProjectModal(false)
-                              setNewProjectName('')
-                            }}
-                            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                            disabled={creatingProject}
-                          >
-                            إلغاء
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleCreateProject}
-                            disabled={creatingProject || !newProjectName.trim()}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                          >
-                            {creatingProject ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                جاري الإنشاء...
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-4 h-4" />
-                                إضافة
-                              </>
-                            )}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={handleCreateProject}
+                              disabled={creatingProject || !newProjectName.trim()}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {creatingProject ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  جاري الإنشاء...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4" />
+                                  إضافة
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 13. حالة عقد أجير */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    حالة عقد أجير
+                  </label>
+                  <select
+                    value={String(employeeBusinessFields.hired_worker_contract_status)}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        additional_fields: {
+                          ...formData.additional_fields,
+                          hired_worker_contract_status: e.target.value,
+                        },
+                      })
+                    }
+                    disabled={!isEditMode || Boolean(formData.hired_worker_contract_expiry)}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  >
+                    {HIRED_WORKER_CONTRACT_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 14. تاريخ الالتحاق */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    تاريخ الالتحاق
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.joining_date || ''}
+                    onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                {/* 13. تاريخ انتهاء الإقامة */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    تاريخ انتهاء الإقامة
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.residence_expiry || ''}
+                    onChange={(e) => setFormData({ ...formData, residence_expiry: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                {/* 14. تاريخ انتهاء العقد */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    تاريخ انتهاء العقد
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.contract_expiry || ''}
+                    onChange={(e) => setFormData({ ...formData, contract_expiry: e.target.value })}
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                {/* 15. تاريخ انتهاء عقد أجير */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    تاريخ انتهاء عقد أجير
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.hired_worker_contract_expiry || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        hired_worker_contract_expiry: e.target.value,
+                        additional_fields: e.target.value
+                          ? {
+                              ...formData.additional_fields,
+                              hired_worker_contract_status: 'أجير',
+                            }
+                          : formData.additional_fields,
+                      })
+                    }
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                {/* 16. تاريخ انتهاء التأمين الصحي */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    تاريخ انتهاء التأمين الصحي
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.health_insurance_expiry || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, health_insurance_expiry: e.target.value })
+                    }
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                {/* 17. رابط صورة الإقامة */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    رابط صورة الإقامة
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.residence_image_url || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, residence_image_url: e.target.value })
+                    }
+                    disabled={!isEditMode}
+                    className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
+                    placeholder="أدخل رابط صورة الإقامة"
+                  />
+                  {formData.residence_image_url && !isEditMode && (
+                    <a
+                      href={formData.residence_image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      عرض الصورة
+                    </a>
                   )}
                 </div>
-              </div>
-
-              {/* 13. حالة عقد أجير */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">حالة عقد أجير</label>
-                <select
-                  value={String(employeeBusinessFields.hired_worker_contract_status)}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    additional_fields: {
-                      ...formData.additional_fields,
-                      hired_worker_contract_status: e.target.value,
-                    },
-                  })}
-                  disabled={!isEditMode || Boolean(formData.hired_worker_contract_expiry)}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                >
-                  {HIRED_WORKER_CONTRACT_STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 14. تاريخ الالتحاق */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  تاريخ الالتحاق
-                </label>
-                <input
-                  type="date"
-                  value={formData.joining_date || ''}
-                  onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
-
-              {/* 13. تاريخ انتهاء الإقامة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ انتهاء الإقامة</label>
-                <input
-                  type="date"
-                  value={formData.residence_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, residence_expiry: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
-
-              {/* 14. تاريخ انتهاء العقد */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ انتهاء العقد</label>
-                <input
-                  type="date"
-                  value={formData.contract_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, contract_expiry: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
-
-              {/* 15. تاريخ انتهاء عقد أجير */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  تاريخ انتهاء عقد أجير
-                </label>
-                <input
-                  type="date"
-                  value={formData.hired_worker_contract_expiry || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    hired_worker_contract_expiry: e.target.value,
-                    additional_fields: e.target.value
-                      ? {
-                          ...formData.additional_fields,
-                          hired_worker_contract_status: 'أجير',
-                        }
-                      : formData.additional_fields,
-                  })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
-
-              {/* 16. تاريخ انتهاء التأمين الصحي */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  تاريخ انتهاء التأمين الصحي
-                </label>
-                <input
-                  type="date"
-                  value={formData.health_insurance_expiry || ''}
-                  onChange={(e) => setFormData({ ...formData, health_insurance_expiry: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                />
-              </div>
-
-              {/* 17. رابط صورة الإقامة */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  رابط صورة الإقامة
-                </label>
-                <input
-                  type="text"
-                  value={formData.residence_image_url || ''}
-                  onChange={(e) => setFormData({ ...formData, residence_image_url: e.target.value })}
-                  disabled={!isEditMode}
-                  className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                  placeholder="أدخل رابط صورة الإقامة"
-                />
-                {formData.residence_image_url && !isEditMode && (
-                  <a
-                    href={formData.residence_image_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
-                  >
-                    عرض الصورة
-                  </a>
-                )}
-              </div>
 
                 {/* 18. الملاحظات */}
                 <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  الملاحظات
-                </label>
-                {isEditMode ? (
-                  <textarea
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={4}
-                    className="app-input min-h-[100px] resize-none"
-                    placeholder="أدخل أي ملاحظات إضافية عن الموظف..."
-                  />
-                ) : (
-                  <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 min-h-[100px] whitespace-pre-wrap">
-                    {formData.notes || 'لا توجد ملاحظات'}
-                  </div>
-                )}
+                  <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    الملاحظات
+                  </label>
+                  {isEditMode ? (
+                    <textarea
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={4}
+                      className="app-input min-h-[100px] resize-none"
+                      placeholder="أدخل أي ملاحظات إضافية عن الموظف..."
+                    />
+                  ) : (
+                    <div className="w-full px-4 py-2 border border-neutral-200 rounded-lg bg-neutral-50 text-neutral-700 min-h-[100px] whitespace-pre-wrap">
+                      {formData.notes || 'لا توجد ملاحظات'}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1354,331 +1461,429 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                     className="app-modal-surface relative isolate max-w-5xl max-h-[90vh] w-full overflow-y-auto p-5"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="border border-gray-200 rounded-xl p-5 bg-gray-50">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">الالتزامات المالية</h3>
-                    <p className="text-sm text-gray-600">ملخص الأقساط والخطط المفتوحة لهذا الموظف</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-sm text-gray-500">
-                      {isLoadingObligations
-                        ? 'جاري التحميل...'
-                        : `${activeObligationPlans.length} خطة نشطة / مسودة`}
-                    </div>
-                    {canEdit('employees') && (
-                      <button
-                        type="button"
-                        onClick={() => setShowObligationForm((current) => !current)}
-                        className="app-button-primary px-4 py-2 text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        {showObligationForm ? 'إخفاء النموذج' : 'إضافة التزام'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setShowFinancialOverlay(false)}
-                      className="app-button-secondary px-3 py-2 text-sm"
-                    >
-                      <X className="w-4 h-4" />
-                      إغلاق
-                    </button>
-                  </div>
-                </div>
-
-                {hasObligationsError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    تعذر تحميل بيانات الالتزامات المالية حالياً.
-                  </div>
-                ) : isLoadingObligations ? (
-                  <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
-                    جاري تحميل الالتزامات المالية...
-                  </div>
-                ) : obligationPlans.length === 0 ? (
-                  <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
-                    لا توجد التزامات مالية مسجلة لهذا الموظف بعد.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                      <div className="rounded-lg bg-white border border-gray-200 p-4">
-                        <div className="text-sm text-gray-500 mb-1">إجمالي الخطط</div>
-                        <div className="text-2xl font-bold text-gray-900">{obligationPlans.length}</div>
-                      </div>
-                      <div className="rounded-lg bg-white border border-gray-200 p-4">
-                        <div className="text-sm text-gray-500 mb-1">الأقساط المفتوحة</div>
-                        <div className="text-2xl font-bold text-orange-600">{openObligationLines.length}</div>
-                      </div>
-                      <div className="rounded-lg bg-white border border-gray-200 p-4">
-                        <div className="text-sm text-gray-500 mb-1">ما تم سداده</div>
-                        <div className="text-2xl font-bold text-green-600">{formatMoney(paidObligationAmount)} SAR</div>
-                      </div>
-                      <div className="rounded-lg bg-white border border-gray-200 p-4">
-                        <div className="text-sm text-gray-500 mb-1">المتبقي للسداد</div>
-                        <div className="text-2xl font-bold text-blue-700">{formatMoney(remainingObligationAmount)} SAR</div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                      {Object.entries(obligationBucketSummary).map(([bucketKey, bucketValue]) => (
-                        <div key={bucketKey} className="rounded-lg border border-gray-200 bg-white p-4">
-                          <div className="text-sm text-gray-500 mb-1">{getPayrollObligationBucketLabel(bucketKey as 'transfer_renewal' | 'penalty' | 'advance' | 'other')}</div>
-                          <div className="text-lg font-bold text-slate-900">{formatMoney(bucketValue.remaining)} SAR</div>
-                          <div className="mt-1 text-xs text-gray-500">المدفوع: {formatMoney(bucketValue.paid)} / الإجمالي: {formatMoney(bucketValue.total)}</div>
+                    <div className="border border-neutral-200 rounded-xl p-5 bg-neutral-50">
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-neutral-900">الالتزامات المالية</h3>
+                          <p className="text-sm text-neutral-600">
+                            ملخص الأقساط والخطط المفتوحة لهذا الموظف
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm text-neutral-500">
+                            {isLoadingObligations
+                              ? 'جاري التحميل...'
+                              : `${activeObligationPlans.length} خطة نشطة / مسودة`}
+                          </div>
+                          {canEdit('employees') && (
+                            <button
+                              type="button"
+                              onClick={() => setShowObligationForm((current) => !current)}
+                              className="app-button-primary px-4 py-2 text-sm"
+                            >
+                              <Plus className="w-4 h-4" />
+                              {showObligationForm ? 'إخفاء النموذج' : 'إضافة التزام'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowFinancialOverlay(false)}
+                            className="app-button-secondary px-3 py-2 text-sm"
+                          >
+                            <X className="w-4 h-4" />
+                            إغلاق
+                          </button>
+                        </div>
+                      </div>
 
-                    <div className="space-y-3">
-                      {recentObligationLines.map((line, index) => (
-                        <div
-                          key={line.id}
-                          className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
-                        >
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className="font-medium text-gray-900">{line.title}</div>
-                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                                  line.line_status === 'paid'
-                                    ? 'bg-green-100 text-green-700'
-                                    : line.line_status === 'partial'
-                                      ? 'bg-amber-100 text-amber-700'
-                                      : 'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {line.line_status === 'paid' ? 'مسدد' : line.line_status === 'partial' ? 'مسدد جزئيًا' : 'مفتوح'}
-                                </span>
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                القسط رقم {index + 1} • موعد السداد{' '}
-                                <HijriDateDisplay date={line.due_month}>
-                                  {formatDateShortWithHijri(line.due_month)}
-                                </HijriDateDisplay>
+                      {hasObligationsError ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                          تعذر تحميل بيانات الالتزامات المالية حالياً.
+                        </div>
+                      ) : isLoadingObligations ? (
+                        <div className="rounded-lg border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-500">
+                          جاري تحميل الالتزامات المالية...
+                        </div>
+                      ) : obligationPlans.length === 0 ? (
+                        <div className="rounded-lg border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-500">
+                          لا توجد التزامات مالية مسجلة لهذا الموظف بعد.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div className="rounded-lg bg-white border border-neutral-200 p-4">
+                              <div className="text-sm text-neutral-500 mb-1">إجمالي الخطط</div>
+                              <div className="text-2xl font-bold text-neutral-900">
+                                {obligationPlans.length}
                               </div>
                             </div>
-                            <div className="text-sm md:text-left">
-                              <div className="font-semibold text-gray-900">
-                                {formatMoney(Math.max(line.amount_due - line.amount_paid, 0))} {line.currency_code}
+                            <div className="rounded-lg bg-white border border-neutral-200 p-4">
+                              <div className="text-sm text-neutral-500 mb-1">الأقساط المفتوحة</div>
+                              <div className="text-2xl font-bold text-warning-600">
+                                {openObligationLines.length}
                               </div>
-                              <div className="text-gray-500">
-                                مدفوع: {formatMoney(line.amount_paid)} من {formatMoney(line.amount_due)}
+                            </div>
+                            <div className="rounded-lg bg-white border border-neutral-200 p-4">
+                              <div className="text-sm text-neutral-500 mb-1">ما تم سداده</div>
+                              <div className="text-2xl font-bold text-success-600">
+                                {formatMoney(paidObligationAmount)} SAR
+                              </div>
+                            </div>
+                            <div className="rounded-lg bg-white border border-neutral-200 p-4">
+                              <div className="text-sm text-neutral-500 mb-1">المتبقي للسداد</div>
+                              <div className="text-2xl font-bold text-blue-700">
+                                {formatMoney(remainingObligationAmount)} SAR
                               </div>
                             </div>
                           </div>
 
-                          {canEdit('employees') && (
-                            <div className="flex flex-col gap-3 border-t border-gray-100 pt-3">
-                              {editingObligationLineId === line.id ? (
-                                <>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        إجمالي المدفوع حتى الآن
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max={line.amount_due}
-                                        step="0.01"
-                                        value={obligationPaymentForm.amount_paid}
-                                        onChange={(e) => setObligationPaymentForm({
-                                          ...obligationPaymentForm,
-                                          amount_paid: Number(e.target.value) || 0,
-                                        })}
-                                        className="app-input"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        ملاحظات السداد
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={obligationPaymentForm.notes}
-                                        onChange={(e) => setObligationPaymentForm({
-                                          ...obligationPaymentForm,
-                                          notes: e.target.value,
-                                        })}
-                                        className="app-input"
-                                        placeholder="اختياري"
-                                      />
-                                    </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            {Object.entries(obligationBucketSummary).map(
+                              ([bucketKey, bucketValue]) => (
+                                <div
+                                  key={bucketKey}
+                                  className="rounded-lg border border-neutral-200 bg-white p-4"
+                                >
+                                  <div className="text-sm text-neutral-500 mb-1">
+                                    {getPayrollObligationBucketLabel(
+                                      bucketKey as
+                                        | 'transfer_renewal'
+                                        | 'penalty'
+                                        | 'advance'
+                                        | 'other'
+                                    )}
                                   </div>
-                                  <div className="flex items-center justify-end gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingObligationLineId(null)}
-                                      className="app-button-secondary px-3 py-2 text-sm"
-                                      disabled={updateObligationLinePayment.isPending}
-                                    >
-                                      إلغاء
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveObligationPayment(line.id, line.amount_due)}
-                                      className="app-button-primary px-3 py-2 text-sm"
-                                      disabled={updateObligationLinePayment.isPending}
-                                    >
-                                      {updateObligationLinePayment.isPending ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                          جاري الحفظ...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Save className="w-4 h-4" />
-                                          حفظ السداد
-                                        </>
-                                      )}
-                                    </button>
+                                  <div className="text-lg font-bold text-slate-900">
+                                    {formatMoney(bucketValue.remaining)} SAR
                                   </div>
-                                </>
-                              ) : (
-                                <div className="flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => startEditingObligationLine(line.id, line.amount_paid, line.notes)}
-                                    className="app-button-secondary px-3 py-2 text-sm"
-                                  >
-                                    <CreditCard className="w-4 h-4" />
-                                    تسجيل سداد
-                                  </button>
+                                  <div className="mt-1 text-xs text-neutral-500">
+                                    المدفوع: {formatMoney(bucketValue.paid)} / الإجمالي:{' '}
+                                    {formatMoney(bucketValue.total)}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                              )
+                            )}
+                          </div>
 
-                      {allObligationLines.length > 5 && (
-                        <div className="text-sm text-gray-500 text-center pt-1">
-                          يوجد {allObligationLines.length - 5} قسط إضافي غير ظاهر في هذا الملخص.
+                          <div className="space-y-3">
+                            {recentObligationLines.map((line, index) => (
+                              <div
+                                key={line.id}
+                                className="rounded-lg border border-neutral-200 bg-white p-4 space-y-3"
+                              >
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                  <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <div className="font-medium text-neutral-900">
+                                        {line.title}
+                                      </div>
+                                      <span
+                                        className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                                          line.line_status === 'paid'
+                                            ? 'bg-green-100 text-success-700'
+                                            : line.line_status === 'partial'
+                                              ? 'bg-amber-100 text-amber-700'
+                                              : 'bg-blue-100 text-blue-700'
+                                        }`}
+                                      >
+                                        {line.line_status === 'paid'
+                                          ? 'مسدد'
+                                          : line.line_status === 'partial'
+                                            ? 'مسدد جزئيًا'
+                                            : 'مفتوح'}
+                                      </span>
+                                    </div>
+                                    <div className="text-sm text-neutral-500">
+                                      القسط رقم {index + 1} • موعد السداد{' '}
+                                      <HijriDateDisplay date={line.due_month}>
+                                        {formatDateShortWithHijri(line.due_month)}
+                                      </HijriDateDisplay>
+                                    </div>
+                                  </div>
+                                  <div className="text-sm md:text-left">
+                                    <div className="font-semibold text-neutral-900">
+                                      {formatMoney(Math.max(line.amount_due - line.amount_paid, 0))}{' '}
+                                      {line.currency_code}
+                                    </div>
+                                    <div className="text-neutral-500">
+                                      مدفوع: {formatMoney(line.amount_paid)} من{' '}
+                                      {formatMoney(line.amount_due)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {canEdit('employees') && (
+                                  <div className="flex flex-col gap-3 border-t border-neutral-100 pt-3">
+                                    {editingObligationLineId === line.id ? (
+                                      <>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                              إجمالي المدفوع حتى الآن
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max={line.amount_due}
+                                              step="0.01"
+                                              value={obligationPaymentForm.amount_paid}
+                                              onChange={(e) =>
+                                                setObligationPaymentForm({
+                                                  ...obligationPaymentForm,
+                                                  amount_paid: Number(e.target.value) || 0,
+                                                })
+                                              }
+                                              className="app-input"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                              ملاحظات السداد
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={obligationPaymentForm.notes}
+                                              onChange={(e) =>
+                                                setObligationPaymentForm({
+                                                  ...obligationPaymentForm,
+                                                  notes: e.target.value,
+                                                })
+                                              }
+                                              className="app-input"
+                                              placeholder="اختياري"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingObligationLineId(null)}
+                                            className="app-button-secondary px-3 py-2 text-sm"
+                                            disabled={updateObligationLinePayment.isPending}
+                                          >
+                                            إلغاء
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleSaveObligationPayment(line.id, line.amount_due)
+                                            }
+                                            className="app-button-primary px-3 py-2 text-sm"
+                                            disabled={updateObligationLinePayment.isPending}
+                                          >
+                                            {updateObligationLinePayment.isPending ? (
+                                              <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                جاري الحفظ...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Save className="w-4 h-4" />
+                                                حفظ السداد
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            startEditingObligationLine(
+                                              line.id,
+                                              line.amount_paid,
+                                              line.notes
+                                            )
+                                          }
+                                          className="app-button-secondary px-3 py-2 text-sm"
+                                        >
+                                          <CreditCard className="w-4 h-4" />
+                                          تسجيل سداد
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+
+                            {allObligationLines.length > 5 && (
+                              <div className="text-sm text-neutral-500 text-center pt-1">
+                                يوجد {allObligationLines.length - 5} قسط إضافي غير ظاهر في هذا
+                                الملخص.
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
-                  </div>
-                )}
 
-                {showObligationForm && canEdit('employees') && (
-                  <div className="mt-5 rounded-xl border border-blue-200 bg-white p-5 space-y-4">
-                    <div>
-                      <h4 className="text-base font-bold text-gray-900">إنشاء خطة التزام جديدة</h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        ماذا فعلنا: سننشئ رأس الالتزام وكل الأقساط مرة واحدة.
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        لماذا فعلنا ذلك: حتى لا تفشل القيود المحاسبية في قاعدة البيانات.
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        ما النتيجة المتوقعة: ستظهر الخطة مباشرة في الملخص بالأعلى بعد الحفظ.
-                      </p>
-                    </div>
+                      {showObligationForm && canEdit('employees') && (
+                        <div className="mt-5 rounded-xl border border-blue-200 bg-white p-5 space-y-4">
+                          <div>
+                            <h4 className="text-base font-bold text-neutral-900">
+                              إنشاء خطة التزام جديدة
+                            </h4>
+                            <p className="text-sm text-neutral-600 mt-1">
+                              ماذا فعلنا: سننشئ رأس الالتزام وكل الأقساط مرة واحدة.
+                            </p>
+                            <p className="text-sm text-neutral-600">
+                              لماذا فعلنا ذلك: حتى لا تفشل القيود المحاسبية في قاعدة البيانات.
+                            </p>
+                            <p className="text-sm text-neutral-600">
+                              ما النتيجة المتوقعة: ستظهر الخطة مباشرة في الملخص بالأعلى بعد الحفظ.
+                            </p>
+                          </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">نوع الالتزام</label>
-                        <select
-                          value={obligationForm.obligation_type}
-                          onChange={(e) => setObligationForm({ ...obligationForm, obligation_type: e.target.value as 'transfer' | 'renewal' | 'penalty' | 'advance' | 'other' })}
-                          className="app-input"
-                        >
-                          <option value="advance">سلفة</option>
-                          <option value="transfer">نقل كفالة</option>
-                          <option value="renewal">تجديد</option>
-                          <option value="penalty">غرامة</option>
-                          <option value="other">أخرى</option>
-                        </select>
-                      </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                نوع الالتزام
+                              </label>
+                              <select
+                                value={obligationForm.obligation_type}
+                                onChange={(e) =>
+                                  setObligationForm({
+                                    ...obligationForm,
+                                    obligation_type: e.target.value as
+                                      | 'transfer'
+                                      | 'renewal'
+                                      | 'penalty'
+                                      | 'advance'
+                                      | 'other',
+                                  })
+                                }
+                                className="app-input"
+                              >
+                                <option value="advance">سلفة</option>
+                                <option value="transfer">نقل كفالة</option>
+                                <option value="renewal">تجديد</option>
+                                <option value="penalty">غرامة</option>
+                                <option value="other">أخرى</option>
+                              </select>
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">إجمالي المبلغ</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={obligationForm.total_amount}
-                          onChange={(e) => setObligationForm({ ...obligationForm, total_amount: Number(e.target.value) || 0 })}
-                          className="app-input"
-                        />
-                      </div>
+                            <div>
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                إجمالي المبلغ
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={obligationForm.total_amount}
+                                onChange={(e) =>
+                                  setObligationForm({
+                                    ...obligationForm,
+                                    total_amount: Number(e.target.value) || 0,
+                                  })
+                                }
+                                className="app-input"
+                              />
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">شهر البداية</label>
-                        <input
-                          type="month"
-                          value={obligationForm.start_month}
-                          onChange={(e) => setObligationForm({ ...obligationForm, start_month: e.target.value })}
-                          className="app-input"
-                        />
-                      </div>
+                            <div>
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                شهر البداية
+                              </label>
+                              <input
+                                type="month"
+                                value={obligationForm.start_month}
+                                onChange={(e) =>
+                                  setObligationForm({
+                                    ...obligationForm,
+                                    start_month: e.target.value,
+                                  })
+                                }
+                                className="app-input"
+                              />
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">عدد الأقساط</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="12"
-                          value={obligationForm.installment_count}
-                          onChange={(e) => setObligationForm({ ...obligationForm, installment_count: Number(e.target.value) || 1 })}
-                          className="app-input"
-                        />
-                      </div>
+                            <div>
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                عدد الأقساط
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="12"
+                                value={obligationForm.installment_count}
+                                onChange={(e) =>
+                                  setObligationForm({
+                                    ...obligationForm,
+                                    installment_count: Number(e.target.value) || 1,
+                                  })
+                                }
+                                className="app-input"
+                              />
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">قيمة القسط التقريبية</label>
-                        <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
-                          {installmentPreview.length > 0 ? `${formatMoney(installmentPreview[0])} SAR` : 'غير متاح'}
+                            <div>
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                قيمة القسط التقريبية
+                              </label>
+                              <div className="w-full px-4 py-2 border border-neutral-200 rounded-lg bg-neutral-50 text-neutral-700">
+                                {installmentPreview.length > 0
+                                  ? `${formatMoney(installmentPreview[0])} SAR`
+                                  : 'غير متاح'}
+                              </div>
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                ملاحظات
+                              </label>
+                              <textarea
+                                rows={3}
+                                value={obligationForm.notes}
+                                onChange={(e) =>
+                                  setObligationForm({ ...obligationForm, notes: e.target.value })
+                                }
+                                className="app-input min-h-[96px] resize-none"
+                                placeholder="أي توضيح إضافي عن هذا الالتزام"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                            سيتم إنشاء {obligationForm.installment_count} قسط. أول 3 أقساط:{' '}
+                            {installmentPreview
+                              .slice(0, 3)
+                              .map((value) => formatMoney(value))
+                              .join(' ، ')}
+                            {installmentPreview.length > 3 ? ' ...' : ''}
+                          </div>
+
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setShowObligationForm(false)}
+                              className="px-4 py-2 border border-neutral-300 rounded-lg text-neutral-700 hover:bg-neutral-50 transition"
+                              disabled={createEmployeeObligationPlan.isPending}
+                            >
+                              إلغاء
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCreateObligationPlan}
+                              disabled={createEmployeeObligationPlan.isPending}
+                              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition disabled:opacity-60"
+                            >
+                              {createEmployeeObligationPlan.isPending ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  جاري الإنشاء...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="w-4 h-4" />
+                                  حفظ الخطة
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
-                        <textarea
-                          rows={3}
-                          value={obligationForm.notes}
-                          onChange={(e) => setObligationForm({ ...obligationForm, notes: e.target.value })}
-                          className="app-input min-h-[96px] resize-none"
-                          placeholder="أي توضيح إضافي عن هذا الالتزام"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                      سيتم إنشاء {obligationForm.installment_count} قسط. أول 3 أقساط: {installmentPreview.slice(0, 3).map((value) => formatMoney(value)).join(' ، ')}
-                      {installmentPreview.length > 3 ? ' ...' : ''}
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowObligationForm(false)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                        disabled={createEmployeeObligationPlan.isPending}
-                      >
-                        إلغاء
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCreateObligationPlan}
-                        disabled={createEmployeeObligationPlan.isPending}
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition disabled:opacity-60"
-                      >
-                        {createEmployeeObligationPlan.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            جاري الإنشاء...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-4 h-4" />
-                            حفظ الخطة
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1687,8 +1892,8 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
           ) : (
             <div className="space-y-4">
               {customFields.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <div className="text-center py-12 text-neutral-500">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
                   <p>لا توجد حقول إضافية محددة</p>
                   <p className="text-sm mt-2">يمكن إضافة حقول مخصصة من صفحة الإعدادات</p>
                 </div>
@@ -1696,22 +1901,29 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {customFields.map((field) => (
                     <div key={field.id}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
                         {field.field_label}
-                        {field.is_required && <span className="text-red-500 mr-1">*</span>}
+                        {field.is_required && <span className="text-danger-500 mr-1">*</span>}
                       </label>
-                      
+
                       {field.field_type === 'text' && (
                         <input
                           type="text"
-                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            additional_fields: {
-                              ...formData.additional_fields,
-                              [field.field_name]: e.target.value
-                            }
-                          })}
+                          value={String(
+                            getAdditionalFieldValue(
+                              formData.additional_fields[field.field_name],
+                              'text'
+                            )
+                          )}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              additional_fields: {
+                                ...formData.additional_fields,
+                                [field.field_name]: e.target.value,
+                              },
+                            })
+                          }
                           disabled={!isEditMode}
                           className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
@@ -1719,14 +1931,21 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
                       {field.field_type === 'textarea' && (
                         <textarea
-                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'textarea'))}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            additional_fields: {
-                              ...formData.additional_fields,
-                              [field.field_name]: e.target.value
-                            }
-                          })}
+                          value={String(
+                            getAdditionalFieldValue(
+                              formData.additional_fields[field.field_name],
+                              'textarea'
+                            )
+                          )}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              additional_fields: {
+                                ...formData.additional_fields,
+                                [field.field_name]: e.target.value,
+                              },
+                            })
+                          }
                           rows={3}
                           disabled={!isEditMode}
                           className={`app-input min-h-[92px] resize-none ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
@@ -1736,14 +1955,21 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                       {field.field_type === 'number' && (
                         <input
                           type="number"
-                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'number'))}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            additional_fields: {
-                              ...formData.additional_fields,
-                              [field.field_name]: e.target.value
-                            }
-                          })}
+                          value={String(
+                            getAdditionalFieldValue(
+                              formData.additional_fields[field.field_name],
+                              'number'
+                            )
+                          )}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              additional_fields: {
+                                ...formData.additional_fields,
+                                [field.field_name]: e.target.value,
+                              },
+                            })
+                          }
                           disabled={!isEditMode}
                           className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
@@ -1752,14 +1978,21 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                       {field.field_type === 'date' && (
                         <input
                           type="date"
-                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            additional_fields: {
-                              ...formData.additional_fields,
-                              [field.field_name]: e.target.value
-                            }
-                          })}
+                          value={String(
+                            getAdditionalFieldValue(
+                              formData.additional_fields[field.field_name],
+                              'text'
+                            )
+                          )}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              additional_fields: {
+                                ...formData.additional_fields,
+                                [field.field_name]: e.target.value,
+                              },
+                            })
+                          }
                           disabled={!isEditMode}
                           className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         />
@@ -1767,25 +2000,39 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
 
                       {field.field_type === 'select' && field.field_options.options && (
                         <select
-                          value={String(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'text'))}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            additional_fields: {
-                              ...formData.additional_fields,
-                              [field.field_name]: e.target.value
-                            }
-                          })}
+                          value={String(
+                            getAdditionalFieldValue(
+                              formData.additional_fields[field.field_name],
+                              'text'
+                            )
+                          )}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              additional_fields: {
+                                ...formData.additional_fields,
+                                [field.field_name]: e.target.value,
+                              },
+                            })
+                          }
                           disabled={!isEditMode}
                           className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
                         >
                           <option value="">اختر...</option>
-                          {Array.isArray(field.field_options.options) && field.field_options.options.map((option: string | { label: string; value: string | number }) => {
-                            const optionValue = typeof option === 'object' ? option.value : option
-                            const optionLabel = typeof option === 'object' ? option.label : option
-                            return (
-                              <option key={String(optionValue)} value={String(optionValue)}>{String(optionLabel)}</option>
-                            )
-                          })}
+                          {Array.isArray(field.field_options.options) &&
+                            field.field_options.options.map(
+                              (option: string | { label: string; value: string | number }) => {
+                                const optionValue =
+                                  typeof option === 'object' ? option.value : option
+                                const optionLabel =
+                                  typeof option === 'object' ? option.label : option
+                                return (
+                                  <option key={String(optionValue)} value={String(optionValue)}>
+                                    {String(optionLabel)}
+                                  </option>
+                                )
+                              }
+                            )}
                         </select>
                       )}
 
@@ -1793,18 +2040,25 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={(getAdditionalFieldValue(formData.additional_fields[field.field_name], 'checkbox') as boolean)}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.checked
-                              }
-                            })}
+                            checked={
+                              getAdditionalFieldValue(
+                                formData.additional_fields[field.field_name],
+                                'checkbox'
+                              ) as boolean
+                            }
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                additional_fields: {
+                                  ...formData.additional_fields,
+                                  [field.field_name]: e.target.checked,
+                                },
+                              })
+                            }
                             disabled={!isEditMode}
                             className="h-5 w-5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
                           />
-                          <span className="text-sm text-gray-600">نعم</span>
+                          <span className="text-sm text-neutral-600">نعم</span>
                         </div>
                       )}
                     </div>
@@ -1828,11 +2082,7 @@ export default function EmployeeCard({ employee, onClose, onUpdate, onDelete, de
             </button>
           )}
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="app-button-secondary px-6 py-2"
-              disabled={saving}
-            >
+            <button onClick={onClose} className="app-button-secondary px-6 py-2" disabled={saving}>
               إغلاق
             </button>
             {isEditMode && (

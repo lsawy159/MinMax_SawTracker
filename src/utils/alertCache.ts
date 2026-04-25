@@ -23,7 +23,7 @@ class AlertCacheManager {
   private generatingCompany = false
   private pendingEmployeeRequests: Array<(alerts: EmployeeAlert[]) => void> = []
   private pendingCompanyRequests: Array<(alerts: Alert[]) => void> = []
-  
+
   // Cache validity: 2 minutes
   private readonly CACHE_TTL = 2 * 60 * 1000
 
@@ -41,11 +41,11 @@ class AlertCacheManager {
     if (!cache) return false
     const age = Date.now() - cache.timestamp
     const isValid = cache.key === currentKey && age < this.CACHE_TTL
-    
+
     if (!isValid) {
       logger.debug('[AlertCache] Cache invalid or expired')
     }
-    
+
     return isValid
   }
 
@@ -79,16 +79,16 @@ class AlertCacheManager {
 
     try {
       const alerts = await generateEmployeeAlerts(employees, companies)
-      
+
       // Update cache
       this.employeeAlertsCache = {
         data: alerts,
         timestamp: Date.now(),
-        key: cacheKey
+        key: cacheKey,
       }
 
       // Resolve all pending requests with the same data
-      this.pendingEmployeeRequests.forEach(resolve => resolve(alerts))
+      this.pendingEmployeeRequests.forEach((resolve) => resolve(alerts))
       this.pendingEmployeeRequests = []
 
       logger.debug(`[AlertCache] Employee alerts generated and cached (${alerts.length} alerts)`)
@@ -101,10 +101,7 @@ class AlertCacheManager {
   /**
    * Get company alerts with caching and deduplication
    */
-  async getCompanyAlerts(
-    companies: Company[],
-    forceRefresh = false
-  ): Promise<Alert[]> {
+  async getCompanyAlerts(companies: Company[], forceRefresh = false): Promise<Alert[]> {
     const cacheKey = `c${companies.length}`
 
     // Return cached data if valid and not forcing refresh
@@ -127,16 +124,16 @@ class AlertCacheManager {
 
     try {
       const alerts = await generateCompanyAlertsSync(companies)
-      
+
       // Update cache
       this.companyAlertsCache = {
         data: alerts,
         timestamp: Date.now(),
-        key: cacheKey
+        key: cacheKey,
       }
 
       // Resolve all pending requests with the same data
-      this.pendingCompanyRequests.forEach(resolve => resolve(alerts))
+      this.pendingCompanyRequests.forEach((resolve) => resolve(alerts))
       this.pendingCompanyRequests = []
 
       logger.debug(`[AlertCache] Company alerts generated and cached (${alerts.length} alerts)`)
@@ -179,13 +176,13 @@ class AlertCacheManager {
       employeeCache: {
         valid: this.employeeAlertsCache !== null,
         age: this.employeeAlertsCache ? Date.now() - this.employeeAlertsCache.timestamp : 0,
-        count: this.employeeAlertsCache?.data.length || 0
+        count: this.employeeAlertsCache?.data.length || 0,
       },
       companyCache: {
         valid: this.companyAlertsCache !== null,
         age: this.companyAlertsCache ? Date.now() - this.companyAlertsCache.timestamp : 0,
-        count: this.companyAlertsCache?.data.length || 0
-      }
+        count: this.companyAlertsCache?.data.length || 0,
+      },
     }
   }
 }

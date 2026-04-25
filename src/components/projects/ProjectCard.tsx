@@ -17,13 +17,13 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-100 text-success-800 border-green-200'
       case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-neutral-100 text-neutral-800 border-neutral-200'
       case 'completed':
         return 'bg-primary/15 text-slate-900 border-primary/30'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-neutral-100 text-neutral-800 border-neutral-200'
     }
   }
 
@@ -52,7 +52,9 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
           <FolderKanban className="h-4 w-4" />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusColor(project.status || 'active')}`}>
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusColor(project.status || 'active')}`}
+          >
             {getStatusText(project.status || 'active')}
           </span>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -77,28 +79,28 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
           </div>
         </div>
       </div>
-      
-      <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-gray-900">{project.name}</h3>
+
+      <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-neutral-900">{project.name}</h3>
 
       {project.description && (
-        <p className="mb-2.5 line-clamp-2 text-xs text-gray-600">{project.description}</p>
+        <p className="mb-2.5 line-clamp-2 text-xs text-neutral-600">{project.description}</p>
       )}
 
-      <div className="space-y-1.5 border-t border-gray-200 pt-2.5 text-xs">
+      <div className="space-y-1.5 border-t border-neutral-200 pt-2.5 text-xs">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1 text-gray-600">
+          <span className="flex items-center gap-1 text-neutral-600">
             <Users className="h-3.5 w-3.5" />
             عدد الموظفين:
           </span>
-          <span className="font-bold text-gray-900">{project.employee_count || 0}</span>
+          <span className="font-bold text-neutral-900">{project.employee_count || 0}</span>
         </div>
         {project.total_salaries !== undefined && (
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-neutral-600">
               <DollarSign className="h-3.5 w-3.5" />
               إجمالي الرواتب:
             </span>
-            <span className="font-bold text-gray-900">
+            <span className="font-bold text-neutral-900">
               {project.total_salaries.toLocaleString('ar-SA')} ريال
             </span>
           </div>
@@ -107,4 +109,3 @@ export default function ProjectCard({ project, onEdit, onDelete, onView }: Proje
     </div>
   )
 }
-

@@ -3,20 +3,44 @@ import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
-import { Search, Calendar, AlertCircle, X, UserPlus, CheckSquare, Square, Trash2, Edit2, Eye, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, LayoutGrid, Table, User, FileText, Shield } from 'lucide-react'
+import {
+  Search,
+  Calendar,
+  AlertCircle,
+  X,
+  UserPlus,
+  CheckSquare,
+  Square,
+  Trash2,
+  Edit2,
+  Eye,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronDown,
+  LayoutGrid,
+  Table,
+  User,
+  FileText,
+  Shield,
+} from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { usePermissions } from '@/utils/permissions'
 import { logger } from '@/utils/logger'
-import { getEmployeeNotificationThresholdsPublic, type EmployeeNotificationThresholds } from '@/utils/employeeAlerts'
+import {
+  getEmployeeNotificationThresholdsPublic,
+  type EmployeeNotificationThresholds,
+} from '@/utils/employeeAlerts'
 import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { useCardColumns } from '@/hooks/useUiPreferences'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -30,14 +54,16 @@ const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   health_insurance_medium_days: 60,
   hired_worker_contract_urgent_days: 7,
   hired_worker_contract_high_days: 15,
-  hired_worker_contract_medium_days: 30
+  hired_worker_contract_medium_days: 30,
 }
 
 export default function Employees() {
   const { canView, canCreate, canEdit, canDelete } = usePermissions()
   const location = useLocation()
   const navigate = useNavigate()
-  const [employees, setEmployees] = useState<(Employee & { company: Company; project?: Project })[]>([])
+  const [employees, setEmployees] = useState<
+    (Employee & { company: Company; project?: Project })[]
+  >([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [residenceNumberSearch, setResidenceNumberSearch] = useState('')
@@ -48,22 +74,28 @@ export default function Employees() {
   const [contractFilter, setContractFilter] = useState<string>('')
   const [hiredWorkerContractFilter, setHiredWorkerContractFilter] = useState<string>('')
   const [residenceFilter, setResidenceFilter] = useState<string>('')
-  const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('')  // تحديث: insuranceFilter → healthInsuranceFilter
+  const [healthInsuranceFilter, setHealthInsuranceFilter] = useState<string>('') // تحديث: insuranceFilter → healthInsuranceFilter
   const [showAlertsOnly, setShowAlertsOnly] = useState(false)
-  
-  const [companiesWithIds, setCompaniesWithIds] = useState<Array<{ id: string; name: string; unified_number?: number }>>([])
+
+  const [companiesWithIds, setCompaniesWithIds] = useState<
+    Array<{ id: string; name: string; unified_number?: number }>
+  >([])
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [isCompanyDropdownOpen, setCompanyDropdownOpen] = useState(false)
   const [nationalities, setNationalities] = useState<string[]>([])
   const [professions, setProfessions] = useState<string[]>([])
   const [projects, setProjects] = useState<string[]>([])
-  const [colorThresholds, setColorThresholds] = useState<EmployeeNotificationThresholds | null>(null)
-  
+  const [colorThresholds, setColorThresholds] = useState<EmployeeNotificationThresholds | null>(
+    null
+  )
+
   // حالة المودال
-  const [selectedEmployee, setSelectedEmployee] = useState<(Employee & { company: Company; project?: Project }) | null>(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<
+    (Employee & { company: Company; project?: Project }) | null
+  >(null)
   const [isCardOpen, setIsCardOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  
+
   // حالة التنقل بالسهام
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
   const rowRefs = useRef<(HTMLElement | null)[]>([])
@@ -74,14 +106,16 @@ export default function Employees() {
   const { gridClass: employeeGridClass } = useCardColumns()
 
   // حالة التعديل السريع - تم إزالتها
-  
+
   // Delete modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [employeeToDelete, setEmployeeToDelete] = useState<(Employee & { company: Company }) | null>(null)
-  
+  const [employeeToDelete, setEmployeeToDelete] = useState<
+    (Employee & { company: Company }) | null
+  >(null)
+
   // Bulk selection states
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set())
-  
+
   // Bulk action modals
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
   const [deletingEmployees, setDeletingEmployees] = useState(false)
@@ -95,12 +129,22 @@ export default function Employees() {
   const companyDropdownRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadEmployeesRef = useRef<() => Promise<void>>()
-  
+
   // التحقق من صلاحية العرض
   const hasViewPermission = canView('employees')
-  
+
   // Sort states
-  const [sortField, setSortField] = useState<'name' | 'profession' | 'nationality' | 'company' | 'project' | 'contract_expiry' | 'hired_worker_contract_expiry' | 'residence_expiry' | 'health_insurance_expiry'>('name')  // تحديث: إضافة عقد أجير + المشروع + ending_subscription_insurance_date → health_insurance_expiry
+  const [sortField, setSortField] = useState<
+    | 'name'
+    | 'profession'
+    | 'nationality'
+    | 'company'
+    | 'project'
+    | 'contract_expiry'
+    | 'hired_worker_contract_expiry'
+    | 'residence_expiry'
+    | 'health_insurance_expiry'
+  >('name') // تحديث: إضافة عقد أجير + المشروع + ending_subscription_insurance_date → health_insurance_expiry
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const loadEmployees = useCallback(async () => {
@@ -108,29 +152,40 @@ export default function Employees() {
       setLoading(true)
       const { data, error } = await supabase
         .from('employees')
-        .select('id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)')
+        .select(
+          'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at, company:companies(id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at), project:projects(id,name,description,status,created_at,updated_at)'
+        )
         .order('name')
 
       if (error) throw error
 
-      const employeesData = (data || []) as unknown as (Employee & { company: Company; project?: Project })[]
+      const employeesData = (data || []) as unknown as (Employee & {
+        company: Company
+        project?: Project
+      })[]
       setEmployees(employeesData)
-      
+
       // استخراج القوائم الفريدة للفلاتر
       // Reserved for future use: uniqueCompanies
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const uniqueCompanies = [...new Set(employeesData.map(e => e.company?.name).filter(Boolean))] as string[]
-      const uniqueNationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))] as string[]
-      const uniqueProfessions = [...new Set(employeesData.map(e => e.profession).filter(Boolean))] as string[]
-      
+      const uniqueCompanies = [
+        ...new Set(employeesData.map((e) => e.company?.name).filter(Boolean)),
+      ] as string[]
+      const uniqueNationalities = [
+        ...new Set(employeesData.map((e) => e.nationality).filter(Boolean)),
+      ] as string[]
+      const uniqueProfessions = [
+        ...new Set(employeesData.map((e) => e.profession).filter(Boolean)),
+      ] as string[]
+
       // بناء قائمة المؤسسات مع IDs و unified_number
       const companiesMap = new Map<string, { name: string; unified_number?: number }>()
-      employeesData.forEach(emp => {
+      employeesData.forEach((emp) => {
         if (emp.company?.id && emp.company?.name) {
           if (!companiesMap.has(emp.company.id)) {
             companiesMap.set(emp.company.id, {
               name: emp.company.name,
-              unified_number: emp.company.unified_number
+              unified_number: emp.company.unified_number,
             })
           }
         }
@@ -138,10 +193,10 @@ export default function Employees() {
       const companiesWithIdsList = Array.from(companiesMap.entries()).map(([id, data]) => ({
         id,
         name: data.name,
-        unified_number: data.unified_number
+        unified_number: data.unified_number,
       }))
       setCompaniesWithIds(companiesWithIdsList.sort((a, b) => a.name.localeCompare(b.name)))
-      
+
       // تحميل المشاريع من جدول projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
@@ -149,14 +204,16 @@ export default function Employees() {
         .order('name')
 
       if (!projectsError && projectsData) {
-        const projectNames = projectsData.map(p => p.name).filter(Boolean)
+        const projectNames = projectsData.map((p) => p.name).filter(Boolean)
         setProjects(projectNames.sort())
       } else {
         // Fallback: استخراج من project_name القديم إذا فشل تحميل المشاريع
-        const uniqueProjects = [...new Set(employeesData.map(e => e.project?.name || e.project_name).filter(Boolean))] as string[]
+        const uniqueProjects = [
+          ...new Set(employeesData.map((e) => e.project?.name || e.project_name).filter(Boolean)),
+        ] as string[]
         setProjects(uniqueProjects.sort())
       }
-      
+
       // Companies list is no longer stored in state, only used for filtering
       setNationalities(uniqueNationalities.sort())
       setProfessions(uniqueProfessions.sort())
@@ -206,7 +263,7 @@ export default function Employees() {
       loadEmployees()
       handleUrlParams()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadEmployees, hasViewPermission])
 
   // الاستماع لتحديثات الموظفين من أجهزة أخرى
@@ -216,7 +273,7 @@ export default function Employees() {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current)
       }
-      
+
       // إضافة debounce لتجنب تحديثات متعددة متزامنة
       debounceTimeoutRef.current = setTimeout(() => {
         logger.debug('[Employees] Employee updated event received, reloading...')
@@ -225,9 +282,9 @@ export default function Employees() {
         }
       }, 500) // 500ms debounce
     }
-    
+
     window.addEventListener('employeeUpdated', handleEmployeeUpdated)
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
@@ -243,23 +300,38 @@ export default function Employees() {
     const params = new URLSearchParams(location.search)
     const companyId = params.get('company')
     if (companyId && companiesWithIds.length > 0) {
-      const company = companiesWithIds.find(c => c.id === companyId)
+      const company = companiesWithIds.find((c) => c.id === companyId)
       if (company && companyFilter !== company.name) {
         setCompanyFilter(company.name)
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companiesWithIds, location.search])
 
   // Clear selection when filters change
   useEffect(() => {
     setSelectedEmployees(new Set())
-  }, [searchTerm, residenceNumberSearch, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, hiredWorkerContractFilter, residenceFilter, healthInsuranceFilter, showAlertsOnly])  // تحديث: insuranceFilter → healthInsuranceFilter
+  }, [
+    searchTerm,
+    residenceNumberSearch,
+    companyFilter,
+    nationalityFilter,
+    professionFilter,
+    projectFilter,
+    contractFilter,
+    hiredWorkerContractFilter,
+    residenceFilter,
+    healthInsuranceFilter,
+    showAlertsOnly,
+  ]) // تحديث: insuranceFilter → healthInsuranceFilter
 
   // إغلاق القائمة عند النقر خارجها
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+      if (
+        companyDropdownRef.current &&
+        !companyDropdownRef.current.contains(event.target as Node)
+      ) {
         setCompanyDropdownOpen(false)
       }
     }
@@ -270,9 +342,9 @@ export default function Employees() {
   // تحديث نص البحث عند تغيير الشركة المختارة
   useEffect(() => {
     if (companyFilter && companiesWithIds.length > 0) {
-      const selectedCompany = companiesWithIds.find(c => c.name === companyFilter)
+      const selectedCompany = companiesWithIds.find((c) => c.name === companyFilter)
       if (selectedCompany) {
-        const displayText = selectedCompany.unified_number 
+        const displayText = selectedCompany.unified_number
           ? `${selectedCompany.name} (${selectedCompany.unified_number})`
           : selectedCompany.name
         if (companySearchQuery !== displayText) {
@@ -286,7 +358,7 @@ export default function Employees() {
   }, [companyFilter, companiesWithIds])
 
   // تصفية الشركات: البحث في الاسم أو الرقم الموحد
-  const filteredCompanies = companiesWithIds.filter(company => {
+  const filteredCompanies = companiesWithIds.filter((company) => {
     if (companySearchQuery.trim()) {
       const query = companySearchQuery.toLowerCase().trim()
       const nameMatch = company.name?.toLowerCase().includes(query)
@@ -300,13 +372,13 @@ export default function Employees() {
     const params = new URLSearchParams(location.search)
     const filter = params.get('filter')
     const companyId = params.get('company')
-    
+
     // Handle company filter from URL
     if (companyId) {
       // سنقوم بتعيين companyFilter بعد تحميل الموظفين والمؤسسات
       // سنستخدم useEffect للتعامل مع ذلك
     }
-    
+
     switch (filter) {
       case 'alerts':
         // فلترة الموظفين الذين لديهم تنبيهات (عقود أو إقامات أو تأمين منتهية أو قريبة من الانتهاء)
@@ -322,7 +394,7 @@ export default function Employees() {
         setResidenceFilter('منتهي')
         break
       case 'expired-insurance':
-        setHealthInsuranceFilter('منتهي')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('منتهي') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'urgent-contracts':
         setContractFilter('طارئ')
@@ -331,16 +403,16 @@ export default function Employees() {
         setResidenceFilter('طارئ')
         break
       case 'expiring-insurance-30':
-        setHealthInsuranceFilter('طارئ')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('طارئ') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'expiring-insurance-60':
-        setHealthInsuranceFilter('متوسط')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('متوسط') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'expiring-insurance-90':
-        setHealthInsuranceFilter('ساري')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('ساري') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
       case 'active-insurance':
-        setHealthInsuranceFilter('ساري')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+        setHealthInsuranceFilter('ساري') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
         break
     }
   }
@@ -365,9 +437,15 @@ export default function Employees() {
     if (days === null) return 'غير محدد'
 
     const thresholds = colorThresholds || COLOR_THRESHOLD_FALLBACK
-    const urgentDays = thresholds[`${fieldType}_urgent_days` as keyof EmployeeNotificationThresholds] as number
-    const highDays = thresholds[`${fieldType}_high_days` as keyof EmployeeNotificationThresholds] as number
-    const mediumDays = thresholds[`${fieldType}_medium_days` as keyof EmployeeNotificationThresholds] as number
+    const urgentDays = thresholds[
+      `${fieldType}_urgent_days` as keyof EmployeeNotificationThresholds
+    ] as number
+    const highDays = thresholds[
+      `${fieldType}_high_days` as keyof EmployeeNotificationThresholds
+    ] as number
+    const mediumDays = thresholds[
+      `${fieldType}_medium_days` as keyof EmployeeNotificationThresholds
+    ] as number
 
     if (days < 0) return 'منتهي'
     if (days <= urgentDays) return 'طارئ'
@@ -387,11 +465,11 @@ export default function Employees() {
       getStatusForField(contractExpiry, 'contract'),
       getStatusForField(hiredWorkerContractExpiry, 'hired_worker_contract'),
       getStatusForField(residenceExpiry, 'residence'),
-      getStatusForField(healthInsuranceExpiry, 'health_insurance')
+      getStatusForField(healthInsuranceExpiry, 'health_insurance'),
     ]
 
     // يعتبر تنبيه إذا كانت الحالة منتهية أو ضمن نطاق طارئ/عاجل/متوسط
-    return statuses.some(status => ['منتهي', 'طارئ', 'عاجل', 'متوسط'].includes(status))
+    return statuses.some((status) => ['منتهي', 'طارئ', 'عاجل', 'متوسط'].includes(status))
   }
 
   // دالة للحصول على لون خلفية الخلية بناءً على حالة الانتهاء
@@ -406,10 +484,10 @@ export default function Employees() {
   // دالة للحصول على لون النص بناءً على حالة الانتهاء
   const getTextColor = (days: number | null) => {
     // إذا كان null (لا يوجد تاريخ انتهاء)، لون رمادي
-    if (days === null) return 'text-gray-700'
+    if (days === null) return 'text-neutral-700'
     // منتهي: لون أحمر
     if (days < 0) return 'text-red-600'
-    return 'text-gray-700'
+    return 'text-neutral-700'
   }
 
   // دالة لتقليص النصوص
@@ -440,7 +518,7 @@ export default function Employees() {
     setContractFilter('')
     setHiredWorkerContractFilter('')
     setResidenceFilter('')
-    setHealthInsuranceFilter('')  // تحديث: setInsuranceFilter → setHealthInsuranceFilter
+    setHealthInsuranceFilter('') // تحديث: setInsuranceFilter → setHealthInsuranceFilter
     setShowAlertsOnly(false)
     navigate('/employees')
   }
@@ -464,45 +542,49 @@ export default function Employees() {
 
   const getFieldLabel = (key: string): string => {
     const fieldLabels: Record<string, string> = {
-      'name': 'الاسم',
-      'phone': 'رقم الهاتف',
-      'profession': 'المهنة',
-      'nationality': 'الجنسية',
-      'residence_number': 'رقم الإقامة',
-      'passport_number': 'رقم الجواز',
-      'bank_account': 'الحساب البنكي',
-      'salary': 'الراتب',
-      'project_id': 'المشروع',
-      'company_id': 'المؤسسة',
-      'birth_date': 'تاريخ الميلاد',
-      'joining_date': 'تاريخ الالتحاق',
-      'residence_expiry': 'تاريخ انتهاء الإقامة',
-      'contract_expiry': 'تاريخ انتهاء العقد',
-      'hired_worker_contract_expiry': 'تاريخ انتهاء عقد أجير',
-      'health_insurance_expiry': 'تاريخ انتهاء التأمين الصحي',
-      'notes': 'الملاحظات',
-      'employee_name': 'اسم الموظف',
-      'company': 'المؤسسة'
+      name: 'الاسم',
+      phone: 'رقم الهاتف',
+      profession: 'المهنة',
+      nationality: 'الجنسية',
+      residence_number: 'رقم الإقامة',
+      passport_number: 'رقم الجواز',
+      bank_account: 'الحساب البنكي',
+      salary: 'الراتب',
+      project_id: 'المشروع',
+      company_id: 'المؤسسة',
+      birth_date: 'تاريخ الميلاد',
+      joining_date: 'تاريخ الالتحاق',
+      residence_expiry: 'تاريخ انتهاء الإقامة',
+      contract_expiry: 'تاريخ انتهاء العقد',
+      hired_worker_contract_expiry: 'تاريخ انتهاء عقد أجير',
+      health_insurance_expiry: 'تاريخ انتهاء التأمين الصحي',
+      notes: 'الملاحظات',
+      employee_name: 'اسم الموظف',
+      company: 'المؤسسة',
     }
     return fieldLabels[key] || key
   }
 
   // تم إزالة دوال التعديل السريع
-  
-  const logActivity = async (employeeId: string, action: string, changes: Record<string, unknown>) => {
+
+  const logActivity = async (
+    employeeId: string,
+    action: string,
+    changes: Record<string, unknown>
+  ) => {
     try {
-      const employee = employees.find(e => e.id === employeeId)
-      
+      const employee = employees.find((e) => e.id === employeeId)
+
       // تحويل مفاتيح التغييرات إلى أسماء مترجمة
       const translatedChanges: Record<string, unknown> = {}
       const changedFields: string[] = []
-      
-      Object.keys(changes).forEach(key => {
+
+      Object.keys(changes).forEach((key) => {
         const label = getFieldLabel(key)
         translatedChanges[label] = changes[key]
         changedFields.push(label)
       })
-      
+
       // تحديد اسم العملية الفعلي بناءً على عدد التغييرات
       let actionName = action
       if (changedFields.length === 1 && !action.includes('حذف')) {
@@ -510,19 +592,17 @@ export default function Employees() {
       } else if (changedFields.length > 1 && !action.includes('حذف')) {
         actionName = `تحديث متعدد (${changedFields.length} حقول)`
       }
-      
-      await supabase
-        .from('activity_log')
-        .insert({
-          entity_type: 'employee',
-          entity_id: employeeId,
-          action: actionName,
-          details: {
-            employee_name: employee?.name,
-            changes: translatedChanges,
-            timestamp: new Date().toISOString()
-          }
-        })
+
+      await supabase.from('activity_log').insert({
+        entity_type: 'employee',
+        entity_id: employeeId,
+        action: actionName,
+        details: {
+          employee_name: employee?.name,
+          changes: translatedChanges,
+          timestamp: new Date().toISOString(),
+        },
+      })
     } catch (error) {
       logger.error('Error logging activity:', error)
     }
@@ -537,10 +617,7 @@ export default function Employees() {
     if (!employeeToDelete) return
 
     try {
-      const { error } = await supabase
-        .from('employees')
-        .delete()
-        .eq('id', employeeToDelete.id)
+      const { error } = await supabase.from('employees').delete().eq('id', employeeToDelete.id)
 
       if (error) {
         logger.error('Delete error:', error)
@@ -550,19 +627,19 @@ export default function Employees() {
       // Log activity
       await logActivity(employeeToDelete.id, 'حذف موظف', {
         employee_name: employeeToDelete.name,
-        company: employeeToDelete.company?.name
+        company: employeeToDelete.company?.name,
       })
 
       toast.success(`تم حذف الموظف "${employeeToDelete.name}" بنجاح`)
-      
+
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
-      
+
       // Refresh employees list
       await loadEmployees()
       setShowDeleteModal(false)
       setEmployeeToDelete(null)
-      
+
       // Close card if open
       if (isCardOpen && selectedEmployee?.id === employeeToDelete.id) {
         setIsCardOpen(false)
@@ -577,7 +654,7 @@ export default function Employees() {
 
   // Bulk selection functions
   const toggleEmployeeSelection = (employeeId: string) => {
-    setSelectedEmployees(prev => {
+    setSelectedEmployees((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(employeeId)) {
         newSet.delete(employeeId)
@@ -592,7 +669,7 @@ export default function Employees() {
     if (selectedEmployees.size === filteredEmployees.length) {
       setSelectedEmployees(new Set())
     } else {
-      setSelectedEmployees(new Set(filteredEmployees.map(emp => emp.id)))
+      setSelectedEmployees(new Set(filteredEmployees.map((emp) => emp.id)))
     }
   }
 
@@ -611,8 +688,8 @@ export default function Employees() {
 
     try {
       const employeeIds = Array.from(selectedEmployees)
-      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
-      
+      const selectedEmployeesData = employees.filter((emp) => employeeIds.includes(emp.id))
+
       // Batch size - keep URL length manageable (50-100 IDs per batch)
       const batchSize = 50
       let totalDeleted = 0
@@ -623,12 +700,9 @@ export default function Employees() {
       for (let i = 0; i < employeeIds.length; i += batchSize) {
         const batch = employeeIds.slice(i, i + batchSize)
         const currentBatch = Math.floor(i / batchSize) + 1
-        
+
         try {
-          const { error } = await supabase
-            .from('employees')
-            .delete()
-            .in('id', batch)
+          const { error } = await supabase.from('employees').delete().in('id', batch)
 
           if (error) {
             logger.error(`Error deleting batch ${currentBatch}/${totalBatches}:`, error)
@@ -637,16 +711,16 @@ export default function Employees() {
           }
 
           totalDeleted += batch.length
-          
+
           // Log activity for each employee in this batch (skip if too many to avoid performance issues)
           // For large deletions, we'll log a summary instead
           if (selectedEmployeesData.length <= 100) {
-            const batchEmployees = selectedEmployeesData.filter(emp => batch.includes(emp.id))
+            const batchEmployees = selectedEmployeesData.filter((emp) => batch.includes(emp.id))
             for (const employee of batchEmployees) {
               try {
                 await logActivity(employee.id, 'حذف موظف (جماعي)', {
                   employee_name: employee.name,
-                  company: employee.company?.name
+                  company: employee.company?.name,
                 })
               } catch {
                 // Continue even if logging fails - error intentionally ignored
@@ -665,10 +739,10 @@ export default function Employees() {
       } else {
         toast.success(`تم حذف ${totalDeleted} موظف بنجاح`)
       }
-      
+
       // إرسال event لتحديث إحصائيات التنبيهات
       window.dispatchEvent(new CustomEvent('employeeUpdated'))
-      
+
       // Refresh and clear selection
       await loadEmployees()
       clearSelection()
@@ -688,7 +762,7 @@ export default function Employees() {
 
     try {
       const employeeIds = Array.from(selectedEmployees)
-      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+      const selectedEmployeesData = employees.filter((emp) => employeeIds.includes(emp.id))
 
       // Update all selected employees
       const { error } = await supabase
@@ -703,19 +777,20 @@ export default function Employees() {
         await logActivity(employee.id, 'تعديل تاريخ انتهاء الإقامة (جماعي)', {
           employee_name: employee.name,
           old_date: employee.residence_expiry,
-          new_date: newDate
+          new_date: newDate,
         })
       }
 
       toast.success(`تم تحديث تاريخ انتهاء الإقامة لـ ${selectedEmployees.size} موظف`)
-      
+
       // Refresh and clear selection
       await loadEmployees()
       clearSelection()
       setShowBulkResidenceModal(false)
     } catch (error) {
       logger.error('Error bulk updating residence:', error)
-      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء الإقامة'
+      const errorMessage =
+        error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء الإقامة'
       toast.error(errorMessage)
     }
   }
@@ -726,12 +801,12 @@ export default function Employees() {
 
     try {
       const employeeIds = Array.from(selectedEmployees)
-      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+      const selectedEmployeesData = employees.filter((emp) => employeeIds.includes(emp.id))
 
       // Update all selected employees
       const { error } = await supabase
         .from('employees')
-        .update({ health_insurance_expiry: newDate })  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+        .update({ health_insurance_expiry: newDate }) // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         .in('id', employeeIds)
 
       if (error) throw error
@@ -740,20 +815,21 @@ export default function Employees() {
       for (const employee of selectedEmployeesData) {
         await logActivity(employee.id, 'تعديل تاريخ انتهاء التأمين (جماعي)', {
           employee_name: employee.name,
-          old_date: employee.health_insurance_expiry,  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
-          new_date: newDate
+          old_date: employee.health_insurance_expiry, // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+          new_date: newDate,
         })
       }
 
       toast.success(`تم تحديث تاريخ انتهاء التأمين لـ ${selectedEmployees.size} موظف`)
-      
+
       // Refresh and clear selection
       await loadEmployees()
       clearSelection()
       setShowBulkInsuranceModal(false)
     } catch (error) {
       logger.error('Error bulk updating insurance:', error)
-      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء التأمين'
+      const errorMessage =
+        error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء التأمين'
       toast.error(errorMessage)
     }
   }
@@ -764,7 +840,7 @@ export default function Employees() {
 
     try {
       const employeeIds = Array.from(selectedEmployees)
-      const selectedEmployeesData = employees.filter(emp => employeeIds.includes(emp.id))
+      const selectedEmployeesData = employees.filter((emp) => employeeIds.includes(emp.id))
 
       // Update all selected employees
       const { error } = await supabase
@@ -779,76 +855,145 @@ export default function Employees() {
         await logActivity(employee.id, 'تعديل تاريخ انتهاء العقد (جماعي)', {
           employee_name: employee.name,
           old_date: employee.contract_expiry,
-          new_date: newDate
+          new_date: newDate,
         })
       }
 
       toast.success(`تم تحديث تاريخ انتهاء العقد لـ ${selectedEmployees.size} موظف`)
-      
+
       // Refresh and clear selection
       await loadEmployees()
       clearSelection()
       setShowBulkContractModal(false)
     } catch (error) {
       logger.error('Error bulk updating contract:', error)
-      const errorMessage = error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء العقد'
+      const errorMessage =
+        error instanceof Error ? error.message : 'فشل في تحديث تاريخ انتهاء العقد'
       toast.error(errorMessage)
     }
   }
 
   const alertsCount = employees.reduce((count, emp) => {
-    return count + (hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry) ? 1 : 0)
+    return (
+      count +
+      (hasAlert(
+        emp.contract_expiry,
+        emp.hired_worker_contract_expiry,
+        emp.residence_expiry,
+        emp.health_insurance_expiry
+      )
+        ? 1
+        : 0)
+    )
   }, 0)
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = employees.filter((emp) => {
     const contractStatus = getStatusForField(emp.contract_expiry, 'contract')
-    const hiredWorkerStatus = getStatusForField(emp.hired_worker_contract_expiry, 'hired_worker_contract')
+    const hiredWorkerStatus = getStatusForField(
+      emp.hired_worker_contract_expiry,
+      'hired_worker_contract'
+    )
     const residenceStatus = getStatusForField(emp.residence_expiry, 'residence')
     const insuranceStatus = getStatusForField(emp.health_insurance_expiry, 'health_insurance')
 
     // البحث الشامل في الاسم، رقم الإقامة، رقم الجواز، المهنة، والجنسية
     const searchLower = searchTerm.toLowerCase()
-    const matchesSearch = !searchTerm || (
+    const matchesSearch =
+      !searchTerm ||
       emp.name.toLowerCase().includes(searchLower) ||
       emp.residence_number.toString().toLowerCase().includes(searchLower) ||
       (emp.passport_number && emp.passport_number.toLowerCase().includes(searchLower)) ||
       (emp.profession && emp.profession.toLowerCase().includes(searchLower)) ||
       (emp.nationality && emp.nationality.toLowerCase().includes(searchLower))
-    )
-    const matchesResidenceNumber = !residenceNumberSearch || emp.residence_number.toString().toLowerCase().includes(residenceNumberSearch.toLowerCase())
+    const matchesResidenceNumber =
+      !residenceNumberSearch ||
+      emp.residence_number.toString().toLowerCase().includes(residenceNumberSearch.toLowerCase())
     const matchesCompany = !companyFilter || emp.company?.name === companyFilter
     const matchesNationality = !nationalityFilter || emp.nationality === nationalityFilter
     const matchesProfession = !professionFilter || emp.profession === professionFilter
-    const matchesProject = !projectFilter || emp.project?.name === projectFilter || (emp.project_name === projectFilter && !emp.project)
-    
-    // فلترة خاصة لـ "لديه تنبيه"
-    const matchesContract = !contractFilter || (
-      contractFilter === 'لديه تنبيه' 
-        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : contractStatus === contractFilter
-    )
-    const matchesHiredWorkerContract = !hiredWorkerContractFilter || (
-      hiredWorkerContractFilter === 'لديه تنبيه'
-        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : hiredWorkerStatus === hiredWorkerContractFilter
-    )
-    const matchesResidence = !residenceFilter || (
-      residenceFilter === 'لديه تنبيه'
-        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : residenceStatus === residenceFilter
-    )
-    const matchesInsurance = !healthInsuranceFilter || (
-      healthInsuranceFilter === 'لديه تنبيه'
-        ? hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-        : insuranceStatus === healthInsuranceFilter
-    )
+    const matchesProject =
+      !projectFilter ||
+      emp.project?.name === projectFilter ||
+      (emp.project_name === projectFilter && !emp.project)
 
-    const matchesAlertsToggle = !showAlertsOnly || hasAlert(emp.contract_expiry, emp.hired_worker_contract_expiry, emp.residence_expiry, emp.health_insurance_expiry)
-    
-    return matchesSearch && matchesResidenceNumber && matchesCompany && matchesNationality && matchesProfession && matchesProject && matchesContract && matchesHiredWorkerContract && matchesResidence && matchesInsurance && matchesAlertsToggle
+    // فلترة خاصة لـ "لديه تنبيه"
+    const matchesContract =
+      !contractFilter ||
+      (contractFilter === 'لديه تنبيه'
+        ? hasAlert(
+            emp.contract_expiry,
+            emp.hired_worker_contract_expiry,
+            emp.residence_expiry,
+            emp.health_insurance_expiry
+          )
+        : contractStatus === contractFilter)
+    const matchesHiredWorkerContract =
+      !hiredWorkerContractFilter ||
+      (hiredWorkerContractFilter === 'لديه تنبيه'
+        ? hasAlert(
+            emp.contract_expiry,
+            emp.hired_worker_contract_expiry,
+            emp.residence_expiry,
+            emp.health_insurance_expiry
+          )
+        : hiredWorkerStatus === hiredWorkerContractFilter)
+    const matchesResidence =
+      !residenceFilter ||
+      (residenceFilter === 'لديه تنبيه'
+        ? hasAlert(
+            emp.contract_expiry,
+            emp.hired_worker_contract_expiry,
+            emp.residence_expiry,
+            emp.health_insurance_expiry
+          )
+        : residenceStatus === residenceFilter)
+    const matchesInsurance =
+      !healthInsuranceFilter ||
+      (healthInsuranceFilter === 'لديه تنبيه'
+        ? hasAlert(
+            emp.contract_expiry,
+            emp.hired_worker_contract_expiry,
+            emp.residence_expiry,
+            emp.health_insurance_expiry
+          )
+        : insuranceStatus === healthInsuranceFilter)
+
+    const matchesAlertsToggle =
+      !showAlertsOnly ||
+      hasAlert(
+        emp.contract_expiry,
+        emp.hired_worker_contract_expiry,
+        emp.residence_expiry,
+        emp.health_insurance_expiry
+      )
+
+    return (
+      matchesSearch &&
+      matchesResidenceNumber &&
+      matchesCompany &&
+      matchesNationality &&
+      matchesProfession &&
+      matchesProject &&
+      matchesContract &&
+      matchesHiredWorkerContract &&
+      matchesResidence &&
+      matchesInsurance &&
+      matchesAlertsToggle
+    )
   })
 
-  const hasActiveFilters = searchTerm || residenceNumberSearch || companyFilter || nationalityFilter || professionFilter || projectFilter || contractFilter || hiredWorkerContractFilter || residenceFilter || healthInsuranceFilter || showAlertsOnly  // تحديث: insuranceFilter → healthInsuranceFilter
+  const hasActiveFilters =
+    searchTerm ||
+    residenceNumberSearch ||
+    companyFilter ||
+    nationalityFilter ||
+    professionFilter ||
+    projectFilter ||
+    contractFilter ||
+    hiredWorkerContractFilter ||
+    residenceFilter ||
+    healthInsuranceFilter ||
+    showAlertsOnly // تحديث: insuranceFilter → healthInsuranceFilter
 
   // Calculate active filters count
   const activeFiltersCount = [
@@ -861,8 +1006,8 @@ export default function Employees() {
     contractFilter !== '',
     hiredWorkerContractFilter !== '',
     residenceFilter !== '',
-    healthInsuranceFilter !== '',  // تحديث: insuranceFilter → healthInsuranceFilter
-    showAlertsOnly
+    healthInsuranceFilter !== '', // تحديث: insuranceFilter → healthInsuranceFilter
+    showAlertsOnly,
   ].filter(Boolean).length
 
   // Sort handling functions
@@ -877,7 +1022,11 @@ export default function Employees() {
 
   const getSortIcon = (field: typeof sortField) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />
-    return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4" />
+    ) : (
+      <ArrowDown className="w-4 h-4" />
+    )
   }
 
   // Apply sorting to filtered employees
@@ -911,14 +1060,18 @@ export default function Employees() {
         bValue = b.contract_expiry ? new Date(b.contract_expiry).getTime() : 0
         break
       case 'hired_worker_contract_expiry':
-        aValue = a.hired_worker_contract_expiry ? new Date(a.hired_worker_contract_expiry).getTime() : 0
-        bValue = b.hired_worker_contract_expiry ? new Date(b.hired_worker_contract_expiry).getTime() : 0
+        aValue = a.hired_worker_contract_expiry
+          ? new Date(a.hired_worker_contract_expiry).getTime()
+          : 0
+        bValue = b.hired_worker_contract_expiry
+          ? new Date(b.hired_worker_contract_expiry).getTime()
+          : 0
         break
       case 'residence_expiry':
         aValue = a.residence_expiry ? new Date(a.residence_expiry).getTime() : 0
         bValue = b.residence_expiry ? new Date(b.residence_expiry).getTime() : 0
         break
-      case 'health_insurance_expiry':  // تحديث: ending_subscription_insurance_date → health_insurance_expiry
+      case 'health_insurance_expiry': // تحديث: ending_subscription_insurance_date → health_insurance_expiry
         aValue = a.health_insurance_expiry ? new Date(a.health_insurance_expiry).getTime() : 0
         bValue = b.health_insurance_expiry ? new Date(b.health_insurance_expiry).getTime() : 0
         break
@@ -937,14 +1090,24 @@ export default function Employees() {
   // معالجة التنقل بالسهام في الجدول
   useEffect(() => {
     // لا تعمل إذا كان هناك modal مفتوح
-    if (isCardOpen || isAddModalOpen || showDeleteModal || showBulkDeleteModal || showFiltersModal) {
+    if (
+      isCardOpen ||
+      isAddModalOpen ||
+      showDeleteModal ||
+      showBulkDeleteModal ||
+      showFiltersModal
+    ) {
       return
     }
 
     function handleKeyDown(e: KeyboardEvent) {
       // التحقق من أن المستخدم لا يكتب في حقل إدخال
       const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      ) {
         return
       }
 
@@ -1002,12 +1165,31 @@ export default function Employees() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedRowIndex, sortedAndFilteredEmployees, isCardOpen, isAddModalOpen, showDeleteModal, showBulkDeleteModal, showFiltersModal])
+  }, [
+    selectedRowIndex,
+    sortedAndFilteredEmployees,
+    isCardOpen,
+    isAddModalOpen,
+    showDeleteModal,
+    showBulkDeleteModal,
+    showFiltersModal,
+  ])
 
   // إعادة تعيين الصف المحدد عند تغيير الفلاتر
   useEffect(() => {
     setSelectedRowIndex(null)
-  }, [searchTerm, companyFilter, nationalityFilter, professionFilter, projectFilter, contractFilter, residenceFilter, healthInsuranceFilter, sortField, sortDirection])
+  }, [
+    searchTerm,
+    companyFilter,
+    nationalityFilter,
+    professionFilter,
+    projectFilter,
+    contractFilter,
+    residenceFilter,
+    healthInsuranceFilter,
+    sortField,
+    sortDirection,
+  ])
 
   // التحقق من صلاحية العرض قبل عرض الصفحة
   if (!hasViewPermission) {
@@ -1015,9 +1197,9 @@ export default function Employees() {
       <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-            <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+            <Shield className="w-16 h-16 mx-auto mb-4 text-danger-500" />
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
+            <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
       </Layout>
@@ -1084,8 +1266,8 @@ export default function Employees() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => setShowAlertsOnly(prev => !prev)}
-                    variant="outline"
+                    onClick={() => setShowAlertsOnly((prev) => !prev)}
+                    variant="secondary"
                     className={`relative border-red-200 text-red-700 ${showAlertsOnly ? 'bg-red-50' : ''}`}
                     title="عرض الموظفين ذوي التنبيهات فقط"
                   >
@@ -1096,16 +1278,13 @@ export default function Employees() {
                     </span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-gray-900 text-white">
+                <TooltipContent className="bg-neutral-900 text-white">
                   تحسب طارئ وعاجل ومتوسط
                 </TooltipContent>
               </Tooltip>
 
               <div className="relative">
-                <Button
-                  onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  variant="secondary"
-                >
+                <Button onClick={() => setShowSortDropdown(!showSortDropdown)} variant="secondary">
                   {getSortIcon(sortField)}
                   <span className="hidden sm:inline">الترتيب</span>
                   <ArrowUpDown className="w-4 h-4" />
@@ -1117,8 +1296,8 @@ export default function Employees() {
                       className="fixed inset-0 z-10"
                       onClick={() => setShowSortDropdown(false)}
                     />
-                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
-                      <div className="border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500">
+                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-neutral-200 bg-white py-2 shadow-lg">
+                      <div className="border-b border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-500">
                         الترتيب حسب:
                       </div>
                       {[
@@ -1127,10 +1306,22 @@ export default function Employees() {
                         { field: 'nationality' as typeof sortField, label: 'الجنسية' },
                         { field: 'company' as typeof sortField, label: 'الشركة' },
                         { field: 'project' as typeof sortField, label: 'المشروع' },
-                        { field: 'contract_expiry' as typeof sortField, label: 'تاريخ انتهاء العقد' },
-                        { field: 'hired_worker_contract_expiry' as typeof sortField, label: 'تاريخ انتهاء عقد أجير' },
-                        { field: 'residence_expiry' as typeof sortField, label: 'تاريخ انتهاء الإقامة' },
-                        { field: 'health_insurance_expiry' as typeof sortField, label: 'تاريخ انتهاء التأمين الصحي' }
+                        {
+                          field: 'contract_expiry' as typeof sortField,
+                          label: 'تاريخ انتهاء العقد',
+                        },
+                        {
+                          field: 'hired_worker_contract_expiry' as typeof sortField,
+                          label: 'تاريخ انتهاء عقد أجير',
+                        },
+                        {
+                          field: 'residence_expiry' as typeof sortField,
+                          label: 'تاريخ انتهاء الإقامة',
+                        },
+                        {
+                          field: 'health_insurance_expiry' as typeof sortField,
+                          label: 'تاريخ انتهاء التأمين الصحي',
+                        },
                       ].map(({ field, label }) => (
                         <button
                           key={field}
@@ -1139,7 +1330,9 @@ export default function Employees() {
                             setShowSortDropdown(false)
                           }}
                           className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition ${
-                            sortField === field ? 'bg-primary/10 text-slate-900' : 'text-gray-700 hover:bg-gray-50'
+                            sortField === field
+                              ? 'bg-primary/10 text-slate-900'
+                              : 'text-neutral-700 hover:bg-neutral-50'
                           }`}
                         >
                           <span>{label}</span>
@@ -1170,25 +1363,23 @@ export default function Employees() {
               className="fixed inset-0 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)]"
               onClick={() => setShowFiltersModal(false)}
             />
-            
+
             {/* Modal Content */}
             <div className="fixed inset-0 flex items-end justify-center p-0 md:items-center md:p-4">
               <div className="w-full max-h-[92vh] max-w-4xl overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl motion-safe-enter md:rounded-2xl">
                 {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between p-6 border-b border-neutral-200">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">الفلاتر والبحث</h2>
+                    <h2 className="text-xl font-bold text-neutral-900">الفلاتر والبحث</h2>
                     {activeFiltersCount > 0 && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {activeFiltersCount} فلتر نشط
-                      </p>
+                      <p className="text-sm text-neutral-600 mt-1">{activeFiltersCount} فلتر نشط</p>
                     )}
                   </div>
                   <button
                     onClick={() => setShowFiltersModal(false)}
                     className="touch-feedback rounded-lg p-2 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-neutral-500" />
                   </button>
                 </div>
 
@@ -1197,9 +1388,11 @@ export default function Employees() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* البحث برقم الإقامة */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">البحث برقم الإقامة</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        البحث برقم الإقامة
+                      </label>
                       <div className="relative">
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                         <input
                           type="text"
                           placeholder="ابحث برقم الإقامة..."
@@ -1212,7 +1405,9 @@ export default function Employees() {
 
                     {/* فلتر الشركة */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">الشركة</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        الشركة
+                      </label>
                       <div className="relative" ref={companyDropdownRef}>
                         <div className="relative">
                           <input
@@ -1227,19 +1422,21 @@ export default function Employees() {
                             className="focus-ring-brand w-full rounded-md border border-input bg-surface py-2 pr-10 pl-3 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <Search className="w-4 h-4 text-gray-400" />
+                            <Search className="w-4 h-4 text-neutral-400" />
                           </div>
                           <button
                             type="button"
                             onClick={() => setCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                           >
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown
+                              className={`w-4 h-4 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''}`}
+                            />
                           </button>
                         </div>
-                        
+
                         {isCompanyDropdownOpen && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-md shadow-lg max-h-60 overflow-auto">
                             <button
                               type="button"
                               onClick={() => {
@@ -1247,17 +1444,19 @@ export default function Employees() {
                                 setCompanySearchQuery('')
                                 setCompanyDropdownOpen(false)
                               }}
-                              className="w-full px-3 py-2 text-right text-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors text-gray-600"
+                              className="w-full px-3 py-2 text-right text-sm hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none transition-colors text-neutral-600"
                             >
                               جميع الشركات
                             </button>
                             {filteredCompanies.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                                {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
+                              <div className="px-3 py-2 text-sm text-neutral-500 text-center">
+                                {companySearchQuery.trim()
+                                  ? 'لا توجد نتائج'
+                                  : 'لا توجد شركات متاحة'}
                               </div>
                             ) : (
-                              filteredCompanies.map(company => {
-                                const displayText = company.unified_number 
+                              filteredCompanies.map((company) => {
+                                const displayText = company.unified_number
                                   ? `${company.name} (${company.unified_number})`
                                   : company.name
                                 return (
@@ -1283,52 +1482,66 @@ export default function Employees() {
 
                     {/* فلتر الجنسية */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">الجنسية</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        الجنسية
+                      </label>
                       <select
                         value={nationalityFilter}
                         onChange={(e) => setNationalityFilter(e.target.value)}
                         className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع الجنسيات</option>
-                        {nationalities.map(nationality => (
-                          <option key={nationality} value={nationality}>{nationality}</option>
+                        {nationalities.map((nationality) => (
+                          <option key={nationality} value={nationality}>
+                            {nationality}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* فلتر المهنة */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">المهنة</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        المهنة
+                      </label>
                       <select
                         value={professionFilter}
                         onChange={(e) => setProfessionFilter(e.target.value)}
                         className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع المهن</option>
-                        {professions.map(profession => (
-                          <option key={profession} value={profession}>{profession}</option>
+                        {professions.map((profession) => (
+                          <option key={profession} value={profession}>
+                            {profession}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* فلتر المشروع */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">المشروع</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        المشروع
+                      </label>
                       <select
                         value={projectFilter}
                         onChange={(e) => setProjectFilter(e.target.value)}
                         className="focus-ring-brand w-full rounded-md border border-input bg-surface px-3 py-2 text-sm transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
                       >
                         <option value="">جميع المشاريع</option>
-                        {projects.map(project => (
-                          <option key={project} value={project}>{project}</option>
+                        {projects.map((project) => (
+                          <option key={project} value={project}>
+                            {project}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* فلتر العقود */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة العقد</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        حالة العقد
+                      </label>
                       <select
                         value={contractFilter}
                         onChange={(e) => setContractFilter(e.target.value)}
@@ -1345,7 +1558,9 @@ export default function Employees() {
 
                     {/* فلتر عقد أجير */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة عقد أجير</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        حالة عقد أجير
+                      </label>
                       <select
                         value={hiredWorkerContractFilter}
                         onChange={(e) => setHiredWorkerContractFilter(e.target.value)}
@@ -1362,7 +1577,9 @@ export default function Employees() {
 
                     {/* فلتر الإقامات */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة الإقامة</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        حالة الإقامة
+                      </label>
                       <select
                         value={residenceFilter}
                         onChange={(e) => setResidenceFilter(e.target.value)}
@@ -1379,7 +1596,9 @@ export default function Employees() {
 
                     {/* فلتر التأمين */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">حالة التأمين</label>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        حالة التأمين
+                      </label>
                       <select
                         value={healthInsuranceFilter}
                         onChange={(e) => setHealthInsuranceFilter(e.target.value)}
@@ -1397,11 +1616,11 @@ export default function Employees() {
 
                   {/* Active Filters Display */}
                   {hasActiveFilters && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">الفلاتر النشطة:</h3>
+                    <div className="mt-6 pt-6 border-t border-neutral-200">
+                      <h3 className="text-sm font-medium text-neutral-700 mb-3">الفلاتر النشطة:</h3>
                       <div className="flex flex-wrap gap-2">
                         {searchTerm && (
-                          <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-full flex items-center gap-2">
+                          <span className="px-3 py-1.5 bg-blue-50 text-info-700 text-sm rounded-full flex items-center gap-2">
                             البحث: {searchTerm}
                             <button
                               onClick={() => setSearchTerm('')}
@@ -1423,7 +1642,7 @@ export default function Employees() {
                           </span>
                         )}
                         {companyFilter && (
-                          <span className="px-3 py-1.5 bg-green-50 text-green-700 text-sm rounded-full flex items-center gap-2">
+                          <span className="px-3 py-1.5 bg-green-50 text-success-700 text-sm rounded-full flex items-center gap-2">
                             الشركة: {companyFilter}
                             <button
                               onClick={() => setCompanyFilter('')}
@@ -1445,7 +1664,7 @@ export default function Employees() {
                           </span>
                         )}
                         {professionFilter && (
-                          <span className="px-3 py-1.5 bg-orange-50 text-orange-700 text-sm rounded-full flex items-center gap-2">
+                          <span className="px-3 py-1.5 bg-orange-50 text-warning-700 text-sm rounded-full flex items-center gap-2">
                             المهنة: {professionFilter}
                             <button
                               onClick={() => setProfessionFilter('')}
@@ -1503,7 +1722,7 @@ export default function Employees() {
                           <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-sm rounded-full flex items-center gap-2">
                             التأمين الصحي: {healthInsuranceFilter}
                             <button
-                                onClick={() => setHealthInsuranceFilter('')}
+                              onClick={() => setHealthInsuranceFilter('')}
                               className="touch-feedback rounded-full p-0.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-black/10"
                             >
                               <X className="w-3 h-3" />
@@ -1531,16 +1750,13 @@ export default function Employees() {
                   <Button
                     onClick={clearFilters}
                     disabled={activeFiltersCount === 0}
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                   >
                     <X className="w-4 h-4" />
                     مسح جميع الفلاتر
                   </Button>
-                  <Button
-                    onClick={() => setShowFiltersModal(false)}
-                    size="sm"
-                  >
+                  <Button onClick={() => setShowFiltersModal(false)} size="sm">
                     تطبيق الفلاتر
                   </Button>
                 </div>
@@ -1557,12 +1773,7 @@ export default function Employees() {
                 <div className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-slate-950">
                   {selectedEmployees.size} موظف محدد
                 </div>
-                <Button
-                  onClick={clearSelection}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2"
-                >
+                <Button onClick={clearSelection} variant="ghost" size="sm" className="h-8 px-2">
                   إلغاء التحديد
                 </Button>
               </div>
@@ -1616,34 +1827,101 @@ export default function Employees() {
           // Grid View
           <div className={employeeGridClass}>
             {sortedAndFilteredEmployees.map((employee, index) => {
-              const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
-              const hiredWorkerContractDays = employee.hired_worker_contract_expiry ? getDaysRemaining(employee.hired_worker_contract_expiry) : null
-              const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
-              const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null
+              const contractDays = employee.contract_expiry
+                ? getDaysRemaining(employee.contract_expiry)
+                : null
+              const hiredWorkerContractDays = employee.hired_worker_contract_expiry
+                ? getDaysRemaining(employee.hired_worker_contract_expiry)
+                : null
+              const residenceDays = employee.residence_expiry
+                ? getDaysRemaining(employee.residence_expiry)
+                : null
+              const healthInsuranceDays = employee.health_insurance_expiry
+                ? getDaysRemaining(employee.health_insurance_expiry)
+                : null
 
               // تحديد لون الحدود حسب أعلى أولوية
               const getBorderColor = () => {
                 const priorities = [
-                  contractDays !== null && contractDays < 0 ? 'critical' : contractDays !== null && contractDays <= 7 ? 'critical' : contractDays !== null && contractDays <= 30 ? 'medium' : 'low',
-                  hiredWorkerContractDays !== null && hiredWorkerContractDays < 0 ? 'critical' : hiredWorkerContractDays !== null && hiredWorkerContractDays <= 7 ? 'critical' : hiredWorkerContractDays !== null && hiredWorkerContractDays <= 30 ? 'medium' : 'low',
-                  residenceDays !== null && residenceDays < 0 ? 'critical' : residenceDays !== null && residenceDays <= 7 ? 'critical' : residenceDays !== null && residenceDays <= 30 ? 'medium' : 'low',
-                  healthInsuranceDays !== null && healthInsuranceDays < 0 ? 'critical' : healthInsuranceDays !== null && healthInsuranceDays <= 7 ? 'critical' : healthInsuranceDays !== null && healthInsuranceDays <= 30 ? 'medium' : 'low'
+                  contractDays !== null && contractDays < 0
+                    ? 'critical'
+                    : contractDays !== null && contractDays <= 7
+                      ? 'critical'
+                      : contractDays !== null && contractDays <= 30
+                        ? 'medium'
+                        : 'low',
+                  hiredWorkerContractDays !== null && hiredWorkerContractDays < 0
+                    ? 'critical'
+                    : hiredWorkerContractDays !== null && hiredWorkerContractDays <= 7
+                      ? 'critical'
+                      : hiredWorkerContractDays !== null && hiredWorkerContractDays <= 30
+                        ? 'medium'
+                        : 'low',
+                  residenceDays !== null && residenceDays < 0
+                    ? 'critical'
+                    : residenceDays !== null && residenceDays <= 7
+                      ? 'critical'
+                      : residenceDays !== null && residenceDays <= 30
+                        ? 'medium'
+                        : 'low',
+                  healthInsuranceDays !== null && healthInsuranceDays < 0
+                    ? 'critical'
+                    : healthInsuranceDays !== null && healthInsuranceDays <= 7
+                      ? 'critical'
+                      : healthInsuranceDays !== null && healthInsuranceDays <= 30
+                        ? 'medium'
+                        : 'low',
                 ]
-                
+
                 if (priorities.includes('critical')) return 'border-red-400'
                 if (priorities.includes('medium')) return 'border-yellow-400'
                 if (priorities.includes('low')) return 'border-green-400'
-                return 'border-gray-200'
+                return 'border-neutral-200'
               }
 
               // دالة للحصول على حالة التاريخ
               const getDateStatus = (days: number | null, expiredText: string = 'منتهي') => {
-                if (days === null) return { status: 'غير محدد', description: '', emoji: '❌', color: 'bg-gray-100 text-gray-600 border-gray-200' }
-                if (days < 0) return { status: expiredText, description: 'منتهي', emoji: '🚨', color: 'bg-red-50 text-red-700 border-red-300' }
-                if (days <= 7) return { status: 'طارئ', description: `${days} يوم`, emoji: '🚨', color: 'bg-red-50 text-red-700 border-red-300' }
-                if (days <= 15) return { status: 'عاجل', description: `${days} يوم`, emoji: '🔥', color: 'bg-orange-50 text-orange-700 border-orange-300' }
-                if (days <= 30) return { status: 'متوسط', description: `${days} يوم`, emoji: '⚠️', color: 'bg-yellow-50 text-yellow-700 border-yellow-300' }
-                return { status: 'ساري', description: `${days} يوم`, emoji: '✅', color: 'bg-green-50 text-green-700 border-green-300' }
+                if (days === null)
+                  return {
+                    status: 'غير محدد',
+                    description: '',
+                    emoji: '❌',
+                    color: 'bg-neutral-100 text-neutral-600 border-neutral-200',
+                  }
+                if (days < 0)
+                  return {
+                    status: expiredText,
+                    description: 'منتهي',
+                    emoji: '🚨',
+                    color: 'bg-red-50 text-red-700 border-red-300',
+                  }
+                if (days <= 7)
+                  return {
+                    status: 'طارئ',
+                    description: `${days} يوم`,
+                    emoji: '🚨',
+                    color: 'bg-red-50 text-red-700 border-red-300',
+                  }
+                if (days <= 15)
+                  return {
+                    status: 'عاجل',
+                    description: `${days} يوم`,
+                    emoji: '🔥',
+                    color: 'bg-orange-50 text-warning-700 border-orange-300',
+                  }
+                if (days <= 30)
+                  return {
+                    status: 'متوسط',
+                    description: `${days} يوم`,
+                    emoji: '⚠️',
+                    color: 'bg-yellow-50 text-yellow-700 border-yellow-300',
+                  }
+                return {
+                  status: 'ساري',
+                  description: `${days} يوم`,
+                  emoji: '✅',
+                  color: 'bg-green-50 text-success-700 border-green-300',
+                }
               }
 
               const contractStatus = getDateStatus(contractDays, 'منتهي')
@@ -1689,7 +1967,9 @@ export default function Employees() {
                     </div>
                   </div>
 
-                  <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-gray-900">{employee.name}</h3>
+                  <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-neutral-900">
+                    {employee.name}
+                  </h3>
 
                   <div className="app-card-meta text-[12.5px]">
                     {employee.project?.name || employee.project_name ? (
@@ -1705,14 +1985,18 @@ export default function Employees() {
                       <span className="app-card-meta-value">
                         {employee.company?.name || '-'}
                         {employee.company?.unified_number && (
-                          <span className="text-gray-500 mr-1">({employee.company.unified_number})</span>
+                          <span className="text-neutral-500 mr-1">
+                            ({employee.company.unified_number})
+                          </span>
                         )}
                       </span>
                     </div>
                     {employee.residence_number && (
                       <div className="app-card-meta-row">
                         <span className="app-card-meta-label">رقم الإقامة:</span>
-                        <span className="app-card-meta-value font-mono">{employee.residence_number}</span>
+                        <span className="app-card-meta-value font-mono">
+                          {employee.residence_number}
+                        </span>
                       </div>
                     )}
                     {employee.profession && (
@@ -1730,23 +2014,29 @@ export default function Employees() {
                   </div>
 
                   {/* مربعات الحالات - grid من عمودين */}
-                  <div className="pt-2.5 border-t border-gray-200">
+                  <div className="pt-2.5 border-t border-neutral-200">
                     <div className="grid grid-cols-2 gap-2">
                       {/* حالة انتهاء العقد */}
                       <div>
-                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء العقد</div>
+                        <div className="mb-1 text-[12px] font-semibold text-neutral-600">
+                          انتهاء العقد
+                        </div>
                         {employee.contract_expiry ? (
-                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${contractStatus.color}`}>
+                          <div
+                            className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${contractStatus.color}`}
+                          >
                             <div className="flex items-center gap-1">
                               <div className="text-xs">{contractStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{contractStatus.status}</span>
-                                <span className="text-xs opacity-75">{contractStatus.description}</span>
+                                <span className="text-xs opacity-75">
+                                  {contractStatus.description}
+                                </span>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          <div className="rounded-lg border-2 border-neutral-200 bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
                             غير محدد
                           </div>
                         )}
@@ -1754,19 +2044,25 @@ export default function Employees() {
 
                       {/* حالة انتهاء عقد أجير */}
                       <div>
-                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء عقد أجير</div>
+                        <div className="mb-1 text-[12px] font-semibold text-neutral-600">
+                          انتهاء عقد أجير
+                        </div>
                         {employee.hired_worker_contract_expiry ? (
-                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${hiredWorkerStatus.color}`}>
+                          <div
+                            className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${hiredWorkerStatus.color}`}
+                          >
                             <div className="flex items-center gap-1">
                               <div className="text-xs">{hiredWorkerStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{hiredWorkerStatus.status}</span>
-                                <span className="text-xs opacity-75">{hiredWorkerStatus.description}</span>
+                                <span className="text-xs opacity-75">
+                                  {hiredWorkerStatus.description}
+                                </span>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          <div className="rounded-lg border-2 border-neutral-200 bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
                             غير محدد
                           </div>
                         )}
@@ -1774,19 +2070,25 @@ export default function Employees() {
 
                       {/* حالة انتهاء الإقامة */}
                       <div>
-                        <div className="mb-1 text-[12px] font-semibold text-gray-600">انتهاء الإقامة</div>
+                        <div className="mb-1 text-[12px] font-semibold text-neutral-600">
+                          انتهاء الإقامة
+                        </div>
                         {employee.residence_expiry ? (
-                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${residenceStatus.color}`}>
+                          <div
+                            className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${residenceStatus.color}`}
+                          >
                             <div className="flex items-center gap-1">
                               <div className="text-xs">{residenceStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{residenceStatus.status}</span>
-                                <span className="text-xs opacity-75">{residenceStatus.description}</span>
+                                <span className="text-xs opacity-75">
+                                  {residenceStatus.description}
+                                </span>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          <div className="rounded-lg border-2 border-neutral-200 bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
                             غير محدد
                           </div>
                         )}
@@ -1794,19 +2096,25 @@ export default function Employees() {
 
                       {/* حالة التأمين */}
                       <div>
-                        <div className="mb-1 text-[12px] font-semibold text-gray-600">حالة التأمين</div>
+                        <div className="mb-1 text-[12px] font-semibold text-neutral-600">
+                          حالة التأمين
+                        </div>
                         {employee.health_insurance_expiry ? (
-                          <div className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${insuranceStatus.color}`}>
+                          <div
+                            className={`rounded-lg border-2 px-2 py-1 text-xs font-medium ${insuranceStatus.color}`}
+                          >
                             <div className="flex items-center gap-1">
                               <div className="text-xs">{insuranceStatus.emoji}</div>
                               <div className="flex flex-col">
                                 <span className="font-bold">{insuranceStatus.status}</span>
-                                <span className="text-xs opacity-75">{insuranceStatus.description}</span>
+                                <span className="text-xs opacity-75">
+                                  {insuranceStatus.description}
+                                </span>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="rounded-lg border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          <div className="rounded-lg border-2 border-neutral-200 bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
                             غير محدد
                           </div>
                         )}
@@ -1815,12 +2123,12 @@ export default function Employees() {
                   </div>
 
                   {/* الملاحظات */}
-                  <div className="pt-2.5 border-t border-gray-200">
-                    <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-gray-600">
+                  <div className="pt-2.5 border-t border-neutral-200">
+                    <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-neutral-600">
                       <FileText className="w-3.5 h-3.5" />
                       الملاحظات
                     </div>
-                    <div className="min-h-[42px] whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+                    <div className="min-h-[42px] whitespace-pre-wrap rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs text-neutral-700">
                       {employee.notes || 'لا توجد ملاحظات'}
                     </div>
                   </div>
@@ -1834,22 +2142,35 @@ export default function Employees() {
               <button
                 onClick={toggleSelectAll}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-100"
-                title={selectedEmployees.size === filteredEmployees.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                title={
+                  selectedEmployees.size === filteredEmployees.length
+                    ? 'إلغاء تحديد الكل'
+                    : 'تحديد الكل'
+                }
               >
-                {selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0 ? (
-                  <CheckSquare className="w-4 h-4 text-blue-600" />
+                {selectedEmployees.size === filteredEmployees.length &&
+                filteredEmployees.length > 0 ? (
+                  <CheckSquare className="w-4 h-4 text-info-600" />
                 ) : (
                   <Square className="w-4 h-4 text-slate-400" />
                 )}
                 تحديد الكل
               </button>
-              <span className="text-xs text-slate-600 dark:text-slate-300">{sortedAndFilteredEmployees.length} نتيجة</span>
+              <span className="text-xs text-slate-600 dark:text-slate-300">
+                {sortedAndFilteredEmployees.length} نتيجة
+              </span>
             </div>
 
             {sortedAndFilteredEmployees.map((employee, index) => {
-              const contractDays = employee.contract_expiry ? getDaysRemaining(employee.contract_expiry) : null
-              const residenceDays = employee.residence_expiry ? getDaysRemaining(employee.residence_expiry) : null
-              const healthInsuranceDays = employee.health_insurance_expiry ? getDaysRemaining(employee.health_insurance_expiry) : null
+              const contractDays = employee.contract_expiry
+                ? getDaysRemaining(employee.contract_expiry)
+                : null
+              const residenceDays = employee.residence_expiry
+                ? getDaysRemaining(employee.residence_expiry)
+                : null
+              const healthInsuranceDays = employee.health_insurance_expiry
+                ? getDaysRemaining(employee.health_insurance_expiry)
+                : null
               const isSelected = selectedRowIndex === index
 
               return (
@@ -1870,36 +2191,52 @@ export default function Employees() {
                         className="mt-1 flex h-5 w-5 items-center justify-center"
                       >
                         {selectedEmployees.has(employee.id) ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600" />
+                          <CheckSquare className="w-4 h-4 text-info-600" />
                         ) : (
                           <Square className="w-4 h-4 text-slate-400" />
                         )}
                       </button>
 
                       <div className="cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{employee.name}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {employee.name}
+                        </p>
                         <p className="text-xs text-slate-600 dark:text-slate-300">
                           {employee.profession || '-'} • {employee.nationality || '-'}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           {employee.company?.name || '-'}
-                          {employee.company?.unified_number ? ` (${employee.company.unified_number})` : ''}
+                          {employee.company?.unified_number
+                            ? ` (${employee.company.unified_number})`
+                            : ''}
                         </p>
                       </div>
                     </div>
 
                     <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3 lg:max-w-[560px]">
-                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(contractDays)}`}>
+                      <div
+                        className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(contractDays)}`}
+                      >
                         <p className="mb-1 text-[11px] text-slate-500">العقد</p>
-                        <p className={getTextColor(contractDays)}>{formatDateStatus(contractDays, 'منتهي')}</p>
+                        <p className={getTextColor(contractDays)}>
+                          {formatDateStatus(contractDays, 'منتهي')}
+                        </p>
                       </div>
-                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(residenceDays)}`}>
+                      <div
+                        className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(residenceDays)}`}
+                      >
                         <p className="mb-1 text-[11px] text-slate-500">الإقامة</p>
-                        <p className={getTextColor(residenceDays)}>{formatDateStatus(residenceDays, 'منتهية')}</p>
+                        <p className={getTextColor(residenceDays)}>
+                          {formatDateStatus(residenceDays, 'منتهية')}
+                        </p>
                       </div>
-                      <div className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(healthInsuranceDays)}`}>
+                      <div
+                        className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(healthInsuranceDays)}`}
+                      >
                         <p className="mb-1 text-[11px] text-slate-500">التأمين</p>
-                        <p className={getTextColor(healthInsuranceDays)}>{formatDateStatus(healthInsuranceDays, 'منتهي')}</p>
+                        <p className={getTextColor(healthInsuranceDays)}>
+                          {formatDateStatus(healthInsuranceDays, 'منتهي')}
+                        </p>
                       </div>
                     </div>
 
@@ -1934,15 +2271,15 @@ export default function Employees() {
             })}
 
             {sortedAndFilteredEmployees.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <div className="text-center py-12 text-neutral-500">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
                 <p>لا توجد نتائج تطابق الفلاتر المحددة</p>
               </div>
             )}
           </div>
         )}
       </div>
-      
+
       {/* مودال بطاقة الموظف */}
       {isCardOpen && selectedEmployee && (
         <EmployeeCard
@@ -1960,7 +2297,6 @@ export default function Employees() {
         onSuccess={handleUpdateEmployee}
       />
 
-
       {/* مودال تأكيد حذف الموظف */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
@@ -1971,11 +2307,11 @@ export default function Employees() {
                   <AlertCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">تأكيد حذف الموظف</h3>
-                  <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+                  <h3 className="text-lg font-bold text-neutral-900">تأكيد حذف الموظف</h3>
+                  <p className="text-sm text-neutral-600">هذا الإجراء لا يمكن التراجع عنه</p>
                 </div>
               </div>
-              <p className="text-gray-700 mb-6">
+              <p className="text-neutral-700 mb-6">
                 هل أنت متأكد من حذف الموظف "<strong>{employeeToDelete?.name}</strong>"؟
                 <br />
                 <span className="text-sm text-red-600 mt-2 block">
@@ -1983,11 +2319,7 @@ export default function Employees() {
                 </span>
               </p>
               <div className="flex gap-3">
-                <Button
-                  onClick={confirmDeleteEmployee}
-                  className="flex-1"
-                  variant="destructive"
-                >
+                <Button onClick={confirmDeleteEmployee} className="flex-1" variant="destructive">
                   نعم، احذف
                 </Button>
                 <Button
@@ -1996,7 +2328,7 @@ export default function Employees() {
                     setEmployeeToDelete(null)
                   }}
                   className="flex-1"
-                  variant="outline"
+                  variant="secondary"
                 >
                   إلغاء
                 </Button>
@@ -2010,7 +2342,7 @@ export default function Employees() {
       {showBulkDeleteModal && (
         <BulkDeleteModal
           selectedCount={selectedEmployees.size}
-          selectedEmployees={employees.filter(emp => selectedEmployees.has(emp.id))}
+          selectedEmployees={employees.filter((emp) => selectedEmployees.has(emp.id))}
           onConfirm={handleBulkDelete}
           onCancel={() => setShowBulkDeleteModal(false)}
           isDeleting={deletingEmployees}
@@ -2051,13 +2383,13 @@ export default function Employees() {
 }
 
 // مكون مودال الحذف الجماعي
-function BulkDeleteModal({ 
-  selectedCount, 
-  selectedEmployees, 
-  onConfirm, 
+function BulkDeleteModal({
+  selectedCount,
+  selectedEmployees,
+  onConfirm,
   onCancel,
-  isDeleting = false
-}: { 
+  isDeleting = false,
+}: {
   selectedCount: number
   selectedEmployees: (Employee & { company: Company })[]
   onConfirm: () => void
@@ -2077,19 +2409,25 @@ function BulkDeleteModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4" onClick={handleCancel}>
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4"
+      onClick={handleCancel}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-red-100 p-3 rounded-lg">
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">تأكيد حذف الموظفين</h3>
-              <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+              <h3 className="text-lg font-bold text-neutral-900">تأكيد حذف الموظفين</h3>
+              <p className="text-sm text-neutral-600">هذا الإجراء لا يمكن التراجع عنه</p>
             </div>
           </div>
-          <p className="text-gray-700 mb-4">
+          <p className="text-neutral-700 mb-4">
             هل أنت متأكد من حذف <strong>{selectedCount} موظف</strong>؟
             <br />
             <span className="text-sm text-red-600 mt-2 block">
@@ -2098,22 +2436,22 @@ function BulkDeleteModal({
           </p>
           {isDeleting && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-700">
+              <div className="flex items-center gap-2 text-info-700">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                 <span className="text-sm font-medium">جاري حذف الموظفين، يرجى الانتظار...</span>
               </div>
             </div>
           )}
-          <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">الموظفون المحددون:</p>
+          <div className="max-h-60 overflow-y-auto border border-neutral-200 rounded-lg p-4 mb-4">
+            <p className="text-sm font-medium text-neutral-700 mb-2">الموظفون المحددون:</p>
             <ul className="space-y-1">
-              {selectedEmployees.slice(0, 50).map(emp => (
-                <li key={emp.id} className="text-sm text-gray-600">
+              {selectedEmployees.slice(0, 50).map((emp) => (
+                <li key={emp.id} className="text-sm text-neutral-600">
                   • {emp.name} {emp.company?.name && `(${emp.company.name})`}
                 </li>
               ))}
               {selectedEmployees.length > 50 && (
-                <li className="text-sm text-gray-500 italic">
+                <li className="text-sm text-neutral-500 italic">
                   ... و {selectedEmployees.length - 50} موظف آخر
                 </li>
               )}
@@ -2139,7 +2477,7 @@ function BulkDeleteModal({
               onClick={handleCancel}
               disabled={isDeleting}
               className="flex-1"
-              variant="outline"
+              variant="secondary"
             >
               إلغاء
             </Button>
@@ -2151,12 +2489,12 @@ function BulkDeleteModal({
 }
 
 // مكون مودال تعديل التاريخ
-function BulkDateModal({ 
-  title, 
-  selectedCount, 
-  onConfirm, 
-  onCancel 
-}: { 
+function BulkDateModal({
+  title,
+  selectedCount,
+  onConfirm,
+  onCancel,
+}: {
   title: string
   selectedCount: number
   onConfirm: (date: string) => void
@@ -2177,40 +2515,31 @@ function BulkDateModal({
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600" />
+              <Calendar className="w-6 h-6 text-info-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-600">{selectedCount} موظف محدد</p>
+              <h3 className="text-lg font-bold text-neutral-900">{title}</h3>
+              <p className="text-sm text-neutral-600">{selectedCount} موظف محدد</p>
             </div>
           </div>
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 التاريخ الجديد
               </label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus-ring-brand"
+                className="w-full rounded-lg border border-neutral-300 px-4 py-2 focus-ring-brand"
                 required
               />
             </div>
             <div className="flex gap-3">
-              <Button
-                type="submit"
-                disabled={!selectedDate}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={!selectedDate} className="flex-1">
                 تأكيد التعديل
               </Button>
-              <Button
-                type="button"
-                onClick={onCancel}
-                className="flex-1"
-                variant="outline"
-              >
+              <Button type="button" onClick={onCancel} className="flex-1" variant="secondary">
                 إلغاء
               </Button>
             </div>

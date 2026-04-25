@@ -42,14 +42,16 @@ export default function SessionsManager() {
       const now = new Date().toISOString()
       const { data, error } = await supabase
         .from('user_sessions')
-        .select(`
+        .select(
+          `
           *,
           users (
             id,
             email,
             full_name
           )
-        `)
+        `
+        )
         .eq('is_active', true)
         .gt('expires_at', now)
         .order('last_activity', { ascending: false })
@@ -76,14 +78,16 @@ export default function SessionsManager() {
       setIsLoading(true)
       const { data, error } = await supabase
         .from('user_sessions')
-        .select(`
+        .select(
+          `
           *,
           users (
             id,
             email,
             full_name
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
         .limit(100)
 
@@ -122,13 +126,13 @@ export default function SessionsManager() {
         .from('user_sessions')
         .update({
           is_active: false,
-          logged_out_at: new Date().toISOString()
+          logged_out_at: new Date().toISOString(),
         })
         .eq('id', sessionToTerminate.id)
 
       if (error) throw error
 
-      setActiveSessions(prev => prev.filter(s => s.id !== sessionToTerminate.id))
+      setActiveSessions((prev) => prev.filter((s) => s.id !== sessionToTerminate.id))
       if (sessionHistory.length > 0) {
         await loadSessionHistory()
       }
@@ -152,16 +156,13 @@ export default function SessionsManager() {
     if (!sessionToDelete) return
 
     try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('id', sessionToDelete.id)
+      const { error } = await supabase.from('user_sessions').delete().eq('id', sessionToDelete.id)
 
       if (error) throw error
 
-      setSessionHistory(prev => prev.filter(s => s.id !== sessionToDelete.id))
-      setActiveSessions(prev => prev.filter(s => s.id !== sessionToDelete.id))
-      setSelectedSessions(prev => {
+      setSessionHistory((prev) => prev.filter((s) => s.id !== sessionToDelete.id))
+      setActiveSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id))
+      setSelectedSessions((prev) => {
         const newSet = new Set(prev)
         newSet.delete(sessionToDelete.id)
         return newSet
@@ -189,15 +190,12 @@ export default function SessionsManager() {
     setIsDeletingSessions(true)
     try {
       const sessionIds = Array.from(selectedSessions)
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .in('id', sessionIds)
+      const { error } = await supabase.from('user_sessions').delete().in('id', sessionIds)
 
       if (error) throw error
 
-      setSessionHistory(prev => prev.filter(s => !selectedSessions.has(s.id)))
-      setActiveSessions(prev => prev.filter(s => !selectedSessions.has(s.id)))
+      setSessionHistory((prev) => prev.filter((s) => !selectedSessions.has(s.id)))
+      setActiveSessions((prev) => prev.filter((s) => !selectedSessions.has(s.id)))
       setSelectedSessions(new Set())
 
       toast.success(`تم حذف ${sessionIds.length} جلسة بنجاح`)
@@ -211,7 +209,7 @@ export default function SessionsManager() {
   }
 
   const toggleSessionSelection = (sessionId: string) => {
-    setSelectedSessions(prev => {
+    setSelectedSessions((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(sessionId)) {
         newSet.delete(sessionId)
@@ -226,7 +224,7 @@ export default function SessionsManager() {
     if (selectedSessions.size === sessionHistory.length) {
       setSelectedSessions(new Set())
     } else {
-      setSelectedSessions(new Set(sessionHistory.map(s => s.id)))
+      setSelectedSessions(new Set(sessionHistory.map((s) => s.id)))
     }
   }
 
@@ -282,16 +280,32 @@ export default function SessionsManager() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p><span className="text-gray-600">المستخدم:</span> {session.users?.full_name || 'غير محدد'}</p>
-                <p><span className="text-gray-600">البريد الإلكتروني:</span> {session.users?.email || 'غير محدد'}</p>
-              </div>
-              <div>
-                <p><span className="text-gray-600">المتصفح:</span> {(session.device_info as Record<string, unknown>)?.browser ? String((session.device_info as Record<string, unknown>).browser) : 'غير محدد'}</p>
-                <p><span className="text-gray-600">النظام:</span> {(session.device_info as Record<string, unknown>)?.platform ? String((session.device_info as Record<string, unknown>).platform) : 'غير محدد'}</p>
+                <p>
+                  <span className="text-neutral-600">المستخدم:</span>{' '}
+                  {session.users?.full_name || 'غير محدد'}
+                </p>
+                <p>
+                  <span className="text-neutral-600">البريد الإلكتروني:</span>{' '}
+                  {session.users?.email || 'غير محدد'}
+                </p>
               </div>
               <div>
                 <p>
-                  <span className="text-gray-600">آخر نشاط:</span>{' '}
+                  <span className="text-neutral-600">المتصفح:</span>{' '}
+                  {(session.device_info as Record<string, unknown>)?.browser
+                    ? String((session.device_info as Record<string, unknown>).browser)
+                    : 'غير محدد'}
+                </p>
+                <p>
+                  <span className="text-neutral-600">النظام:</span>{' '}
+                  {(session.device_info as Record<string, unknown>)?.platform
+                    ? String((session.device_info as Record<string, unknown>).platform)
+                    : 'غير محدد'}
+                </p>
+              </div>
+              <div>
+                <p>
+                  <span className="text-neutral-600">آخر نشاط:</span>{' '}
                   <HijriDateDisplay date={session.last_activity}>
                     {formatDate(session.last_activity)}
                   </HijriDateDisplay>
@@ -299,7 +313,7 @@ export default function SessionsManager() {
               </div>
               <div>
                 <p>
-                  <span className="text-gray-600">تاريخ تسجيل الدخول:</span>{' '}
+                  <span className="text-neutral-600">تاريخ تسجيل الدخول:</span>{' '}
                   <HijriDateDisplay date={session.created_at}>
                     {formatDate(session.created_at)}
                   </HijriDateDisplay>
@@ -339,32 +353,47 @@ export default function SessionsManager() {
         </div>
 
         {sessionHistory.length === 0 ? (
-          <div className="text-center py-6 text-gray-500">لا توجد جلسات مسجلة</div>
+          <div className="text-center py-6 text-neutral-500">لا توجد جلسات مسجلة</div>
         ) : (
           <div className="app-table-shell">
             <div className="overflow-x-auto hidden md:block">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-neutral-50">
                   <tr>
                     <th className="px-4 py-3 text-right">
                       <input
                         type="checkbox"
-                        checked={selectedSessions.size === sessionHistory.length && sessionHistory.length > 0}
+                        checked={
+                          selectedSessions.size === sessionHistory.length &&
+                          sessionHistory.length > 0
+                        }
                         onChange={toggleAllSessions}
                         className="w-4 h-4"
                       />
                     </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">المستخدم</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">البريد الإلكتروني</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">وقت تسجيل الدخول</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">وقت تسجيل الخروج</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الحالة</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الإجراءات</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      المستخدم
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      البريد الإلكتروني
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      وقت تسجيل الدخول
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      وقت تسجيل الخروج
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      الحالة
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">
+                      الإجراءات
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {sessionHistory.map((session) => (
-                    <tr key={session.id} className="hover:bg-gray-50">
+                    <tr key={session.id} className="hover:bg-neutral-50">
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
@@ -376,9 +405,7 @@ export default function SessionsManager() {
                       <td className="px-4 py-3 text-sm">
                         {session.users?.full_name || 'غير محدد'}
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        {session.users?.email || 'غير محدد'}
-                      </td>
+                      <td className="px-4 py-3 text-sm">{session.users?.email || 'غير محدد'}</td>
                       <td className="px-4 py-3 text-sm">
                         <HijriDateDisplay date={session.created_at}>
                           {formatDate(session.created_at)}
@@ -390,15 +417,19 @@ export default function SessionsManager() {
                             {formatDate(session.logged_out_at)}
                           </HijriDateDisplay>
                         ) : session.is_active ? (
-                          <span className="text-green-600">نشطة</span>
+                          <span className="text-success-600">نشطة</span>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-neutral-400">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          session.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded text-xs ${
+                            session.is_active
+                              ? 'bg-green-100 text-success-800'
+                              : 'bg-neutral-100 text-neutral-800'
+                          }`}
+                        >
                           {session.is_active ? 'نشطة' : 'منتهية'}
                         </span>
                       </td>
@@ -419,11 +450,18 @@ export default function SessionsManager() {
 
             <div className="md:hidden space-y-3 p-3">
               {sessionHistory.map((session) => (
-                <div key={session.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <div
+                  key={session.id}
+                  className="bg-white border border-neutral-200 rounded-lg p-3 space-y-2"
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      session.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        session.is_active
+                          ? 'bg-green-100 text-success-800'
+                          : 'bg-neutral-100 text-neutral-800'
+                      }`}
+                    >
                       {session.is_active ? 'نشطة' : 'منتهية'}
                     </span>
                     <input
@@ -435,32 +473,34 @@ export default function SessionsManager() {
                   </div>
 
                   <div className="py-2 px-2 bg-blue-50 rounded text-xs space-y-1">
-                    <div className="font-medium text-gray-600">المستخدم</div>
-                    <div className="font-medium text-gray-900">{session.users?.full_name || 'غير محدد'}</div>
-                    <div className="text-gray-600">{session.users?.email || 'غير محدد'}</div>
+                    <div className="font-medium text-neutral-600">المستخدم</div>
+                    <div className="font-medium text-neutral-900">
+                      {session.users?.full_name || 'غير محدد'}
+                    </div>
+                    <div className="text-neutral-600">{session.users?.email || 'غير محدد'}</div>
                   </div>
 
-                  <div className="py-2 px-2 bg-gray-50 rounded text-xs">
-                    <div className="font-medium text-gray-600 mb-0.5">وقت الدخول</div>
+                  <div className="py-2 px-2 bg-neutral-50 rounded text-xs">
+                    <div className="font-medium text-neutral-600 mb-0.5">وقت الدخول</div>
                     <HijriDateDisplay date={session.created_at}>
                       {formatDate(session.created_at)}
                     </HijriDateDisplay>
                   </div>
 
-                  <div className="py-2 px-2 bg-gray-50 rounded text-xs">
-                    <div className="font-medium text-gray-600 mb-0.5">وقت الخروج</div>
+                  <div className="py-2 px-2 bg-neutral-50 rounded text-xs">
+                    <div className="font-medium text-neutral-600 mb-0.5">وقت الخروج</div>
                     {session.logged_out_at ? (
                       <HijriDateDisplay date={session.logged_out_at}>
                         {formatDate(session.logged_out_at)}
                       </HijriDateDisplay>
                     ) : session.is_active ? (
-                      <span className="text-green-600 font-medium">جاري الآن</span>
+                      <span className="text-success-600 font-medium">جاري الآن</span>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-neutral-400">-</span>
                     )}
                   </div>
 
-                  <div className="pt-1 border-t border-gray-100">
+                  <div className="pt-1 border-t border-neutral-100">
                     <button
                       onClick={() => deleteSession(session)}
                       className="w-full px-2 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition font-medium"

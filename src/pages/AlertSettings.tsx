@@ -12,7 +12,7 @@ export default function AlertSettings() {
   const [isLoading, setIsLoading] = useState(true)
   const [hasPermission, setHasPermission] = useState(false)
   const [canEditSettings, setCanEditSettings] = useState(false)
-  
+
   // يجب استدعاء hooks دائماً في أعلى المكوّن - لا conditional
   const permissions = usePermissions()
 
@@ -86,7 +86,9 @@ export default function AlertSettings() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">إعدادات التنبيهات</h1>
-            <p className="mt-1 text-gray-600">إدارة جميع إعدادات التنبيهات: الحالات، الحدود، والألوان</p>
+            <p className="mt-1 text-gray-600">
+              إدارة جميع إعدادات التنبيهات: الحالات، الحدود، والألوان
+            </p>
           </div>
         </div>
 

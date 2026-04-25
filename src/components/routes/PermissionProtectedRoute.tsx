@@ -22,7 +22,7 @@ export default function PermissionProtectedRoute({
   section,
   action,
   redirectTo = '/dashboard',
-  showMessage = true
+  showMessage = true,
 }: PermissionProtectedRouteProps) {
   const permissionKey = `${section}.${action}`
 
@@ -41,28 +41,32 @@ export default function PermissionProtectedRoute({
   return (
     <PermissionGuard
       permissions={[permissionKey]}
-      fallback={(
+      fallback={
         <Layout>
           <div className="flex items-center justify-center h-screen">
             <div className="text-center">
-              <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح</h2>
-              <p className="text-gray-600">
-                عذراً، ليس لديك صلاحية {action === 'view' ? 'لعرض' : action === 'create' ? 'لإنشاء' : action === 'edit' ? 'لتعديل' : 'لحذف'} هذا القسم.
+              <Shield className="w-16 h-16 mx-auto mb-4 text-danger-500" />
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
+              <p className="text-neutral-600">
+                عذراً، ليس لديك صلاحية{' '}
+                {action === 'view'
+                  ? 'لعرض'
+                  : action === 'create'
+                    ? 'لإنشاء'
+                    : action === 'edit'
+                      ? 'لتعديل'
+                      : 'لحذف'}{' '}
+                هذا القسم.
               </p>
-              <button
-                onClick={() => window.history.back()}
-                className="app-button-primary mt-4"
-              >
+              <button onClick={() => window.history.back()} className="app-button-primary mt-4">
                 العودة
               </button>
             </div>
           </div>
         </Layout>
-      )}
+      }
     >
       {children}
     </PermissionGuard>
   )
 }
-

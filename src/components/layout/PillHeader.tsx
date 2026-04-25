@@ -164,14 +164,18 @@ export const PillHeader = ({
                       <div className="min-w-0 text-right">
                         <p className="truncate text-sm font-medium">{result.label}</p>
                         {result.description ? (
-                          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{result.description}</p>
+                          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                            {result.description}
+                          </p>
                         ) : null}
                       </div>
                       <span className="mr-3 text-[11px] text-slate-400">{result.path}</span>
                     </button>
                   ))
                 ) : (
-                  <p className="px-3 py-3 text-sm text-slate-500 dark:text-slate-300">لا توجد نتائج مطابقة</p>
+                  <p className="px-3 py-3 text-sm text-slate-500 dark:text-slate-300">
+                    لا توجد نتائج مطابقة
+                  </p>
                 )}
               </div>
 
@@ -235,8 +239,12 @@ export const PillHeader = ({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{userName || 'مستخدم'}</p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-300">{userRole || 'مستخدم'}</p>
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                      {userName || 'مستخدم'}
+                    </p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-300">
+                      {userRole || 'مستخدم'}
+                    </p>
                   </div>
                 </div>
 

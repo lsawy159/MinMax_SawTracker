@@ -1,6 +1,10 @@
 import type { Employee } from '@/lib/supabase'
 
-export const HIRED_WORKER_CONTRACT_STATUS_OPTIONS = ['أجير', 'بإنتظار إجراءات النقل', 'بدون أجير'] as const
+export const HIRED_WORKER_CONTRACT_STATUS_OPTIONS = [
+  'أجير',
+  'بإنتظار إجراءات النقل',
+  'بدون أجير',
+] as const
 
 export type HiredWorkerContractStatusOption = (typeof HIRED_WORKER_CONTRACT_STATUS_OPTIONS)[number]
 
@@ -30,7 +34,11 @@ const DEFAULT_FIELDS: EmployeeBusinessFields = {
   bank_name: '',
 }
 
-function sanitizeEnumValue<T extends readonly string[]>(value: unknown, allowed: T, fallback: T[number]): T[number] {
+function sanitizeEnumValue<T extends readonly string[]>(
+  value: unknown,
+  allowed: T,
+  fallback: T[number]
+): T[number] {
   if (typeof value !== 'string') return fallback
   const trimmed = value.trim() as T[number]
   return allowed.includes(trimmed) ? trimmed : fallback
@@ -41,17 +49,26 @@ function sanitizeText(value: unknown): string {
 }
 
 export function getEmployeeBusinessFields(
-  employee: Pick<Employee, 'additional_fields' | 'hired_worker_contract_expiry'> | {
-    additional_fields?: Record<string, unknown> | null | undefined
-    hired_worker_contract_expiry?: string | null | undefined
-  }
+  employee:
+    | Pick<Employee, 'additional_fields' | 'hired_worker_contract_expiry'>
+    | {
+        additional_fields?: Record<string, unknown> | null | undefined
+        hired_worker_contract_expiry?: string | null | undefined
+      }
 ): EmployeeBusinessFields {
   const fields = employee.additional_fields ?? {}
 
-  return applyDerivedBusinessRules({
-    hired_worker_contract_status: sanitizeEnumValue(fields.hired_worker_contract_status, HIRED_WORKER_CONTRACT_STATUS_OPTIONS, DEFAULT_FIELDS.hired_worker_contract_status),
-    bank_name: sanitizeText(fields.bank_name),
-  }, employee.hired_worker_contract_expiry)
+  return applyDerivedBusinessRules(
+    {
+      hired_worker_contract_status: sanitizeEnumValue(
+        fields.hired_worker_contract_status,
+        HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
+        DEFAULT_FIELDS.hired_worker_contract_status
+      ),
+      bank_name: sanitizeText(fields.bank_name),
+    },
+    employee.hired_worker_contract_expiry
+  )
 }
 
 export function buildEmployeeBusinessAdditionalFields(
@@ -64,14 +81,17 @@ export function buildEmployeeBusinessAdditionalFields(
 ): Record<string, string | number | boolean | null> {
   const current = currentFields ?? {}
 
-  const normalizedFields = applyDerivedBusinessRules({
-    hired_worker_contract_status: sanitizeEnumValue(
-      input.hired_worker_contract_status,
-      HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
-      DEFAULT_FIELDS.hired_worker_contract_status,
-    ),
-    bank_name: sanitizeText(input.bank_name),
-  }, input.hired_worker_contract_expiry)
+  const normalizedFields = applyDerivedBusinessRules(
+    {
+      hired_worker_contract_status: sanitizeEnumValue(
+        input.hired_worker_contract_status,
+        HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
+        DEFAULT_FIELDS.hired_worker_contract_status
+      ),
+      bank_name: sanitizeText(input.bank_name),
+    },
+    input.hired_worker_contract_expiry
+  )
 
   return {
     ...current,

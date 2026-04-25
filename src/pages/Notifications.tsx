@@ -1,16 +1,16 @@
 ﻿import { useState, useEffect } from 'react'
 import { supabase, Notification } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
-import { 
-  Bell, 
-  AlertTriangle, 
-  Calendar, 
-  Clock, 
-  Check, 
-  Trash2, 
+import {
+  Bell,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  Check,
+  Trash2,
   RefreshCw,
   Search,
-  Mail
+  Mail,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -18,9 +18,15 @@ import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 
 type FilterType = 'all' | 'unread' | 'read'
 type PriorityFilter = 'all' | 'urgent' | 'high' | 'medium' | 'low'
@@ -49,7 +55,7 @@ export default function Notifications() {
         {
           event: '*',
           schema: 'public',
-          table: 'notifications'
+          table: 'notifications',
         },
         () => {
           loadNotifications()
@@ -65,7 +71,10 @@ export default function Notifications() {
   const loadNotifications = async () => {
     try {
       const { data, error } = await supabase
-        .from('notifications').select('id,type,title,message,entity_type,entity_id,priority,days_remaining,is_read,is_archived,created_at,read_at,target_date')
+        .from('notifications')
+        .select(
+          'id,type,title,message,entity_type,entity_id,priority,days_remaining,is_read,is_archived,created_at,read_at,target_date'
+        )
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
 
@@ -83,9 +92,9 @@ export default function Notifications() {
     setGenerating(true)
     try {
       const { data, error } = await supabase.rpc('generate_expiry_notifications')
-      
+
       if (error) throw error
-      
+
       toast.success(`طھظ… طھظˆظ„ظٹط¯ ${data?.length || 0} طھظ†ط¨ظٹظ‡ ط¬ط¯ظٹط¯`)
       loadNotifications()
     } catch (error) {
@@ -205,9 +214,9 @@ export default function Notifications() {
   const getPriorityColor = (priority: string) => {
     const colors = {
       urgent: 'text-red-600 bg-red-50 border-red-200',
-      high: 'text-orange-600 bg-orange-50 border-orange-200',
+      high: 'text-warning-600 bg-orange-50 border-orange-200',
       medium: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-      low: 'text-blue-600 bg-blue-50 border-blue-200'
+      low: 'text-info-600 bg-blue-50 border-blue-200',
     }
     return colors[priority as keyof typeof colors] || colors.low
   }
@@ -223,13 +232,13 @@ export default function Notifications() {
       urgent: 'ط¹ط§ط¬ظ„',
       high: 'ط¹ط§ط¬ظ„',
       medium: 'ظ…طھظˆط³ط·',
-      low: 'ظ…ظ†ط®ظپط¶'
+      low: 'ظ…ظ†ط®ظپط¶',
     }
     return labels[priority as keyof typeof labels] || priority
   }
 
   // طھط·ط¨ظٹظ‚ ط§ظ„ظپظ„ط§طھط±
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = notifications.filter((notification) => {
     // ظپظ„طھط± ط§ظ„ظ‚ط±ط§ط،ط©
     if (filterType === 'read' && !notification.is_read) return false
     if (filterType === 'unread' && notification.is_read) return false
@@ -249,14 +258,14 @@ export default function Notifications() {
     return true
   })
 
-  const unreadCount = notifications.filter(n => !n.is_read).length
-  const readCount = notifications.filter(n => n.is_read).length
+  const unreadCount = notifications.filter((n) => !n.is_read).length
+  const readCount = notifications.filter((n) => n.is_read).length
   const stats = {
     total: notifications.length,
     unread: unreadCount,
-    urgent: notifications.filter(n => n.priority === 'urgent' && !n.is_read).length,
-    high: notifications.filter(n => n.priority === 'high' && !n.is_read).length,
-    medium: notifications.filter(n => n.priority === 'medium' && !n.is_read).length
+    urgent: notifications.filter((n) => n.priority === 'urgent' && !n.is_read).length,
+    high: notifications.filter((n) => n.priority === 'high' && !n.is_read).length,
+    medium: notifications.filter((n) => n.priority === 'medium' && !n.is_read).length,
   }
 
   return (
@@ -266,19 +275,18 @@ export default function Notifications() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
-              <Bell className="w-6 h-6 text-blue-600" />
+              <Bell className="w-6 h-6 text-info-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</h1>
-              <p className="text-gray-600 mt-1">
-                {unreadCount > 0 ? `ظ„ط¯ظٹظƒ ${unreadCount} طھظ†ط¨ظٹظ‡ ط؛ظٹط± ظ…ظ‚ط±ظˆط،` : 'ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظ…ظ‚ط±ظˆط،ط©'}
+              <h1 className="text-3xl font-bold text-neutral-900">ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</h1>
+              <p className="text-neutral-600 mt-1">
+                {unreadCount > 0
+                  ? `ظ„ط¯ظٹظƒ ${unreadCount} طھظ†ط¨ظٹظ‡ ط؛ظٹط± ظ…ظ‚ط±ظˆط،`
+                  : 'ط¬ظ…ظٹط¹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظ…ظ‚ط±ظˆط،ط©'}
               </p>
             </div>
           </div>
-          <Button
-            onClick={handleGenerateNotifications}
-            disabled={generating}
-          >
+          <Button onClick={handleGenerateNotifications} disabled={generating}>
             <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
             {generating ? 'ط¬ط§ط±ظٹ ط§ظ„طھظˆظ„ظٹط¯...' : 'طھظˆظ„ظٹط¯ طھظ†ط¨ظٹظ‡ط§طھ ط¬ط¯ظٹط¯ط©'}
           </Button>
@@ -287,20 +295,20 @@ export default function Notifications() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="app-panel p-4">
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-sm text-gray-600">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</div>
+            <div className="text-2xl font-bold text-neutral-900">{stats.total}</div>
+            <div className="text-sm text-neutral-600">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ</div>
           </div>
           <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.unread}</div>
-            <div className="text-sm text-blue-700">ط؛ظٹط± ظ…ظ‚ط±ظˆط،</div>
+            <div className="text-2xl font-bold text-info-600">{stats.unread}</div>
+            <div className="text-sm text-info-700">ط؛ظٹط± ظ…ظ‚ط±ظˆط،</div>
           </div>
           <div className="bg-red-50 rounded-xl shadow-sm border border-red-200 p-4">
             <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
             <div className="text-sm text-red-700">ط¹ط§ط¬ظ„</div>
           </div>
           <div className="bg-orange-50 rounded-xl shadow-sm border border-orange-200 p-4">
-            <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
-            <div className="text-sm text-orange-700">ط¹ط§ط¬ظ„</div>
+            <div className="text-2xl font-bold text-warning-600">{stats.high}</div>
+            <div className="text-sm text-warning-700">ط¹ط§ط¬ظ„</div>
           </div>
           <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-4">
             <div className="text-2xl font-bold text-yellow-600">{stats.medium}</div>
@@ -314,7 +322,7 @@ export default function Notifications() {
             {/* Search */}
             <div className="md:col-span-2">
               <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
                 <Input
                   type="text"
                   placeholder="ط§ظ„ط¨ط­ط« ظپظٹ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ..."
@@ -365,31 +373,19 @@ export default function Notifications() {
           {/* Action Buttons */}
           <div className="flex gap-3 mt-4">
             {unreadCount > 0 && (
-              <Button
-                onClick={handleMarkAllAsRead}
-                variant="success"
-                size="sm"
-              >
+              <Button onClick={handleMarkAllAsRead} variant="success" size="sm">
                 <Check className="w-4 h-4" />
                 طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„ ظƒظ…ظ‚ط±ظˆط،
               </Button>
             )}
             {readCount > 0 && (
-              <Button
-                onClick={handleMarkAllAsUnread}
-                variant="secondary"
-                size="sm"
-              >
+              <Button onClick={handleMarkAllAsUnread} variant="secondary" size="sm">
                 <Mail className="w-4 h-4" />
                 طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„ ظƒط؛ظٹط± ظ…ظ‚ط±ظˆط،
               </Button>
             )}
             {notifications.length > 0 && (
-              <Button
-                onClick={handleDeleteAll}
-                variant="destructive"
-                size="sm"
-              >
+              <Button onClick={handleDeleteAll} variant="destructive" size="sm">
                 <Trash2 className="w-4 h-4" />
                 ط­ط°ظپ ط§ظ„ظƒظ„
               </Button>
@@ -403,14 +399,15 @@ export default function Notifications() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <Bell className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">ظ„ط§ طھظˆط¬ط¯ طھظ†ط¨ظٹظ‡ط§طھ</h3>
-            <p className="text-gray-600">
-              {notifications.length === 0 
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+            <Bell className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
+            <h3 className="text-lg font-medium text-neutral-900 mb-2">
+              ظ„ط§ طھظˆط¬ط¯ طھظ†ط¨ظٹظ‡ط§طھ
+            </h3>
+            <p className="text-neutral-600">
+              {notifications.length === 0
                 ? 'ظ„ظ… ظٹطھظ… طھظˆظ„ظٹط¯ ط£ظٹ طھظ†ط¨ظٹظ‡ط§طھ ط¨ط¹ط¯. ط§ط¶ط؛ط· ط¹ظ„ظ‰ "طھظˆظ„ظٹط¯ طھظ†ط¨ظٹظ‡ط§طھ ط¬ط¯ظٹط¯ط©" ط£ط¹ظ„ط§ظ‡.'
-                : 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط§ظ„ظپظ„ط§طھط± ط§ظ„ظ…ط­ط¯ط¯ط©'
-              }
+                : 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط§ظ„ظپظ„ط§طھط± ط§ظ„ظ…ط­ط¯ط¯ط©'}
             </p>
           </div>
         ) : (
@@ -419,9 +416,7 @@ export default function Notifications() {
               <div
                 key={notification.id}
                 className={`bg-white rounded-xl shadow-sm border-2 p-6 transition ${
-                  !notification.is_read 
-                    ? 'border-blue-200 bg-blue-50/30' 
-                    : 'border-gray-200'
+                  !notification.is_read ? 'border-blue-200 bg-blue-50/30' : 'border-neutral-200'
                 }`}
               >
                 <div className="flex items-start gap-4">
@@ -433,7 +428,9 @@ export default function Notifications() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-2">
-                      <h3 className={`text-lg font-semibold ${!notification.is_read ? 'text-gray-900' : 'text-gray-700'}`}>
+                      <h3
+                        className={`text-lg font-semibold ${!notification.is_read ? 'text-neutral-900' : 'text-neutral-700'}`}
+                      >
                         {notification.title}
                       </h3>
                       {!notification.is_read && (
@@ -441,39 +438,43 @@ export default function Notifications() {
                       )}
                     </div>
 
-                    <p className="text-gray-600 mb-3">{notification.message}</p>
+                    <p className="text-neutral-600 mb-3">{notification.message}</p>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(notification.priority)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(notification.priority)}`}
+                      >
                         {getPriorityLabel(notification.priority)}
                       </span>
-                      
+
                       {notification.days_remaining !== null && (
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          notification.days_remaining < 0 
-                            ? 'bg-red-100 text-red-700'
-                            : notification.days_remaining <= 7
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {notification.days_remaining < 0 
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            notification.days_remaining < 0
+                              ? 'bg-red-100 text-red-700'
+                              : notification.days_remaining <= 7
+                                ? 'bg-orange-100 text-warning-700'
+                                : 'bg-blue-100 text-info-700'
+                          }`}
+                        >
+                          {notification.days_remaining < 0
                             ? `ظ…ظ†طھظ‡ظٹ ظ…ظ†ط° ${String(Math.abs(notification.days_remaining))} ظٹظˆظ…`
-                            : `ط¨ط§ظ‚ظٹ ${String(notification.days_remaining)} ظٹظˆظ…`
-                          }
+                            : `ط¨ط§ظ‚ظٹ ${String(notification.days_remaining)} ظٹظˆظ…`}
                         </span>
                       )}
 
-                      <span className="text-sm text-gray-500">
-                        {formatDistanceToNow(new Date(notification.created_at), { 
-                          addSuffix: true, 
-                          locale: ar 
+                      <span className="text-sm text-neutral-500">
+                        {formatDistanceToNow(new Date(notification.created_at), {
+                          addSuffix: true,
+                          locale: ar,
                         })}
                       </span>
 
                       {notification.target_date && (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-neutral-500">
                           <HijriDateDisplay date={notification.target_date}>
-                            ط§ظ„طھط§ط±ظٹط® ط§ظ„ظ…ط³طھظ‡ط¯ظپ: {formatDateShortWithHijri(notification.target_date)}
+                            ط§ظ„طھط§ط±ظٹط® ط§ظ„ظ…ط³طھظ‡ط¯ظپ:{' '}
+                            {formatDateShortWithHijri(notification.target_date)}
                           </HijriDateDisplay>
                         </span>
                       )}
@@ -547,4 +548,3 @@ export default function Notifications() {
     </Layout>
   )
 }
-

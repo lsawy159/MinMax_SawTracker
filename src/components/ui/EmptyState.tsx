@@ -12,13 +12,7 @@ interface EmptyStateProps {
   children?: ReactNode
 }
 
-export function EmptyState({
-  icon,
-  title,
-  description,
-  action,
-  children,
-}: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, children }: EmptyStateProps) {
   return (
     <div className="app-panel card-interactive flex flex-col items-center justify-center border border-dashed border-border p-10 md:p-12">
       <div className="flex max-w-md flex-col items-center gap-4 text-center">
@@ -93,7 +87,7 @@ export function NoSearchResultsEmptyState({
           />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <h3 className="text-lg font-semibold text-neutral-900 mb-2">
         لا توجد نتائج لـ "{searchQuery}"
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">

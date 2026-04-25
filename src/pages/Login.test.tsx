@@ -51,7 +51,9 @@ describe('Login page', () => {
       target: { value: 'wrong-user' },
     })
 
-    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement | null
+    const passwordInput = document.querySelector(
+      'input[type="password"]'
+    ) as HTMLInputElement | null
     expect(passwordInput).not.toBeNull()
 
     fireEvent.change(passwordInput as HTMLInputElement, {

@@ -1,40 +1,48 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase'
 
 interface EnqueueEmailOptions {
-  toEmails: string[];
-  subject: string;
-  htmlContent?: string;
-  textContent?: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  ccEmails?: string[];
-  bccEmails?: string[];
-  scheduledAt?: Date;
+  toEmails: string[]
+  subject: string
+  htmlContent?: string
+  textContent?: string
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  ccEmails?: string[]
+  bccEmails?: string[]
+  scheduledAt?: Date
 }
 
 interface EnqueueEmailResult {
-  success: boolean;
-  id?: string;
-  error?: string;
+  success: boolean
+  id?: string
+  error?: string
 }
 
 // Basic email validation regex
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Maximum recipients per email
-const MAX_RECIPIENTS = 100;
+const MAX_RECIPIENTS = 100
 
 // Check if email is allowed by current queue mode constraint
-function validateQueueModeConstraint(options: EnqueueEmailOptions): { allowed: boolean; error?: string } {
-  const mode = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE || 'digest-only'
+function validateQueueModeConstraint(options: EnqueueEmailOptions): {
+  allowed: boolean
+  error?: string
+} {
+  const mode =
+    (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE ||
+    'digest-only'
 
   if (mode === 'digest-only') {
-    const isDigest = typeof options.subject === 'string' && options.subject.toLowerCase().includes('daily digest')
-    const adminOnly = options.toEmails.length === 1 && options.toEmails[0] === 'ahmad.alsawy159@gmail.com'
+    const isDigest =
+      typeof options.subject === 'string' && options.subject.toLowerCase().includes('daily digest')
+    const adminOnly =
+      options.toEmails.length === 1 && options.toEmails[0] === 'ahmad.alsawy159@gmail.com'
 
     if (!isDigest || !adminOnly) {
       return {
         allowed: false,
-        error: 'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.'
+        error:
+          'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.',
       }
     }
   }
@@ -52,7 +60,7 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
     ccEmails,
     bccEmails,
     scheduledAt,
-  } = options;
+  } = options
 
   // Validate queue mode constraint (digest-only or normal)
   const modeCheck = validateQueueModeConstraint(options)
@@ -61,66 +69,76 @@ export async function enqueueEmail(options: EnqueueEmailOptions): Promise<Enqueu
   }
 
   // 1. Email validation
-  const allRecipients = [...toEmails, ...(ccEmails || []), ...(bccEmails || [])];
+  const allRecipients = [...toEmails, ...(ccEmails || []), ...(bccEmails || [])]
   for (const email of allRecipients) {
     if (!emailRegex.test(email)) {
-      return { success: false, error: `Invalid email address: ${email}` };
+      return { success: false, error: `Invalid email address: ${email}` }
     }
   }
 
   // 2. Max recipients check
   if (allRecipients.length === 0) {
-    return { success: false, error: 'No recipients provided.' };
+    return { success: false, error: 'No recipients provided.' }
   }
   if (allRecipients.length > MAX_RECIPIENTS) {
-    return { success: false, error: `Too many recipients. Maximum allowed is ${MAX_RECIPIENTS}.` };
+    return { success: false, error: `Too many recipients. Maximum allowed is ${MAX_RECIPIENTS}.` }
   }
 
   try {
-    const { data, error } = await supabase.from('email_queue').insert({
-      to_emails: toEmails,
-      cc_emails: ccEmails,
-      bcc_emails: bccEmails,
-      subject,
-      html_content: htmlContent,
-      text_content: textContent,
-      priority,
-      scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
-      status: 'pending', // Always pending on insertion
-    }).select('id').single();
+    const { data, error } = await supabase
+      .from('email_queue')
+      .insert({
+        to_emails: toEmails,
+        cc_emails: ccEmails,
+        bcc_emails: bccEmails,
+        subject,
+        html_content: htmlContent,
+        text_content: textContent,
+        priority,
+        scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
+        status: 'pending', // Always pending on insertion
+      })
+      .select('id')
+      .single()
 
     if (error) {
       // Error logged to activity_log asynchronously
       // Non-blocking activity log: failure case
-      void Promise.resolve(supabase.from('activity_log').insert({
-        entity_type: 'email_queue',
-        action: 'create_failed',
-        details: error.message,
-      })).catch(() => {
+      void Promise.resolve(
+        supabase.from('activity_log').insert({
+          entity_type: 'email_queue',
+          action: 'create_failed',
+          details: error.message,
+        })
+      ).catch(() => {
         // Silently ignore activity_log failures — email queue operation must succeed
-      });
-      return { success: false, error: 'Failed to enqueue email.' };
+      })
+      return { success: false, error: 'Failed to enqueue email.' }
     }
 
     // Non-blocking activity log: success case
-    void Promise.resolve(supabase.from('activity_log').insert({
-      entity_type: 'email_queue',
-      action: 'create_success',
-      entity_id: data.id as unknown as string,
-    })).catch(() => {
+    void Promise.resolve(
+      supabase.from('activity_log').insert({
+        entity_type: 'email_queue',
+        action: 'create_success',
+        entity_id: data.id as unknown as string,
+      })
+    ).catch(() => {
       // Silently ignore activity_log failures — email queue operation must succeed
-    });
+    })
 
-    return { success: true, id: data.id };
+    return { success: true, id: data.id }
   } catch (err) {
     // Non-blocking activity log: exception case
-    void Promise.resolve(supabase.from('activity_log').insert({
-      entity_type: 'email_queue',
-      action: 'create_exception',
-      details: (err as Error).message,
-    })).catch(() => {
+    void Promise.resolve(
+      supabase.from('activity_log').insert({
+        entity_type: 'email_queue',
+        action: 'create_exception',
+        details: (err as Error).message,
+      })
+    ).catch(() => {
       // Silently ignore activity_log failures — email queue operation must succeed
-    });
-    return { success: false, error: 'An unexpected error occurred.' };
+    })
+    return { success: false, error: 'An unexpected error occurred.' }
   }
 }
