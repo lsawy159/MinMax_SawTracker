@@ -71,6 +71,7 @@ export function UsersPermissionsTab(): JSX.Element {
           size="sm"
           onClick={() => setShowRolesSheet(true)}
           className="flex items-center gap-2"
+          aria-label="فتح إدارة الأدوار"
         >
           <Settings className="h-4 w-4" />
           إدارة الأدوار
@@ -136,6 +137,7 @@ export function UsersPermissionsTab(): JSX.Element {
                       size="sm"
                       onClick={() => setSelectedUserId(user.id)}
                       className="flex items-center gap-2"
+                      aria-label={`إدارة صلاحيات ${user.full_name || user.username}`}
                     >
                       <Settings className="h-4 w-4" />
                       صلاحيات

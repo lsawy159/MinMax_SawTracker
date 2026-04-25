@@ -65,9 +65,15 @@ export function SettingsHub({ userPermissions = [] }: SettingsHubProps): JSX.Ele
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} dir="rtl" className="w-full">
-      <TabsList className="grid w-full gap-2" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+      <TabsList className="grid w-full gap-2" role="tablist" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
         {visibleTabs.map((tab) => (
-          <TabsTrigger key={tab.id} value={tab.id} className="flex flex-col gap-1">
+          <TabsTrigger
+            key={tab.id}
+            value={tab.id}
+            className="flex flex-col gap-1"
+            aria-label={`${tab.labelAr} - ${tab.label}`}
+            role="tab"
+          >
             <span className="text-sm font-medium">{tab.labelAr}</span>
             <span className="text-xs text-neutral-500">{tab.label}</span>
           </TabsTrigger>

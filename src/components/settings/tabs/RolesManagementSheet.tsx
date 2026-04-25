@@ -137,6 +137,7 @@ export function RolesManagementSheet({ isOpen, onOpenChange }: RolesManagementSh
               onClick={handleCreateRole}
               disabled={createRoleMutation.isPending || !newRoleName.trim()}
               className="w-full flex items-center justify-center gap-2"
+              aria-label={createRoleMutation.isPending ? 'جاري إنشاء الدور' : 'إنشاء دور جديد'}
             >
               {createRoleMutation.isPending ? (
                 <LoadingSpinner className="h-4 w-4" />
@@ -182,6 +183,7 @@ export function RolesManagementSheet({ isOpen, onOpenChange }: RolesManagementSh
                         size="sm"
                         disabled={deleteRoleMutation.isPending}
                         onClick={() => handleDeleteRole(role.id)}
+                        aria-label={`حذف الدور ${role.name}`}
                       >
                         <Trash2 className="h-4 w-4 text-danger-600 dark:text-danger-400" />
                       </Button>

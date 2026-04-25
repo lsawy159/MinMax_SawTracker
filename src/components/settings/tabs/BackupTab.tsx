@@ -90,6 +90,7 @@ export function BackupTab(): JSX.Element {
           onClick={handleRunBackup}
           disabled={isRunningBackup}
           className="flex items-center gap-2"
+          aria-label={isRunningBackup ? 'جاري إنشاء النسخة الاحتياطية' : 'إنشاء نسخة احتياطية الآن'}
         >
           {isRunningBackup ? (
             <>
@@ -197,6 +198,7 @@ export function BackupTab(): JSX.Element {
                         variant="secondary"
                         size="sm"
                         className="flex items-center gap-1"
+                        aria-label={`تحميل النسخة الاحتياطية بحجم ${formatBytes(backup.file_size)}`}
                       >
                         <Download className="h-3 w-3" />
                         تحميل

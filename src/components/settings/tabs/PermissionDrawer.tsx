@@ -141,9 +141,12 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
         side="right"
         className={prefersReducedMotion ? '' : 'animate-in slide-in-from-right duration-200'}
         style={prefersReducedMotion ? { animation: 'none' } : {}}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="permission-drawer-title"
       >
         <SheetHeader>
-          <SheetTitle className="text-right">صلاحيات المستخدم</SheetTitle>
+          <SheetTitle id="permission-drawer-title" className="text-right">صلاحيات المستخدم</SheetTitle>
         </SheetHeader>
 
         {userId ? (
@@ -190,6 +193,7 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
                 variant="secondary"
                 onClick={handleClose}
                 disabled={isSubmitting}
+                aria-label="إلغاء التعديلات وإغلاق"
               >
                 إلغاء
               </Button>
@@ -197,6 +201,7 @@ export function PermissionDrawer({ userId, onClose, onSaved }: PermissionDrawerP
                 type="submit"
                 variant="default"
                 disabled={!isDirty || !isValid || isSubmitting}
+                aria-label={isSubmitting ? 'جاري الحفظ...' : 'حفظ الصلاحيات'}
               >
                 {isSubmitting ? <LoadingSpinner className="h-4 w-4" /> : 'حفظ'}
               </Button>
