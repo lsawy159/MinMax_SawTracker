@@ -25,7 +25,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { AvatarGroup } from '@/components/ui/AvatarGroup'
-import { Users, Building2, AlertTriangle, Check, X, AlertCircle } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { ErrorMessage } from '@/components/ui/ErrorMessage'
+import { useThemeMode } from '@/hooks/useUiPreferences'
+import { Users, Building2, AlertTriangle, Check, X, AlertCircle, Sun, Moon } from 'lucide-react'
 
 interface ColorToken {
   name: string
@@ -139,6 +143,7 @@ const motionTokens = [
 
 const DesignSystem = () => {
   const [statusValue, setStatusValue] = useState('active')
+  const { isDark, toggleTheme } = useThemeMode()
 
   return (
     <Layout>
@@ -157,12 +162,12 @@ const DesignSystem = () => {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
             <p>
-              This is the authoritative reference for SawTracker's Design System v2. All UI should adhere to these tokens
-              and patterns for consistency across the platform.
+              This is the authoritative reference for SawTracker's Design System v2. All UI should
+              adhere to these tokens and patterns for consistency across the platform.
             </p>
             <p>
-              <strong>Key Principles:</strong> Clarity, accessibility, performance, dark mode support, RTL layout
-              readiness.
+              <strong>Key Principles:</strong> Clarity, accessibility, performance, dark mode
+              support, RTL layout readiness.
             </p>
           </CardContent>
         </Card>
@@ -176,7 +181,10 @@ const DesignSystem = () => {
           <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">Motion Tokens</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {motionTokens.map((token) => (
-              <article key={token.name} className="rounded-xl border border-border bg-card p-4 space-y-2">
+              <article
+                key={token.name}
+                className="rounded-xl border border-border bg-card p-4 space-y-2"
+              >
                 <div
                   className="h-12 rounded-lg bg-brand-gold transition-all duration-500"
                   key={`motion-${token.name}`}
@@ -262,7 +270,9 @@ const DesignSystem = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Input States</CardTitle>
-              <CardDescription>Normal, success, warning, and error states with validation feedback.</CardDescription>
+              <CardDescription>
+                Normal, success, warning, and error states with validation feedback.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -275,7 +285,11 @@ const DesignSystem = () => {
                   <Check className="h-4 w-4" />
                   Success State
                 </label>
-                <Input placeholder="الاسم الكامل" value="أحمد السيسي" className="border-success-500 bg-success-50 dark:bg-success-950/30" />
+                <Input
+                  placeholder="الاسم الكامل"
+                  value="أحمد السيسي"
+                  className="border-success-500 bg-success-50 dark:bg-success-950/30"
+                />
                 <p className="text-xs text-success-600 dark:text-success-400">✓ الاسم صحيح وفريد</p>
               </div>
 
@@ -284,8 +298,14 @@ const DesignSystem = () => {
                   <AlertCircle className="h-4 w-4" />
                   Warning State
                 </label>
-                <Input placeholder="البريد الإلكتروني" value="old.email@example.com" className="border-warning-500 bg-warning-50 dark:bg-warning-950/30" />
-                <p className="text-xs text-warning-600 dark:text-warning-400">⚠️ هذا البريد مسجل مسبقاً في النظام</p>
+                <Input
+                  placeholder="البريد الإلكتروني"
+                  value="old.email@example.com"
+                  className="border-warning-500 bg-warning-50 dark:bg-warning-950/30"
+                />
+                <p className="text-xs text-warning-600 dark:text-warning-400">
+                  ⚠️ هذا البريد مسجل مسبقاً في النظام
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -293,12 +313,19 @@ const DesignSystem = () => {
                   <X className="h-4 w-4" />
                   Error State
                 </label>
-                <Input placeholder="رقم الهاتف" className="border-danger-500 bg-danger-50 dark:bg-danger-950/30" />
-                <p className="text-xs text-danger-600 dark:text-danger-400">✗ الرقم غير صحيح (يجب أن يكون 11 رقم)</p>
+                <Input
+                  placeholder="رقم الهاتف"
+                  className="border-danger-500 bg-danger-50 dark:bg-danger-950/30"
+                />
+                <p className="text-xs text-danger-600 dark:text-danger-400">
+                  ✗ الرقم غير صحيح (يجب أن يكون 11 رقم)
+                </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Disabled State</label>
+                <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                  Disabled State
+                </label>
                 <Input placeholder="حقل معطل" disabled />
               </div>
             </CardContent>
@@ -469,7 +496,8 @@ const DesignSystem = () => {
                     Color Contrast
                   </h3>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                    All text meets minimum 4.5:1 contrast ratio (AA) for normal text, 3:1 for large text.
+                    All text meets minimum 4.5:1 contrast ratio (AA) for normal text, 3:1 for large
+                    text.
                   </p>
                 </div>
 
@@ -479,7 +507,8 @@ const DesignSystem = () => {
                     Keyboard Navigation
                   </h3>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                    All interactive elements are reachable via Tab key. Focus indicators are visible.
+                    All interactive elements are reachable via Tab key. Focus indicators are
+                    visible.
                   </p>
                 </div>
 
@@ -499,7 +528,8 @@ const DesignSystem = () => {
                     Motion Safety
                   </h3>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                    Respects prefers-reduced-motion. Animations disabled for users who prefer reduced motion.
+                    Respects prefers-reduced-motion. Animations disabled for users who prefer
+                    reduced motion.
                   </p>
                 </div>
               </div>
@@ -508,7 +538,110 @@ const DesignSystem = () => {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">Usage Guidelines</h2>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">
+            Empty, Loading & Error States
+          </h2>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">User Feedback States</CardTitle>
+              <CardDescription>
+                Standardized patterns for empty data, loading, and error scenarios.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h4 className="text-sm font-semibold mb-4">Empty State</h4>
+                  <EmptyState
+                    icon={<Users className="h-12 w-12 text-neutral-400" />}
+                    title="لا توجد بيانات"
+                    description="لم يتم العثور على أي بيانات"
+                    action={{ label: 'إضافة جديد', onClick: () => {} }}
+                  />
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h4 className="text-sm font-semibold mb-4">Loading State</h4>
+                  <div className="flex items-center justify-center py-12">
+                    <LoadingSpinner />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h4 className="text-sm font-semibold mb-4">Error State</h4>
+                  <div className="rounded-lg border border-danger-200 bg-danger-50 dark:border-danger-700/50 dark:bg-danger-900/20 p-4">
+                    <ErrorMessage
+                      title="حدث خطأ"
+                      message="فشل تحميل البيانات. يرجى المحاولة مرة أخرى."
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">
+            RTL & Dark Mode Support
+          </h2>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Right-to-Left & Theme Modes</CardTitle>
+              <CardDescription>
+                Design System v2 fully supports RTL layout and light/dark modes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+                <div>
+                  <p className="text-sm font-semibold">Current Theme</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isDark ? 'Dark Mode (قالب مظلم)' : 'Light Mode (قالب فاتح)'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2"
+                >
+                  {isDark ? (
+                    <>
+                      <Sun className="h-4 w-4" /> Light
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4" /> Dark
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div dir="rtl" className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <p className="text-sm font-semibold">RTL Example (نموذج RTL)</p>
+                <div className="space-y-3">
+                  <Input placeholder="اكتب النص هنا (RTL)" dir="rtl" />
+                  <div className="flex gap-2 flex-row-reverse">
+                    <Button size="sm">حفظ</Button>
+                    <Button size="sm" variant="secondary">
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  All components auto-detect direction and adjust margins, text alignment, and flex
+                  order.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">
+            Usage Guidelines
+          </h2>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Best Practices</CardTitle>
