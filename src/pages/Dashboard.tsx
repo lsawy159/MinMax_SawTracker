@@ -15,7 +15,6 @@ import {
   Shield,
   LayoutDashboard,
 } from 'lucide-react'
-import Layout from '@/components/layout/Layout'
 import { differenceInDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -571,7 +570,7 @@ export default function Dashboard() {
   const unauthorized = !canView('dashboard')
 
   return (
-    <Layout>
+    <>
       {unauthorized ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
@@ -1335,6 +1334,6 @@ export default function Dashboard() {
           )}
         </div>
       )}
-    </Layout>
+    </>
   )
 }

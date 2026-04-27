@@ -1,6 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import Layout from '@/components/layout/Layout'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import { Settings, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -51,20 +50,20 @@ export default function AlertSettings() {
 
   if (isLoading || !user) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="text-gray-600 mt-4">جاري التحميل...</p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   if (!hasPermission) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-14 h-14 mx-auto mb-4 text-red-500" />
@@ -72,12 +71,12 @@ export default function AlertSettings() {
             <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
@@ -95,6 +94,6 @@ export default function AlertSettings() {
         {/* Content */}
         <UnifiedSettings isReadOnly={!canEditSettings} />
       </div>
-    </Layout>
+    </>
   )
 }

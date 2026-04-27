@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import Layout from '@/components/layout/Layout'
 import {
   Settings,
   Globe,
@@ -149,7 +148,7 @@ export default function GeneralSettings() {
   // Check if user has view permission
   if (!user || !hasViewPermission) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
@@ -159,7 +158,7 @@ export default function GeneralSettings() {
             </p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -648,16 +647,16 @@ export default function GeneralSettings() {
 
   if (shouldBlockForLoading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-64">
           <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-3 flex items-center gap-2">
@@ -888,6 +887,6 @@ export default function GeneralSettings() {
           )}
         </ConfirmationDialog>
       </div>
-    </Layout>
+    </>
   )
 }

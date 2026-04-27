@@ -1,4 +1,3 @@
-import Layout from '@/components/layout/Layout'
 import TransferProceduresTab from '@/components/import-export/TransferProceduresTab'
 import { RefreshCcw } from 'lucide-react'
 import { usePermissions } from '@/utils/permissions'
@@ -8,18 +7,18 @@ export default function TransferProcedures() {
 
   if (!canView('transferProcedures')) {
     return (
-      <Layout>
+      <>
         <div className="p-6">
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
             لا تملك صلاحية الوصول إلى صفحة إجراءات النقل.
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid space-y-4">
         <div className="mb-4 flex items-start gap-2 sm:mb-6 sm:items-center sm:gap-3">
           <div className="app-icon-chip flex-shrink-0">
@@ -40,6 +39,6 @@ export default function TransferProcedures() {
           canExport={canExport('transferProcedures')}
         />
       </div>
-    </Layout>
+    </>
   )
 }

@@ -1,6 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
 import { supabase, Notification } from '@/lib/supabase'
-import Layout from '@/components/layout/Layout'
 import {
   Bell,
   AlertTriangle,
@@ -269,7 +268,7 @@ export default function Notifications() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -545,6 +544,6 @@ export default function Notifications() {
           icon="alert"
         />
       </div>
-    </Layout>
+    </>
   )
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react' // [FIX] تم إضافة useCallback
-import Layout from '@/components/layout/Layout'
 import {
   Search,
   Filter,
@@ -717,7 +716,7 @@ export default function AdvancedSearch() {
   // التحقق من صلاحية العرض - بعد جميع الـ hooks
   if (!canView('advancedSearch')) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <SearchIcon className="w-16 h-16 mx-auto mb-4 text-red-500" />
@@ -725,7 +724,7 @@ export default function AdvancedSearch() {
             <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -1130,7 +1129,7 @@ export default function AdvancedSearch() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         <PageHeader
           title="البحث المتقدم"
@@ -2232,6 +2231,6 @@ export default function AdvancedSearch() {
           onSuccess={handleCompanyUpdate}
         />
       )}
-    </Layout>
+    </>
   )
 }

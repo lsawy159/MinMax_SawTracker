@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Layout from '@/components/layout/Layout'
 import { FileDown, FileUp, FileText, Download } from 'lucide-react'
 import ExportTab from '@/components/import-export/ExportTab'
 import ImportTab from '@/components/import-export/ImportTab'
@@ -86,7 +85,7 @@ export default function ImportExport() {
   )
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="mb-4 flex items-start gap-2 sm:mb-6 sm:items-center sm:gap-3">
@@ -178,6 +177,6 @@ export default function ImportExport() {
           {activeTab === 'templates' && <TemplatesTab />}
         </div>
       </div>
-    </Layout>
+    </>
   )
 }

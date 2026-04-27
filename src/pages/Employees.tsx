@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef, useCallback, type CSSProperties } from 'react'
 import { supabase, Employee, Company, Project } from '@/lib/supabase'
-import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
 import {
@@ -1194,7 +1193,7 @@ export default function Employees() {
   // التحقق من صلاحية العرض قبل عرض الصفحة
   if (!hasViewPermission) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-danger-500" />
@@ -1202,12 +1201,12 @@ export default function Employees() {
             <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         <PageHeader
           title="الموظفين"
@@ -2378,7 +2377,7 @@ export default function Employees() {
           onCancel={() => setShowBulkContractModal(false)}
         />
       )}
-    </Layout>
+    </>
   )
 }
 

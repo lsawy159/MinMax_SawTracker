@@ -11,7 +11,6 @@ import {
 } from '@/utils/employeeAlerts'
 import { Bell, AlertTriangle, Building2, Users, X, CheckCircle2, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import Layout from '@/components/layout/Layout'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyModal from '@/components/companies/CompanyModal'
 import EmployeeCard from '@/components/employees/EmployeeCard'
@@ -72,7 +71,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
   // التحقق من صلاحية العرض - بعد جميع الـ hooks
   if (!canView('alerts')) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Bell className="w-16 h-16 mx-auto mb-4 text-danger-500" />
@@ -80,7 +79,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
             <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -500,16 +499,16 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
   if (loading) {
     return (
-      <Layout>
+      <>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="app-page app-tech-grid">
         <PageHeader
           title="التنبيهات"
@@ -802,6 +801,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           onSuccess={handleEditModalSuccess}
         />
       )}
-    </Layout>
+    </>
   )
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase, Project } from '@/lib/supabase'
-import Layout from '@/components/layout/Layout'
 import ProjectModal from '@/components/projects/ProjectModal'
 import ProjectCard from '@/components/projects/ProjectCard'
 import ProjectDetailModal from '@/components/projects/ProjectDetailModal'
@@ -223,11 +222,11 @@ export default function Projects() {
 
   if (loading && projects.length === 0) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
+      </>
     )
   }
 
@@ -235,7 +234,7 @@ export default function Projects() {
   const hasViewPermission = canView('projects')
 
   return (
-    <Layout>
+    <>
       {!hasViewPermission ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
@@ -411,6 +410,6 @@ export default function Projects() {
           )}
         </div>
       )}
-    </Layout>
+    </>
   )
 }

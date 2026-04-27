@@ -1,4 +1,3 @@
-import Layout from '@/components/layout/Layout'
 import { SettingsHub } from '@/components/settings/SettingsHub'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -8,7 +7,7 @@ export default function Settings() {
   const userPermissions = Array.isArray(user?.permissions) ? user.permissions : []
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
@@ -21,6 +20,6 @@ export default function Settings() {
 
         <SettingsHub userPermissions={userPermissions} />
       </div>
-    </Layout>
+    </>
   )
 }
