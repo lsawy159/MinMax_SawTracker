@@ -10,8 +10,8 @@ export function AppShell({ children }: AppShellProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* Sidebar (handles both desktop & mobile) */}
+    <div className="flex flex-row-reverse h-screen bg-neutral-50 dark:bg-neutral-950">
+      {/* Sidebar (handles both desktop & mobile) - RTL position (right) */}
       <Sidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
 
       {/* Main Content */}

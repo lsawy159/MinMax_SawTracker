@@ -144,9 +144,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     )
   }
 
-  // Desktop: render as fixed sidebar
+  // Desktop: render as fixed sidebar (RTL - right side)
   return (
-    <div className="hidden md:block w-64 h-screen border-r border-neutral-200 dark:border-neutral-700">
+    <div className="hidden md:block w-64 h-screen border-l border-neutral-200 dark:border-neutral-700">
       {sidebarContent}
     </div>
   )
