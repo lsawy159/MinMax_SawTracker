@@ -1132,7 +1132,7 @@ export default function Companies() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/70 px-3 py-1.5 dark:bg-slate-900/70">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/70 px-3 py-1.5 dark:bg-surface-900/70">
               <span className="text-sm text-neutral-600">عرض:</span>
               <select
                 value={itemsPerPage}

@@ -144,9 +144,9 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
             <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-surface">
+          <div className="overflow-x-auto rounded-2xl border border-border-200 bg-surface">
             <table className="w-full min-w-[760px]">
-              <thead className="bg-slate-50 text-xs font-semibold text-foreground-secondary">
+              <thead className="bg-surface-secondary-50 text-xs font-semibold text-foreground-secondary">
                 <tr>
                   <th className="px-4 py-3 text-right">المستخدم</th>
                   <th className="px-4 py-3 text-right">الدور</th>
@@ -160,7 +160,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                   const flatPermissions = normalizePermissionsFlat(user.permissions, user.role)
 
                   return (
-                    <tr key={user.id} className="border-t border-gray-100 text-sm text-foreground-secondary">
+                    <tr key={user.id} className="border-t border-border-100 text-sm text-foreground-secondary">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">{user.full_name}</div>
                         <div className="text-xs text-foreground-tertiary">{user.username}</div>
@@ -196,8 +196,8 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
 
         {editingUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-gray-100 bg-surface shadow-2xl">
-              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-border-100 bg-surface shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border-100 px-5 py-4">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">تعديل صلاحيات المستخدم</h2>
                   <p className="text-xs text-foreground-tertiary">
@@ -207,7 +207,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="rounded-lg p-1.5 text-foreground-tertiary transition hover:bg-slate-100 hover:text-foreground"
+                  className="rounded-lg p-1.5 text-foreground-tertiary transition hover:bg-surface-secondary-100 hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -223,7 +223,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                   {VALID_PERMISSION_SECTIONS.map((section) => (
                     <div
                       key={section}
-                      className="rounded-xl border border-gray-200 bg-slate-50/60 p-3"
+                      className="rounded-xl border border-border-200 bg-surface-secondary-50/60 p-3"
                     >
                       <h3 className="mb-2 text-sm font-semibold text-foreground">
                         {PERMISSION_SECTIONS[section].label}
@@ -243,7 +243,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                             >
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                className="h-4 w-4 rounded border-border-300 text-primary focus:ring-primary"
                                 checked={checked}
                                 onChange={() => togglePermission(permissionKey)}
                               />
@@ -260,11 +260,11 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-4">
+              <div className="flex items-center justify-end gap-2 border-t border-border-100 px-5 py-4">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-foreground-secondary transition hover:bg-slate-50"
+                  className="rounded-lg border border-border-300 px-4 py-2 text-sm font-medium text-foreground-secondary transition hover:bg-surface-secondary-50"
                 >
                   إلغاء
                 </button>

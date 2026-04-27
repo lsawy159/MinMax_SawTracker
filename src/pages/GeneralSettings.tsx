@@ -579,7 +579,7 @@ export default function GeneralSettings() {
               checked={!!value}
               onChange={(e) => updateSetting(setting.setting_key, e.target.checked)}
               disabled={disabled}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
+              className="h-4 w-4 rounded border-border-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
             />
             <span className="mr-2 text-sm text-gray-600">{value ? 'مفعل' : 'معطل'}</span>
           </label>
@@ -708,7 +708,7 @@ export default function GeneralSettings() {
             {activeCategory && (
               <div className="app-panel overflow-hidden">
                 {/* Tab Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 py-2.5">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-border-200 px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <activeCategory.icon className="w-5 h-5 text-foreground" />
@@ -757,7 +757,7 @@ export default function GeneralSettings() {
                       {activeCategory.settings.map((setting) => (
                         <div
                           key={setting.setting_key}
-                          className="border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0"
+                          className="border-b border-border-100 pb-2.5 last:border-b-0 last:pb-0"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex-1">
@@ -818,9 +818,9 @@ export default function GeneralSettings() {
             </div>
           </div>
 
-          <div className="app-panel border-slate-200 bg-slate-50 p-2.5">
+          <div className="app-panel border-border-200 bg-surface-secondary-50 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-secondary-800 shadow-sm">
                 <Clock className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -880,7 +880,7 @@ export default function GeneralSettings() {
             </div>
           )}
           {getChangedSettings().length === 0 && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <div className="bg-gray-50 border border-border-200 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-600">
                 ✓ جميع الإعدادات موجودة بالفعل على قيمها الافتراضية
               </p>

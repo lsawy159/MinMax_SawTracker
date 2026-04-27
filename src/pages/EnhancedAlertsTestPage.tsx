@@ -130,7 +130,7 @@ export default function EnhancedAlertsTestPage() {
             <button
               onClick={() => setTestMode('enhanced')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                testMode === 'enhanced' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                testMode === 'enhanced' ? 'bg-surface text-blue-600 shadow-sm' : 'text-gray-600'
               }`}
             >
               النظام المحسن
@@ -138,7 +138,7 @@ export default function EnhancedAlertsTestPage() {
             <button
               onClick={() => setTestMode('basic')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                testMode === 'basic' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'
+                testMode === 'basic' ? 'bg-surface text-blue-600 shadow-sm' : 'text-gray-600'
               }`}
             >
               النظام الأساسي
@@ -193,7 +193,7 @@ export default function EnhancedAlertsTestPage() {
 
         {/* Alert Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Building2 className="h-5 w-5 text-blue-600" />
@@ -204,7 +204,7 @@ export default function EnhancedAlertsTestPage() {
             <p className="text-sm text-gray-600">تنبيهات متعلقة بالسجل التجاري</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <FileText className="h-5 w-5 text-purple-600" />
@@ -254,7 +254,7 @@ export default function EnhancedAlertsTestPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">النظام الأساسي - قائمة التنبيهات</h3>
             {alerts.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <div className="text-center py-12 bg-surface rounded-xl border border-border-200">
                 <Building2 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد تنبيهات</h3>
                 <p className="text-gray-600">جميع المؤسسات محدثة ولا تحتاج إلى إجراءات فورية</p>
@@ -280,7 +280,7 @@ export default function EnhancedAlertsTestPage() {
         {/* Detailed Alert View */}
         {selectedAlert && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">تفاصيل التنبيه</h3>
@@ -304,7 +304,7 @@ export default function EnhancedAlertsTestPage() {
         )}
 
         {/* Test Data Summary */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="mt-8 bg-surface rounded-xl shadow-sm border border-border-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">بيانات الاختبار المستخدمة</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

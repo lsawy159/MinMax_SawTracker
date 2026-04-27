@@ -77,7 +77,7 @@ export default function CommercialRegTestPage() {
         </div>
 
         {/* Statistics Overview */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-sm border border-border-200 p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">الإحصائيات العامة</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -103,7 +103,7 @@ export default function CommercialRegTestPage() {
         </div>
 
         {/* Individual Company Tests */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-surface rounded-lg shadow-sm border border-border-200 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">اختبار كل مؤسسة</h2>
           <div className="space-y-4">
             {testCompanies.map((company) => {
@@ -115,7 +115,7 @@ export default function CommercialRegTestPage() {
               const category = daysRemaining !== null ? getStatusCategory(daysRemaining) : null
 
               return (
-                <div key={company.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={company.id} className="border border-border-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-gray-900">{company.name}</h3>
@@ -151,7 +151,7 @@ export default function CommercialRegTestPage() {
                   )}
 
                   {!company.commercial_registration_expiry && (
-                    <div className="px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-gray-200">
+                    <div className="px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-border-200">
                       لا يوجد تاريخ انتهاء محدد
                     </div>
                   )}
@@ -174,7 +174,7 @@ export default function CommercialRegTestPage() {
         </div>
 
         {/* Color Reference Guide */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
+        <div className="bg-surface rounded-lg shadow-sm border border-border-200 p-6 mt-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">دليل الألوان</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
@@ -207,7 +207,7 @@ export default function CommercialRegTestPage() {
         </div>
 
         {/* Function Testing */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
+        <div className="bg-surface rounded-lg shadow-sm border border-border-200 p-6 mt-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">اختبار الدوال</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

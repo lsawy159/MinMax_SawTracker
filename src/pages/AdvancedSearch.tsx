@@ -1273,7 +1273,7 @@ export default function AdvancedSearch() {
 
           {/* Active Filters Chips */}
           {activeFiltersCount > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-border-200">
               <div className="flex flex-wrap gap-2">
                 {activeTab === 'employees' ? (
                   <>

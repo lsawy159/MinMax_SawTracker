@@ -210,11 +210,11 @@ export default function ActivityLogs() {
       }
     if (actionLower.includes('login') || actionLower.includes('دخول'))
       return {
-        bg: 'bg-slate-100',
-        border: 'border-l-4 border-slate-500',
+        bg: 'bg-surface-secondary-100',
+        border: 'border-l-4 border-border-500',
         text: 'text-slate-800',
-        badge: 'bg-slate-200 text-slate-800',
-        icon: 'bg-slate-200 text-foreground-secondary',
+        badge: 'bg-surface-secondary-200 text-slate-800',
+        icon: 'bg-surface-secondary-200 text-foreground-secondary',
       }
     if (actionLower.includes('logout') || actionLower.includes('خروج'))
       return {
