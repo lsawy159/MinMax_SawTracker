@@ -340,7 +340,7 @@ export default function BackupSettingsManagement() {
   return (
     <Layout>
       <div className="p-2 md:p-2 space-y-2" dir="rtl">
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+        <div className="flex items-center justify-between bg-surface border border-border-200 rounded-lg shadow-sm p-2">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
               <Mail className="w-4 h-4" />
@@ -375,28 +375,28 @@ export default function BackupSettingsManagement() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-          <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between">
+          <div className="bg-surface border border-border-200 rounded-lg p-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-blue-700">
               <CheckCircle className="w-4 h-4" />
               <span className="text-xs font-semibold">المرسَل اليوم</span>
             </div>
             <div className="text-lg font-bold text-gray-800">{stats.sentToday}</div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between">
+          <div className="bg-surface border border-border-200 rounded-lg p-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-yellow-700">
               <RefreshCw className="w-4 h-4" />
               <span className="text-xs font-semibold">قيد الانتظار</span>
             </div>
             <div className="text-lg font-bold text-gray-800">{stats.pending}</div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between">
+          <div className="bg-surface border border-border-200 rounded-lg p-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="w-4 h-4" />
               <span className="text-xs font-semibold">فشلت</span>
             </div>
             <div className="text-lg font-bold text-gray-800">{stats.failed}</div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between">
+          <div className="bg-surface border border-border-200 rounded-lg p-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-green-700">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-semibold">آخر نجاح</span>
@@ -415,7 +415,7 @@ export default function BackupSettingsManagement() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
           <div className="space-y-2 lg:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+            <div className="bg-surface border border-border-200 rounded-lg shadow-sm p-2">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">مراقبة قائمة الانتظار</h2>
@@ -444,7 +444,7 @@ export default function BackupSettingsManagement() {
               <EmailQueueMonitor />
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+            <div className="bg-surface border border-border-200 rounded-lg shadow-sm p-2">
               <div className="flex items-center justify-between mb-1.5">
                 <h3 className="text-sm font-bold text-gray-900">سجل النسخ الاحتياطي الأخير</h3>
                 <span className="text-[11px] text-gray-500">آخر 10 سجلات</span>
@@ -519,7 +519,7 @@ export default function BackupSettingsManagement() {
           </div>
 
           <div className="space-y-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+            <div className="bg-surface border border-border-200 rounded-lg shadow-sm p-2">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">الإجراءات السريعة</h2>
@@ -547,7 +547,7 @@ export default function BackupSettingsManagement() {
               </p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2 space-y-2">
+            <div className="bg-surface border border-border-200 rounded-lg shadow-sm p-2 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">إعدادات النسخ الاحتياطي</h2>
@@ -587,7 +587,7 @@ export default function BackupSettingsManagement() {
                     }
                     disabled={!hasEditPermission}
                     placeholder="example@company.com"
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-xs"
+                    className="w-full px-2.5 py-1.5 border border-border-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-xs"
                   />
                   <p className="text-[11px] text-gray-500 mt-0.5">
                     القيمة الافتراضية: {DEFAULT_ADMIN_EMAIL}
@@ -626,7 +626,7 @@ export default function BackupSettingsManagement() {
                       onChange={(e) => setNewRecipient(e.target.value)}
                       disabled={!hasEditPermission}
                       placeholder="إضافة بريد..."
-                      className="flex-1 px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-xs"
+                      className="flex-1 px-2.5 py-1.5 border border-border-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-xs"
                     />
                     <button
                       type="button"
@@ -652,7 +652,7 @@ export default function BackupSettingsManagement() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 bg-gray-50">
+                <div className="flex items-center justify-between border border-border-200 rounded-lg p-2.5 bg-gray-50">
                   <div>
                     <p className="text-xs font-semibold text-gray-900">
                       تفعيل إشعارات النسخ الاحتياطي
@@ -681,14 +681,14 @@ export default function BackupSettingsManagement() {
                       className={`w-10 h-5 rounded-full transition-all duration-200 ${emailConfig.backup_notifications_enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
                     >
                       <div
-                        className={`h-4 w-4 bg-white rounded-full shadow transform transition-transform duration-200 ${emailConfig.backup_notifications_enabled ? 'translate-x-5' : 'translate-x-1'}`}
+                        className={`h-4 w-4 bg-surface rounded-full shadow transform transition-transform duration-200 ${emailConfig.backup_notifications_enabled ? 'translate-x-5' : 'translate-x-1'}`}
                       />
                     </div>
                   </label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-border-100">
                 <button
                   onClick={saveEmailSettings}
                   disabled={saving || !hasEditPermission}
@@ -704,7 +704,7 @@ export default function BackupSettingsManagement() {
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2">
+            <div className="bg-surface border border-border-200 rounded-lg shadow-sm p-2">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">الصحة والاختبار</h2>

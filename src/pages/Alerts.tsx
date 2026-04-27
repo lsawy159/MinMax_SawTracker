@@ -523,8 +523,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 mb-1">إجمالي التنبيهات</p>
-                <p className="text-3xl font-bold text-slate-900">{totalAlerts}</p>
+                <p className="text-sm text-foreground-tertiary mb-1">إجمالي التنبيهات</p>
+                <p className="text-3xl font-bold text-foreground">{totalAlerts}</p>
               </div>
               <div className="app-icon-chip">
                 <Bell className="w-7 h-7" />
@@ -547,8 +547,8 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 mb-1">تنبيهات المؤسسات</p>
-                <p className="text-3xl font-bold text-slate-900">{companyAlertsStats.total}</p>
+                <p className="text-sm text-foreground-tertiary mb-1">تنبيهات المؤسسات</p>
+                <p className="text-3xl font-bold text-foreground">{companyAlertsStats.total}</p>
               </div>
               <div className="app-icon-chip">
                 <Building2 className="w-7 h-7" />
@@ -559,10 +559,10 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
           <div className="app-panel p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 mb-1">تنبيهات الموظفين</p>
-                <p className="text-3xl font-bold text-slate-900">{employeeAlertsStats.total}</p>
+                <p className="text-sm text-foreground-tertiary mb-1">تنبيهات الموظفين</p>
+                <p className="text-3xl font-bold text-foreground">{employeeAlertsStats.total}</p>
               </div>
-              <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+              <div className="rounded-xl bg-surface-secondary p-3 text-foreground-secondary">
                 <Users className="w-7 h-7" />
               </div>
             </div>
@@ -680,7 +680,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
                 <div className="flex items-center gap-3 mb-6">
                   <Building2 className="w-6 h-6 text-primary" />
                   <h2 className="text-xl font-bold text-neutral-900">تنبيهات المؤسسات</h2>
-                  <span className="rounded-full bg-primary/15 px-2 py-1 text-sm font-medium text-slate-900">
+                  <span className="rounded-full bg-primary/15 px-2 py-1 text-sm font-medium text-foreground">
                     {filteredCompanyAlerts.length}
                   </span>
                 </div>
@@ -704,9 +704,9 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
             filteredEmployeeAlerts.length > 0 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
-                  <Users className="w-6 h-6 text-slate-700" />
+                  <Users className="w-6 h-6 text-foreground-secondary" />
                   <h2 className="text-xl font-bold text-neutral-900">تنبيهات الموظفين</h2>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700">
+                  <span className="rounded-full bg-surface-secondary px-2 py-1 text-sm font-medium text-foreground-secondary">
                     {filteredEmployeeAlerts.length}
                   </span>
                 </div>
@@ -727,7 +727,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
           {/* لا توجد نتائج */}
           {filteredCompanyAlerts.length === 0 && filteredEmployeeAlerts.length === 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+            <div className="bg-surface rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
               <Bell className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
               <h3 className="text-lg font-medium text-neutral-900 mb-2">
                 {searchTerm
@@ -750,7 +750,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       {/* كارت المؤسسة المنبثق (لا تغيير) */}
       {showCompanyCard && selectedCompany && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-foreground/55 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between px-6 py-4">

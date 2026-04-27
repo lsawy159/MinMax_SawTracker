@@ -216,7 +216,7 @@ export const PillHeader = ({
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
-          <div className="relative">
+          <div className="relative" ref={profileWrapperRef}>
             <button
               onClick={() => setProfileOpen((open) => !open)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-slate-200/80 transition hover:ring-blue-500/40 dark:ring-white/10"

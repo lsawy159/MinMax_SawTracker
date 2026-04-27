@@ -1296,7 +1296,7 @@ export default function Employees() {
                       className="fixed inset-0 z-10"
                       onClick={() => setShowSortDropdown(false)}
                     />
-                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-neutral-200 bg-white py-2 shadow-lg">
+                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-neutral-200 bg-surface py-2 shadow-lg">
                       <div className="border-b border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-500">
                         الترتيب حسب:
                       </div>
@@ -1331,7 +1331,7 @@ export default function Employees() {
                           }}
                           className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition ${
                             sortField === field
-                              ? 'bg-primary/10 text-slate-900'
+                              ? 'bg-primary/10 text-foreground'
                               : 'text-neutral-700 hover:bg-neutral-50'
                           }`}
                         >
@@ -1436,7 +1436,7 @@ export default function Employees() {
                         </div>
 
                         {isCompanyDropdownOpen && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="absolute z-50 w-full mt-1 bg-surface border border-neutral-300 rounded-md shadow-lg max-h-60 overflow-auto">
                             <button
                               type="button"
                               onClick={() => {
@@ -1770,7 +1770,7 @@ export default function Employees() {
           <div className="app-info-block mb-3 rounded-lg p-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <div className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-slate-950">
+                <div className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-foreground">
                   {selectedEmployees.size} موظف محدد
                 </div>
                 <Button onClick={clearSelection} variant="ghost" size="sm" className="h-8 px-2">
@@ -1933,7 +1933,7 @@ export default function Employees() {
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className={`stagger-item group relative cursor-pointer overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-white/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}
+                  className={`stagger-item group relative cursor-pointer overflow-hidden rounded-2xl border-2 ${getBorderColor()} bg-surface/95 p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-26px_rgba(14,116,144,0.65)]`}
                   style={{ '--i': Math.min(index, 11) } as CSSProperties}
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400/70 via-sky-300/60 to-emerald-300/70 opacity-70 transition group-hover:opacity-100" />
@@ -1946,7 +1946,7 @@ export default function Employees() {
                       {canEdit('employees') && (
                         <button
                           onClick={() => handleEmployeeClick(employee)}
-                          className="rounded-md p-1 text-slate-700 transition hover:bg-primary/10"
+                          className="rounded-md p-1 text-foreground-secondary transition hover:bg-primary/10"
                           title="عرض/تعديل الموظف"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -2141,7 +2141,7 @@ export default function Employees() {
             <div className="app-data-strip flex items-center justify-between">
               <button
                 onClick={toggleSelectAll}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-100"
+                className="inline-flex items-center gap-2 text-sm font-medium text-foreground-secondary dark:text-foreground"
                 title={
                   selectedEmployees.size === filteredEmployees.length
                     ? 'إلغاء تحديد الكل'
@@ -2152,11 +2152,11 @@ export default function Employees() {
                 filteredEmployees.length > 0 ? (
                   <CheckSquare className="w-4 h-4 text-info-600" />
                 ) : (
-                  <Square className="w-4 h-4 text-slate-400" />
+                  <Square className="w-4 h-4 text-foreground-tertiary" />
                 )}
                 تحديد الكل
               </button>
-              <span className="text-xs text-slate-600 dark:text-slate-300">
+              <span className="text-xs text-foreground-secondary dark:text-foreground-secondary">
                 {sortedAndFilteredEmployees.length} نتيجة
               </span>
             </div>
@@ -2193,18 +2193,18 @@ export default function Employees() {
                         {selectedEmployees.has(employee.id) ? (
                           <CheckSquare className="w-4 h-4 text-info-600" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400" />
+                          <Square className="w-4 h-4 text-foreground-tertiary" />
                         )}
                       </button>
 
                       <div className="cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        <p className="text-sm font-semibold text-foreground dark:text-foreground">
                           {employee.name}
                         </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                        <p className="text-xs text-foreground-secondary dark:text-foreground-secondary">
                           {employee.profession || '-'} • {employee.nationality || '-'}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-foreground-tertiary dark:text-foreground-tertiary">
                           {employee.company?.name || '-'}
                           {employee.company?.unified_number
                             ? ` (${employee.company.unified_number})`
@@ -2217,7 +2217,7 @@ export default function Employees() {
                       <div
                         className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(contractDays)}`}
                       >
-                        <p className="mb-1 text-[11px] text-slate-500">العقد</p>
+                        <p className="mb-1 text-[11px] text-foreground-tertiary">العقد</p>
                         <p className={getTextColor(contractDays)}>
                           {formatDateStatus(contractDays, 'منتهي')}
                         </p>
@@ -2225,7 +2225,7 @@ export default function Employees() {
                       <div
                         className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(residenceDays)}`}
                       >
-                        <p className="mb-1 text-[11px] text-slate-500">الإقامة</p>
+                        <p className="mb-1 text-[11px] text-foreground-tertiary">الإقامة</p>
                         <p className={getTextColor(residenceDays)}>
                           {formatDateStatus(residenceDays, 'منتهية')}
                         </p>
@@ -2233,7 +2233,7 @@ export default function Employees() {
                       <div
                         className={`rounded-xl border px-3 py-2 text-xs ${getCellBackgroundColor(healthInsuranceDays)}`}
                       >
-                        <p className="mb-1 text-[11px] text-slate-500">التأمين</p>
+                        <p className="mb-1 text-[11px] text-foreground-tertiary">التأمين</p>
                         <p className={getTextColor(healthInsuranceDays)}>
                           {formatDateStatus(healthInsuranceDays, 'منتهي')}
                         </p>
@@ -2300,7 +2300,7 @@ export default function Employees() {
       {/* مودال تأكيد حذف الموظف */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-red-100 p-3 rounded-lg">
@@ -2414,7 +2414,7 @@ function BulkDeleteModal({
       onClick={handleCancel}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+        className="bg-surface rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
@@ -2511,7 +2511,7 @@ function BulkDateModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+      <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">

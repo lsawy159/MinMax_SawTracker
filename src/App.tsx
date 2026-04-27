@@ -162,15 +162,11 @@ function AppRoutes() {
           />
           <Route
             path="/users"
-            element={<Navigate to="/settings?tab=users-permissions" replace />}
+            element={<Navigate to="/admin-settings?tab=users-permissions" replace />}
           />
           <Route
             path="/settings"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Settings />
-              </Suspense>
-            }
+            element={<Navigate to="/admin-settings?tab=users-permissions" replace />}
           />
           <Route
             path="/admin-settings"
@@ -180,7 +176,7 @@ function AppRoutes() {
               </Suspense>
             }
           />
-          <Route path="/backup-settings" element={<Navigate to="/settings?tab=backup" replace />} />
+          <Route path="/backup-settings" element={<Navigate to="/admin-settings?tab=backup" replace />} />
           <Route
             path="/alert-settings"
             element={
@@ -247,10 +243,10 @@ function AppRoutes() {
           />
 
           {/* Legacy redirects */}
-          <Route path="/email-management" element={<Navigate to="/backup-settings" replace />} />
+          <Route path="/email-management" element={<Navigate to="/admin-settings?tab=backup" replace />} />
           <Route
             path="/system-correspondence"
-            element={<Navigate to="/backup-settings" replace />}
+            element={<Navigate to="/admin-settings?tab=backup" replace />}
           />
           <Route path="/centralized-settings" element={<Navigate to="/alert-settings" replace />} />
           <Route path="/security-management" element={<Navigate to="/admin-settings" replace />} />

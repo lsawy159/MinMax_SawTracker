@@ -1,17 +1,28 @@
-import { useState, useEffect } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
-import CustomFieldManager from '@/components/settings/CustomFieldManager'
-import { Settings, Database, Shield, Sparkles } from 'lucide-react'
+import { Settings, Database, Users } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+const BackupTab = React.lazy(() =>
+  import('@/components/settings/tabs/BackupTab').then((mod) => ({ default: mod.BackupTab }))
+)
+
+const UsersPermissionsTab = React.lazy(() =>
+  import('@/components/settings/tabs/UsersPermissionsTab').then((mod) => ({
+    default: mod.UsersPermissionsTab,
+  }))
+)
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'fields' | 'general'>('fields')
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'users-permissions')
 
   useEffect(() => {
-    // التحقق من صلاحيات المدير
     if (user?.role !== 'admin') {
       navigate('/dashboard')
     }
@@ -24,59 +35,43 @@ export default function AdminSettings() {
   return (
     <Layout>
       <div className="app-page app-tech-grid">
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Settings className="w-6 h-6 text-blue-600" />
+            <div className="app-icon-chip p-3">
+              <Settings className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
-              <p className="text-gray-600 mt-1">إدارة الحقول المخصصة والإعدادات العامة</p>
+              <h1 className="text-3xl font-bold text-foreground">إعدادات النظام</h1>
+              <p className="mt-1 text-foreground-secondary">إدارة المستخدمين والصلاحيات والنسخ الاحتياطي</p>
             </div>
           </div>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('fields')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
-                activeTab === 'fields'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Database className="w-5 h-5" />
-              إدارة الحقول المخصصة
-            </button>
-            <button
-              onClick={() => setActiveTab('general')}
-              className={`flex items-center gap-2 px-6 py-4 font-medium transition ${
-                activeTab === 'general'
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Sparkles className="w-5 h-5" />
-              إعدادات عامة
-            </button>
-          </div>
-        </div>
+        <div className="app-panel">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="border-b rounded-none bg-surface">
+              <TabsTrigger value="users-permissions" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                المستخدمون والصلاحيات
+              </TabsTrigger>
+              <TabsTrigger value="backup" className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                النسخ الاحتياطية
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Tab Content */}
-        <div>
-          {activeTab === 'fields' && <CustomFieldManager />}
-          {activeTab === 'general' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center py-12 text-gray-500">
-                <Shield className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">الإعدادات العامة</h3>
-                <p className="text-sm">سيتم إضافة المزيد من الإعدادات العامة قريباً</p>
-              </div>
-            </div>
-          )}
+            <TabsContent value="users-permissions" className="p-6">
+              <Suspense fallback={<LoadingSpinner />}>
+                <UsersPermissionsTab />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="backup" className="p-6">
+              <Suspense fallback={<LoadingSpinner />}>
+                <BackupTab />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>

@@ -75,7 +75,7 @@ export default function EmployeeCard({
   defaultFinancialOverlayOpen = false,
 }: EmployeeCardProps) {
   const { canEdit, canDelete } = usePermissions()
-  const { customFields, companies, projects } = useEmployeeCardData()
+  const { companies, projects } = useEmployeeCardData()
   const currentMonth = new Date().toISOString().slice(0, 7)
 
   // Define form data type with precise field types
@@ -160,7 +160,6 @@ export default function EmployeeCard({
   // حفظ البيانات الأصلية من employee مباشرة (بدون معالجة) لاستخدامها في المقارنة
   const [originalData] = useState(employee)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'custom'>('basic')
   const [isEditMode, setIsEditMode] = useState(false)
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
@@ -851,28 +850,9 @@ export default function EmployeeCard({
         {/* Status Alerts */}
         <EmployeeExpirySection employee={employee} />
 
-        {/* Tabs */}
-        <div className="border-b border-neutral-200 p-3">
-          <div className="app-toggle-shell w-full">
-            <button
-              onClick={() => setActiveTab('basic')}
-              className={`app-toggle-button flex-1 ${activeTab === 'basic' ? 'app-toggle-button-active' : ''}`}
-            >
-              البيانات الأساسية
-            </button>
-            <button
-              onClick={() => setActiveTab('custom')}
-              className={`app-toggle-button flex-1 ${activeTab === 'custom' ? 'app-toggle-button-active' : ''}`}
-            >
-              الحقول الإضافية ({customFields.length})
-            </button>
-          </div>
-        </div>
-
         {/* Content */}
         <div className="p-6">
-          {activeTab === 'basic' ? (
-            <div className="space-y-6">
+          <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. الاسم */}
                 <div>
@@ -1889,184 +1869,6 @@ export default function EmployeeCard({
                 </div>
               )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {customFields.length === 0 ? (
-                <div className="text-center py-12 text-neutral-500">
-                  <FileText className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-                  <p>لا توجد حقول إضافية محددة</p>
-                  <p className="text-sm mt-2">يمكن إضافة حقول مخصصة من صفحة الإعدادات</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {customFields.map((field) => (
-                    <div key={field.id}>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        {field.field_label}
-                        {field.is_required && <span className="text-danger-500 mr-1">*</span>}
-                      </label>
-
-                      {field.field_type === 'text' && (
-                        <input
-                          type="text"
-                          value={String(
-                            getAdditionalFieldValue(
-                              formData.additional_fields[field.field_name],
-                              'text'
-                            )
-                          )}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.value,
-                              },
-                            })
-                          }
-                          disabled={!isEditMode}
-                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                        />
-                      )}
-
-                      {field.field_type === 'textarea' && (
-                        <textarea
-                          value={String(
-                            getAdditionalFieldValue(
-                              formData.additional_fields[field.field_name],
-                              'textarea'
-                            )
-                          )}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.value,
-                              },
-                            })
-                          }
-                          rows={3}
-                          disabled={!isEditMode}
-                          className={`app-input min-h-[92px] resize-none ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                        />
-                      )}
-
-                      {field.field_type === 'number' && (
-                        <input
-                          type="number"
-                          value={String(
-                            getAdditionalFieldValue(
-                              formData.additional_fields[field.field_name],
-                              'number'
-                            )
-                          )}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.value,
-                              },
-                            })
-                          }
-                          disabled={!isEditMode}
-                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                        />
-                      )}
-
-                      {field.field_type === 'date' && (
-                        <input
-                          type="date"
-                          value={String(
-                            getAdditionalFieldValue(
-                              formData.additional_fields[field.field_name],
-                              'text'
-                            )
-                          )}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.value,
-                              },
-                            })
-                          }
-                          disabled={!isEditMode}
-                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                        />
-                      )}
-
-                      {field.field_type === 'select' && field.field_options.options && (
-                        <select
-                          value={String(
-                            getAdditionalFieldValue(
-                              formData.additional_fields[field.field_name],
-                              'text'
-                            )
-                          )}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              additional_fields: {
-                                ...formData.additional_fields,
-                                [field.field_name]: e.target.value,
-                              },
-                            })
-                          }
-                          disabled={!isEditMode}
-                          className={`app-input py-2 ${!isEditMode ? 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed' : ''}`}
-                        >
-                          <option value="">اختر...</option>
-                          {Array.isArray(field.field_options.options) &&
-                            field.field_options.options.map(
-                              (option: string | { label: string; value: string | number }) => {
-                                const optionValue =
-                                  typeof option === 'object' ? option.value : option
-                                const optionLabel =
-                                  typeof option === 'object' ? option.label : option
-                                return (
-                                  <option key={String(optionValue)} value={String(optionValue)}>
-                                    {String(optionLabel)}
-                                  </option>
-                                )
-                              }
-                            )}
-                        </select>
-                      )}
-
-                      {field.field_type === 'boolean' && (
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={
-                              getAdditionalFieldValue(
-                                formData.additional_fields[field.field_name],
-                                'checkbox'
-                              ) as boolean
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                additional_fields: {
-                                  ...formData.additional_fields,
-                                  [field.field_name]: e.target.checked,
-                                },
-                              })
-                            }
-                            disabled={!isEditMode}
-                            className="h-5 w-5 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30 disabled:opacity-50"
-                          />
-                          <span className="text-sm text-neutral-600">نعم</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Footer */}

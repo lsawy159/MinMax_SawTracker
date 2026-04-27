@@ -10,7 +10,6 @@ import {
   Save,
   RefreshCw,
   Database as DatabaseIcon,
-  Edit3,
   Palette,
   Bell,
   BarChart3,
@@ -21,8 +20,8 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
-import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import SessionsManager from '@/components/settings/SessionsManager'
+import { BackupTab } from '@/components/settings/tabs/BackupTab'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
@@ -56,7 +55,6 @@ interface SettingsCategory {
 
 type TabType =
   | 'system'
-  | 'fields'
   | 'sessions'
   | 'audit'
   | 'permissions'
@@ -64,6 +62,7 @@ type TabType =
   | 'reports'
   | 'advanced-notifications'
   | 'unified'
+  | 'backup'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -127,7 +126,6 @@ export default function GeneralSettings() {
 
     const allowedTabs: TabType[] = [
       'system',
-      'fields',
       'sessions',
       'audit',
       'permissions',
@@ -135,6 +133,7 @@ export default function GeneralSettings() {
       'reports',
       'advanced-notifications',
       'unified',
+      'backup',
     ]
     if (allowedTabs.includes(tab as TabType)) {
       setActiveTab(tab as TabType)
@@ -218,12 +217,11 @@ export default function GeneralSettings() {
       ],
     },
     {
-      key: 'fields',
-      label: 'إدارة الحقول المخصصة',
-      icon: Edit3,
-      component: CustomFieldManager,
+      key: 'backup',
+      label: 'النسخ الاحتياطية',
+      icon: DatabaseIcon,
+      component: BackupTab,
     },
-
     {
       key: 'sessions',
       label: 'إدارة الجلسات النشطة',
@@ -579,7 +577,7 @@ export default function GeneralSettings() {
               checked={!!value}
               onChange={(e) => updateSetting(setting.setting_key, e.target.checked)}
               disabled={disabled}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
+              className="h-4 w-4 rounded border-border-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
             />
             <span className="mr-2 text-sm text-gray-600">{value ? 'مفعل' : 'معطل'}</span>
           </label>
@@ -688,12 +686,12 @@ export default function GeneralSettings() {
                       onClick={() => handleTabChange(category.key as TabType)}
                       className={`flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-right text-xs transition-all duration-200 ${
                         activeTab === category.key
-                          ? 'bg-primary/15 text-slate-900 shadow-soft ring-1 ring-primary/40'
+                          ? 'bg-primary/15 text-foreground shadow-soft ring-1 ring-primary/40'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
                       <Icon
-                        className={`w-4 h-4 ${activeTab === category.key ? 'text-slate-900' : 'text-gray-500'}`}
+                        className={`w-4 h-4 ${activeTab === category.key ? 'text-foreground' : 'text-gray-500'}`}
                       />
                       <span className="font-medium">{category.label}</span>
                     </button>
@@ -708,10 +706,10 @@ export default function GeneralSettings() {
             {activeCategory && (
               <div className="app-panel overflow-hidden">
                 {/* Tab Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 py-2.5">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-border-200 px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <activeCategory.icon className="w-5 h-5 text-slate-900" />
+                      <activeCategory.icon className="w-5 h-5 text-foreground" />
                       <div>
                         <h2 className="text-sm font-semibold text-gray-900">
                           {activeCategory.label}
@@ -757,7 +755,7 @@ export default function GeneralSettings() {
                       {activeCategory.settings.map((setting) => (
                         <div
                           key={setting.setting_key}
-                          className="border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0"
+                          className="border-b border-border-100 pb-2.5 last:border-b-0 last:pb-0"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex-1">
@@ -794,7 +792,7 @@ export default function GeneralSettings() {
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
           <div className="app-panel border-primary/30 bg-primary/10 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-slate-950 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-foreground shadow-sm">
                 <Settings className="w-4 h-4" />
               </div>
               <div>
@@ -818,9 +816,9 @@ export default function GeneralSettings() {
             </div>
           </div>
 
-          <div className="app-panel border-slate-200 bg-slate-50 p-2.5">
+          <div className="app-panel border-border-200 bg-surface-secondary-50 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-secondary-800 shadow-sm">
                 <Clock className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -849,14 +847,14 @@ export default function GeneralSettings() {
         >
           {getChangedSettings().length > 0 && (
             <div className="app-info-block max-h-60 overflow-y-auto rounded-lg p-4">
-              <p className="mb-3 text-sm font-semibold text-slate-900">
+              <p className="mb-3 text-sm font-semibold text-foreground">
                 الإعدادات التي ستتغير:
               </p>
               <div className="space-y-2">
                 {getChangedSettings().map((setting) => (
                   <div
                     key={setting.setting_key}
-                    className="rounded border border-primary/20 bg-white p-3"
+                    className="rounded border border-primary/20 bg-surface p-3"
                   >
                     <p className="text-sm font-medium text-gray-900">{setting.description}</p>
                     <div className="flex items-center justify-between mt-2 text-xs">
@@ -880,7 +878,7 @@ export default function GeneralSettings() {
             </div>
           )}
           {getChangedSettings().length === 0 && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <div className="bg-gray-50 border border-border-200 rounded-lg p-4 text-center">
               <p className="text-sm text-gray-600">
                 ✓ جميع الإعدادات موجودة بالفعل على قيمها الافتراضية
               </p>

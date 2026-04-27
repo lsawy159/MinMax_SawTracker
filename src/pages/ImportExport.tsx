@@ -53,7 +53,7 @@ export default function ImportExport() {
           onClick={() => setCurrent('employees')}
           className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
             current === 'employees'
-              ? 'border-primary bg-primary/15 text-slate-900'
+              ? 'border-primary bg-primary/15 text-foreground'
               : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
           }`}
         >
@@ -107,9 +107,9 @@ export default function ImportExport() {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
 
-            const activeStyles = 'bg-primary/15 border-primary/60 text-slate-900 shadow-soft'
+            const activeStyles = 'bg-primary/15 border-primary/60 text-foreground shadow-soft'
             const inactiveStyles =
-              'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
+              'bg-surface border-neutral-200 text-neutral-600 hover:border-neutral-300'
 
             return (
               <button
@@ -126,7 +126,7 @@ export default function ImportExport() {
                 >
                   <Icon
                     className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                      isActive ? 'text-slate-900' : 'text-neutral-500'
+                      isActive ? 'text-foreground' : 'text-neutral-500'
                     }`}
                   />
                 </div>
@@ -135,7 +135,7 @@ export default function ImportExport() {
                 </span>
                 <p
                   className={`hidden text-center text-[10px] leading-tight line-clamp-1 sm:inline sm:text-xs ${
-                    isActive ? 'text-slate-700' : 'text-neutral-500'
+                    isActive ? 'text-foreground-secondary' : 'text-neutral-500'
                   }`}
                 >
                   {tab.description}
