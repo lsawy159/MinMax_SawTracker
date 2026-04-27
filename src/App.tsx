@@ -162,15 +162,11 @@ function AppRoutes() {
           />
           <Route
             path="/users"
-            element={<Navigate to="/settings?tab=users-permissions" replace />}
+            element={<Navigate to="/admin-settings?tab=users-permissions" replace />}
           />
           <Route
             path="/settings"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Settings />
-              </Suspense>
-            }
+            element={<Navigate to="/admin-settings?tab=users-permissions" replace />}
           />
           <Route
             path="/admin-settings"

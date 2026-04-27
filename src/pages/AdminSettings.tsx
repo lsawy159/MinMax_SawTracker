@@ -2,20 +2,25 @@ import React, { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
-import { Settings, Mail } from 'lucide-react'
+import { Settings, Database, Users } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-// Lazy load backup tab
 const BackupTab = React.lazy(() =>
   import('@/components/settings/tabs/BackupTab').then((mod) => ({ default: mod.BackupTab }))
+)
+
+const UsersPermissionsTab = React.lazy(() =>
+  import('@/components/settings/tabs/UsersPermissionsTab').then((mod) => ({
+    default: mod.UsersPermissionsTab,
+  }))
 )
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'backup')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'users-permissions')
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -37,7 +42,7 @@ export default function AdminSettings() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">إعدادات النظام</h1>
-              <p className="mt-1 text-foreground-secondary">إدارة إعدادات النسخ الاحتياطي والنظام</p>
+              <p className="mt-1 text-foreground-secondary">إدارة المستخدمين والصلاحيات والنسخ الاحتياطي</p>
             </div>
           </div>
         </div>
@@ -45,11 +50,21 @@ export default function AdminSettings() {
         <div className="app-panel">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="border-b rounded-none bg-surface">
+              <TabsTrigger value="users-permissions" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                المستخدمون والصلاحيات
+              </TabsTrigger>
               <TabsTrigger value="backup" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
+                <Database className="w-4 h-4" />
                 النسخ الاحتياطية
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="users-permissions" className="p-6">
+              <Suspense fallback={<LoadingSpinner />}>
+                <UsersPermissionsTab />
+              </Suspense>
+            </TabsContent>
 
             <TabsContent value="backup" className="p-6">
               <Suspense fallback={<LoadingSpinner />}>
