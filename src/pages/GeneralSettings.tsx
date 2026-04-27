@@ -794,7 +794,7 @@ export default function GeneralSettings() {
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
           <div className="app-panel border-primary/30 bg-primary/10 p-2.5">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-slate-950 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-foreground shadow-sm">
                 <Settings className="w-4 h-4" />
               </div>
               <div>

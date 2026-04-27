@@ -272,7 +272,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
                   type="button"
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save className="h-4 w-4" />
                   {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ الصلاحيات'}

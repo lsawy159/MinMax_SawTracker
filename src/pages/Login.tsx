@@ -68,7 +68,7 @@ export default function Login() {
         <div className="mx-auto w-full rounded-[26px] border border-border-200/80 bg-surface/74 p-4 shadow-[0_35px_120px_-50px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-secondary-950/46 sm:p-6">
           <div className="rounded-[22px] border border-border-200/80 bg-surface/95 p-6 shadow-2xl dark:border-white/10 dark:bg-surface-secondary-950/84 sm:p-7">
             <div className="mb-6 text-center">
-              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-yellow-300 to-amber-400 text-slate-950 shadow-[0_20px_40px_-20px_rgba(254,206,20,0.8)]">
+              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-yellow-300 to-amber-400 text-foreground shadow-[0_20px_40px_-20px_rgba(254,206,20,0.8)]">
                 <LogIn className="h-8 w-8" />
               </div>
               <h1 className="text-3xl font-black tracking-[0.14em] text-foreground dark:text-white">
@@ -84,7 +84,7 @@ export default function Login() {
               )}
 
               <div>
-                <label className="mb-2 block text-right text-sm font-semibold text-foreground-secondary dark:text-slate-200">
+                <label className="mb-2 block text-right text-sm font-semibold text-foreground-secondary dark:text-foreground-secondary">
                   اسم المستخدم أو البريد الإلكتروني
                 </label>
                 <input
@@ -104,7 +104,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="mb-2 block text-right text-sm font-semibold text-foreground-secondary dark:text-slate-200">
+                <label className="mb-2 block text-right text-sm font-semibold text-foreground-secondary dark:text-foreground-secondary">
                   كلمة المرور
                 </label>
                 <div className="relative">
@@ -120,7 +120,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-tertiary transition-colors hover:text-slate-800 dark:hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-tertiary transition-colors hover:text-foreground-secondary dark:hover:text-white"
                     aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

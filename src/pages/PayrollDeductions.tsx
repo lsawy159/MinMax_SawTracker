@@ -310,7 +310,7 @@ export default function PayrollDeductions() {
   const compactButtonBaseClass =
     'h-9 px-3 text-sm font-medium rounded-lg transition inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed'
   const outlineCompactButtonClass = `${compactButtonBaseClass} bg-surface border border-border-300 text-foreground-secondary hover:bg-surface-secondary-50`
-  const primaryCompactButtonClass = `${compactButtonBaseClass} bg-primary text-slate-950 hover:bg-[#e2b800]`
+  const primaryCompactButtonClass = `${compactButtonBaseClass} bg-primary text-foreground hover:bg-[#e2b800]`
   const successCompactButtonClass = `${compactButtonBaseClass} bg-green-600 text-white hover:bg-green-700`
   const indigoCompactButtonClass = `${compactButtonBaseClass} bg-indigo-600 text-white hover:bg-indigo-700`
   const slateCompactButtonClass = `${compactButtonBaseClass} bg-surface-secondary-600 text-white hover:bg-surface-secondary-700`
@@ -1911,7 +1911,7 @@ export default function PayrollDeductions() {
             onClick={() => setActivePageTab('search')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
               activePageTab === 'search'
-                ? 'bg-primary text-slate-950 shadow-soft'
+                ? 'bg-primary text-foreground shadow-soft'
                 : 'border border-border-200 bg-surface text-foreground-secondary hover:bg-surface-secondary-50'
             }`}
           >
@@ -1923,7 +1923,7 @@ export default function PayrollDeductions() {
             onClick={() => setActivePageTab('runs')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
               activePageTab === 'runs'
-                ? 'bg-primary text-slate-950 shadow-soft'
+                ? 'bg-primary text-foreground shadow-soft'
                 : 'border border-border-200 bg-surface text-foreground-secondary hover:bg-surface-secondary-50'
             }`}
           >

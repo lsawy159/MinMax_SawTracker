@@ -2161,7 +2161,7 @@ export default function AdvancedSearch() {
                         onClick={() => goToPage(pageNum)}
                         className={`px-2 py-1 border rounded-md text-xs ${
                           currentPage === pageNum
-                            ? 'border-primary bg-primary text-slate-950'
+                            ? 'border-primary bg-primary text-foreground'
                             : 'hover:bg-gray-50'
                         }`}
                       >

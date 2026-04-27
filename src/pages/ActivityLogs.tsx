@@ -212,8 +212,8 @@ export default function ActivityLogs() {
       return {
         bg: 'bg-surface-secondary-100',
         border: 'border-l-4 border-border-500',
-        text: 'text-slate-800',
-        badge: 'bg-surface-secondary-200 text-slate-800',
+        text: 'text-foreground-secondary',
+        badge: 'bg-surface-secondary-200 text-foreground-secondary',
         icon: 'bg-surface-secondary-200 text-foreground-secondary',
       }
     if (actionLower.includes('logout') || actionLower.includes('خروج'))

@@ -750,7 +750,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       {/* كارت المؤسسة المنبثق (لا تغيير) */}
       {showCompanyCard && selectedCompany && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-foreground/55 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between px-6 py-4">
