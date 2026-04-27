@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
 import SessionsManager from '@/components/settings/SessionsManager'
+import { BackupTab } from '@/components/settings/tabs/BackupTab'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
@@ -61,6 +62,7 @@ type TabType =
   | 'reports'
   | 'advanced-notifications'
   | 'unified'
+  | 'backup'
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -131,6 +133,7 @@ export default function GeneralSettings() {
       'reports',
       'advanced-notifications',
       'unified',
+      'backup',
     ]
     if (allowedTabs.includes(tab as TabType)) {
       setActiveTab(tab as TabType)
@@ -212,6 +215,12 @@ export default function GeneralSettings() {
           setting_type: 'time',
         },
       ],
+    },
+    {
+      key: 'backup',
+      label: 'النسخ الاحتياطية',
+      icon: DatabaseIcon,
+      component: BackupTab,
     },
     {
       key: 'sessions',

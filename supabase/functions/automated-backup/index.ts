@@ -32,18 +32,25 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // الحصول على معايير النسخ الاحتياطي
-    const { backup_type = 'full', tables = [] } = await req.json().catch(() => ({}))
+    const { backup_type = 'full', tables = [], triggered_by = 'manual' } = await req.json().catch(() => ({}))
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const backupFileName = `backup_${backup_type}_${timestamp}.sql`
     
     // جداول قاعدة البيانات المطلوب نسخها
     // الجداول الأساسية (مطلوبة)
+    // Read retention setting from system_settings
+    const { data: retentionSetting } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'backup_retention_days')
+      .maybeSingle()
+    const retentionDays: number = Number(retentionSetting?.setting_value) || 30
+
     const requiredTables = [
       'companies',
-      'employees', 
+      'employees',
       'users',
-      'custom_fields',
       'notifications',
       'activity_log',
       'saved_searches',
@@ -67,6 +74,7 @@ Deno.serve(async (req) => {
       .from('backup_history')
       .insert({
         backup_type,
+        triggered_by,
         file_path: backupFileName,
         tables_included: tablesToBackup,
         status: 'in_progress'
@@ -260,17 +268,32 @@ SET standard_conforming_strings = on;
       file_size: compressedSize
     }
 
+    // Update last_run_at and refresh next_run_at schedule after success
+    const now = new Date().toISOString()
+    await Promise.allSettled([
+      supabase.from('system_settings').upsert({
+        setting_key: 'backup_last_run_at',
+        setting_value: JSON.stringify(now),
+        category: 'backup',
+        description: 'آخر تشغيل فعلي للنسخ الاحتياطي',
+        setting_type: 'text',
+      }),
+      supabase.rpc('refresh_next_backup_at'),
+    ])
+
     // تنظيف النسخ القديمة بشكل غير متزامن (لا ننتظرها)
     // هذا يقلل من وقت الاستجابة
     Promise.all([
-      // تنظيف النسخ القديمة (الاحتفاظ بـ 30 نسخة)
+      // تنظيف النسخ القديمة بناءً على إعداد الاحتفاظ
       (async () => {
         try {
+          const cutoffDate = new Date(Date.now() - retentionDays * 86400 * 1000).toISOString()
           const { data: oldBackups } = await supabase
             .from('backup_history')
             .select('id, file_path')
-            .order('created_at', { ascending: false })
-            .range(30, 1000)
+            .lt('completed_at', cutoffDate)
+            .order('completed_at', { ascending: true })
+            .limit(100)
 
           if (oldBackups && oldBackups.length > 0) {
             console.log(`[Backup] Cleaning up ${oldBackups.length} old backups...`)
