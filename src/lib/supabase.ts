@@ -237,23 +237,6 @@ export interface User {
   last_login?: string
 }
 
-export interface CustomField {
-  id: number
-  entity_type: 'employee' | 'company'
-  field_name: string
-  field_label: string
-  field_type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea'
-  field_options: Record<
-    string,
-    string | number | boolean | string[] | { label: string; value: string | number }[]
-  >
-  is_required: boolean
-  is_active: boolean
-  display_order: number
-  created_at: string
-  created_by?: string
-  updated_at: string
-}
 
 export interface Notification {
   id: number

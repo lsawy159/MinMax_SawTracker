@@ -42,10 +42,6 @@ vi.mock('@/components/layout/Layout', () => ({
   ),
 }))
 
-vi.mock('@/components/settings/CustomFieldManager', () => ({
-  default: () => <div>custom-fields</div>,
-}))
-
 vi.mock('@/components/settings/SessionsManager', () => ({
   default: () => <div>sessions-manager</div>,
 }))

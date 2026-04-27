@@ -263,7 +263,6 @@ export default function ActivityLogs() {
       user: 'مستخدم',
       settings: 'إعدادات',
       notification: 'تنبيه',
-      custom_field: 'حقل مخصص',
     }
     return labels[entity?.toLowerCase()] || entity
   }

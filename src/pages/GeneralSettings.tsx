@@ -10,7 +10,6 @@ import {
   Save,
   RefreshCw,
   Database as DatabaseIcon,
-  Edit3,
   Palette,
   Bell,
   BarChart3,
@@ -21,7 +20,6 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
-import CustomFieldManager from '@/components/settings/CustomFieldManager'
 import SessionsManager from '@/components/settings/SessionsManager'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
@@ -56,7 +54,6 @@ interface SettingsCategory {
 
 type TabType =
   | 'system'
-  | 'fields'
   | 'sessions'
   | 'audit'
   | 'permissions'
@@ -127,7 +124,6 @@ export default function GeneralSettings() {
 
     const allowedTabs: TabType[] = [
       'system',
-      'fields',
       'sessions',
       'audit',
       'permissions',
@@ -217,13 +213,6 @@ export default function GeneralSettings() {
         },
       ],
     },
-    {
-      key: 'fields',
-      label: 'إدارة الحقول المخصصة',
-      icon: Edit3,
-      component: CustomFieldManager,
-    },
-
     {
       key: 'sessions',
       label: 'إدارة الجلسات النشطة',
