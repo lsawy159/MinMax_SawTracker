@@ -48,6 +48,7 @@ interface GeneralSetting {
 interface SettingsCategory {
   key: string
   label: string
+  description: string
   icon: React.ComponentType<{ className?: string }>
   settings?: GeneralSetting[]
   component?: React.ComponentType
@@ -85,11 +86,10 @@ export default function GeneralSettings() {
     setIsLoading(true)
     try {
       const { data, error } = await supabase
-        .from('general_settings')
-        .select('id,setting_key,setting_value,created_at,updated_at')
+        .from('system_settings')
+        .select('setting_key,setting_value')
 
       if (error && error.code !== 'PGRST116') {
-        // PGRST116 = table doesn't exist
         console.error('Error loading settings:', error)
       }
 
@@ -98,8 +98,18 @@ export default function GeneralSettings() {
           string,
           string | number | boolean | Record<string, unknown> | null
         > = {}
-        data.forEach((setting) => {
-          settingsMap[setting.setting_key] = setting.setting_value
+        data.forEach((row: { setting_key: string; setting_value: unknown }) => {
+          const raw = row.setting_value
+          // Values stored as JSON strings — parse back to native type
+          if (typeof raw === 'string') {
+            try {
+              settingsMap[row.setting_key] = JSON.parse(raw)
+            } catch {
+              settingsMap[row.setting_key] = raw
+            }
+          } else {
+            settingsMap[row.setting_key] = raw as string | number | boolean | null
+          }
         })
         setSettings(settingsMap)
       }
@@ -166,6 +176,7 @@ export default function GeneralSettings() {
     {
       key: 'system',
       label: 'إعدادات النظام الأساسية',
+      description: 'إعدادات المنطقة الزمنية واللغة والعملة وتنسيق التاريخ وساعات العمل. تُحفظ في قاعدة البيانات وتُطبَّق على كامل النظام.',
       icon: Globe,
       settings: [
         {
@@ -219,30 +230,35 @@ export default function GeneralSettings() {
     {
       key: 'backup',
       label: 'النسخ الاحتياطية',
+      description: 'جدولة النسخ الاحتياطي التلقائي وعرض سجل العمليات السابقة وتحميل النسخ المحفوظة.',
       icon: DatabaseIcon,
       component: BackupTab,
     },
     {
       key: 'sessions',
       label: 'إدارة الجلسات النشطة',
+      description: 'عرض جميع الجلسات المفتوحة حالياً لجميع المستخدمين وإمكانية إنهاء أي جلسة عن بُعد.',
       icon: Users,
       component: SessionsManager,
     },
     {
       key: 'audit',
       label: 'لوحة المراجعة والتدقيق',
+      description: 'سجل كامل لكل عمليات الإضافة والتعديل والحذف في النظام مع التوقيت والمستخدم المسؤول.',
       icon: BarChart3,
       component: AuditDashboard,
     },
     {
       key: 'permissions',
       label: 'إدارة الصلاحيات',
+      description: 'تحديد صلاحيات كل مستخدم وتعيين الأدوار (مدير / مسؤول / مستخدم) والتحكم في ما يستطيع رؤيته وتعديله.',
       icon: Shield,
       component: PermissionsPanel,
     },
     {
       key: 'ui',
       label: 'إعدادات واجهة المستخدم',
+      description: 'تخصيص مظهر التطبيق: الثيم، حجم الخط، كثافة العرض، وعدد العناصر في كل صفحة.',
       icon: Palette,
       settings: [
         {
@@ -296,6 +312,7 @@ export default function GeneralSettings() {
     {
       key: 'reports',
       label: 'إعدادات التقارير',
+      description: 'تحديد تنسيق التقارير الافتراضي (Excel/CSV)، جدولة الإرسال التلقائي للبريد الإلكتروني، وإضافة شعار الشركة.',
       icon: FileText,
       settings: [
         {
@@ -340,6 +357,7 @@ export default function GeneralSettings() {
     {
       key: 'advanced-notifications',
       label: 'إعدادات الإشعارات المتقدمة',
+      description: 'التحكم في طريقة الإشعارات (داخل التطبيق / بريد / SMS)، وتحديد عدد الأيام للتنبيه قبل انتهاء الإقامات والعقود، وساعات الصمت.',
       icon: Bell,
       settings: [
         {
@@ -412,52 +430,24 @@ export default function GeneralSettings() {
 
     setIsSaving(true)
     try {
-      // إعدادات التبويب الحالي فقط
-      const tabSettings = categoryToSave.settings.map((setting) => ({
-        ...setting,
-        setting_value: settings[setting.setting_key] ?? setting.setting_value,
-      }))
-
-      // حذف الإعدادات الخاصة بهذا التبويب فقط
-      const { error: deleteError } = await supabase
-        .from('general_settings')
-        .delete()
-        .eq('category', categoryToSave.key)
-
-      if (deleteError) {
-        console.error('Error deleting existing settings for tab:', deleteError)
-        toast.error('فشل حذف إعدادات هذا التبويب قبل الحفظ')
-        return
-      }
-
-      const { error } = await supabase.from('general_settings').insert(
-        tabSettings.map((setting) => ({
+      const rows = categoryToSave.settings.map((setting) => {
+        const currentValue = settings[setting.setting_key] ?? setting.setting_value
+        return {
           setting_key: setting.setting_key,
-          setting_value: setting.setting_value,
+          setting_value: JSON.stringify(currentValue),
           category: setting.category,
           description: setting.description,
           setting_type: setting.setting_type,
-          options: setting.options,
-        }))
-      )
+        }
+      })
+
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert(rows, { onConflict: 'setting_key' })
 
       if (error) {
-        console.error('Error saving settings:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        })
-
-        if (error.code === '23505') {
-          toast.error(
-            'يوجد تعارض في مفاتيح الإعدادات. تأكد من عدم تكرار نفس الاسم أكثر من مرة.'
-          )
-        } else {
-          toast.error(
-            'فشل حفظ إعدادات هذا التبويب. يرجى المحاولة مرة أخرى.'
-          )
-        }
+        console.error('Error saving settings:', error)
+        toast.error('فشل حفظ الإعدادات. يرجى المحاولة مرة أخرى.')
         return
       }
 
@@ -714,11 +704,9 @@ export default function GeneralSettings() {
                         <h2 className="text-sm font-semibold text-gray-900">
                           {activeCategory.label}
                         </h2>
-                        {activeCategory.settings && (
-                          <p className="text-xs text-gray-600">
-                            {activeCategory.settings.length} إعدادات
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-500 mt-0.5 max-w-lg leading-relaxed">
+                          {activeCategory.description}
+                        </p>
                       </div>
                     </div>
                     {hasEditPermission && activeCategory.settings && (
