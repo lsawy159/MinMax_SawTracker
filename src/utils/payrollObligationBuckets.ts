@@ -1,3 +1,4 @@
+import { ObligationType } from '@/lib/supabase'
 
 export type PayrollObligationBucketKey = 'transfer_renewal' | 'penalty' | 'advance' | 'other'
 
