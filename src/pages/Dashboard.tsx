@@ -588,10 +588,10 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
                   <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold text-foreground">
                       جاري تجهيز لوحة التحكم
                     </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                    <p className="text-xs text-foreground-secondary">
                       نحمّل الإحصائيات والتنبيهات الأساسية الآن.
                     </p>
                   </div>
@@ -601,9 +601,9 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((item) => (
                   <div key={item} className="app-panel animate-pulse p-3">
-                    <div className="mb-3 h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
-                    <div className="mb-2 h-7 w-16 rounded bg-slate-200 dark:bg-slate-700" />
-                    <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="mb-3 h-3 w-24 rounded bg-surface-secondary" />
+                    <div className="mb-2 h-7 w-16 rounded bg-surface-secondary" />
+                    <div className="h-3 w-20 rounded bg-surface-secondary" />
                   </div>
                 ))}
               </div>
@@ -696,7 +696,7 @@ export default function Dashboard() {
                     className={`app-tab-button text-xs ${
                       activeTab === 'companies'
                         ? 'app-tab-button-active'
-                        : 'hover:bg-slate-50 hover:text-slate-900'
+                        : 'hover:bg-surface-secondary hover:text-foreground'
                     }`}
                   >
                     <Building2 className="w-3.5 h-3.5" />
@@ -707,7 +707,7 @@ export default function Dashboard() {
                     className={`app-tab-button text-xs ${
                       activeTab === 'employees'
                         ? 'app-tab-button-active'
-                        : 'hover:bg-slate-50 hover:text-slate-900'
+                        : 'hover:bg-surface-secondary hover:text-foreground'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -754,66 +754,66 @@ export default function Dashboard() {
                       {/* مربعات الإحصائيات في تنسيق 2×2 */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* إحصائيات السجل التجاري */}
-                        <div className="app-panel border-orange-200/60 bg-white/80 p-3 dark:border-orange-500/20 dark:bg-slate-900/80">
-                          <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                        <div className="app-panel border-orange-200/60 bg-surface p-3 dark:border-orange-500/20">
+                          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5 text-orange-600" />
                             إحصائيات السجل التجاري
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-orange-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-orange-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredCommercialReg}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-orange-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-orange-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.urgentCommercialReg}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.commercial_reg_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-orange-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-orange-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highCommercialReg}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.commercial_reg_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-orange-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-orange-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumCommercialReg}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {companyThresholds.commercial_reg_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-orange-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-orange-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validCommercialReg}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {companyThresholds.commercial_reg_medium_days} يوم
                               </p>
                             </div>
@@ -821,58 +821,58 @@ export default function Dashboard() {
                         </div>
 
                         {/* إحصائيات اشتراك قوى */}
-                        <div className="app-panel border-sky-200/60 bg-white/80 p-3 dark:border-sky-500/20 dark:bg-slate-900/80">
-                          <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                        <div className="app-panel border-sky-200/60 bg-surface p-3 dark:border-sky-500/20">
+                          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                             <Shield className="w-3.5 h-3.5 text-cyan-600" />
                             إحصائيات اشتراك قوى
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-cyan-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">{stats.expiredPower}</p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-cyan-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">{stats.urgentPower}</p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.power_subscription_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-cyan-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">{stats.highPower}</p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.power_subscription_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-cyan-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumPower}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {companyThresholds.power_subscription_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-cyan-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-cyan-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">{stats.validPower}</p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {companyThresholds.power_subscription_medium_days} يوم
                               </p>
                             </div>
@@ -880,64 +880,64 @@ export default function Dashboard() {
                         </div>
 
                         {/* إحصائيات اشتراك مقيم */}
-                        <div className="app-panel border-emerald-200/60 bg-white/80 p-3 dark:border-emerald-500/20 dark:bg-slate-900/80">
+                        <div className="app-panel border-emerald-200/60 bg-surface p-3 dark:border-emerald-500/20">
                           <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
                             <Shield className="w-3.5 h-3.5 text-teal-600" />
                             إحصائيات اشتراك مقيم
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-teal-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-teal-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredMoqeem}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-teal-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-teal-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">{stats.urgentMoqeem}</p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.moqeem_subscription_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-teal-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-teal-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highMoqeem}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {companyThresholds.moqeem_subscription_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-teal-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-teal-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumMoqeem}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {companyThresholds.moqeem_subscription_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-teal-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-teal-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validMoqeem}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {companyThresholds.moqeem_subscription_medium_days} يوم
                               </p>
                             </div>
@@ -971,7 +971,7 @@ export default function Dashboard() {
                               <div
                                 key={company.id}
                                 onClick={() => navigate(`/companies?id=${company.id}`)}
-                                className="rounded-lg border border-neutral-200 bg-white p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/70"
+                                className="rounded-lg border border-border bg-surface p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm"
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
@@ -1010,66 +1010,66 @@ export default function Dashboard() {
                       {/* مربعات الإحصائيات في تنسيق 2×2 */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* إحصائيات العقود */}
-                        <div className="app-panel border-sky-200/60 bg-white/80 p-3 dark:border-sky-500/20 dark:bg-slate-900/80">
-                          <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                        <div className="app-panel border-sky-200/60 bg-surface p-3 dark:border-sky-500/20">
+                          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5 text-blue-600" />
                             إحصائيات العقود
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-blue-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-blue-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredContracts}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-blue-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-blue-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.urgentContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.contract_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-blue-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-blue-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.contract_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-blue-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-blue-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {employeeThresholds.contract_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-blue-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-blue-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {employeeThresholds.contract_medium_days} يوم
                               </p>
                             </div>
@@ -1077,66 +1077,66 @@ export default function Dashboard() {
                         </div>
 
                         {/* إحصائيات الإقامات */}
-                        <div className="app-panel border-violet-200/60 bg-white/80 p-3 dark:border-violet-500/20 dark:bg-slate-900/80">
+                        <div className="app-panel border-violet-200/60 bg-surface p-3 dark:border-violet-500/20">
                           <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
                             <Shield className="w-3.5 h-3.5 text-purple-600" />
                             إحصائيات الإقامات
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-purple-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-purple-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredResidences}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-purple-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-purple-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.urgentResidences}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.residence_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-purple-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-purple-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highResidences}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.residence_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-purple-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-purple-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumResidences}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {employeeThresholds.residence_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-purple-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-purple-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validResidences}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {employeeThresholds.residence_medium_days} يوم
                               </p>
                             </div>
@@ -1144,66 +1144,66 @@ export default function Dashboard() {
                         </div>
 
                         {/* إحصائيات التأمين الصحي */}
-                        <div className="app-panel border-emerald-200/60 bg-white/80 p-3 dark:border-emerald-500/20 dark:bg-slate-900/80">
+                        <div className="app-panel border-emerald-200/60 bg-surface p-3 dark:border-emerald-500/20">
                           <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
                             <Shield className="w-3.5 h-3.5 text-green-600" />
                             إحصائيات التأمين الصحي
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-green-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-green-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredInsurance}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-green-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-green-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.urgentInsurance}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.health_insurance_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-green-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-green-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highInsurance}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.health_insurance_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-green-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-green-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumInsurance}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {employeeThresholds.health_insurance_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-green-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-green-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validInsurance}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {employeeThresholds.health_insurance_medium_days} يوم
                               </p>
                             </div>
@@ -1211,66 +1211,66 @@ export default function Dashboard() {
                         </div>
 
                         {/* إحصائيات عقد أجير */}
-                        <div className="app-panel border-amber-200/60 bg-white/80 p-3 dark:border-amber-500/20 dark:bg-slate-900/80">
+                        <div className="app-panel border-amber-200/60 bg-surface p-3 dark:border-amber-500/20">
                           <h3 className="text-sm font-bold text-neutral-900 mb-2 flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5 text-amber-600" />
                             إحصائيات عقد أجير
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-5 gap-1.5">
-                            <div className="bg-white rounded-lg p-2.5 border border-amber-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-amber-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">منتهية</span>
+                                <span className="text-xs text-foreground-secondary">منتهية</span>
                                 <XCircle className="w-3 h-3 text-danger-500" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.expiredHiredWorkerContracts}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-amber-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-amber-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">طارئة</span>
+                                <span className="text-xs text-foreground-secondary">طارئة</span>
                                 <AlertTriangle className="w-3 h-3 text-red-600" />
                               </div>
                               <p className="text-lg font-bold text-red-600">
                                 {stats.urgentHiredWorkerContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.hired_worker_contract_urgent_days} أيام
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-amber-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-amber-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">عاجل</span>
+                                <span className="text-xs text-foreground-secondary">عاجل</span>
                                 <Clock className="w-3 h-3 text-orange-500" />
                               </div>
                               <p className="text-lg font-bold text-orange-600">
                                 {stats.highHiredWorkerContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 خلال {employeeThresholds.hired_worker_contract_high_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-amber-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-amber-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">متوسط</span>
+                                <span className="text-xs text-foreground-secondary">متوسط</span>
                                 <Calendar className="w-3 h-3 text-yellow-500" />
                               </div>
                               <p className="text-lg font-bold text-yellow-600">
                                 {stats.mediumHiredWorkerContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 {employeeThresholds.hired_worker_contract_medium_days} يوم
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-amber-200">
+                            <div className="bg-surface rounded-lg p-2.5 border border-amber-200">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-neutral-600">ساري</span>
+                                <span className="text-xs text-foreground-secondary">ساري</span>
                                 <Shield className="w-3 h-3 text-green-500" />
                               </div>
                               <p className="text-lg font-bold text-green-600">
                                 {stats.validHiredWorkerContracts}
                               </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
+                              <p className="text-xs text-foreground-tertiary mt-0.5">
                                 أكثر من {employeeThresholds.hired_worker_contract_medium_days} يوم
                               </p>
                             </div>
@@ -1300,7 +1300,7 @@ export default function Dashboard() {
                               <div
                                 key={employee.id}
                                 onClick={() => navigate(`/employees?id=${employee.id}`)}
-                                className="rounded-lg border border-neutral-200 bg-white p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/70"
+                                className="rounded-lg border border-border bg-surface p-2.5 transition cursor-pointer hover:border-primary/40 hover:shadow-sm"
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
