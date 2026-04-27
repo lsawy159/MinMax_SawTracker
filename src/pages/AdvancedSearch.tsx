@@ -1460,7 +1460,7 @@ export default function AdvancedSearch() {
 
             {/* Modal Content with Glass Morphism */}
             <div className="fixed inset-0 flex items-center justify-center p-4">
-              <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-300">
+              <div className="bg-surface/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-300">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/20 bg-gradient-to-r from-white/40 to-white/20 backdrop-blur-sm">
                   <div>
@@ -1471,7 +1471,7 @@ export default function AdvancedSearch() {
                   </div>
                   <button
                     onClick={() => setShowFiltersModal(false)}
-                    className="p-1.5 hover:bg-white/30 rounded-lg transition-all duration-200 hover:scale-110"
+                    className="p-1.5 hover:bg-surface/30 rounded-lg transition-all duration-200 hover:scale-110"
                   >
                     <X className="w-4 h-4 text-gray-600" />
                   </button>
@@ -1672,7 +1672,7 @@ export default function AdvancedSearch() {
                               value={passportNumberSearch}
                               onChange={(e) => setPassportNumberSearch(e.target.value)}
                               placeholder="ابحث برقم الجواز..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
 
@@ -1685,7 +1685,7 @@ export default function AdvancedSearch() {
                               value={residenceNumberSearch}
                               onChange={(e) => setResidenceNumberSearch(e.target.value)}
                               placeholder="ابحث برقم الإقامة..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
                         </div>
@@ -1817,7 +1817,7 @@ export default function AdvancedSearch() {
                               value={unifiedNumberSearch}
                               onChange={(e) => setUnifiedNumberSearch(e.target.value)}
                               placeholder="ابحث بالرقم الموحد..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
 
@@ -1830,7 +1830,7 @@ export default function AdvancedSearch() {
                               value={taxNumberSearch}
                               onChange={(e) => setTaxNumberSearch(e.target.value)}
                               placeholder="ابحث بالرقم التأميني..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
 
@@ -1843,7 +1843,7 @@ export default function AdvancedSearch() {
                               value={laborSubscriptionNumberSearch}
                               onChange={(e) => setLaborSubscriptionNumberSearch(e.target.value)}
                               placeholder="ابحث برقم اشتراك العمل..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
 
@@ -1856,7 +1856,7 @@ export default function AdvancedSearch() {
                               value={notesSearch}
                               onChange={(e) => setNotesSearch(e.target.value)}
                               placeholder="ابحث في الملاحظات..."
-                              className="w-full px-2.5 py-1.5 text-sm bg-white/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
+                              className="w-full px-2.5 py-1.5 text-sm bg-surface/70 backdrop-blur-sm border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-sm hover:shadow-md"
                             />
                           </div>
 
@@ -1896,7 +1896,7 @@ export default function AdvancedSearch() {
                         {savedSearches.map((saved) => (
                           <div
                             key={saved.id}
-                            className="flex items-center gap-1.5 bg-white/50 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/30 shadow-sm hover:shadow-md transition-all duration-200"
+                            className="flex items-center gap-1.5 bg-surface/50 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/30 shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             <button
                               onClick={() => {
@@ -2004,7 +2004,7 @@ export default function AdvancedSearch() {
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white border rounded-lg overflow-hidden">
+                    <div className="bg-surface border rounded-lg overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead className="bg-gray-50">
@@ -2061,7 +2061,7 @@ export default function AdvancedSearch() {
                         <div
                           key={comp.id}
                           onClick={() => handleCompanyClick(comp)}
-                          className="bg-white border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                          className="bg-surface border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
                         >
                           <h3 className="font-bold text-base mb-1.5">{comp.name}</h3>
                           <div className="space-y-0.5 text-xs">
@@ -2095,7 +2095,7 @@ export default function AdvancedSearch() {
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white border rounded-lg overflow-hidden">
+                    <div className="bg-surface border rounded-lg overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="bg-gray-50">
@@ -2141,7 +2141,7 @@ export default function AdvancedSearch() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between bg-white border rounded-lg p-3">
+                <div className="flex items-center justify-between bg-surface border rounded-lg p-3">
                   <div className="text-xs text-gray-600">
                     عرض {startIndex + 1}-{Math.min(endIndex, totalResults)} من {totalResults} نتيجة
                   </div>
@@ -2184,7 +2184,7 @@ export default function AdvancedSearch() {
 
           {/* Empty State */}
           {!isLoading && resultsCount === 0 && (
-            <div className="text-center py-8 bg-white border rounded-lg">
+            <div className="text-center py-8 bg-surface border rounded-lg">
               <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <h3 className="text-base font-semibold mb-1">لا توجد نتائج</h3>
               <p className="text-sm text-gray-600">جرب تغيير معايير البحث أو الفلاتر</p>

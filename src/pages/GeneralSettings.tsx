@@ -688,12 +688,12 @@ export default function GeneralSettings() {
                       onClick={() => handleTabChange(category.key as TabType)}
                       className={`flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-right text-xs transition-all duration-200 ${
                         activeTab === category.key
-                          ? 'bg-primary/15 text-slate-900 shadow-soft ring-1 ring-primary/40'
+                          ? 'bg-primary/15 text-foreground shadow-soft ring-1 ring-primary/40'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
                       <Icon
-                        className={`w-4 h-4 ${activeTab === category.key ? 'text-slate-900' : 'text-gray-500'}`}
+                        className={`w-4 h-4 ${activeTab === category.key ? 'text-foreground' : 'text-gray-500'}`}
                       />
                       <span className="font-medium">{category.label}</span>
                     </button>
@@ -711,7 +711,7 @@ export default function GeneralSettings() {
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <activeCategory.icon className="w-5 h-5 text-slate-900" />
+                      <activeCategory.icon className="w-5 h-5 text-foreground" />
                       <div>
                         <h2 className="text-sm font-semibold text-gray-900">
                           {activeCategory.label}
@@ -849,14 +849,14 @@ export default function GeneralSettings() {
         >
           {getChangedSettings().length > 0 && (
             <div className="app-info-block max-h-60 overflow-y-auto rounded-lg p-4">
-              <p className="mb-3 text-sm font-semibold text-slate-900">
+              <p className="mb-3 text-sm font-semibold text-foreground">
                 الإعدادات التي ستتغير:
               </p>
               <div className="space-y-2">
                 {getChangedSettings().map((setting) => (
                   <div
                     key={setting.setting_key}
-                    className="rounded border border-primary/20 bg-white p-3"
+                    className="rounded border border-primary/20 bg-surface p-3"
                   >
                     <p className="text-sm font-medium text-gray-900">{setting.description}</p>
                     <div className="flex items-center justify-between mt-2 text-xs">

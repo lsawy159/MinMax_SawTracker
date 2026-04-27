@@ -399,7 +399,7 @@ export default function Notifications() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+          <div className="bg-surface rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
             <Bell className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
             <h3 className="text-lg font-medium text-neutral-900 mb-2">
               ظ„ط§ طھظˆط¬ط¯ طھظ†ط¨ظٹظ‡ط§طھ
@@ -415,7 +415,7 @@ export default function Notifications() {
             {filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`bg-white rounded-xl shadow-sm border-2 p-6 transition ${
+                className={`bg-surface rounded-xl shadow-sm border-2 p-6 transition ${
                   !notification.is_read ? 'border-blue-200 bg-blue-50/30' : 'border-neutral-200'
                 }`}
               >

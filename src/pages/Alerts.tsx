@@ -727,7 +727,7 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
           {/* لا توجد نتائج */}
           {filteredCompanyAlerts.length === 0 && filteredEmployeeAlerts.length === 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
+            <div className="bg-surface rounded-xl shadow-sm border border-neutral-200 p-12 text-center">
               <Bell className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
               <h3 className="text-lg font-medium text-neutral-900 mb-2">
                 {searchTerm

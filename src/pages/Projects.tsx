@@ -326,7 +326,7 @@ export default function Projects() {
 
               {/* Projects Grid */}
               {filteredProjects.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg border border-neutral-200">
+                <div className="text-center py-12 bg-surface rounded-lg border border-neutral-200">
                   <FolderKanban className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
                   <p className="text-neutral-600">لا توجد مشاريع</p>
                   {searchTerm || statusFilter !== 'all' ? (
@@ -391,7 +391,7 @@ export default function Projects() {
           {/* Delete Confirmation Modal */}
           {showDeleteModal && selectedProject && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="bg-surface rounded-lg shadow-xl max-w-md w-full p-6">
                 <h3 className="text-lg font-bold text-neutral-900 mb-4">تأكيد الحذف</h3>
                 <p className="text-neutral-600 mb-6">
                   هل أنت متأكد من حذف المشروع "{selectedProject.name}"؟

@@ -309,7 +309,7 @@ export default function PayrollDeductions() {
   const hasPayrollViewPermission = canView('payroll')
   const compactButtonBaseClass =
     'h-9 px-3 text-sm font-medium rounded-lg transition inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed'
-  const outlineCompactButtonClass = `${compactButtonBaseClass} bg-white border border-slate-300 text-slate-700 hover:bg-slate-50`
+  const outlineCompactButtonClass = `${compactButtonBaseClass} bg-surface border border-slate-300 text-foreground-secondary hover:bg-slate-50`
   const primaryCompactButtonClass = `${compactButtonBaseClass} bg-primary text-slate-950 hover:bg-[#e2b800]`
   const successCompactButtonClass = `${compactButtonBaseClass} bg-green-600 text-white hover:bg-green-700`
   const indigoCompactButtonClass = `${compactButtonBaseClass} bg-indigo-600 text-white hover:bg-indigo-700`
@@ -1912,7 +1912,7 @@ export default function PayrollDeductions() {
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
               activePageTab === 'search'
                 ? 'bg-primary text-slate-950 shadow-soft'
-                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                : 'border border-slate-200 bg-surface text-foreground-secondary hover:bg-slate-50'
             }`}
           >
             <Search className="h-4 w-4" />
@@ -1924,7 +1924,7 @@ export default function PayrollDeductions() {
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
               activePageTab === 'runs'
                 ? 'bg-primary text-slate-950 shadow-soft'
-                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                : 'border border-slate-200 bg-surface text-foreground-secondary hover:bg-slate-50'
             }`}
           >
             <Wallet className="h-4 w-4" />
@@ -1935,26 +1935,26 @@ export default function PayrollDeductions() {
         {activePageTab === 'search' && (
           <div className="space-y-5 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500 mb-1">إجمالي الالتزامات</div>
-                <div className="text-2xl font-bold text-slate-900">
+              <div className="rounded-xl border border-slate-200 bg-surface p-4">
+                <div className="text-sm text-foreground-tertiary mb-1">إجمالي الالتزامات</div>
+                <div className="text-2xl font-bold text-foreground">
                   {obligationStats.total.toLocaleString('en-US')}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500 mb-1">ما تم سداده فعلياً</div>
+              <div className="rounded-xl border border-slate-200 bg-surface p-4">
+                <div className="text-sm text-foreground-tertiary mb-1">ما تم سداده فعلياً</div>
                 <div className="text-2xl font-bold text-green-600">
                   {obligationStats.paid.toLocaleString('en-US')}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500 mb-1">المتبقي الفعلي</div>
+              <div className="rounded-xl border border-slate-200 bg-surface p-4">
+                <div className="text-sm text-foreground-tertiary mb-1">المتبقي الفعلي</div>
                 <div className="text-2xl font-bold text-red-600">
                   {obligationStats.remaining.toLocaleString('en-US')}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500 mb-1">المسدد فعلياً في الشهر</div>
+              <div className="rounded-xl border border-slate-200 bg-surface p-4">
+                <div className="text-sm text-foreground-tertiary mb-1">المسدد فعلياً في الشهر</div>
                 <div className="text-2xl font-bold text-blue-700">
                   {filteredObligationInsightRows
                     .reduce((sum, row) => sum + Number(row.amount_paid || 0), 0)
@@ -1963,7 +1963,7 @@ export default function PayrollDeductions() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-surface p-4 space-y-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">البحث التفاعلي في الاستقطاعات</h2>
                 <p className="text-sm text-gray-600">
@@ -1977,30 +1977,30 @@ export default function PayrollDeductions() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">بحث</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground-secondary">بحث</label>
                   <input
                     type="text"
                     value={payrollSearchQuery}
                     onChange={(e) => setPayrollSearchQuery(e.target.value)}
                     placeholder="الاسم أو رقم الإقامة أو المشروع"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">الشهر</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground-secondary">الشهر</label>
                   <input
                     type="month"
                     value={payrollSearchMonth}
                     onChange={(e) => setPayrollSearchMonth(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">المشروع</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground-secondary">المشروع</label>
                   <select
                     value={payrollSearchProject}
                     onChange={(e) => setPayrollSearchProject(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm"
                   >
                     <option value="">كل المشاريع</option>
                     {projectFilterOptions.map((projectName) => (
@@ -2013,11 +2013,11 @@ export default function PayrollDeductions() {
               </div>
 
               {payrollInsightsLoading ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-foreground-tertiary">
                   جاري تحميل بيانات البحث...
                 </div>
               ) : filteredPayrollSearchRows.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-foreground-tertiary">
                   لا توجد نتائج مطابقة للفلاتر الحالية.
                 </div>
               ) : (
@@ -2042,7 +2042,7 @@ export default function PayrollDeductions() {
                     <tbody>
                       {filteredPayrollSearchRows.map((row) => (
                         <tr key={row.id} className="border-t hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium text-slate-900">
+                          <td className="px-4 py-3 font-medium text-foreground">
                             {row.employee_name_snapshot}
                           </td>
                           <td className="px-4 py-3">{row.residence_label}</td>
@@ -2099,34 +2099,34 @@ export default function PayrollDeductions() {
         {/* Report Content */}
         <div className={activePageTab === 'runs' ? '' : 'hidden'}>
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5 space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-surface p-4 md:p-5 space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">إحصائيات مسيرات الرواتب</h2>
-                  <p className="text-sm text-slate-600">
+                  <h2 className="text-xl font-bold text-foreground">إحصائيات مسيرات الرواتب</h2>
+                  <p className="text-sm text-foreground-secondary">
                     اختر شهرًا أو مسيرًا محددًا وستتغير الكروت مباشرة.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[760px]">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
                       فلتر الشهر
                     </label>
                     <input
                       type="month"
                       value={payrollRunStatsMonth}
                       onChange={(e) => setPayrollRunStatsMonth(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
                       فلتر المسير
                     </label>
                     <select
                       value={payrollRunStatsRunId}
                       onChange={(e) => setPayrollRunStatsRunId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-xl border border-slate-300 bg-surface px-3 py-2 text-sm"
                     >
                       <option value="">كل المسيرات</option>
                       {payrollRunList.map((run) => (
@@ -2147,7 +2147,7 @@ export default function PayrollDeductions() {
                         setPayrollRunStatsMonth('')
                         setPayrollRunStatsRunId('')
                       }}
-                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-foreground-secondary hover:bg-slate-100 transition"
                     >
                       إعادة ضبط الفلتر
                     </button>
@@ -2156,7 +2156,7 @@ export default function PayrollDeductions() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">المسيرات داخل الفلتر</p>
@@ -2169,7 +2169,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">الموظفون داخل الفلتر</p>
@@ -2182,11 +2182,11 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">إجمالي الرواتب</p>
-                      <p className="text-2xl font-bold text-slate-900">
+                      <p className="text-2xl font-bold text-foreground">
                         {payrollRunCardsStats.gross.toLocaleString('en-US')}
                       </p>
                     </div>
@@ -2195,7 +2195,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">إجمالي الالتزامات</p>
@@ -2208,7 +2208,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">رسوم نقل وتجديد</p>
@@ -2221,7 +2221,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">جزاءات وغرامات</p>
@@ -2234,7 +2234,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">سلف</p>
@@ -2247,7 +2247,7 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
+                <div className="bg-surface rounded-xl shadow-sm border border-slate-200 p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">أخرى</p>
@@ -2263,7 +2263,7 @@ export default function PayrollDeductions() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5 space-y-4">
+            <div className="bg-surface rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">مسيرات الرواتب</h2>
@@ -2415,7 +2415,7 @@ export default function PayrollDeductions() {
                       </div>
                       {canExport('payroll') && filteredPayrollRunList.length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 bg-white border border-gray-200 rounded-md px-3 py-2">
+                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 bg-surface border border-gray-200 rounded-md px-3 py-2">
                             <input
                               type="checkbox"
                               aria-label="تحديد جميع المسيرات"
@@ -2479,7 +2479,7 @@ export default function PayrollDeductions() {
                           )}
                           <button
                             onClick={() => handleSelectPayrollRun(run.id)}
-                            className={`flex-1 text-right p-3 rounded-lg transition ${selectedPayrollRunId === run.id ? 'bg-white border border-blue-200 border-r-4 border-r-blue-600' : 'hover:bg-gray-50'}`}
+                            className={`flex-1 text-right p-3 rounded-lg transition ${selectedPayrollRunId === run.id ? 'bg-surface border border-blue-200 border-r-4 border-r-blue-600' : 'hover:bg-gray-50'}`}
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <span className="font-medium text-gray-900">
@@ -2519,7 +2519,7 @@ export default function PayrollDeductions() {
 
                 <div
                   ref={payrollDetailsPanelRef}
-                  className="xl:col-span-3 border border-gray-200 rounded-lg overflow-hidden bg-white"
+                  className="xl:col-span-3 border border-gray-200 rounded-lg overflow-hidden bg-surface"
                 >
                   <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-3">
                     <div>
@@ -2585,7 +2585,7 @@ export default function PayrollDeductions() {
                             }
                             handleOpenPayrollEntryForm()
                           }}
-                          className={`${primaryCompactButtonClass} disabled:bg-slate-200 disabled:text-slate-500 disabled:border disabled:border-slate-200`}
+                          className={`${primaryCompactButtonClass} disabled:bg-slate-200 disabled:text-foreground-tertiary disabled:border disabled:border-slate-200`}
                           disabled={
                             !selectedPayrollRunEditable ||
                             scopedEmployeesLoading ||
@@ -2720,7 +2720,7 @@ export default function PayrollDeductions() {
                       ref={payrollEntryFormRef}
                       className="p-4 border-b border-gray-200 bg-blue-50 space-y-4"
                     >
-                      <div className="rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm text-gray-700">
+                      <div className="rounded-lg border border-blue-200 bg-surface px-4 py-3 text-sm text-gray-700">
                         أدخل راتب الموظف يدويًا داخل المسير الحالي. إذا كان لهذا الموظف مدخل سابق في
                         نفس المسير، فالحفظ سيقوم بالتحديث بدل إنشاء سجل مكرر.
                       </div>
@@ -2906,7 +2906,7 @@ export default function PayrollDeductions() {
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             الأجر اليومي
                           </label>
-                          <div className="w-full px-3 py-2 border rounded-md bg-white text-gray-700">
+                          <div className="w-full px-3 py-2 border rounded-md bg-surface text-gray-700">
                             {dailyRate.toLocaleString('en-US')}
                           </div>
                         </div>
@@ -2960,19 +2960,19 @@ export default function PayrollDeductions() {
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="bg-surface border border-gray-200 rounded-lg p-3">
                           <div className="text-sm text-gray-500 mb-1">إجمالي الراتب</div>
                           <div className="text-lg font-bold text-gray-900">
                             {grossAmount.toLocaleString('en-US')}
                           </div>
                         </div>
-                        <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="bg-surface border border-gray-200 rounded-lg p-3">
                           <div className="text-sm text-gray-500 mb-1">إجمالي الاستقطاعات</div>
                           <div className="text-lg font-bold text-red-600">
                             {groupedDeductionsTotal.toLocaleString('en-US')}
                           </div>
                         </div>
-                        <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="bg-surface border border-gray-200 rounded-lg p-3">
                           <div className="text-sm text-gray-500 mb-1">الصافي</div>
                           <div
                             className={`text-lg font-bold ${netAmount < 0 ? 'text-red-600' : 'text-blue-700'}`}
@@ -2980,7 +2980,7 @@ export default function PayrollDeductions() {
                             {netAmount.toLocaleString('en-US')}
                           </div>
                         </div>
-                        <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="bg-surface border border-gray-200 rounded-lg p-3">
                           <div className="text-sm text-gray-500 mb-1">اقتراح الأقساط</div>
                           <div className="text-lg font-bold text-orange-600">
                             {(
@@ -3030,23 +3030,23 @@ export default function PayrollDeductions() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <h3 className="text-lg font-semibold text-slate-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             {selectedPayrollRun.status === 'cancelled'
                               ? 'هذا المسير ملغي حاليًا'
                               : 'المسير المحدد جاهز لإدخال الرواتب'}
                           </h3>
-                          <p className="text-sm text-slate-600">
+                          <p className="text-sm text-foreground-secondary">
                             {selectedPayrollRun.status === 'cancelled'
                               ? 'هذا المسير ملغي حاليًا، لذلك لا يمكن إدخال رواتب أو استيراد بيانات بداخله حتى إعادة فتحه.'
                               : 'أنت الآن داخل تفاصيل هذا المسير. لا توجد مدخلات رواتب بعد، ويمكنك إضافة أول راتب يدويًا أو استيراد كشف كامل من Excel.'}
                           </p>
                         </div>
                         {selectedPayrollRun.status !== 'cancelled' && (
-                          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-right">
-                            <div className="text-sm font-semibold text-slate-900 mb-2">
+                          <div className="rounded-xl border border-slate-200 bg-surface px-4 py-3 text-right">
+                            <div className="text-sm font-semibold text-foreground mb-2">
                               للبدء السريع:
                             </div>
-                            <div className="space-y-1 text-sm text-slate-700">
+                            <div className="space-y-1 text-sm text-foreground-secondary">
                               <p>
                                 1. اضغط على زر إدخال راتب يدوي لإضافة راتب أول موظف داخل هذا المسير.
                               </p>
@@ -3091,7 +3091,7 @@ export default function PayrollDeductions() {
                               اليدوي والاستيراد حتى إضافة موظفين لهذا النطاق أولًا.
                             </div>
                           )}
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-foreground-tertiary">
                           الموظفون المتاحون داخل نطاق هذا المسير: {scopedPayrollEmployees.length}
                         </div>
                       </div>
@@ -3163,7 +3163,7 @@ export default function PayrollDeductions() {
                                       تعديل
                                     </button>
                                   ) : (
-                                    <span className="text-xs text-slate-400">—</span>
+                                    <span className="text-xs text-foreground-tertiary">—</span>
                                   )}
                                 </td>
                                 <td className="px-4 py-3">
@@ -3194,22 +3194,22 @@ export default function PayrollDeductions() {
                     <div className="border-t border-gray-200 bg-slate-50 px-4 py-4">
                       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                         <div className="lg:max-w-sm">
-                          <h3 className="font-semibold text-slate-900 mb-1">
+                          <h3 className="font-semibold text-foreground mb-1">
                             استيراد الرواتب من Excel
                           </h3>
-                          <p className="text-sm text-slate-600">
+                          <p className="text-sm text-foreground-secondary">
                             ابدأ بالقالب الجاهز، ثم ارفع الملف وراجع الصفوف قبل الاعتماد النهائي
                             داخل نفس المسير.
                           </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
-                          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                          <div className="rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
                             1. نزّل القالب وأبقِ رقم الإقامة موجودًا في كل صف.
                           </div>
-                          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                          <div className="rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
                             2. اترك أي عمود غير متوفر فارغًا وسيتم اعتباره صفرًا أو ملاحظة فارغة.
                           </div>
-                          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                          <div className="rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
                             3. راجع المعاينة قبل الاعتماد لتجنب إدخال بيانات غير مطابقة.
                           </div>
                         </div>
@@ -3252,7 +3252,7 @@ export default function PayrollDeductions() {
                         </div>
                       </div>
 
-                      <div className="overflow-x-auto rounded-lg border border-blue-200 bg-white">
+                      <div className="overflow-x-auto rounded-lg border border-blue-200 bg-surface">
                         <table className="w-full text-sm">
                           <thead className="bg-blue-50">
                             <tr>
@@ -3326,7 +3326,7 @@ export default function PayrollDeductions() {
                           إخفاء
                         </button>
                       </div>
-                      <div className="max-h-48 overflow-y-auto rounded-lg border border-red-200 bg-white">
+                      <div className="max-h-48 overflow-y-auto rounded-lg border border-red-200 bg-surface">
                         <ul className="divide-y divide-red-100 text-sm text-red-800">
                           {payrollImportErrors.map((error, index) => (
                             <li key={`${error}-${index}`} className="px-4 py-3">
@@ -3348,12 +3348,12 @@ export default function PayrollDeductions() {
             <div
               role="dialog"
               aria-modal="true"
-              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-surface shadow-2xl"
             >
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">تأكيد حذف المسير</h2>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <h2 className="text-lg font-bold text-foreground">تأكيد حذف المسير</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary">
                     {getPayrollRunDisplayName(
                       selectedPayrollRun.scope_type,
                       selectedPayrollRun.scope_id,
@@ -3364,7 +3364,7 @@ export default function PayrollDeductions() {
                 <button
                   type="button"
                   onClick={() => setPayrollRunDeleteConfirmOpen(false)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-foreground-tertiary transition hover:bg-slate-50"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -3373,7 +3373,7 @@ export default function PayrollDeductions() {
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                   سيتم حذف هذا المسير وكل الرواتب المرتبطة به نهائيًا.
                 </div>
-                <p className="text-sm text-slate-600">إذا كنت متأكدًا، اضغط على تأكيد الحذف.</p>
+                <p className="text-sm text-foreground-secondary">إذا كنت متأكدًا، اضغط على تأكيد الحذف.</p>
               </div>
               <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4">
                 <button
@@ -3442,7 +3442,7 @@ export default function PayrollDeductions() {
                   </button>
                 </div>
 
-                <div ref={payrollSlipPreviewRef} className="space-y-6 bg-white">
+                <div ref={payrollSlipPreviewRef} className="space-y-6 bg-surface">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-sm text-gray-500 mb-1">الموظف</div>

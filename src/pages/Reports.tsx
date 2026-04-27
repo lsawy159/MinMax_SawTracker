@@ -335,7 +335,7 @@ export default function Reports() {
               className={`app-tab-button ${
                 activeTab === 'companies'
                   ? 'app-tab-button-active'
-                  : 'hover:bg-slate-50 hover:text-slate-900'
+                  : 'hover:bg-slate-50 hover:text-foreground'
               }`}
             >
               <Building2 className="w-5 h-5" />
@@ -346,7 +346,7 @@ export default function Reports() {
               className={`app-tab-button ${
                 activeTab === 'employees'
                   ? 'app-tab-button-active'
-                  : 'hover:bg-slate-50 hover:text-slate-900'
+                  : 'hover:bg-slate-50 hover:text-foreground'
               }`}
             >
               <Users className="w-5 h-5" />
@@ -497,7 +497,7 @@ export default function Reports() {
               filteredItems.map((item, index) => (
                 <div
                   key={`${item.type}-${item.name}-${index}`}
-                  className="bg-white border border-neutral-200 rounded-lg p-4 space-y-2"
+                  className="bg-surface border border-neutral-200 rounded-lg p-4 space-y-2"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div>

@@ -192,9 +192,9 @@ export default function ActivityLogs() {
       return {
         bg: 'bg-primary/10',
         border: 'border-l-4 border-primary',
-        text: 'text-slate-900',
-        badge: 'bg-primary/15 text-slate-900',
-        icon: 'bg-primary/15 text-slate-900',
+        text: 'text-foreground',
+        badge: 'bg-primary/15 text-foreground',
+        icon: 'bg-primary/15 text-foreground',
       }
     if (
       actionLower.includes('delete') ||
@@ -214,7 +214,7 @@ export default function ActivityLogs() {
         border: 'border-l-4 border-slate-500',
         text: 'text-slate-800',
         badge: 'bg-slate-200 text-slate-800',
-        icon: 'bg-slate-200 text-slate-700',
+        icon: 'bg-slate-200 text-foreground-secondary',
       }
     if (actionLower.includes('logout') || actionLower.includes('خروج'))
       return {
@@ -1186,7 +1186,7 @@ export default function ActivityLogs() {
           <div className="flex flex-col gap-3 mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="app-icon-chip flex-shrink-0">
-                <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-slate-900" />
+                <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-foreground" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-neutral-900">
