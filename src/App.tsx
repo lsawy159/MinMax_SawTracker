@@ -52,7 +52,6 @@ const ImportExport = lazy(() => import('./pages/ImportExport'))
 const DesignSystem = lazy(() => import('./pages/DesignSystem'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
-const AlertSettings = lazy(() => import('./pages/AlertSettings'))
 
 // Loading fallback component
 function PageLoader({
@@ -176,14 +175,7 @@ function AppRoutes() {
             }
           />
           <Route path="/backup-settings" element={<Navigate to="/admin-settings?tab=backup" replace />} />
-          <Route
-            path="/alert-settings"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <AlertSettings />
-              </Suspense>
-            }
-          />
+          <Route path="/alert-settings" element={<Navigate to="/admin-settings?tab=alert-settings" replace />} />
           <Route
             path="/notifications"
             element={

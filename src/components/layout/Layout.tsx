@@ -212,7 +212,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         badge: null,
       },
       {
-        path: '/alert-settings',
+        path: '/admin-settings?tab=alert-settings',
         icon: Bell,
         label: 'إعدادات التنبيهات',
         permission: { section: 'centralizedSettings' as const, action: 'view' },

@@ -14,6 +14,7 @@ import {
   Bell,
   BarChart3,
   Users,
+  AlertTriangle,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -25,6 +26,7 @@ import { BackupTab } from '@/components/settings/tabs/BackupTab'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
+import UnifiedSettings from '@/components/settings/UnifiedSettings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -62,7 +64,7 @@ type TabType =
   | 'ui'
   | 'reports'
   | 'advanced-notifications'
-  | 'unified'
+  | 'alert-settings'
   | 'backup'
 
 export default function GeneralSettings() {
@@ -142,7 +144,7 @@ export default function GeneralSettings() {
       'ui',
       'reports',
       'advanced-notifications',
-      'unified',
+      'alert-settings',
       'backup',
     ]
     if (allowedTabs.includes(tab as TabType)) {
@@ -412,6 +414,13 @@ export default function GeneralSettings() {
           setting_type: 'time',
         },
       ],
+    },
+    {
+      key: 'alert-settings',
+      label: 'إعدادات التنبيهات',
+      description: 'تخصيص حدود التنبيهات وألوانها وحالاتها: ما يُعتبر تنبيهاً حرجاً، والألوان المرتبطة بكل حالة.',
+      icon: AlertTriangle,
+      component: UnifiedSettings,
     },
   ]
 
