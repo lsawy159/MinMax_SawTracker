@@ -18,7 +18,6 @@ import {
   X,
   ChevronRight,
   LogOut,
-  Mail,
   Wallet,
   Moon,
   Sun,
@@ -226,13 +225,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         icon: Settings,
         label: 'حدود الشركات',
         permission: { section: 'settings' as const, action: 'view' },
-        badge: null,
-      },
-      {
-        path: '/backup-settings',
-        icon: Mail,
-        label: 'إعدادات النسخ الاحتياطي',
-        permission: { section: 'adminSettings' as const, action: 'view' },
         badge: null,
       },
       {

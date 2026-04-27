@@ -1,12 +1,21 @@
-import { useEffect } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
-import { Settings, Shield } from 'lucide-react'
+import { Settings, Mail } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+// Lazy load backup tab
+const BackupTab = React.lazy(() =>
+  import('@/components/settings/tabs/BackupTab').then((mod) => ({ default: mod.BackupTab }))
+)
 
 export default function AdminSettings() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'backup')
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -27,18 +36,27 @@ export default function AdminSettings() {
               <Settings className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-neutral-900">إعدادات النظام</h1>
-              <p className="mt-1 text-neutral-600">إدارة الإعدادات العامة</p>
+              <h1 className="text-3xl font-bold text-foreground">إعدادات النظام</h1>
+              <p className="mt-1 text-foreground-secondary">إدارة إعدادات النسخ الاحتياطي والنظام</p>
             </div>
           </div>
         </div>
 
-        <div className="app-panel p-6">
-          <div className="py-12 text-center text-neutral-500">
-            <Shield className="mx-auto mb-4 h-16 w-16 text-neutral-400" />
-            <h3 className="mb-2 text-lg font-medium text-neutral-700">الإعدادات العامة</h3>
-            <p className="text-sm">سيتم إضافة المزيد من الإعدادات قريباً</p>
-          </div>
+        <div className="app-panel">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="border-b rounded-none bg-surface">
+              <TabsTrigger value="backup" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                النسخ الاحتياطية
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="backup" className="p-6">
+              <Suspense fallback={<LoadingSpinner />}>
+                <BackupTab />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>
