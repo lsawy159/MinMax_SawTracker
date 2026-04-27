@@ -1,4 +1,5 @@
 import { ChangeEvent, useState, useEffect, useMemo, useRef } from 'react'
+import Layout from '@/components/layout/Layout'
 import {
   BarChart3,
   RefreshCw,
@@ -1873,7 +1874,7 @@ export default function PayrollDeductions() {
 
   if (!hasPayrollViewPermission) {
     return (
-      <>
+      <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Wallet className="w-16 h-16 mx-auto mb-4 text-red-500" />
@@ -1881,12 +1882,12 @@ export default function PayrollDeductions() {
             <p className="text-gray-600">عذراً، ليس لديك صلاحية لعرض صفحة الرواتب والاستقطاعات.</p>
           </div>
         </div>
-      </>
+      </Layout>
     )
   }
 
   return (
-    <>
+    <Layout>
       <div className="app-page app-tech-grid">
         {/* Header */}
         <div className="app-panel mb-5 p-5">
@@ -3552,6 +3553,6 @@ export default function PayrollDeductions() {
           </div>
         )}
       </div>
-    </>
+    </Layout>
   )
 }

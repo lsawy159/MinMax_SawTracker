@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Layout from '@/components/layout/Layout'
 import {
   BarChart3,
   RefreshCw,
@@ -289,7 +290,7 @@ export default function Reports() {
 
   if (loading) {
     return (
-      <>
+      <Layout>
         <div className="app-page app-tech-grid">
           <div className="flex items-center justify-center h-[60vh]">
             <div className="text-center">
@@ -298,14 +299,14 @@ export default function Reports() {
             </div>
           </div>
         </div>
-      </>
+      </Layout>
     )
   }
 
   const typeOptions = activeTab === 'companies' ? COMPANY_TYPES : EMPLOYEE_TYPES
 
   return (
-    <>
+    <Layout>
       <div className="app-page app-tech-grid">
         <PageHeader
           title="التقارير"
@@ -535,6 +536,6 @@ export default function Reports() {
           </div>
         </div>
       </div>
-    </>
+    </Layout>
   )
 }

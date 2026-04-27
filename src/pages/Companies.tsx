@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo, type CSSProperties } from 'react' // [FIX] تم إضافة useCallback و useMemo
 import { supabase, Company } from '@/lib/supabase'
+import Layout from '@/components/layout/Layout'
 import CompanyModal from '@/components/companies/CompanyModal'
 import CompanyCard from '@/components/companies/CompanyCard'
 import CompanyDetailModal from '@/components/companies/CompanyDetailModal'
@@ -932,7 +933,7 @@ export default function Companies() {
 
   if (!hasViewPermission) {
     return (
-      <>
+      <Layout>
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <Shield className="w-16 h-16 mx-auto mb-4 text-danger-500" />
@@ -940,12 +941,12 @@ export default function Companies() {
             <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
           </div>
         </div>
-      </>
+      </Layout>
     )
   }
 
   return (
-    <>
+    <Layout>
       <div className="app-page app-tech-grid">
         <PageHeader
           title="المؤسسات"
@@ -1790,6 +1791,6 @@ export default function Companies() {
           </div>
         )}
       </div>
-    </>
+    </Layout>
   )
 }

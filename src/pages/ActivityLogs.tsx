@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase, ActivityLog, User } from '@/lib/supabase'
+import Layout from '@/components/layout/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { logger } from '@/utils/logger'
 import {
@@ -1170,7 +1171,7 @@ export default function ActivityLogs() {
   }, [filteredLogs, usersMap])
 
   return (
-    <>
+    <Layout>
       {unauthorized ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
@@ -1326,6 +1327,6 @@ export default function ActivityLogs() {
           {/* End of main container */}
         </div>
       )}
-    </>
+    </Layout>
   )
 }

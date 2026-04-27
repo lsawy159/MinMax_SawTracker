@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { CheckSquare, Edit2, Save, Shield, X } from 'lucide-react'
 import { toast } from 'sonner'
 
+import Layout from '@/components/layout/Layout'
 import PermissionGuard from '@/components/PermissionGuard'
 import { RoleBadge } from '@/components/ui/StatusBadge'
 import { supabase, type User } from '@/lib/supabase'
@@ -288,7 +289,7 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
     return content
   }
 
-  return <>{content}</>
+  return <Layout>{content}</Layout>
 }
 
 export default function Permissions() {
