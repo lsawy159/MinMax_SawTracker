@@ -107,35 +107,6 @@ export default function EmployeeCard({
     updated_at?: string
   }
 
-  /**
-   * Helper function to safely get additional field values with type conversion
-   */
-  function getAdditionalFieldValue(
-    value: unknown,
-    fieldType: 'text' | 'number' | 'select' | 'checkbox' | 'textarea' = 'text'
-  ): string | number | boolean {
-    // Handle empty values
-    if (value === null || value === undefined) {
-      switch (fieldType) {
-        case 'number':
-          return 0
-        case 'checkbox':
-          return false
-        default:
-          return ''
-      }
-    }
-
-    // Handle different types
-    switch (fieldType) {
-      case 'number':
-        return typeof value === 'number' ? value : Number(value) || 0
-      case 'checkbox':
-        return typeof value === 'boolean' ? value : Boolean(value)
-      default:
-        return String(value)
-    }
-  }
 
   const [formData, setFormData] = useState<EmployeeFormData>({
     ...employee,

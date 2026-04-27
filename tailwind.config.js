@@ -22,6 +22,28 @@ module.exports = {
 				mono: 'var(--font-family-mono)',
 			},
 			colors: {
+				background: 'var(--color-background)',
+				surface: 'var(--color-surface)',
+				foreground: 'var(--color-foreground)',
+				card: {
+					DEFAULT: 'var(--color-card)',
+					foreground: 'var(--color-card-foreground)',
+				},
+				popover: {
+					DEFAULT: 'var(--color-popover)',
+					foreground: 'var(--color-popover-foreground)',
+				},
+				muted: {
+					DEFAULT: 'var(--color-muted)',
+					foreground: 'var(--color-muted-foreground)',
+				},
+				accent: {
+					DEFAULT: 'var(--color-accent)',
+					foreground: 'var(--color-accent-foreground)',
+				},
+				border: 'var(--color-border)',
+				input: 'var(--color-input)',
+				ring: 'var(--color-ring)',
 				primary: {
 					50: 'var(--color-primary-50)',
 					100: 'var(--color-primary-100)',
@@ -88,6 +110,7 @@ module.exports = {
 				md: 'var(--shadow-md)',
 				lg: 'var(--shadow-lg)',
 				xl: 'var(--shadow-xl)',
+				focus: 'var(--shadow-focus)',
 			},
 			borderRadius: {
 				sm: 'var(--radius-sm)',

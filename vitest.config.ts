@@ -18,6 +18,11 @@ export default defineConfig({
     },
   },
   test: {
+    // Alias lucide-react to a stub in tests to avoid React instance mismatch
+    // lucide-react@1.11+ uses useContext internally which crashes without a provider
+    alias: {
+      'lucide-react': path.resolve(__dirname, 'src/__mocks__/lucide-react.tsx'),
+    },
     // Ensure the Symbol polyfill/setup runs first, then register jest-dom matchers,
     // then register the unhandled-errors catcher. Order matters.
     setupFiles: [
