@@ -986,17 +986,17 @@ export default function Companies() {
             return (
               <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                 <div className="app-panel p-4 text-center">
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <div className="text-2xl font-bold text-foreground dark:text-white">
                     {stats.totalCompanies}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">إجمالي المؤسسات</div>
+                  <div className="text-sm text-foreground-secondary dark:text-foreground-secondary">إجمالي المؤسسات</div>
                 </div>
 
                 <div className="app-panel border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
                   <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">
                     {stats.totalValid}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                  <div className="text-sm text-foreground-secondary dark:text-foreground-secondary">
                     ساري ({stats.totalValidPercentage}%)
                   </div>
                 </div>
@@ -1005,7 +1005,7 @@ export default function Companies() {
                   <div className="text-2xl font-bold text-amber-600 dark:text-amber-300">
                     {stats.totalMedium}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                  <div className="text-sm text-foreground-secondary dark:text-foreground-secondary">
                     متوسط ({stats.totalMediumPercentage}%)
                   </div>
                 </div>
@@ -1014,7 +1014,7 @@ export default function Companies() {
                   <div className="text-2xl font-bold text-rose-600 dark:text-rose-300">
                     {stats.totalCritical + stats.totalExpired}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                  <div className="text-sm text-foreground-secondary dark:text-foreground-secondary">
                     طارئ/منتهي ({stats.totalCriticalPercentage + stats.totalExpiredPercentage}%)
                   </div>
                 </div>
@@ -1066,7 +1066,7 @@ export default function Companies() {
             {showSortDropdown && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSortDropdown(false)} />
-                <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-neutral-200 z-20 py-2">
+                <div className="absolute left-0 mt-2 w-56 bg-surface rounded-lg shadow-lg border border-neutral-200 z-20 py-2">
                   <div className="px-3 py-2 text-xs font-semibold text-neutral-500 border-b border-neutral-200">
                     الترتيب حسب:
                   </div>
@@ -1088,7 +1088,7 @@ export default function Companies() {
                         setShowSortDropdown(false)
                       }}
                       className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition hover:bg-neutral-50 ${
-                        sortField === field ? 'bg-primary/10 text-slate-900' : 'text-neutral-700'
+                        sortField === field ? 'bg-primary/10 text-foreground' : 'text-neutral-700'
                       }`}
                     >
                       <span>{label}</span>
@@ -1132,7 +1132,7 @@ export default function Companies() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-white/70 px-3 py-1.5 dark:bg-slate-900/70">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface/70 px-3 py-1.5 dark:bg-slate-900/70">
               <span className="text-sm text-neutral-600">عرض:</span>
               <select
                 value={itemsPerPage}
@@ -1710,7 +1710,7 @@ export default function Companies() {
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-red-100 p-3 rounded-lg">
@@ -1747,7 +1747,7 @@ export default function Companies() {
         {/* Bulk Delete Confirmation Modal */}
         {showBulkDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-red-100 p-3 rounded-lg">

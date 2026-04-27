@@ -8,7 +8,7 @@
  * - Memory and Bundle Size Optimization
  */
 
-import React, { ReactNode, Suspense, lazy, LazyExoticComponent, ComponentType } from 'react'
+import React, { ReactNode, Suspense, lazy, LazyExoticComponent } from 'react'
 import { logger } from './logger'
 
 // Type guard for development environment
