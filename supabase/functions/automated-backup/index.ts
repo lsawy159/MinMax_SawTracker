@@ -11,6 +11,71 @@ interface BackupResponse {
   error?: string
 }
 
+interface BackupNotificationConfig {
+  deliveryMode: 'local_only' | 'local_plus_email'
+  emailEnabled: boolean
+  emailRecipients: string[]
+}
+
+async function readBackupNotificationConfig(supabase: ReturnType<typeof createClient>): Promise<BackupNotificationConfig> {
+  const settingKeys = [
+    'backup_delivery_mode',
+    'backup_email_notifications_enabled',
+    'backup_email_recipients',
+  ]
+
+  const { data } = await supabase
+    .from('system_settings')
+    .select('setting_key, setting_value')
+    .in('setting_key', settingKeys)
+
+  const map = new Map<string, unknown>()
+  for (const row of data || []) {
+    map.set((row as { setting_key: string }).setting_key, (row as { setting_value: unknown }).setting_value)
+  }
+
+  const rawMode = String(map.get('backup_delivery_mode') ?? 'local_plus_email')
+    .replace(/^"|"$/g, '')
+    .trim()
+    .toLowerCase()
+  const deliveryMode: BackupNotificationConfig['deliveryMode'] =
+    rawMode === 'local_only' ? 'local_only' : 'local_plus_email'
+
+  const rawEnabled = String(map.get('backup_email_notifications_enabled') ?? 'true')
+    .replace(/^"|"$/g, '')
+    .trim()
+    .toLowerCase()
+  const emailEnabled = rawEnabled !== 'false'
+
+  const rawRecipients = map.get('backup_email_recipients')
+  let emailRecipients: string[] = []
+  if (Array.isArray(rawRecipients)) {
+    emailRecipients = rawRecipients.filter(
+      (item): item is string => typeof item === 'string' && item.trim().length > 0
+    )
+  } else if (typeof rawRecipients === 'string' && rawRecipients.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(rawRecipients)
+      if (Array.isArray(parsed)) {
+        emailRecipients = parsed.filter(
+          (item): item is string => typeof item === 'string' && item.trim().length > 0
+        )
+      }
+    } catch {
+      emailRecipients = rawRecipients
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    }
+  }
+
+  return {
+    deliveryMode,
+    emailEnabled,
+    emailRecipients,
+  }
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -30,6 +95,9 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const notificationConfig = await readBackupNotificationConfig(supabase)
+    const shouldSendEmail =
+      notificationConfig.deliveryMode === 'local_plus_email' && notificationConfig.emailEnabled
 
     // الحصول على معايير النسخ الاحتياطي
     const { backup_type = 'full', tables = [], triggered_by = 'manual' } = await req.json().catch(() => ({}))
@@ -241,10 +309,21 @@ SET standard_conforming_strings = on;
         .eq('id', backupRecord.id)
 
       // إرسال بريد إلكتروني عن الفشل بشكل غير متزامن (لا ننتظرها)
-      sendBackupNotificationEmail(supabase, supabaseUrl, backupRecord.id, backupFileName, 'failed', 0, backup_type, uploadError.message)
-        .catch(emailError => {
+      if (shouldSendEmail) {
+        sendBackupNotificationEmail(
+          supabase,
+          supabaseUrl,
+          backupRecord.id,
+          backupFileName,
+          'failed',
+          0,
+          backup_type,
+          uploadError.message,
+          notificationConfig.emailRecipients
+        ).catch(emailError => {
           console.warn('فشل في إرسال بريد الفشل (غير حرج):', emailError?.message || emailError)
         })
+      }
 
       throw new Error(`فشل في رفع النسخة الاحتياطية: ${uploadError.message}`)
     }
@@ -313,7 +392,20 @@ SET standard_conforming_strings = on;
       // إرسال بريد إلكتروني بشكل غير متزامن (لا ننتظرها)
       (async () => {
         try {
-          await sendBackupNotificationEmail(supabase, supabaseUrl, backupRecord.id, backupFileName, 'success', compressedSize, backup_type)
+          if (!shouldSendEmail) {
+            return
+          }
+          await sendBackupNotificationEmail(
+            supabase,
+            supabaseUrl,
+            backupRecord.id,
+            backupFileName,
+            'success',
+            compressedSize,
+            backup_type,
+            undefined,
+            notificationConfig.emailRecipients
+          )
         } catch (emailError) {
           console.warn('فشل في إرسال بريد النجاح (غير حرج):', emailError?.message || emailError)
         }
@@ -336,6 +428,13 @@ SET standard_conforming_strings = on;
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        const notificationConfig = await readBackupNotificationConfig(supabase)
+        const shouldSendEmail =
+          notificationConfig.deliveryMode === 'local_plus_email' && notificationConfig.emailEnabled
+
+        if (!shouldSendEmail) {
+          return
+        }
         
         // البحث عن آخر backup record فاشل
         const { data: failedBackup } = await supabase
@@ -355,7 +454,8 @@ SET standard_conforming_strings = on;
             'failed', 
             0, 
             failedBackup.backup_type || 'full',
-            error.message
+            error.message,
+            notificationConfig.emailRecipients
           ).catch(notificationError => {
             console.warn('فشل في إرسال بريد الخطأ (غير حرج):', notificationError?.message || notificationError)
           })
@@ -386,9 +486,30 @@ async function sendBackupNotificationEmail(
   status: 'success' | 'failed',
   fileSize: number,
   backupType: string,
-  errorMessage?: string
+  errorMessage?: string,
+  overrideRecipients: string[] = []
 ) {
   try {
+    if (overrideRecipients.length > 0) {
+      const uniqueRecipients = Array.from(new Set(overrideRecipients.map((email) => email.trim())))
+        .filter((email) => email.length > 0)
+
+      if (uniqueRecipients.length > 0) {
+        console.log('[BackupNotification] Using override recipients from backup settings')
+        return await sendBackupEmailPayload(
+          supabase,
+          supabaseUrl,
+          uniqueRecipients,
+          backupId,
+          fileName,
+          status,
+          fileSize,
+          backupType,
+          errorMessage
+        )
+      }
+    }
+
     // 🆕 استخدام نظام الإشعارات الموحد من notification_recipients في system_settings
     const { data: notificationConfig, error: configError } = await supabase
       .from('system_settings')
@@ -459,6 +580,35 @@ async function sendBackupNotificationEmail(
     }
 
     console.log(`[BackupNotification] Sending to ${recipients.length} recipient(s): ${recipients.join(', ')}`)
+    await sendBackupEmailPayload(
+      supabase,
+      supabaseUrl,
+      recipients,
+      backupId,
+      fileName,
+      status,
+      fileSize,
+      backupType,
+      errorMessage
+    )
+  } catch (error) {
+    console.error('خطأ في إرسال بريد إشعار النسخ الاحتياطي:', error)
+    throw error
+  }
+}
+
+async function sendBackupEmailPayload(
+  supabase: any,
+  supabaseUrl: string,
+  recipients: string[],
+  backupId: string,
+  fileName: string,
+  status: 'success' | 'failed',
+  fileSize: number,
+  backupType: string,
+  errorMessage?: string
+) {
+  try {
 
     // إنشاء محتوى البريد
     const date = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })

@@ -29,10 +29,13 @@ const DIGEST_ADMIN_EMAIL = 'ahmad.alsawy159@gmail.com'
 function resolveQueueMode(): 'normal' | 'digest-only' {
   const viteMode = (import.meta as unknown as { env?: Record<string, string> }).env
     ?.VITE_EMAIL_QUEUE_MODE
-  const processMode =
-    typeof process !== 'undefined' && process.env
-      ? process.env.VITE_EMAIL_QUEUE_MODE
-      : undefined
+  const processMode = (
+    globalThis as {
+      process?: {
+        env?: Record<string, string | undefined>
+      }
+    }
+  ).process?.env?.VITE_EMAIL_QUEUE_MODE
 
   const mode = (processMode || viteMode || 'normal').trim().toLowerCase()
   return mode === 'digest-only' ? 'digest-only' : 'normal'

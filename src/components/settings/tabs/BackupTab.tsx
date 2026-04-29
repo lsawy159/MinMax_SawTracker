@@ -185,6 +185,74 @@ function ScheduleForm({ initial, onSaved }: ScheduleFormProps) {
               ))}
             </select>
           </div>
+
+          {/* Delivery mode */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-foreground-secondary">
+              طريقة النسخ
+            </label>
+            <select
+              value={form.delivery_mode}
+              onChange={(e) =>
+                update('delivery_mode', e.target.value as BackupSettings['delivery_mode'])
+              }
+              className="app-input h-10 w-full text-sm"
+            >
+              <option value="local_plus_email">محلي + إشعار Gmail</option>
+              <option value="local_only">محلي فقط</option>
+            </select>
+          </div>
+
+          {/* Email notifications toggle */}
+          {form.delivery_mode === 'local_plus_email' && (
+            <div className="sm:col-span-2 lg:col-span-2 rounded-lg border border-border/70 bg-surface-secondary/40 p-3">
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-foreground-secondary">
+                  إشعارات البريد
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    update('email_notifications_enabled', !form.email_notifications_enabled)
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                    form.email_notifications_enabled
+                      ? 'bg-primary'
+                      : 'bg-neutral-300 dark:bg-neutral-600'
+                  }`}
+                  aria-checked={form.email_notifications_enabled}
+                  role="switch"
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      form.email_notifications_enabled ? '-translate-x-6' : '-translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <label className="mt-3 mb-1.5 block text-xs font-medium text-foreground-secondary">
+                مستقبلو Gmail (مفصولين بفاصلة)
+              </label>
+              <input
+                type="text"
+                value={form.email_recipients.join(', ')}
+                onChange={(e) => {
+                  const recipients = e.target.value
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter((item) => item.length > 0)
+                  update('email_recipients', recipients)
+                }}
+                placeholder="owner@gmail.com, ops@gmail.com"
+                className="app-input h-10 w-full text-sm"
+                disabled={!form.email_notifications_enabled}
+              />
+              <p className="mt-1 text-[11px] text-foreground-tertiary">
+                يتم الإرسال بعد نجاح الحفظ المحلي للنسخة الاحتياطية فقط.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
