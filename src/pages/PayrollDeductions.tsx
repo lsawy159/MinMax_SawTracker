@@ -147,6 +147,10 @@ interface PayrollRunSeedRow {
 }
 
 function buildPayrollRunSeedRow(employee: ScopedPayrollEmployee): PayrollRunSeedRow {
+  const suggestedBreakdown = normalizePayrollObligationBreakdown(
+    employee.suggested_deduction_breakdown
+  )
+
   return {
     employee_id: employee.id,
     employee_name: employee.name,
@@ -156,10 +160,10 @@ function buildPayrollRunSeedRow(employee: ScopedPayrollEmployee): PayrollRunSeed
     paid_leave_days: 0,
     basic_salary_snapshot: Number(employee.salary || 0),
     overtime_amount: 0,
-    transfer_renewal_amount: employee.suggested_deduction_breakdown.transfer_renewal,
-    penalty_amount: employee.suggested_deduction_breakdown.penalty,
-    advance_amount: employee.suggested_deduction_breakdown.advance,
-    other_amount: employee.suggested_deduction_breakdown.other,
+    transfer_renewal_amount: suggestedBreakdown.transfer_renewal,
+    penalty_amount: suggestedBreakdown.penalty,
+    advance_amount: suggestedBreakdown.advance,
+    other_amount: suggestedBreakdown.other,
     overtime_notes: '',
     deductions_notes: '',
     notes: '',
@@ -773,7 +777,9 @@ export default function PayrollDeductions() {
       const defaultEmployee = scopedPayrollEmployees[0]
       setPayrollEntryForm((current) => {
         const nextSalary = Number(defaultEmployee.salary || 0)
-        const nextBreakdown = defaultEmployee.suggested_deduction_breakdown
+        const nextBreakdown = normalizePayrollObligationBreakdown(
+          defaultEmployee.suggested_deduction_breakdown
+        )
 
         if (
           current.employee_id === defaultEmployee.id &&
@@ -847,7 +853,9 @@ export default function PayrollDeductions() {
       }
 
       setPayrollEntryForm((current) => {
-        const nextBreakdown = selectedPayrollEmployee.suggested_deduction_breakdown
+        const nextBreakdown = normalizePayrollObligationBreakdown(
+          selectedPayrollEmployee.suggested_deduction_breakdown
+        )
         const next = {
           ...current,
           basic_salary_snapshot: Number(selectedPayrollEmployee.salary || 0),
