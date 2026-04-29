@@ -26,6 +26,50 @@ describe('emailQueueService activity logging', () => {
     }))
   })
 
+  describe('digest-only mode guards', () => {
+    it('blocks non-digest general emails in digest-only mode', async () => {
+      vi.stubEnv('VITE_EMAIL_QUEUE_MODE', 'digest-only')
+
+      const result = await enqueueEmail({
+        toEmails: ['team@example.com'],
+        subject: 'Team update',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('digest-only mode')
+      expect(supabase.from).not.toHaveBeenCalled()
+    })
+
+    it('allows backup category emails in digest-only mode', async () => {
+      vi.stubEnv('VITE_EMAIL_QUEUE_MODE', 'digest-only')
+      const mockData = { id: 'backup-email-id' }
+
+      ;(supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'email_queue') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+              }),
+            }),
+          }
+        }
+        if (table === 'activity_log') {
+          return { insert: vi.fn(() => ({ catch: vi.fn() })) }
+        }
+      })
+
+      const result = await enqueueEmail({
+        toEmails: ['ops@example.com'],
+        subject: 'Backup completed successfully',
+        category: 'backup',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.id).toBe('backup-email-id')
+    })
+  })
+
   describe('success path logs create_success', () => {
     it('should log successful email enqueue to activity_log', async () => {
       const mockData = { id: 'test-email-id' }
