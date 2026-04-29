@@ -9,17 +9,13 @@ vi.mock('../supabase', () => ({
   },
 }))
 
-// Mock import.meta.env to disable digest-only mode for tests
-Object.defineProperty(import.meta, 'env', {
-  value: { VITE_EMAIL_QUEUE_MODE: 'normal' },
-  configurable: true,
-})
-
 describe('emailQueueService activity logging', () => {
   let insertMock: any
   let catchMock: any
 
   beforeEach(() => {
+    vi.stubEnv('VITE_EMAIL_QUEUE_MODE', 'normal')
+
     // Reset mocks before each test
     vi.clearAllMocks()
 
