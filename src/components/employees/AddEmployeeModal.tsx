@@ -17,6 +17,7 @@ import { parseDate, normalizeDate } from '@/utils/dateParser'
 import {
   HIRED_WORKER_CONTRACT_STATUS_OPTIONS,
   buildEmployeeBusinessAdditionalFields,
+  getEmployeeBusinessFields,
 } from '@/utils/employeeBusinessFields'
 
 interface AddEmployeeModalProps {
@@ -403,6 +404,14 @@ export default function AddEmployeeModal({
   }
 
   const validateForm = () => {
+    const normalizedHiredWorkerContractExpiry = normalizeDate(formData.hired_worker_contract_expiry)
+    const hiredWorkerStatus = getEmployeeBusinessFields({
+      additional_fields: {
+        hired_worker_contract_status: formData.hired_worker_contract_status,
+      },
+      hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
+    }).hired_worker_contract_status
+
     // التحقق من الحقول المطلوبة
     if (!formData.name.trim()) {
       toast.error('الرجاء إدخال اسم الموظف')
@@ -460,6 +469,19 @@ export default function AddEmployeeModal({
         toast.error(result.error || 'تاريخ انتهاء العقد غير صحيح')
         return false
       }
+    }
+
+    if (formData.hired_worker_contract_expiry) {
+      const result = parseDate(formData.hired_worker_contract_expiry)
+      if (!result.date) {
+        toast.error(result.error || 'تاريخ انتهاء عقد أجير غير صحيح')
+        return false
+      }
+    }
+
+    if (hiredWorkerStatus === 'أجير' && !normalizedHiredWorkerContractExpiry) {
+      toast.error('عند اختيار حالة عقد أجير = أجير يجب إدخال تاريخ انتهاء عقد أجير')
+      return false
     }
 
     return true
@@ -585,7 +607,7 @@ export default function AddEmployeeModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[110] overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="app-modal-surface max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="app-modal-header flex items-center justify-between px-6 py-4">
@@ -803,7 +825,7 @@ export default function AddEmployeeModal({
                 </div>
 
                 {isProjectDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-[130] w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                     <button
                       type="button"
                       onClick={() => {
@@ -885,7 +907,7 @@ export default function AddEmployeeModal({
 
             {/* مودال إضافة مشروع جديد */}
             {showCreateProjectModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[60] p-4">
+              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[120] p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
                   <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
                     <Plus className="w-5 h-5 text-success-600" />
@@ -980,7 +1002,7 @@ export default function AddEmployeeModal({
                 </div>
 
                 {isCompanyDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-[130] w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                     {filteredCompanies.length === 0 ? (
                       <div className="px-4 py-3 text-sm text-neutral-500 text-center">
                         {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد مؤسسات متاحة'}

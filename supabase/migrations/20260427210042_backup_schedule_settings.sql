@@ -1,16 +1,33 @@
 -- Migration: Backup Schedule Settings
 -- Adds automated backup scheduling settings to system_settings
 
+-- 0. Ensure required columns exist in system_settings
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'system_settings' AND column_name = 'category') THEN
+    ALTER TABLE public.system_settings ADD COLUMN category TEXT DEFAULT 'general';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'system_settings' AND column_name = 'description') THEN
+    ALTER TABLE public.system_settings ADD COLUMN description TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = 'system_settings' AND column_name = 'setting_type') THEN
+    ALTER TABLE public.system_settings ADD COLUMN setting_type TEXT DEFAULT 'text';
+  END IF;
+END $$;
+
 -- 1. Insert backup schedule settings (skip if already exist)
 INSERT INTO system_settings (setting_key, setting_value, category, description, setting_type)
 VALUES
-  ('backup_schedule_enabled',  to_jsonb(false),   'backup', 'تفعيل النسخ الاحتياطي التلقائي',             'boolean'),
-  ('backup_frequency',         to_jsonb('daily'),  'backup', 'تكرار النسخ: daily / weekly / monthly',       'select'),
-  ('backup_schedule_hour',     to_jsonb(2),        'backup', 'ساعة تشغيل النسخ الاحتياطي (0-23)',          'number'),
-  ('backup_schedule_day',      to_jsonb(0),        'backup', 'يوم الأسبوع للنسخ الأسبوعي (0=الأحد)',       'number'),
-  ('backup_retention_days',    to_jsonb(30),       'backup', 'عدد أيام الاحتفاظ بالنسخ الاحتياطية',       'number'),
-  ('backup_last_run_at',       to_jsonb(null::text),'backup','آخر تشغيل فعلي للنسخ الاحتياطي',            'text'),
-  ('backup_next_run_at',       to_jsonb(null::text),'backup','الموعد المجدول للنسخ الاحتياطي القادم',      'text')
+  ('backup_schedule_enabled',  'false'::jsonb,    'backup', 'تفعيل النسخ الاحتياطي التلقائي',             'boolean'),
+  ('backup_frequency',         '"daily"'::jsonb,  'backup', 'تكرار النسخ: daily / weekly / monthly',       'select'),
+  ('backup_schedule_hour',     '2'::jsonb,        'backup', 'ساعة تشغيل النسخ الاحتياطي (0-23)',          'number'),
+  ('backup_schedule_day',      '0'::jsonb,        'backup', 'يوم الأسبوع للنسخ الأسبوعي (0=الأحد)',       'number'),
+  ('backup_retention_days',    '30'::jsonb,       'backup', 'عدد أيام الاحتفاظ بالنسخ الاحتياطية',       'number'),
+  ('backup_last_run_at',       'null'::jsonb,     'backup', 'آخر تشغيل فعلي للنسخ الاحتياطي',            'text'),
+  ('backup_next_run_at',       'null'::jsonb,     'backup', 'الموعد المجدول للنسخ الاحتياطي القادم',      'text')
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- 2. Helper: Calculate next backup timestamp based on settings

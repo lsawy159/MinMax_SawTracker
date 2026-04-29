@@ -74,6 +74,7 @@ export default function TransferProceduresTab({
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [formData, setFormData] = useState<TransferProcedureFormData>(createDefaultForm())
   const [statusDrafts, setStatusDrafts] = useState<Record<string, string>>({})
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
@@ -196,6 +197,7 @@ export default function TransferProceduresTab({
 
       toast.success('تم تسجيل إجراء النقل بنجاح')
       resetForm()
+      setShowCreateModal(false)
       await loadTransferData()
     } catch (error) {
       console.error(error)
@@ -497,124 +499,39 @@ export default function TransferProceduresTab({
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="text-sm text-neutral-500">إجمالي الطلبات</div>
+        <div className="rounded-xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/40 to-indigo-50/50 p-4 shadow-sm">
+          <div className="text-sm text-slate-500">إجمالي الطلبات</div>
           <div className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</div>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50 p-4 shadow-sm">
           <div className="text-sm text-amber-700">قيد المعالجة</div>
           <div className="mt-1 text-2xl font-bold text-amber-700">{stats.inProgress}</div>
         </div>
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-100/50 p-4 shadow-sm">
           <div className="text-sm text-success-700">جاهزة للتحويل</div>
           <div className="mt-1 text-2xl font-bold text-success-700">{stats.done}</div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/60 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-bold text-slate-900">تسجيل طلب نقل جديد</h3>
-            <p className="text-xs text-neutral-500 mt-1">المشروع إلزامي قبل حفظ السجل</p>
+            <h3 className="text-base font-bold text-slate-900">تسجيل طلب نقل</h3>
+            <p className="mt-1 text-xs text-slate-500">افتح نموذج الطلب داخل مربع منبثق سريع</p>
           </div>
           <button
             type="button"
-            onClick={resetForm}
-            className="app-button-secondary px-3 py-2 text-sm"
+            onClick={() => setShowCreateModal(true)}
+            className="app-button-primary px-3 py-2 text-sm"
             disabled={saving}
           >
-            <RefreshCcw className="h-4 w-4" />
-            تفريغ النموذج
+            <Plus className="h-4 w-4" />
+            تسجيل طلب نقل
           </button>
         </div>
-
-        <form
-          onSubmit={handleCreateTransferProcedure}
-          className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
-        >
-          <input
-            type="date"
-            value={formData.request_date}
-            onChange={(e) => setFormData((prev) => ({ ...prev, request_date: e.target.value }))}
-            className="app-input"
-            required
-            disabled={saving}
-          />
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            className="app-input"
-            placeholder="اسم العامل"
-            required
-            disabled={saving}
-          />
-          <input
-            type="text"
-            value={formData.iqama}
-            onChange={(e) => setFormData((prev) => ({ ...prev, iqama: e.target.value }))}
-            className="app-input"
-            placeholder="رقم الإقامة"
-            required
-            disabled={saving}
-          />
-          <select
-            value={formData.status}
-            onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-            className="app-input"
-            required
-            disabled={saving}
-          >
-            {NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={formData.current_unified_number}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, current_unified_number: e.target.value }))
-            }
-            className="app-input"
-            placeholder="الرقم الموحد الحالي"
-            required
-            disabled={saving}
-          />
-          <select
-            value={formData.project_id}
-            onChange={(e) => setFormData((prev) => ({ ...prev, project_id: e.target.value }))}
-            className="app-input"
-            required
-            disabled={saving}
-          >
-            <option value="">اختر المشروع</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-            className="app-input min-h-[88px] md:col-span-2 lg:col-span-2"
-            placeholder="ملاحظات إضافية (اختياري)"
-            disabled={saving}
-          />
-          <button
-            type="submit"
-            className="app-button-primary h-[44px] self-start"
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            حفظ طلب النقل
-          </button>
-        </form>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-bold text-slate-900">إدارة طلبات النقل</h3>
@@ -669,8 +586,8 @@ export default function TransferProceduresTab({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-neutral-50">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50/80">
                 <tr>
                   <th className="px-3 py-2 text-right font-semibold text-neutral-600">الاسم</th>
                   <th className="px-3 py-2 text-right font-semibold text-neutral-600">
@@ -684,11 +601,11 @@ export default function TransferProceduresTab({
                   <th className="px-3 py-2 text-right font-semibold text-neutral-600">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {transferRows.map((row) => {
                   const isDone = row.status === 'منقول'
                   return (
-                    <tr key={row.id} className="bg-white">
+                    <tr key={row.id} className="bg-white transition-colors hover:bg-slate-50/50">
                       <td className="px-3 py-3">
                         <div className="font-medium text-slate-900">{row.name}</div>
                         {row.notes ? (
@@ -769,6 +686,138 @@ export default function TransferProceduresTab({
           </div>
         </div>
       </div>
+
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          onClick={() => {
+            if (!saving) {
+              setShowCreateModal(false)
+            }
+          }}
+        >
+          <div
+            className="app-modal-surface w-full max-w-5xl max-h-[92vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="app-modal-header flex items-center justify-between px-5 py-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">تسجيل طلب نقل جديد</h3>
+                <p className="mt-1 text-xs text-slate-500">المشروع إلزامي قبل حفظ السجل</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="app-button-secondary px-3 py-2 text-sm"
+                disabled={saving}
+              >
+                إغلاق
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTransferProcedure} className="p-5">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <input
+                  type="date"
+                  value={formData.request_date}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, request_date: e.target.value }))}
+                  className="app-input"
+                  required
+                  disabled={saving}
+                />
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  className="app-input"
+                  placeholder="اسم العامل"
+                  required
+                  disabled={saving}
+                />
+                <input
+                  type="text"
+                  value={formData.iqama}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, iqama: e.target.value }))}
+                  className="app-input"
+                  placeholder="رقم الإقامة"
+                  required
+                  disabled={saving}
+                />
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
+                  className="app-input"
+                  required
+                  disabled={saving}
+                >
+                  {NEW_TRANSFER_PROCEDURE_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={formData.current_unified_number}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, current_unified_number: e.target.value }))
+                  }
+                  className="app-input"
+                  placeholder="الرقم الموحد الحالي"
+                  required
+                  disabled={saving}
+                />
+                <select
+                  value={formData.project_id}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, project_id: e.target.value }))}
+                  className="app-input"
+                  required
+                  disabled={saving}
+                >
+                  <option value="">اختر المشروع</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="app-input min-h-[110px] md:col-span-2 lg:col-span-3"
+                  placeholder="ملاحظات إضافية (اختياري)"
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="app-button-secondary px-3 py-2 text-sm"
+                  disabled={saving}
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  تفريغ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="app-button-secondary px-3 py-2 text-sm"
+                  disabled={saving}
+                >
+                  إلغاء
+                </button>
+                <button type="submit" className="app-button-primary h-[42px]" disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  حفظ طلب النقل
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <AddEmployeeModal
         isOpen={showEmployeeModal}

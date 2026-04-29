@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase, Project, Employee, Company } from '@/lib/supabase'
 import { X, FolderKanban, Users, DollarSign, Eye, Edit2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -137,10 +138,15 @@ export default function ProjectDetailModal({
     }
   }
 
-  return (
-    <>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="app-modal-surface max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[110] overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="app-modal-surface max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
           {/* Header */}
           <div className="app-modal-header flex justify-between items-center p-6">
             <div className="flex items-center gap-4">
@@ -300,8 +306,13 @@ export default function ProjectDetailModal({
               </div>
             )}
           </div>
-        </div>
       </div>
+    </div>
+  )
+
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
 
       {/* كارت الموظف المنبثق */}
       {showEmployeeCard && selectedEmployee && (

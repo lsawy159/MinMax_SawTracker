@@ -18,8 +18,8 @@ import { formatDateShortWithHijri } from '@/utils/dateFormatter'
 import { HijriDateDisplay } from '@/components/ui/HijriDateDisplay'
 import { toast } from 'sonner'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import {
   Select,
   SelectContent,

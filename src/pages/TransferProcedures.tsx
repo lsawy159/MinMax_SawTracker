@@ -1,6 +1,6 @@
 import Layout from '@/components/layout/Layout'
 import TransferProceduresTab from '@/components/import-export/TransferProceduresTab'
-import { RefreshCcw } from 'lucide-react'
+import { RefreshCcw, Send } from 'lucide-react'
 import { usePermissions } from '@/utils/permissions'
 
 export default function TransferProcedures() {
@@ -20,18 +20,28 @@ export default function TransferProcedures() {
 
   return (
     <Layout>
-      <div className="app-page app-tech-grid space-y-4">
-        <div className="mb-4 flex items-start gap-2 sm:mb-6 sm:items-center sm:gap-3">
-          <div className="app-icon-chip flex-shrink-0">
-            <RefreshCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-          </div>
-          <div className="text-left sm:text-right">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-              إجراءات النقل
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">
-              إدارة طلبات النقل وتحويلها لاحقاً إلى موظفين بعد اكتمال الحالة
-            </p>
+      <div className="app-page app-tech-grid space-y-5">
+        <div className="mb-2 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/80 via-white to-indigo-50/60 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 p-3 rounded-xl bg-gradient-to-br from-sky-100 to-indigo-100 shadow-sm">
+              <Send className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">
+                إجراءات النقل
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
+                إدارة طلبات النقل والعمال الجدد، وتحويلهم لاحقاً إلى موظفين مسجلين بعد اكتمال كافة الإجراءات المطلوبة
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="flex-shrink-0 p-2 rounded-lg hover:bg-sky-100/80 transition text-slate-600 hover:text-sky-700"
+              title="تحديث الصفحة"
+            >
+              <RefreshCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
           </div>
         </div>
 

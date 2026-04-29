@@ -12,7 +12,7 @@ import { useCardColumns } from '@/hooks/useUiPreferences'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 
 type SortField = 'name' | 'created_at' | 'status' | 'employee_count' | 'total_salaries'
 type SortDirection = 'asc' | 'desc'
@@ -390,8 +390,11 @@ export default function Projects() {
 
           {/* Delete Confirmation Modal */}
           {showDeleteModal && selectedProject && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-surface rounded-lg shadow-xl max-w-md w-full p-6">
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+              onClick={handleModalClose}
+            >
+              <div className="bg-surface rounded-lg shadow-xl max-w-md w-full p-6" onClick={(event) => event.stopPropagation()}>
                 <h3 className="text-lg font-bold text-neutral-900 mb-4">تأكيد الحذف</h3>
                 <p className="text-neutral-600 mb-6">
                   هل أنت متأكد من حذف المشروع "{selectedProject.name}"؟

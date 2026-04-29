@@ -19,7 +19,7 @@ import { usePermissions } from '@/utils/permissions'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 import {
   Select,
   SelectContent,
@@ -750,8 +750,11 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       {/* كارت المؤسسة المنبثق (لا تغيير) */}
       {showCompanyCard && selectedCompany && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-foreground/55 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] overflow-y-auto bg-foreground/55 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setShowCompanyCard(false)}
+        >
+          <div className="app-modal-surface max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
             {/* Header */}
             <div className="app-modal-header flex items-center justify-between px-6 py-4">
               <h2 className="text-xl font-bold text-neutral-900">تفاصيل المؤسسة</h2>

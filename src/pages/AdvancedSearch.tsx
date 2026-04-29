@@ -32,7 +32,7 @@ import { useIsMobileView } from '@/hooks/useIsMobileView'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 import {
   Select,
   SelectTrigger,
@@ -1451,7 +1451,7 @@ export default function AdvancedSearch() {
 
         {/* Filters Modal */}
         {showFiltersModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
             {/* Backdrop with blur */}
             <div
               className="fixed inset-0 bg-gradient-to-br from-gray-900/60 via-gray-800/50 to-gray-900/60 backdrop-blur-md transition-opacity"

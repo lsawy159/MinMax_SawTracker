@@ -49,6 +49,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
+-- Add permissions column if it doesn't exist yet
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'::jsonb;
+
 -- Normalize existing users data to flat JSON array keys.
 UPDATE public.users
 SET permissions = public.permissions_to_flat_array(permissions)

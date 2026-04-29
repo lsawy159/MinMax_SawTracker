@@ -129,10 +129,10 @@ export default function NotificationDropdown() {
       {isOpen && (
         <>
           {/* Overlay */}
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="fixed inset-0 z-[130]" onClick={() => setIsOpen(false)}></div>
 
           {/* Dropdown Panel - Material Design */}
-          <div className="absolute left-0 mt-2 w-96 bg-white rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.2),0_6px_12px_0_rgba(0,0,0,0.14),0_2px_4px_0_rgba(0,0,0,0.12)] border border-neutral-200 z-50 max-h-[600px] flex flex-col">
+          <div className="absolute left-0 z-[140] mt-2 w-96 max-h-[600px] flex-col rounded-lg border border-neutral-200 bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.2),0_6px_12px_0_rgba(0,0,0,0.14),0_2px_4px_0_rgba(0,0,0,0.12)] flex">
             {/* Header */}
             <div className="p-4 border-b border-neutral-200 flex justify-between items-center bg-gradient-to-r from-primary/5 to-secondary/5">
               <div className="flex items-center gap-2">

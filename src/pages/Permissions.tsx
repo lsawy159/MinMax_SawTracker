@@ -195,8 +195,14 @@ export function PermissionsPanel({ embedded = true }: PermissionsPanelProps) {
         )}
 
         {editingUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-border-100 bg-surface shadow-2xl">
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setEditingUser(null)}
+          >
+            <div
+              className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-border-100 bg-surface shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
               <div className="flex items-center justify-between border-b border-border-100 px-5 py-4">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">تعديل صلاحيات المستخدم</h2>

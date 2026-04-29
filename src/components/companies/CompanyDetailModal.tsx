@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X, Users, Eye, ArrowLeft, Building2 } from 'lucide-react'
 import { supabase, Company, Employee, Project } from '@/lib/supabase'
@@ -137,13 +138,14 @@ export default function CompanyDetailModal({
     )
   }
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] overflow-y-auto bg-slate-950/55 flex items-center justify-center p-4 backdrop-blur-sm"
+      dir="rtl"
       onClick={onClose}
     >
       <div
-        className="app-modal-surface max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="app-modal-surface max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -272,4 +274,6 @@ export default function CompanyDetailModal({
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

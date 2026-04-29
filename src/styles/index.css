@@ -117,20 +117,9 @@ html {
 }
 
 /* Font mode overrides — controlled by data-font-mode on <html> */
-html[data-font-mode='cairo'] {
-  --font-family-body: 'Cairo', 'IBM Plex Sans Arabic', system-ui, sans-serif;
-  --font-family-display: 'Cairo', system-ui, sans-serif;
-}
-
 html[data-font-mode='ibm-plex'] {
   --font-family-body: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
-  --font-family-display: 'Cairo', 'IBM Plex Sans Arabic', system-ui, sans-serif;
-}
-
-/* noto / tajawal: not bundled locally — falls back to system Arabic fonts */
-html[data-font-mode='noto'] {
-  --font-family-body: 'Noto Sans Arabic', 'IBM Plex Sans Arabic', system-ui, sans-serif;
-  --font-family-display: 'Noto Sans Arabic', system-ui, sans-serif;
+  --font-family-display: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
 }
 
 html[data-font-mode='tajawal'] {
@@ -164,3 +153,9 @@ body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Keep dynamic font mode effective after Tailwind base resets. */
+html,
+body {
+  font-family: var(--font-family-body);
+}

@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 
 export type ThemeMode = 'light' | 'dark'
-export type FontMode = 'ibm-plex' | 'cairo' | 'noto' | 'tajawal'
-export type DensityMode = 'compact' | 'balanced' | 'comfortable'
+export type FontMode = 'ibm-plex' | 'tajawal'
 
 const THEME_STORAGE_KEY = 'sawtracker-theme-mode'
 const FONT_STORAGE_KEY = 'sawtracker-font-mode'
-const DENSITY_STORAGE_KEY = 'sawtracker-density-mode'
 
 const UNIFIED_CARD_GRID_CLASS =
   'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3.5 md:gap-4'
@@ -30,29 +28,11 @@ function readStoredFont(): FontMode {
   }
 
   const savedFont = window.localStorage.getItem(FONT_STORAGE_KEY)
-  if (
-    savedFont === 'ibm-plex' ||
-    savedFont === 'cairo' ||
-    savedFont === 'noto' ||
-    savedFont === 'tajawal'
-  ) {
+  if (savedFont === 'ibm-plex' || savedFont === 'tajawal') {
     return savedFont
   }
 
   return 'ibm-plex'
-}
-
-function readStoredDensity(): DensityMode {
-  if (typeof window === 'undefined') {
-    return 'balanced'
-  }
-
-  const savedDensity = window.localStorage.getItem(DENSITY_STORAGE_KEY)
-  if (savedDensity === 'compact' || savedDensity === 'balanced' || savedDensity === 'comfortable') {
-    return savedDensity
-  }
-
-  return 'balanced'
 }
 
 export function useThemeMode() {
@@ -88,21 +68,6 @@ export function useFontMode() {
   return {
     fontMode,
     setFontMode,
-  }
-}
-
-export function useDensityMode() {
-  const [densityMode, setDensityMode] = useState<DensityMode>(readStoredDensity)
-
-  useEffect(() => {
-    const root = document.documentElement
-    root.setAttribute('data-density-mode', densityMode)
-    window.localStorage.setItem(DENSITY_STORAGE_KEY, densityMode)
-  }, [densityMode])
-
-  return {
-    densityMode,
-    setDensityMode,
   }
 }
 

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, Moon, Search, Sun, LogOut, Type, Rows3 } from 'lucide-react'
+import { Bell, Moon, Search, Sun, LogOut, Type } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
-import { type DensityMode, type FontMode } from '@/hooks/useUiPreferences'
+import { type FontMode } from '@/hooks/useUiPreferences'
 
 interface QuickSearchItem {
   path: string
@@ -20,8 +20,6 @@ interface PillHeaderProps {
   onSignOut: () => Promise<void>
   fontMode: FontMode
   onFontChange: (value: FontMode) => void
-  densityMode: DensityMode
-  onDensityChange: (value: DensityMode) => void
   quickSearchItems: QuickSearchItem[]
 }
 
@@ -34,8 +32,6 @@ export const PillHeader = ({
   onSignOut,
   fontMode,
   onFontChange,
-  densityMode,
-  onDensityChange,
   quickSearchItems,
 }: PillHeaderProps) => {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -258,23 +254,7 @@ export const PillHeader = ({
                   className="mb-3 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="ibm-plex">IBM Plex Sans Arabic</option>
-                  <option value="cairo">Cairo</option>
-                  <option value="noto">Noto Sans Arabic</option>
                   <option value="tajawal">Tajawal</option>
-                </select>
-
-                <label className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-                  <Rows3 className="h-3.5 w-3.5" />
-                  كثافة الواجهة
-                </label>
-                <select
-                  value={densityMode}
-                  onChange={(event) => onDensityChange(event.target.value as DensityMode)}
-                  className="mb-3 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                >
-                  <option value="compact">مضغوط</option>
-                  <option value="balanced">متوازن</option>
-                  <option value="comfortable">مريح</option>
                 </select>
 
                 <button

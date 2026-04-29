@@ -27,8 +27,8 @@ import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
 import UnifiedSettings from '@/components/settings/UnifiedSettings'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import {
   Select,
   SelectContent,
@@ -56,6 +56,41 @@ interface SettingsCategory {
   component?: React.ComponentType
 }
 
+const SystemDefaultsInfo = () => {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-border-200 bg-surface-secondary-50 p-3">
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">ثوابت النظام</h3>
+        <p className="text-xs leading-relaxed text-gray-600">
+          هذه القيم أساسية في النظام وتمت إزالتها من الإعدادات القابلة للتعديل.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">المنطقة الزمنية</p>
+          <p className="text-sm font-medium text-gray-900">Asia/Riyadh</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">لغة النظام</p>
+          <p className="text-sm font-medium text-gray-900">العربية</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">العملة</p>
+          <p className="text-sm font-medium text-gray-900">الريال السعودي (SAR)</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">تنسيق التاريخ</p>
+          <p className="text-sm font-medium text-gray-900">ar-SA</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type TabType =
   | 'system'
   | 'sessions'
@@ -66,6 +101,15 @@ type TabType =
   | 'advanced-notifications'
   | 'alert-settings'
   | 'backup'
+
+const LEGACY_SYSTEM_SETTINGS_KEYS = [
+  'system_timezone',
+  'system_language',
+  'system_currency',
+  'date_format',
+  'working_hours_start',
+  'working_hours_end',
+]
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -83,6 +127,28 @@ export default function GeneralSettings() {
 
   const hasViewPermission = canView('adminSettings')
   const hasEditPermission = canEdit('adminSettings')
+
+  const cleanupLegacySystemSettings = async () => {
+    try {
+      const table = supabase.from('system_settings') as unknown as {
+        delete?: () => { in: (column: string, values: string[]) => Promise<{ error: unknown }> }
+      }
+
+      if (!table.delete) {
+        return
+      }
+
+      const { error } = await table
+        .delete()
+        .in('setting_key', LEGACY_SYSTEM_SETTINGS_KEYS)
+
+      if (error) {
+        console.error('Error cleaning legacy system settings:', error)
+      }
+    } catch (error) {
+      console.error('Error cleaning legacy system settings:', error)
+    }
+  }
 
   const loadSettings = async () => {
     setIsLoading(true)
@@ -124,11 +190,14 @@ export default function GeneralSettings() {
 
   useEffect(() => {
     if (user && hasViewPermission) {
+      if (hasEditPermission) {
+        cleanupLegacySystemSettings()
+      }
       loadSettings()
     } else {
       setIsLoading(false)
     }
-  }, [user, hasViewPermission])
+  }, [user, hasViewPermission, hasEditPermission])
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -178,56 +247,9 @@ export default function GeneralSettings() {
     {
       key: 'system',
       label: 'إعدادات النظام الأساسية',
-      description: 'إعدادات المنطقة الزمنية واللغة والعملة وتنسيق التاريخ وساعات العمل. تُحفظ في قاعدة البيانات وتُطبَّق على كامل النظام.',
+      description: 'إعدادات أساسية ثابتة على مستوى النظام وغير قابلة للتعديل من الواجهة.',
       icon: Globe,
-      settings: [
-        {
-          setting_key: 'system_timezone',
-          setting_value: 'Asia/Riyadh',
-          category: 'system',
-          description: 'المنطقة الزمنية للنظام',
-          setting_type: 'select',
-          options: ['Asia/Riyadh', 'UTC', 'Asia/Dubai', 'Asia/Kuwait'],
-        },
-        {
-          setting_key: 'system_language',
-          setting_value: 'ar',
-          category: 'system',
-          description: 'لغة النظام الافتراضية',
-          setting_type: 'select',
-          options: ['ar', 'en'],
-        },
-        {
-          setting_key: 'system_currency',
-          setting_value: 'SAR',
-          category: 'system',
-          description: 'العملة الافتراضية',
-          setting_type: 'select',
-          options: ['SAR', 'USD', 'EUR', 'AED'],
-        },
-        {
-          setting_key: 'date_format',
-          setting_value: 'yyyy-MM-dd',
-          category: 'system',
-          description: 'تنسيق التاريخ',
-          setting_type: 'select',
-          options: ['yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy'],
-        },
-        {
-          setting_key: 'working_hours_start',
-          setting_value: '08:00',
-          category: 'system',
-          description: 'بداية ساعات العمل',
-          setting_type: 'time',
-        },
-        {
-          setting_key: 'working_hours_end',
-          setting_value: '17:00',
-          category: 'system',
-          description: 'نهاية ساعات العمل',
-          setting_type: 'time',
-        },
-      ],
+      component: SystemDefaultsInfo,
     },
     {
       key: 'backup',
@@ -718,7 +740,7 @@ export default function GeneralSettings() {
                         </p>
                       </div>
                     </div>
-                    {hasEditPermission && activeCategory.settings && (
+                    {hasEditPermission && activeCategory.settings && activeCategory.settings.length > 0 && (
                       <div className="flex items-center gap-2">
                         <Button
                           onClick={() => resetToDefaults(activeTab)}
