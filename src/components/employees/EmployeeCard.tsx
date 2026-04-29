@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Employee, Company, Project, ObligationType, supabase } from '@/lib/supabase'
 import { useEmployeeCardData } from '@/hooks/useEmployeeCardData'
 import { EmployeeExpirySection } from './EmployeeExpirySection'
@@ -107,35 +108,6 @@ export default function EmployeeCard({
     updated_at?: string
   }
 
-  /**
-   * Helper function to safely get additional field values with type conversion
-   */
-  function getAdditionalFieldValue(
-    value: unknown,
-    fieldType: 'text' | 'number' | 'select' | 'checkbox' | 'textarea' = 'text'
-  ): string | number | boolean {
-    // Handle empty values
-    if (value === null || value === undefined) {
-      switch (fieldType) {
-        case 'number':
-          return 0
-        case 'checkbox':
-          return false
-        default:
-          return ''
-      }
-    }
-
-    // Handle different types
-    switch (fieldType) {
-      case 'number':
-        return typeof value === 'number' ? value : Number(value) || 0
-      case 'checkbox':
-        return typeof value === 'boolean' ? value : Boolean(value)
-      default:
-        return String(value)
-    }
-  }
 
   const [formData, setFormData] = useState<EmployeeFormData>({
     ...employee,
@@ -233,6 +205,20 @@ export default function EmployeeCard({
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isEditMode, onClose, showCreateProjectModal])
+
+  // قفل سكرول الصفحة الخلفية أثناء فتح الكارت لضمان بقاءه عائمًا داخل الإطار الحالي.
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow
+    const originalHtmlOverflow = document.documentElement.style.overflow
+
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow
+      document.documentElement.style.overflow = originalHtmlOverflow
+    }
+  }, [])
 
   // تحديث نص البحث عند تغيير الشركة المختارة
   useEffect(() => {
@@ -445,6 +431,21 @@ export default function EmployeeCard({
         return trimmed ? trimmed : null
       }
 
+      const normalizedHiredWorkerContractExpiry = normalizeDate(
+        formData.hired_worker_contract_expiry
+      )
+
+      const hiredWorkerStatus = getEmployeeBusinessFields({
+        additional_fields: formData.additional_fields,
+        hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
+      }).hired_worker_contract_status
+
+      if (hiredWorkerStatus === 'أجير' && !normalizedHiredWorkerContractExpiry) {
+        toast.error('عند اختيار حالة عقد أجير = أجير يجب إدخال تاريخ انتهاء عقد أجير')
+        setSaving(false)
+        return
+      }
+
       // جلب البيانات الحالية قبل التحديث لضمان وجود old_data موثوق
       const { data: existingEmployee, error: fetchError } = await supabase
         .from('employees')
@@ -489,9 +490,9 @@ export default function EmployeeCard({
         {
           ...getEmployeeBusinessFields({
             additional_fields: formData.additional_fields,
-            hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+            hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
           }),
-          hired_worker_contract_expiry: formData.hired_worker_contract_expiry,
+          hired_worker_contract_expiry: normalizedHiredWorkerContractExpiry,
         }
       )
 
@@ -513,10 +514,11 @@ export default function EmployeeCard({
           newValue = Number(formData[field]) || (field === 'salary' ? 0 : 0)
         } else if (
           field === 'residence_image_url' ||
-          field === 'hired_worker_contract_expiry' ||
           field === 'notes'
         ) {
           newValue = formData[field] || null
+        } else if (field === 'hired_worker_contract_expiry') {
+          newValue = normalizedHiredWorkerContractExpiry
         } else if (field === 'project_id') {
           newValue = formData.project_id || null
         }
@@ -789,34 +791,36 @@ export default function EmployeeCard({
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      dir="rtl"
+      className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm"
       onClick={() => {
         if (!isEditMode) {
           onClose()
         }
       }}
     >
-      <div
-        className="app-modal-surface relative isolate max-w-4xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex min-h-full items-start justify-center py-2 md:items-center md:py-4">
+        <div
+          className="app-modal-surface relative isolate w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div
-          className={`sticky top-0 z-30 flex items-center justify-between border-b border-white/10 p-6 text-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.7)] ${
+          className={`sticky top-0 z-30 flex items-center justify-between border-b p-6 backdrop-blur-md ${
             isEditMode
-              ? 'bg-gradient-to-l from-amber-600 to-orange-500'
-              : 'bg-gradient-to-l from-slate-950 via-slate-900 to-slate-800'
+              ? 'border-warning-200 bg-warning-50 text-warning-900'
+              : 'border-neutral-200 bg-white/95 text-neutral-900'
           }`}
         >
           <div>
             <h2 className="text-2xl font-bold">{employee.name}</h2>
-            <p className={`mt-1 ${isEditMode ? 'text-warning-100' : 'text-slate-300'}`}>
+            <p className={`mt-1 ${isEditMode ? 'text-warning-700' : 'text-neutral-600'}`}>
               {employee.profession} - {employee?.company?.name ?? 'غير محدد'}
             </p>
             {isEditMode && (
-              <p className="text-sm mt-1 text-warning-100">
+              <p className="text-sm mt-1 text-warning-700">
                 وضع التعديل نشط - يمكنك تعديل البيانات أدناه
               </p>
             )}
@@ -825,7 +829,7 @@ export default function EmployeeCard({
             {isEditMode ? (
               <button
                 onClick={handleCancel}
-                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-medium text-slate-900 transition hover:bg-slate-100"
+                className="flex items-center gap-2 rounded-xl border border-warning-200 bg-white px-4 py-2 font-medium text-warning-900 transition hover:bg-warning-100"
               >
                 <RotateCcw className="w-4 h-4" />
                 إلغاء التعديل
@@ -834,14 +838,14 @@ export default function EmployeeCard({
               canEdit('employees') && (
                 <button
                   onClick={handleEdit}
-                  className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-medium text-slate-900 transition hover:bg-slate-100"
+                  className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 font-medium text-neutral-800 transition hover:bg-neutral-50"
                 >
                   <FileText className="w-4 h-4" />
                   تعديل
                 </button>
               )
             )}
-            <button onClick={onClose} className="rounded-xl p-2 transition hover:bg-white/15">
+            <button onClick={onClose} className="rounded-xl p-2 transition hover:bg-black/5">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -1054,7 +1058,7 @@ export default function EmployeeCard({
                     </div>
 
                     {isCompanyDropdownOpen && isEditMode && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      <div className="absolute z-[130] w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                         {filteredCompanies.length === 0 ? (
                           <div className="px-4 py-3 text-sm text-neutral-500 text-center">
                             {companySearchQuery.trim() ? 'لا توجد نتائج' : 'لا توجد شركات متاحة'}
@@ -1121,7 +1125,7 @@ export default function EmployeeCard({
                     </div>
 
                     {isProjectDropdownOpen && isEditMode && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      <div className="absolute z-[130] w-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                         <button
                           type="button"
                           onClick={() => {
@@ -1434,7 +1438,7 @@ export default function EmployeeCard({
 
               {showFinancialOverlay && (
                 <div
-                  className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+                  className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
                   onClick={() => setShowFinancialOverlay(false)}
                 >
                   <div
@@ -1909,7 +1913,9 @@ export default function EmployeeCard({
             )}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

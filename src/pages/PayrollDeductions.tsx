@@ -16,6 +16,8 @@ import {
   Trash2,
   X,
   Search,
+  ClipboardList,
+  UserPlus,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -33,7 +35,16 @@ import {
   useScopedPayrollEmployees,
   useUpsertPayrollEntry,
   useUpdatePayrollRunStatus,
+  type ScopedPayrollEmployee,
 } from '@/hooks/usePayroll'
+import {
+  useAllObligationsSummary,
+  useCreateEmployeeObligationPlan,
+  useEmployeeObligations,
+  useUpdateObligationLinePayment,
+  type AllObligationsSummaryRow,
+} from '@/hooks/useEmployeeObligations'
+import { useEmployees } from '@/hooks/useEmployees'
 import { PayrollEntry, PayrollInputMode, PayrollScopeType } from '@/lib/supabase'
 import {
   EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
@@ -117,6 +128,44 @@ interface PayrollExcelPreviewRow extends PayrollExcelRow {
   net_amount: number
 }
 
+interface PayrollRunSeedRow {
+  employee_id: string
+  employee_name: string
+  residence_number: string
+  included: boolean
+  attendance_days: number
+  paid_leave_days: number
+  basic_salary_snapshot: number
+  overtime_amount: number
+  transfer_renewal_amount: number
+  penalty_amount: number
+  advance_amount: number
+  other_amount: number
+  overtime_notes: string
+  deductions_notes: string
+  notes: string
+}
+
+function buildPayrollRunSeedRow(employee: ScopedPayrollEmployee): PayrollRunSeedRow {
+  return {
+    employee_id: employee.id,
+    employee_name: employee.name,
+    residence_number: normalizeResidenceNumber(employee.residence_number),
+    included: true,
+    attendance_days: 30,
+    paid_leave_days: 0,
+    basic_salary_snapshot: Number(employee.salary || 0),
+    overtime_amount: 0,
+    transfer_renewal_amount: employee.suggested_deduction_breakdown.transfer_renewal,
+    penalty_amount: employee.suggested_deduction_breakdown.penalty,
+    advance_amount: employee.suggested_deduction_breakdown.advance,
+    other_amount: employee.suggested_deduction_breakdown.other,
+    overtime_notes: '',
+    deductions_notes: '',
+    notes: '',
+  }
+}
+
 const PAYROLL_EXCEL_HEADERS = {
   residence_number: ['رقم الإقامة', 'رقم الاقامة', 'residence_number', 'residence number'],
   attendance_days: ['أيام الحضور', 'ايام الحضور', 'attendance_days', 'attendance days'],
@@ -172,9 +221,29 @@ function toNumericPayrollValue(value: unknown): number {
 
 export default function PayrollDeductions() {
   const { canDelete, canExport, canView, isAdmin } = usePermissions()
-  const [activePageTab, setActivePageTab] = useState<'search' | 'runs'>('search')
+  const [activePageTab, setActivePageTab] = useState<'search' | 'runs' | 'obligations'>('search')
+  const [obligationsSearchQuery, setObligationsSearchQuery] = useState('')
+  const [showAddObligationDialog, setShowAddObligationDialog] = useState(false)
+  const [addObligationEmployeeSearch, setAddObligationEmployeeSearch] = useState('')
+  const [addObligationSelectedEmployeeId, setAddObligationSelectedEmployeeId] = useState('')
+  const [addObligationForm, setAddObligationForm] = useState({
+    obligation_type: 'advance' as 'transfer' | 'renewal' | 'penalty' | 'advance' | 'other',
+    total_amount: 0,
+    installment_count: 1,
+    start_month: new Date().toISOString().slice(0, 7),
+    notes: '',
+  })
+  const [exportingObligations, setExportingObligations] = useState(false)
+  // Obligation detail/edit modal
+  const [obligationDetailEmployeeId, setObligationDetailEmployeeId] = useState<string | null>(null)
+  const [editingObligationLineId, setEditingObligationLineId] = useState<string | null>(null)
+  const [obligationPaymentForm, setObligationPaymentForm] = useState({
+    amount_paid: 0,
+    notes: '',
+  })
   const [showPayrollRunForm, setShowPayrollRunForm] = useState(false)
   const [showPayrollEntryForm, setShowPayrollEntryForm] = useState(false)
+  const [showPayrollRunDetailsModal, setShowPayrollRunDetailsModal] = useState(false)
   const [selectedPayrollRunId, setSelectedPayrollRunId] = useState<string | null>(null)
   const [selectedPayrollSlipEntryId, setSelectedPayrollSlipEntryId] = useState<string | null>(null)
   const [payrollSearchQuery, setPayrollSearchQuery] = useState('')
@@ -199,7 +268,7 @@ export default function PayrollDeductions() {
   const payrollSlipPreviewRef = useRef<HTMLDivElement | null>(null)
   const payrollExcelInputRef = useRef<HTMLInputElement | null>(null)
   const payrollEntryFormRef = useRef<HTMLDivElement | null>(null)
-  const payrollDetailsPanelRef = useRef<HTMLDivElement | null>(null)
+  const hasInitializedPayrollRunSelectionRef = useRef(false)
   const [payrollForm, setPayrollForm] = useState({
     payroll_month: new Date().toISOString().slice(0, 7),
     scope_type: 'company' as PayrollScopeType,
@@ -207,6 +276,7 @@ export default function PayrollDeductions() {
     input_mode: 'manual' as PayrollInputMode,
     notes: '',
   })
+  const [newPayrollRunRows, setNewPayrollRunRows] = useState<PayrollRunSeedRow[]>([])
   const [payrollEntryForm, setPayrollEntryForm] = useState({
     employee_id: '',
     attendance_days: 30,
@@ -242,9 +312,27 @@ export default function PayrollDeductions() {
   const upsertPayrollEntry = useUpsertPayrollEntry()
   const updatePayrollRunStatus = useUpdatePayrollRunStatus()
   const deletePayrollRun = useDeletePayrollRun()
+  const createObligationPlan = useCreateEmployeeObligationPlan()
+  const updateObligationLinePayment = useUpdateObligationLinePayment()
+  const { data: allObligationsSummary = [], isLoading: obligationsLoading, refetch: refetchObligations } =
+    useAllObligationsSummary()
+  const { data: allEmployees = [] } = useEmployees()
+
+  // Fetch obligation plans for the employee currently open in the detail modal
+  const { data: detailObligationPlans = [], isLoading: detailObligationsLoading } =
+    useEmployeeObligations(obligationDetailEmployeeId ?? undefined)
 
   const payrollRunList = payrollRuns
   const selectedPayrollRun = payrollRunList.find((run) => run.id === selectedPayrollRunId) ?? null
+  const normalizedPayrollFormMonth = payrollForm.payroll_month
+    ? `${payrollForm.payroll_month}-01`
+    : undefined
+  const { data: payrollRunSeedEmployees = [], isLoading: payrollRunSeedEmployeesLoading } =
+    useScopedPayrollEmployees(
+      payrollForm.scope_type,
+      payrollForm.scope_id || undefined,
+      normalizedPayrollFormMonth
+    )
   const { data: scopedPayrollEmployees = [], isLoading: scopedEmployeesLoading } =
     useScopedPayrollEmployees(
       selectedPayrollRun?.scope_type,
@@ -254,6 +342,12 @@ export default function PayrollDeductions() {
   const scopeOptions = payrollForm.scope_type === 'company' ? companies : projects
   const selectedPayrollEmployee =
     scopedPayrollEmployees.find((employee) => employee.id === payrollEntryForm.employee_id) ?? null
+  const selectedNewPayrollRunRows = useMemo(
+    () => newPayrollRunRows.filter((row) => row.included),
+    [newPayrollRunRows]
+  )
+  const allNewPayrollRunRowsSelected =
+    newPayrollRunRows.length > 0 && selectedNewPayrollRunRows.length === newPayrollRunRows.length
   const payrollSlipEntryIds = useMemo(
     () => new Set(payrollSlips.map((slip) => slip.payroll_entry_id)),
     [payrollSlips]
@@ -307,6 +401,290 @@ export default function PayrollDeductions() {
   )
 
   const hasPayrollViewPermission = canView('payroll')
+
+  // ─── Obligations Tab: filtered rows ───────────────────────────────────────
+  const filteredObligationsSummary = useMemo((): AllObligationsSummaryRow[] => {
+    const q = obligationsSearchQuery.trim().toLowerCase()
+    if (!q) return allObligationsSummary
+    return allObligationsSummary.filter(
+      (row) =>
+        row.employee_name.toLowerCase().includes(q) ||
+        row.residence_number.includes(q) ||
+        row.project_name.toLowerCase().includes(q) ||
+        row.company_name.toLowerCase().includes(q)
+    )
+  }, [allObligationsSummary, obligationsSearchQuery])
+
+  // Employee list for the add-obligation dialog (search by name or residence_number)
+  const dialogEmployeeOptions = useMemo(() => {
+    const q = addObligationEmployeeSearch.trim().toLowerCase()
+    if (!q) return allEmployees.slice(0, 30)
+    return allEmployees.filter(
+      (emp) =>
+        emp.name.toLowerCase().includes(q) ||
+        String(emp.residence_number || '').includes(addObligationEmployeeSearch.trim())
+    )
+  }, [allEmployees, addObligationEmployeeSearch])
+
+  const handleAddObligation = async () => {
+    if (!addObligationSelectedEmployeeId) {
+      toast.error('يرجى اختيار موظف أولاً')
+      return
+    }
+    if (addObligationForm.total_amount <= 0) {
+      toast.error('يرجى إدخال قيمة الالتزام')
+      return
+    }
+    if (addObligationForm.installment_count <= 0) {
+      toast.error('عدد الأقساط يجب أن يكون 1 على الأقل')
+      return
+    }
+    try {
+      const perInstallment =
+        Math.round((addObligationForm.total_amount / addObligationForm.installment_count) * 100) /
+        100
+      const amounts = Array.from(
+        { length: addObligationForm.installment_count },
+        (_, i) =>
+          i === addObligationForm.installment_count - 1
+            ? Math.round(
+                (addObligationForm.total_amount - perInstallment * (addObligationForm.installment_count - 1)) * 100
+              ) / 100
+            : perInstallment
+      )
+      const normalizedStartMonth = /^\d{4}-\d{2}$/.test(addObligationForm.start_month)
+        ? `${addObligationForm.start_month}-01`
+        : addObligationForm.start_month
+
+      await createObligationPlan.mutateAsync({
+        employee_id: addObligationSelectedEmployeeId,
+        obligation_type: addObligationForm.obligation_type,
+        total_amount: addObligationForm.total_amount,
+        start_month: normalizedStartMonth,
+        installment_amounts: amounts,
+        notes: addObligationForm.notes || null,
+      })
+      toast.success('تم إضافة الالتزام بنجاح')
+      setShowAddObligationDialog(false)
+      setAddObligationSelectedEmployeeId('')
+      setAddObligationEmployeeSearch('')
+      setAddObligationForm({
+        obligation_type: 'advance',
+        total_amount: 0,
+        installment_count: 1,
+        start_month: new Date().toISOString().slice(0, 7),
+        notes: '',
+      })
+      void refetchObligations()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'فشل إضافة الالتزام'
+      toast.error(msg)
+    }
+  }
+
+  const exportObligationsToExcel = async () => {
+    if (filteredObligationsSummary.length === 0) {
+      toast.warning('لا توجد بيانات التزامات للتصدير')
+      return
+    }
+    try {
+      setExportingObligations(true)
+      const XLSX = await loadXlsx()
+      const employeeIds = filteredObligationsSummary.map((row) => row.employee_id)
+      const monthSet = new Set<string>()
+      const monthlyDueByEmployee = new Map<string, Map<string, number>>()
+      const totalObligationsByEmployee = new Map<string, number>()
+      const totalPaidByEmployee = new Map<string, number>()
+
+      const { data: obligationHeaders, error: obligationHeadersError } = await supabase
+        .from('employee_obligation_headers')
+        .select('id,employee_id,status,total_amount')
+        .in('employee_id', employeeIds)
+        .in('status', ['active', 'draft'])
+
+      if (obligationHeadersError) {
+        throw obligationHeadersError
+      }
+
+      const typedHeaders =
+        (obligationHeaders ?? []) as Array<{
+          id: string
+          employee_id: string
+          status: string
+          total_amount: number
+        }>
+      const headerIds = typedHeaders.map((header) => header.id)
+
+      for (const header of typedHeaders) {
+        totalObligationsByEmployee.set(
+          header.employee_id,
+          (totalObligationsByEmployee.get(header.employee_id) ?? 0) + Number(header.total_amount || 0)
+        )
+      }
+
+      if (headerIds.length > 0) {
+        const { data: obligationLines, error: obligationLinesError } = await supabase
+          .from('employee_obligation_lines')
+          .select('header_id,employee_id,due_month,amount_due,amount_paid')
+          .in('header_id', headerIds)
+
+        if (obligationLinesError) {
+          throw obligationLinesError
+        }
+
+        const typedLines = (obligationLines ?? []) as Array<{
+          header_id: string
+          employee_id: string
+          due_month: string
+          amount_due: number
+          amount_paid: number
+        }>
+
+        for (const line of typedLines) {
+          const monthKey = line.due_month?.slice(0, 7)
+          if (!monthKey) continue
+          monthSet.add(monthKey)
+
+          const employeeMonthMap =
+            monthlyDueByEmployee.get(line.employee_id) ?? new Map<string, number>()
+          employeeMonthMap.set(
+            monthKey,
+            (employeeMonthMap.get(monthKey) ?? 0) + Number(line.amount_due || 0)
+          )
+          monthlyDueByEmployee.set(line.employee_id, employeeMonthMap)
+
+          totalPaidByEmployee.set(
+            line.employee_id,
+            (totalPaidByEmployee.get(line.employee_id) ?? 0) + Number(line.amount_paid || 0)
+          )
+        }
+      }
+
+      const sortedMonths = Array.from(monthSet).sort((a, b) => a.localeCompare(b))
+
+      const headers = [
+        'اسم الموظف',
+        'رقم الإقامة',
+        'المشروع',
+        'المؤسسة',
+        'إجمالي الالتزامات',
+        'إجمالي المدفوع',
+        'نقل كفالة (المتبقي)',
+        'تجديد (المتبقي)',
+        'جزاءات (المتبقي)',
+        'سلف (المتبقي)',
+        'أخرى (المتبقي)',
+        'إجمالي المتبقي',
+        ...sortedMonths.map((month) => `قسط ${month}`),
+      ]
+      const rows = filteredObligationsSummary.map((row) => [
+        row.employee_name,
+        row.residence_number,
+        row.project_name,
+        row.company_name,
+        totalObligationsByEmployee.get(row.employee_id) ?? 0,
+        totalPaidByEmployee.get(row.employee_id) ?? 0,
+        row.transfer_remaining,
+        row.renewal_remaining,
+        row.penalty_remaining,
+        row.advance_remaining,
+        row.other_remaining,
+        row.total_remaining,
+        ...sortedMonths.map(
+          (month) => monthlyDueByEmployee.get(row.employee_id)?.get(month) ?? 0
+        ),
+      ])
+      const worksheet = XLSX.utils.aoa_to_sheet([
+        ['قائمة الالتزامات والاستقطاعات'],
+        [`تاريخ التصدير: ${new Date().toLocaleString('ar-EG')}`],
+        [],
+        headers,
+        ...rows,
+      ])
+      const lastColumnIndex = headers.length - 1
+      worksheet['!cols'] = [
+        { wch: 24 },
+        { wch: 16 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 18 },
+        ...sortedMonths.map(() => ({ wch: 14 })),
+      ]
+      worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: lastColumnIndex } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: lastColumnIndex } },
+      ]
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Obligations')
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(blob, `obligations_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      toast.success('تم تصدير قائمة الالتزامات بنجاح')
+    } catch (err) {
+      console.error(err)
+      toast.error('فشل تصدير الالتزامات')
+    } finally {
+      setExportingObligations(false)
+    }
+  }
+
+  const handleOpenObligationDetail = (employeeId: string) => {
+    setObligationDetailEmployeeId(employeeId)
+    setEditingObligationLineId(null)
+    setObligationPaymentForm({ amount_paid: 0, notes: '' })
+  }
+
+  const handleCloseObligationDetail = () => {
+    setObligationDetailEmployeeId(null)
+    setEditingObligationLineId(null)
+    setObligationPaymentForm({ amount_paid: 0, notes: '' })
+  }
+
+  const handleStartEditObligationLine = (
+    lineId: string,
+    amountPaid: number,
+    notes?: string | null
+  ) => {
+    setEditingObligationLineId(lineId)
+    setObligationPaymentForm({ amount_paid: amountPaid, notes: notes || '' })
+  }
+
+  const handleSaveObligationLinePayment = async (lineId: string, amountDue: number) => {
+    if (!obligationDetailEmployeeId) return
+    const amountPaid = Number(obligationPaymentForm.amount_paid)
+    if (!Number.isFinite(amountPaid) || amountPaid < 0) {
+      toast.error('قيمة المدفوع يجب أن تكون صفراً أو أكبر')
+      return
+    }
+    if (amountPaid > amountDue) {
+      toast.error('قيمة المدفوع لا يمكن أن تتجاوز قيمة القسط')
+      return
+    }
+    try {
+      await updateObligationLinePayment.mutateAsync({
+        lineId,
+        employeeId: obligationDetailEmployeeId,
+        amount_paid: amountPaid,
+        notes: obligationPaymentForm.notes.trim() || null,
+      })
+      toast.success('تم تحديث سداد القسط بنجاح')
+      setEditingObligationLineId(null)
+      setObligationPaymentForm({ amount_paid: 0, notes: '' })
+      void refetchObligations()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'فشل تحديث السداد')
+    }
+  }
+
   const compactButtonBaseClass =
     'h-9 px-3 text-sm font-medium rounded-lg transition inline-flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed'
   const outlineCompactButtonClass = `${compactButtonBaseClass} bg-surface border border-border-300 text-foreground-secondary hover:bg-surface-secondary-50`
@@ -317,6 +695,16 @@ export default function PayrollDeductions() {
   const warningCompactButtonClass = `${compactButtonBaseClass} bg-amber-600 text-white hover:bg-amber-700`
   const orangeCompactButtonClass = `${compactButtonBaseClass} bg-orange-600 text-white hover:bg-orange-700`
   const dangerCompactButtonClass = `${compactButtonBaseClass} bg-red-600 text-white hover:bg-red-700`
+  const payrollFieldInputClass =
+    'w-full rounded-xl border border-border-300 bg-surface px-3 py-2.5 text-sm text-foreground shadow-sm transition placeholder:text-foreground-tertiary focus:border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-100'
+  const payrollReadonlyFieldClass =
+    'w-full rounded-xl border border-border-200 bg-surface-secondary-50 px-3 py-2.5 text-sm text-foreground-secondary shadow-sm'
+  const payrollRunSectionClass =
+    'rounded-[28px] border border-border-200 bg-gradient-to-br from-surface via-surface to-surface-secondary-50 shadow-sm'
+  const payrollRunStatCardClass =
+    'relative overflow-hidden rounded-2xl border border-border-200 bg-gradient-to-br from-surface via-surface to-surface-secondary-50 p-4 md:p-5 shadow-sm'
+  const payrollRunListCardClass =
+    'group rounded-2xl border border-border-200 bg-gradient-to-br from-surface via-surface to-surface-secondary-50 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md'
 
   useEffect(() => {
     if (scopeOptions.length > 0 && !scopeOptions.some((item) => item.id === payrollForm.scope_id)) {
@@ -328,8 +716,14 @@ export default function PayrollDeductions() {
   }, [scopeOptions, payrollForm.scope_id])
 
   useEffect(() => {
-    if (!selectedPayrollRunId && payrollRunList.length > 0) {
+    if (!hasInitializedPayrollRunSelectionRef.current && payrollRunList.length > 0) {
       setSelectedPayrollRunId(payrollRunList[0].id)
+      hasInitializedPayrollRunSelectionRef.current = true
+      return
+    }
+
+    if (selectedPayrollRunId && !payrollRunList.some((run) => run.id === selectedPayrollRunId)) {
+      setSelectedPayrollRunId(payrollRunList[0]?.id ?? null)
     }
   }, [payrollRunList, selectedPayrollRunId])
 
@@ -358,6 +752,19 @@ export default function PayrollDeductions() {
   }, [selectedPayrollSlipEntryId, payrollSlipEntryIds])
 
   useEffect(() => {
+    if (!showPayrollRunForm || !payrollForm.scope_id || !normalizedPayrollFormMonth) {
+      return
+    }
+
+    setNewPayrollRunRows(payrollRunSeedEmployees.map((employee) => buildPayrollRunSeedRow(employee)))
+  }, [
+    showPayrollRunForm,
+    payrollForm.scope_id,
+    normalizedPayrollFormMonth,
+    payrollRunSeedEmployees,
+  ])
+
+  useEffect(() => {
     if (
       selectedPayrollRun &&
       scopedPayrollEmployees.length > 0 &&
@@ -366,13 +773,17 @@ export default function PayrollDeductions() {
       const defaultEmployee = scopedPayrollEmployees[0]
       setPayrollEntryForm((current) => {
         const nextSalary = Number(defaultEmployee.salary || 0)
-        const nextInstallment = defaultEmployee.suggested_installment_amount
+        const nextBreakdown = defaultEmployee.suggested_deduction_breakdown
 
         if (
           current.employee_id === defaultEmployee.id &&
           Number(current.basic_salary_snapshot || 0) === nextSalary &&
-          Number(current.advance_amount || 0) === nextInstallment &&
-          Number(current.installment_deducted_amount || 0) === nextInstallment
+          Number(current.transfer_renewal_amount || 0) === nextBreakdown.transfer_renewal &&
+          Number(current.penalty_amount || 0) === nextBreakdown.penalty &&
+          Number(current.advance_amount || 0) === nextBreakdown.advance &&
+          Number(current.other_amount || 0) === nextBreakdown.other &&
+          Number(current.installment_deducted_amount || 0) ===
+            nextBreakdown.transfer_renewal + nextBreakdown.advance
         ) {
           return current
         }
@@ -381,8 +792,13 @@ export default function PayrollDeductions() {
           ...current,
           employee_id: defaultEmployee.id,
           basic_salary_snapshot: nextSalary,
-          advance_amount: nextInstallment,
-          installment_deducted_amount: nextInstallment,
+          transfer_renewal_amount: nextBreakdown.transfer_renewal,
+          penalty_amount: nextBreakdown.penalty,
+          advance_amount: nextBreakdown.advance,
+          other_amount: nextBreakdown.other,
+          deductions_amount: nextBreakdown.penalty + nextBreakdown.other,
+          installment_deducted_amount:
+            nextBreakdown.transfer_renewal + nextBreakdown.advance,
         }
       })
     }
@@ -431,18 +847,25 @@ export default function PayrollDeductions() {
       }
 
       setPayrollEntryForm((current) => {
+        const nextBreakdown = selectedPayrollEmployee.suggested_deduction_breakdown
         const next = {
           ...current,
-          basic_salary_snapshot: Number(
-            current.basic_salary_snapshot || selectedPayrollEmployee.salary || 0
-          ),
+          basic_salary_snapshot: Number(selectedPayrollEmployee.salary || 0),
+          transfer_renewal_amount:
+            current.transfer_renewal_amount === 0
+              ? nextBreakdown.transfer_renewal
+              : current.transfer_renewal_amount,
+          penalty_amount:
+            current.penalty_amount === 0 ? nextBreakdown.penalty : current.penalty_amount,
           advance_amount:
-            current.advance_amount === 0
-              ? selectedPayrollEmployee.suggested_installment_amount
-              : current.advance_amount,
+            current.advance_amount === 0 ? nextBreakdown.advance : current.advance_amount,
+          other_amount: current.other_amount === 0 ? nextBreakdown.other : current.other_amount,
+          deductions_amount:
+            (current.penalty_amount === 0 ? nextBreakdown.penalty : current.penalty_amount) +
+            (current.other_amount === 0 ? nextBreakdown.other : current.other_amount),
           installment_deducted_amount:
             current.installment_deducted_amount === 0
-              ? selectedPayrollEmployee.suggested_installment_amount
+              ? nextBreakdown.transfer_renewal + nextBreakdown.advance
               : current.installment_deducted_amount,
         }
 
@@ -451,6 +874,20 @@ export default function PayrollDeductions() {
       })
     }
   }, [selectedPayrollEmployee, payrollEntries, payrollEntryBreakdownById])
+
+  const handleUpdateNewPayrollRunRow = (
+    employeeId: string,
+    field: keyof PayrollRunSeedRow,
+    value: string | number | boolean
+  ) => {
+    setNewPayrollRunRows((current) =>
+      current.map((row) => (row.employee_id === employeeId ? { ...row, [field]: value } : row))
+    )
+  }
+
+  const handleToggleSelectAllNewPayrollRows = (checked: boolean) => {
+    setNewPayrollRunRows((current) => current.map((row) => ({ ...row, included: checked })))
+  }
 
   const loadPayrollInsights = async () => {
     try {
@@ -1090,6 +1527,11 @@ export default function PayrollDeductions() {
       return
     }
 
+    if (payrollRunSeedEmployees.length > 0 && selectedNewPayrollRunRows.length === 0) {
+      toast.error('اختر موظفًا واحدًا على الأقل لإضافته داخل المسير')
+      return
+    }
+
     const requestedPayrollMonth = `${payrollForm.payroll_month}-01`
     const existingRun = payrollRunList.find(
       (run) =>
@@ -1100,6 +1542,7 @@ export default function PayrollDeductions() {
 
     if (existingRun) {
       setSelectedPayrollRunId(existingRun.id)
+      setShowPayrollRunDetailsModal(true)
       setShowPayrollRunForm(false)
       toast.warning(getExistingRunWarningMessage(existingRun))
       return
@@ -1114,9 +1557,63 @@ export default function PayrollDeductions() {
         notes: payrollForm.notes.trim() || null,
       })
 
+      for (const row of selectedNewPayrollRunRows) {
+        const employee = payrollRunSeedEmployees.find((item) => item.id === row.employee_id)
+        if (!employee) {
+          continue
+        }
+
+        const rowBreakdown = normalizePayrollObligationBreakdown({
+          transfer_renewal: row.transfer_renewal_amount,
+          penalty: row.penalty_amount,
+          advance: row.advance_amount,
+          other: row.other_amount,
+        })
+        const rowDeductionsTotal = getPayrollObligationBreakdownTotal(rowBreakdown)
+        const rowTotals = calculatePayrollTotals(
+          row.basic_salary_snapshot,
+          row.attendance_days,
+          row.paid_leave_days,
+          row.overtime_amount,
+          rowDeductionsTotal
+        )
+
+        await upsertPayrollEntry.mutateAsync({
+          payroll_run_id: createdRun.id,
+          payroll_run_status: createdRun.status,
+          payroll_month: createdRun.payroll_month,
+          employee_id: employee.id,
+          residence_number_snapshot: employee.residence_number,
+          employee_name_snapshot: employee.name,
+          company_name_snapshot: employee.company?.name ?? null,
+          project_name_snapshot: employee.project?.name ?? null,
+          basic_salary_snapshot: row.basic_salary_snapshot,
+          daily_rate_snapshot: rowTotals.dailyRate,
+          attendance_days: row.attendance_days,
+          paid_leave_days: row.paid_leave_days,
+          overtime_amount: row.overtime_amount,
+          overtime_notes: row.overtime_notes.trim() || null,
+          deductions_amount: row.penalty_amount + row.other_amount,
+          deductions_notes: row.deductions_notes.trim() || null,
+          installment_deducted_amount:
+            row.transfer_renewal_amount + row.advance_amount,
+          deduction_breakdown: rowBreakdown,
+          gross_amount: rowTotals.grossAmount,
+          net_amount: rowTotals.netAmount,
+          entry_status: 'calculated',
+          notes: row.notes.trim() || null,
+        })
+      }
+
       setSelectedPayrollRunId(createdRun.id)
+  setShowPayrollRunDetailsModal(true)
       setShowPayrollRunForm(false)
-      toast.success('تم إنشاء المسير بنجاح')
+      setNewPayrollRunRows([])
+      toast.success(
+        selectedNewPayrollRunRows.length > 0
+          ? `تم إنشاء المسير وإضافة ${selectedNewPayrollRunRows.length} موظف`
+          : 'تم إنشاء المسير بنجاح'
+      )
     } catch (error) {
       console.error('Error creating payroll run:', error)
 
@@ -1139,6 +1636,7 @@ export default function PayrollDeductions() {
 
         if (matchingRun) {
           setSelectedPayrollRunId(matchingRun.id)
+          setShowPayrollRunDetailsModal(true)
           setShowPayrollRunForm(false)
           toast.warning(getExistingRunWarningMessage(matchingRun))
           return
@@ -1760,6 +2258,8 @@ export default function PayrollDeductions() {
             ? current.scope_id
             : (defaultScopeOptions[0]?.id ?? ''),
       }))
+    } else {
+      setNewPayrollRunRows([])
     }
 
     setShowPayrollRunForm((current) => !current)
@@ -1810,13 +2310,17 @@ export default function PayrollDeductions() {
 
   const handleSelectPayrollRun = (runId: string) => {
     setSelectedPayrollRunId(runId)
+    setShowPayrollRunDetailsModal(true)
     setShowPayrollEntryForm(false)
     setSelectedPayrollSlipEntryId(null)
     setPayrollRunDeleteConfirmOpen(false)
+  }
 
-    window.requestAnimationFrame(() => {
-      payrollDetailsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+  const handleClosePayrollRunDetailsModal = () => {
+    setShowPayrollRunDetailsModal(false)
+    setShowPayrollEntryForm(false)
+    setSelectedPayrollSlipEntryId(null)
+    setPayrollRunDeleteConfirmOpen(false)
   }
 
   const handleEditPayrollEntry = (entry: PayrollEntry) => {
@@ -1860,6 +2364,7 @@ export default function PayrollDeductions() {
       await deletePayrollRun.mutateAsync(selectedPayrollRun.id)
       const nextAvailableRun = payrollRunList.find((run) => run.id !== selectedPayrollRun.id)
       setSelectedPayrollRunId(nextAvailableRun?.id ?? null)
+      setShowPayrollRunDetailsModal(false)
       setSelectedPayrollSlipEntryId(null)
       setShowPayrollEntryForm(false)
       setPayrollRunDeleteConfirmOpen(false)
@@ -1870,6 +2375,783 @@ export default function PayrollDeductions() {
       const message = error instanceof Error ? error.message : 'فشل حذف المسير'
       toast.error(message)
     }
+  }
+
+  const renderSelectedPayrollRunDetails = () => {
+    if (!selectedPayrollRun) {
+      return null
+    }
+
+    return (
+      <div className="space-y-5">
+        <div className="overflow-hidden rounded-[28px] border border-sky-200/70 bg-gradient-to-br from-white via-sky-50/50 to-indigo-50/40 shadow-[0_20px_60px_-34px_rgba(14,116,144,0.42)]">
+        <div className="flex items-center justify-between gap-3 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+                عرض المسير
+              </span>
+              <span className="inline-flex items-center rounded-full border border-border-200 bg-surface px-2.5 py-1 text-[11px] font-medium text-foreground-secondary">
+                {selectedPayrollRun.entry_count} موظف
+              </span>
+            </div>
+            <div className="mt-2 text-lg font-bold text-foreground">تفاصيل المسير</div>
+            <div className="text-sm text-foreground-secondary mt-1">
+              {getPayrollRunDisplayName(
+                selectedPayrollRun.scope_type,
+                selectedPayrollRun.scope_id,
+                selectedPayrollRun.payroll_month
+              )}{' '}
+              • {selectedPayrollRun.entry_count} موظف
+            </div>
+            <div className="text-xs text-foreground-tertiary mt-1">
+              قسائم الرواتب المولدة: {payrollSlips.length} • طريقة الإدخال:{' '}
+              {getPayrollInputModeText(selectedPayrollRun.input_mode)}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${selectedPayrollRun.status === 'finalized' ? 'bg-green-100 text-green-700' : selectedPayrollRun.status === 'draft' ? 'bg-orange-100 text-orange-700' : selectedPayrollRun.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}
+              >
+                حالة المسير: {getPayrollStatusText(selectedPayrollRun.status)}
+              </span>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                الإدخال: {getPayrollInputModeText(selectedPayrollRun.input_mode)}
+              </span>
+              {selectedPayrollRunEditable &&
+                scopedPayrollEmployees.length === 0 &&
+                !scopedEmployeesLoading && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    لا يوجد موظفون ضمن هذا النطاق حاليًا
+                  </span>
+                )}
+            </div>
+          </div>
+          {isAdmin && (
+            <div className="flex flex-wrap items-center justify-end gap-2 max-w-2xl">
+              <input
+                ref={payrollExcelInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handlePayrollExcelImport}
+              />
+              <button
+                type="button"
+                onClick={handleRefreshPayrollData}
+                className={outlineCompactButtonClass}
+              >
+                <RefreshCw className="w-4 h-4" />
+                تحديث المسير
+              </button>
+              <button
+                onClick={() => {
+                  if (showPayrollEntryForm) {
+                    setShowPayrollEntryForm(false)
+                    return
+                  }
+                  handleOpenPayrollEntryForm()
+                }}
+                className={`${primaryCompactButtonClass} disabled:bg-surface-secondary-200 disabled:text-foreground-tertiary disabled:border disabled:border-border-200`}
+                disabled={
+                  !selectedPayrollRunEditable ||
+                  scopedEmployeesLoading ||
+                  scopedPayrollEmployees.length === 0
+                }
+                title={
+                  selectedPayrollRun.status === 'cancelled'
+                    ? 'هذا المسير ملغي ويجب إعادة فتحه أولًا'
+                    : scopedPayrollEmployees.length === 0
+                      ? 'لا يوجد موظفون داخل نطاق المسير الحالي'
+                      : undefined
+                }
+              >
+                <Plus className="w-4 h-4" />
+                {showPayrollEntryForm ? 'إخفاء النموذج' : 'إدخال راتب يدوي'}
+              </button>
+              {selectedPayrollRunEditable && (
+                <button
+                  type="button"
+                  onClick={downloadPayrollTemplate}
+                  className={slateCompactButtonClass}
+                >
+                  <Download className="w-4 h-4" />
+                  قالب Excel
+                </button>
+              )}
+              {canExport('payroll') && payrollEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={exportPayrollToExcel}
+                  className={`${successCompactButtonClass} bg-emerald-600 hover:bg-emerald-700`}
+                >
+                  <Download className="w-4 h-4" />
+                  تصدير كشف المسير
+                </button>
+              )}
+              {selectedPayrollRunEditable && (
+                <button
+                  type="button"
+                  onClick={handleOpenPayrollExcelImport}
+                  className={indigoCompactButtonClass}
+                  disabled={
+                    importingPayrollExcel ||
+                    confirmingPayrollExcelImport ||
+                    scopedPayrollEmployees.length === 0
+                  }
+                >
+                  {importingPayrollExcel ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileUp className="w-4 h-4" />
+                  )}
+                  استيراد Excel
+                </button>
+              )}
+              {selectedPayrollRunEditable && (
+                <button
+                  onClick={() => handleUpdatePayrollRunStatus('finalized')}
+                  className={successCompactButtonClass}
+                  disabled={updatePayrollRunStatus.isPending}
+                >
+                  {updatePayrollRunStatus.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ReceiptText className="w-4 h-4" />
+                  )}
+                  اعتماد المسير
+                </button>
+              )}
+              {selectedPayrollRun.status === 'finalized' && (
+                <button
+                  onClick={() => handleUpdatePayrollRunStatus('draft')}
+                  className={orangeCompactButtonClass}
+                  disabled={updatePayrollRunStatus.isPending}
+                >
+                  {updatePayrollRunStatus.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  إعادة إلى مسودة
+                </button>
+              )}
+              {selectedPayrollRun.status === 'cancelled' && (
+                <button
+                  onClick={() => handleUpdatePayrollRunStatus('draft')}
+                  className={warningCompactButtonClass}
+                  disabled={updatePayrollRunStatus.isPending}
+                >
+                  {updatePayrollRunStatus.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  إعادة فتح المسير
+                </button>
+              )}
+              {selectedPayrollRun.status === 'cancelled' && canDelete('payroll') && (
+                <button
+                  onClick={handleDeletePayrollRun}
+                  className={dangerCompactButtonClass}
+                  disabled={deletePayrollRun.isPending}
+                >
+                  {deletePayrollRun.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  حذف المسير
+                </button>
+              )}
+              {selectedPayrollRun.status !== 'cancelled' && (
+                <button
+                  onClick={() => handleUpdatePayrollRunStatus('cancelled')}
+                  className={dangerCompactButtonClass}
+                  disabled={updatePayrollRunStatus.isPending}
+                >
+                  {updatePayrollRunStatus.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4" />
+                  )}
+                  إلغاء المسير
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        </div>
+
+        {selectedPayrollRun && showPayrollEntryForm && isAdmin && (
+          <div
+            ref={payrollEntryFormRef}
+            className="rounded-[24px] border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50/60 p-4 md:p-5 space-y-4 shadow-sm"
+          >
+            <div className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-3 text-sm text-foreground-secondary shadow-sm">
+              أدخل راتب الموظف يدويًا داخل المسير الحالي. إذا كان لهذا الموظف مدخل سابق في
+              نفس المسير، فالحفظ سيقوم بالتحديث بدل إنشاء سجل مكرر.
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-inner">
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">الموظف</label>
+                <select
+                  value={payrollEntryForm.employee_id}
+                  onChange={(e) => {
+                    const employee = scopedPayrollEmployees.find((item) => item.id === e.target.value)
+                    const nextBreakdown =
+                      employee?.suggested_deduction_breakdown ?? normalizePayrollObligationBreakdown()
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      employee_id: e.target.value,
+                      basic_salary_snapshot: Number(employee?.salary || 0),
+                      transfer_renewal_amount: nextBreakdown.transfer_renewal,
+                      penalty_amount: nextBreakdown.penalty,
+                      advance_amount: nextBreakdown.advance,
+                      other_amount: nextBreakdown.other,
+                      deductions_amount: nextBreakdown.penalty + nextBreakdown.other,
+                      installment_deducted_amount:
+                        nextBreakdown.transfer_renewal + nextBreakdown.advance,
+                    }))
+                  }}
+                  className={payrollFieldInputClass}
+                  disabled={scopedEmployeesLoading}
+                >
+                  <option value="">اختر...</option>
+                  {scopedPayrollEmployees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.name} - {employee.residence_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">أيام الحضور</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={payrollEntryForm.attendance_days}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      attendance_days: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">
+                  الإجازات المدفوعة
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={payrollEntryForm.paid_leave_days}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      paid_leave_days: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">الراتب الأساسي</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.basic_salary_snapshot}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      basic_salary_snapshot: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">الإضافي</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.overtime_amount}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      overtime_amount: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">
+                  قسط رسوم نقل وتجديد
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.transfer_renewal_amount}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      transfer_renewal_amount: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">
+                  قسط جزاءات وغرامات
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.penalty_amount}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      penalty_amount: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">قسط سلفة</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.advance_amount}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      advance_amount: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">قسط أخرى</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payrollEntryForm.other_amount}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      other_amount: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">الأجر اليومي</label>
+                <div className={payrollReadonlyFieldClass}>
+                  {dailyRate.toLocaleString('en-US')}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">ملاحظات الإضافي</label>
+                <input
+                  type="text"
+                  value={payrollEntryForm.overtime_notes}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      overtime_notes: e.target.value,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">
+                  ملاحظات الاستقطاعات
+                </label>
+                <input
+                  type="text"
+                  value={payrollEntryForm.deductions_notes}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      deductions_notes: e.target.value,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-foreground-secondary mb-2">ملاحظات عامة</label>
+                <input
+                  type="text"
+                  value={payrollEntryForm.notes}
+                  onChange={(e) =>
+                    setPayrollEntryForm((current) => ({
+                      ...current,
+                      notes: e.target.value,
+                    }))
+                  }
+                  className={payrollFieldInputClass}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-border-200 bg-white/80 p-4 shadow-sm">
+                <div className="text-sm text-foreground-tertiary mb-1">إجمالي الراتب</div>
+                <div className="text-xl font-bold text-foreground">{grossAmount.toLocaleString('en-US')}</div>
+              </div>
+              <div className="rounded-2xl border border-red-100 bg-red-50/70 p-4 shadow-sm">
+                <div className="text-sm text-red-500 mb-1">إجمالي الاستقطاعات</div>
+                <div className="text-xl font-bold text-red-600">
+                  {groupedDeductionsTotal.toLocaleString('en-US')}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 shadow-sm">
+                <div className="text-sm text-sky-600 mb-1">الصافي</div>
+                <div className={`text-xl font-bold ${netAmount < 0 ? 'text-red-600' : 'text-blue-700'}`}>
+                  {netAmount.toLocaleString('en-US')}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 shadow-sm">
+                <div className="text-sm text-amber-600 mb-1">اقتراح الأقساط</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {(selectedPayrollEmployee?.suggested_installment_amount ?? 0).toLocaleString('en-US')}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPayrollEntryForm(false)}
+                className={outlineCompactButtonClass}
+                disabled={upsertPayrollEntry.isPending}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleUpsertPayrollEntry}
+                className={successCompactButtonClass}
+                disabled={upsertPayrollEntry.isPending}
+              >
+                {upsertPayrollEntry.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ReceiptText className="w-4 h-4" />
+                )}
+                حفظ راتب الموظف
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!selectedPayrollRun ? (
+          <div className="rounded-[24px] border border-dashed border-border-300 bg-surface-secondary-50 px-6 py-10 text-center text-foreground-tertiary">
+            اختر مسيرًا لعرض التفاصيل.
+          </div>
+        ) : payrollEntriesLoading ? (
+          <div className="rounded-[24px] border border-border-200 bg-surface-secondary-50 px-6 py-10 text-center text-foreground-tertiary">
+            جاري تحميل كشف الرواتب...
+          </div>
+        ) : payrollEntries.length === 0 ? (
+          <div className="rounded-[24px] border border-border-200 bg-gradient-to-br from-surface-secondary-50 via-surface to-surface p-8">
+            <div className="max-w-lg mx-auto text-center space-y-4">
+              <div
+                className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center ${selectedPayrollRun.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}
+              >
+                {selectedPayrollRun.status === 'cancelled' ? (
+                  <AlertTriangle className="w-7 h-7" />
+                ) : (
+                  <Wallet className="w-7 h-7" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {selectedPayrollRun.status === 'cancelled'
+                    ? 'هذا المسير ملغي حاليًا'
+                    : 'المسير المحدد جاهز لإدخال الرواتب'}
+                </h3>
+                <p className="text-sm text-foreground-secondary">
+                  {selectedPayrollRun.status === 'cancelled'
+                    ? 'هذا المسير ملغي حاليًا، لذلك لا يمكن إدخال رواتب أو استيراد بيانات بداخله حتى إعادة فتحه.'
+                    : 'أنت الآن داخل تفاصيل هذا المسير. لا توجد مدخلات رواتب بعد، ويمكنك إضافة أول راتب يدويًا أو استيراد كشف كامل من Excel.'}
+                </p>
+              </div>
+              {selectedPayrollRun.status !== 'cancelled' && (
+                <div className="rounded-xl border border-border-200 bg-surface px-4 py-3 text-right">
+                  <div className="text-sm font-semibold text-foreground mb-2">للبدء السريع:</div>
+                  <div className="space-y-1 text-sm text-foreground-secondary">
+                    <p>1. اضغط على زر إدخال راتب يدوي لإضافة راتب أول موظف داخل هذا المسير.</p>
+                    <p>2. أو اضغط على استيراد من Excel إذا كان لديك كشف جاهز.</p>
+                    <p>3. بعد الحفظ سيظهر الموظف في جدول تفاصيل المسير أسفل هذا القسم.</p>
+                  </div>
+                </div>
+              )}
+              {selectedPayrollRunEditable && isAdmin && scopedPayrollEmployees.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenPayrollEntryForm}
+                    className={primaryCompactButtonClass}
+                  >
+                    <Plus className="w-4 h-4" />
+                    إدخال راتب يدوي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenPayrollExcelImport}
+                    className={indigoCompactButtonClass}
+                    disabled={
+                      importingPayrollExcel ||
+                      confirmingPayrollExcelImport ||
+                      scopedPayrollEmployees.length === 0
+                    }
+                  >
+                    <FileUp className="w-4 h-4" />
+                    استيراد من Excel
+                  </button>
+                </div>
+              )}
+              {selectedPayrollRunEditable &&
+                isAdmin &&
+                scopedPayrollEmployees.length === 0 &&
+                !scopedEmployeesLoading && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    لا يوجد موظفون داخل نطاق هذا المسير حاليًا، لذلك تم تعطيل الإدخال
+                    اليدوي والاستيراد حتى إضافة موظفين لهذا النطاق أولًا.
+                  </div>
+                )}
+              <div className="text-xs text-foreground-tertiary">
+                الموظفون المتاحون داخل نطاق هذا المسير: {scopedPayrollEmployees.length}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-[24px] border border-border-200 bg-surface shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-secondary-50/90">
+                <tr>
+                  <th className="px-4 py-3 text-right">الموظف</th>
+                  <th className="px-4 py-3 text-right">الإقامة</th>
+                  <th className="px-4 py-3 text-right">إجمالي</th>
+                  <th className="px-4 py-3 text-right">نقل/تجديد</th>
+                  <th className="px-4 py-3 text-right">جزاءات</th>
+                  <th className="px-4 py-3 text-right">سلفة</th>
+                  <th className="px-4 py-3 text-right">أخرى</th>
+                  <th className="px-4 py-3 text-right">الصافي</th>
+                  <th className="px-4 py-3 text-right">الحالة</th>
+                  <th className="px-4 py-3 text-right">الإجراءات</th>
+                  <th className="px-4 py-3 text-right">القسيمة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payrollEntries.map((entry) => {
+                  const rowBreakdown = normalizePayrollObligationBreakdown(
+                    payrollEntryBreakdownById.get(entry.id) ?? {
+                      ...EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
+                      penalty: Number(entry.deductions_amount || 0),
+                      advance: Number(entry.installment_deducted_amount || 0),
+                    }
+                  )
+
+                  return (
+                    <tr key={entry.id} className="border-t border-border-100 transition hover:bg-sky-50/40">
+                      <td className="px-4 py-3 font-medium text-gray-900">{entry.employee_name_snapshot}</td>
+                      <td className="px-4 py-3">{entry.residence_number_snapshot}</td>
+                      <td className="px-4 py-3">{entry.gross_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{rowBreakdown.transfer_renewal.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{rowBreakdown.penalty.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{rowBreakdown.advance.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{rowBreakdown.other.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3 font-semibold text-blue-700">{entry.net_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700 border border-border-200">
+                          {getPayrollStatusText(entry.entry_status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {selectedPayrollRunEditable && isAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => handleEditPayrollEntry(entry)}
+                            className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition"
+                          >
+                            تعديل
+                          </button>
+                        ) : (
+                          <span className="text-xs text-foreground-tertiary">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {payrollSlipEntryIds.has(entry.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPayrollSlipEntryId(entry.id)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border bg-green-100 text-green-700 border-green-200 hover:bg-green-200 transition"
+                          >
+                            <Eye className="w-3 h-3" />
+                            عرض القسيمة
+                          </button>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs border bg-gray-100 text-gray-600 border-border-200">
+                            غير مولدة
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          </div>
+        )}
+
+        {selectedPayrollRun && selectedPayrollRunEditable && (
+          <div className="rounded-[24px] border border-border-200 bg-gradient-to-br from-surface-secondary-50 via-surface to-surface px-4 py-4 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="lg:max-w-sm">
+                <h3 className="font-semibold text-foreground mb-1">استيراد الرواتب من Excel</h3>
+                <p className="text-sm text-foreground-secondary">
+                  ابدأ بالقالب الجاهز، ثم ارفع الملف وراجع الصفوف قبل الاعتماد النهائي داخل نفس
+                  المسير.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
+                <div className="rounded-xl border border-border-200 bg-white/80 px-3 py-2 text-sm text-foreground-secondary shadow-sm">
+                  1. نزّل القالب وأبقِ رقم الإقامة موجودًا في كل صف.
+                </div>
+                <div className="rounded-xl border border-border-200 bg-white/80 px-3 py-2 text-sm text-foreground-secondary shadow-sm">
+                  2. اترك أي عمود غير متوفر فارغًا وسيتم اعتباره صفرًا أو ملاحظة فارغة.
+                </div>
+                <div className="rounded-xl border border-border-200 bg-white/80 px-3 py-2 text-sm text-foreground-secondary shadow-sm">
+                  3. راجع المعاينة قبل الاعتماد لتجنب إدخال بيانات غير مطابقة.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {payrollImportPreviewRows.length > 0 && (
+          <div className="rounded-[24px] border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50/60 px-4 py-4 space-y-4 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-blue-900">معاينة استيراد الرواتب</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  الملف: {payrollImportFileName || 'Excel'} • الصفوف الجاهزة للاعتماد:{' '}
+                  {payrollImportPreviewRows.length}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearPayrollImportPreview}
+                  className={outlineCompactButtonClass}
+                  disabled={confirmingPayrollExcelImport}
+                >
+                  إلغاء المعاينة
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPayrollExcelImport}
+                  className={primaryCompactButtonClass}
+                  disabled={confirmingPayrollExcelImport}
+                >
+                  {confirmingPayrollExcelImport ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  اعتماد الاستيراد
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-blue-200 bg-surface shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-blue-50">
+                  <tr>
+                    <th className="px-4 py-3 text-right">الصف</th>
+                    <th className="px-4 py-3 text-right">الموظف</th>
+                    <th className="px-4 py-3 text-right">الإقامة</th>
+                    <th className="px-4 py-3 text-right">الحضور</th>
+                    <th className="px-4 py-3 text-right">الإضافي</th>
+                    <th className="px-4 py-3 text-right">الخصومات</th>
+                    <th className="px-4 py-3 text-right">الأقساط</th>
+                    <th className="px-4 py-3 text-right">الإجمالي</th>
+                    <th className="px-4 py-3 text-right">الصافي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payrollImportPreviewRows.map((row) => (
+                    <tr key={`${row.employee_id}-${row.row_number}`} className="border-t border-blue-100 hover:bg-blue-50/40">
+                      <td className="px-4 py-3">{row.row_number}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{row.employee_name}</td>
+                      <td className="px-4 py-3">{row.residence_number}</td>
+                      <td className="px-4 py-3">{row.attendance_days}</td>
+                      <td className="px-4 py-3">{row.overtime_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{row.deductions_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{row.installment_deducted_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3">{row.gross_amount.toLocaleString('en-US')}</td>
+                      <td className="px-4 py-3 font-semibold text-blue-700">{row.net_amount.toLocaleString('en-US')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {payrollImportHeaderError && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
+            <h3 className="font-semibold text-amber-900 mb-2">مشكلة في رأس ملف Excel</h3>
+            <p className="text-sm text-amber-800">{payrollImportHeaderError}</p>
+          </div>
+        )}
+
+        {payrollImportErrors.length > 0 && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className="font-semibold text-red-900">أخطاء استيراد الرواتب</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  تم استيراد بعض الصفوف، لكن الصفوف التالية تحتاج تصحيحًا قبل إعادة الرفع.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayrollImportErrors([])}
+                className={outlineCompactButtonClass}
+              >
+                إخفاء
+              </button>
+            </div>
+            <div className="max-h-48 overflow-y-auto rounded-2xl border border-red-200 bg-surface">
+              <ul className="divide-y divide-red-100 text-sm text-red-800">
+                {payrollImportErrors.map((error, index) => (
+                  <li key={`${error}-${index}`} className="px-4 py-3">
+                    {error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (!hasPayrollViewPermission) {
@@ -1929,6 +3211,18 @@ export default function PayrollDeductions() {
           >
             <Wallet className="h-4 w-4" />
             مسيرات الرواتب
+          </button>
+          <button
+            type="button"
+            onClick={() => setActivePageTab('obligations')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              activePageTab === 'obligations'
+                ? 'bg-primary text-foreground shadow-soft'
+                : 'border border-border-200 bg-surface text-foreground-secondary hover:bg-surface-secondary-50'
+            }`}
+          >
+            <ClipboardList className="h-4 w-4" />
+            قائمة الالتزامات
           </button>
         </div>
 
@@ -2099,15 +3393,15 @@ export default function PayrollDeductions() {
         {/* Report Content */}
         <div className={activePageTab === 'runs' ? '' : 'hidden'}>
           <div className="space-y-6">
-            <div className="rounded-2xl border border-border-200 bg-surface p-4 md:p-5 space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div className={`${payrollRunSectionClass} p-4 md:p-5 space-y-5`}>
+              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 rounded-2xl border border-white/70 bg-gradient-to-l from-surface-secondary-50 via-surface to-surface px-4 py-4 shadow-sm">
                 <div>
                   <h2 className="text-xl font-bold text-foreground">إحصائيات مسيرات الرواتب</h2>
                   <p className="text-sm text-foreground-secondary">
                     اختر شهرًا أو مسيرًا محددًا وستتغير الكروت مباشرة.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[760px]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[760px] rounded-2xl border border-border-200 bg-white/80 p-3 shadow-sm">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground-secondary">
                       فلتر الشهر
@@ -2116,7 +3410,7 @@ export default function PayrollDeductions() {
                       type="month"
                       value={payrollRunStatsMonth}
                       onChange={(e) => setPayrollRunStatsMonth(e.target.value)}
-                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                      className={payrollFieldInputClass}
                     />
                   </div>
                   <div>
@@ -2126,7 +3420,7 @@ export default function PayrollDeductions() {
                     <select
                       value={payrollRunStatsRunId}
                       onChange={(e) => setPayrollRunStatsRunId(e.target.value)}
-                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                      className={payrollFieldInputClass}
                     >
                       <option value="">كل المسيرات</option>
                       {payrollRunList.map((run) => (
@@ -2147,7 +3441,7 @@ export default function PayrollDeductions() {
                         setPayrollRunStatsMonth('')
                         setPayrollRunStatsRunId('')
                       }}
-                      className="w-full rounded-xl border border-border-300 bg-surface-secondary-50 px-3 py-2 text-sm font-medium text-foreground-secondary hover:bg-surface-secondary-100 transition"
+                      className="w-full rounded-xl border border-border-300 bg-white px-3 py-2.5 text-sm font-medium text-foreground-secondary shadow-sm transition hover:bg-surface-secondary-50"
                     >
                       إعادة ضبط الفلتر
                     </button>
@@ -2156,23 +3450,23 @@ export default function PayrollDeductions() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">المسيرات داخل الفلتر</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="text-sm text-foreground-tertiary mb-1">المسيرات داخل الفلتر</p>
+                      <p className="text-2xl font-bold text-foreground">
                         {filteredPayrollRunList.length}
                       </p>
                     </div>
-                    <div className="app-icon-chip">
+                    <div className="rounded-2xl bg-surface-secondary-50 p-3 text-foreground shadow-sm border border-border-200">
                       <Wallet className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">الموظفون داخل الفلتر</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">الموظفون داخل الفلتر</p>
                       <p className="text-2xl font-bold text-sky-700">
                         {payrollRunCardsStats.employees}
                       </p>
@@ -2182,10 +3476,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">إجمالي الرواتب</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">إجمالي الرواتب</p>
                       <p className="text-2xl font-bold text-foreground">
                         {payrollRunCardsStats.gross.toLocaleString('en-US')}
                       </p>
@@ -2195,10 +3489,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">إجمالي الالتزامات</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">إجمالي الالتزامات</p>
                       <p className="text-2xl font-bold text-red-600">
                         {payrollRunCardsStats.totalObligations.toLocaleString('en-US')}
                       </p>
@@ -2208,10 +3502,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">رسوم نقل وتجديد</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">رسوم نقل وتجديد</p>
                       <p className="text-2xl font-bold text-amber-600">
                         {payrollRunCardsStats.transferRenewal.toLocaleString('en-US')}
                       </p>
@@ -2221,10 +3515,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">جزاءات وغرامات</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">جزاءات وغرامات</p>
                       <p className="text-2xl font-bold text-rose-600">
                         {payrollRunCardsStats.penalty.toLocaleString('en-US')}
                       </p>
@@ -2234,10 +3528,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">سلف</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">سلف</p>
                       <p className="text-2xl font-bold text-blue-700">
                         {payrollRunCardsStats.advance.toLocaleString('en-US')}
                       </p>
@@ -2247,10 +3541,10 @@ export default function PayrollDeductions() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface rounded-xl shadow-sm border border-border-200 p-4 md:p-5">
+                <div className={payrollRunStatCardClass}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">أخرى</p>
+                      <p className="text-sm text-foreground-tertiary mb-1">أخرى</p>
                       <p className="text-2xl font-bold text-violet-700">
                         {payrollRunCardsStats.other.toLocaleString('en-US')}
                       </p>
@@ -2263,11 +3557,14 @@ export default function PayrollDeductions() {
               </div>
             </div>
 
-            <div className="bg-surface rounded-2xl shadow-sm border border-border-200 p-4 md:p-5 space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className={`${payrollRunSectionClass} p-4 md:p-5 space-y-5`}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-white/70 bg-gradient-to-l from-surface-secondary-50 via-surface to-surface px-4 py-4 shadow-sm">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">مسيرات الرواتب</h2>
-                  <p className="text-sm text-gray-600">
+                  <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 mb-2">
+                    إدارة المسيرات
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">مسيرات الرواتب</h2>
+                  <p className="text-sm text-foreground-secondary">
                     أنشئ مسيرًا جديدًا لمؤسسة أو مشروع، ثم راجع كشف الموظفين المرتبط به
                   </p>
                 </div>
@@ -2282,140 +3579,18 @@ export default function PayrollDeductions() {
                 )}
               </div>
 
-              {showPayrollRunForm && isAdmin && (
-                <div className="grid grid-cols-1 gap-4 rounded-lg border border-primary/30 bg-primary/10 p-4 md:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      شهر الرواتب
-                    </label>
-                    <input
-                      type="month"
-                      value={payrollForm.payroll_month}
-                      onChange={(e) =>
-                        setPayrollForm((current) => ({ ...current, payroll_month: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 border rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      نوع المسير
-                    </label>
-                    <select
-                      value={payrollForm.scope_type}
-                      onChange={(e) =>
-                        setPayrollForm((current) => ({
-                          ...current,
-                          scope_type: e.target.value as PayrollScopeType,
-                          scope_id: '',
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-md"
-                    >
-                      <option value="company">مسير لمؤسسة</option>
-                      <option value="project">مسير لمشروع</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {payrollForm.scope_type === 'project' ? 'اختر المشروع' : 'اختر المؤسسة'}
-                    </label>
-                    <select
-                      value={payrollForm.scope_id}
-                      onChange={(e) =>
-                        setPayrollForm((current) => ({ ...current, scope_id: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 border rounded-md"
-                    >
-                      <option value="">اختر...</option>
-                      {scopeOptions.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      طريقة الإدخال
-                    </label>
-                    <select
-                      value={payrollForm.input_mode}
-                      onChange={(e) =>
-                        setPayrollForm((current) => ({
-                          ...current,
-                          input_mode: e.target.value as PayrollInputMode,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-md"
-                    >
-                      <option value="manual">يدوي</option>
-                      <option value="excel">Excel</option>
-                      <option value="mixed">مختلط</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2 lg:col-span-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                    <div className="font-semibold mb-1">لتعمل مسيرًا حسب المشروع:</div>
-                    <div>1. اختر نوع المسير = مسير لمشروع</div>
-                    <div>2. ثم اختر اسم المشروع من القائمة</div>
-                    <div>3. بعدها اضغط على إنشاء المسير</div>
-                    {payrollForm.scope_id && (
-                      <div className="mt-2 font-bold">
-                        سيتم إنشاء:{' '}
-                        {getPayrollRunDisplayName(
-                          payrollForm.scope_type,
-                          payrollForm.scope_id,
-                          payrollForm.payroll_month
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="md:col-span-2 lg:col-span-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
-                    <textarea
-                      value={payrollForm.notes}
-                      onChange={(e) =>
-                        setPayrollForm((current) => ({ ...current, notes: e.target.value }))
-                      }
-                      rows={3}
-                      className="w-full px-3 py-2 border rounded-md resize-none"
-                      placeholder="اختياري"
-                    />
-                  </div>
-                  <div className="md:col-span-2 lg:col-span-4 flex justify-end gap-3">
-                    <button
-                      onClick={() => setShowPayrollRunForm(false)}
-                      className={outlineCompactButtonClass}
-                      disabled={createPayrollRun.isPending}
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      onClick={handleCreatePayrollRun}
-                      className={successCompactButtonClass}
-                      disabled={createPayrollRun.isPending}
-                    >
-                      {createPayrollRun.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                      إنشاء المسير
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-                <div className="xl:col-span-2 border border-border-200 rounded-lg overflow-hidden">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-border-200">
+              <div className="overflow-hidden rounded-[26px] border border-border-200 bg-surface shadow-[0_20px_45px_-36px_rgba(15,23,42,0.52)]">
+                  <div className="border-b border-border-200 bg-gradient-to-l from-sky-50/70 via-white to-indigo-50/60 px-5 py-4 md:px-6 md:py-5">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="font-medium text-gray-800">
-                        قائمة المسيرات ({payrollRunStatsRows.length} مدخل رواتب)
+                      <div>
+                        <div className="text-base font-bold text-foreground">قائمة المسيرات</div>
+                        <div className="mt-1 text-sm text-foreground-secondary">
+                          {payrollRunStatsRows.length} مدخل رواتب داخل النطاق الحالي
+                        </div>
                       </div>
                       {canExport('payroll') && filteredPayrollRunList.length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 bg-surface border border-border-200 rounded-md px-3 py-2">
+                          <label className="inline-flex items-center gap-2 text-xs text-foreground-secondary bg-white border border-border-200 rounded-xl px-3 py-2 shadow-sm">
                             <input
                               type="checkbox"
                               aria-label="تحديد جميع المسيرات"
@@ -2445,910 +3620,392 @@ export default function PayrollDeductions() {
                       )}
                     </div>
                   </div>
-                  <div className="max-h-[520px] overflow-y-auto">
+                  <div className="max-h-[62vh] overflow-y-auto">
                     {payrollRunsLoading ? (
-                      <div className="p-6 text-center text-gray-500">
+                      <div className="p-8 text-center text-foreground-tertiary">
                         جاري تحميل مسيرات الرواتب...
                       </div>
                     ) : filteredPayrollRunList.length === 0 ? (
-                      <div className="p-6 text-center text-gray-500">
+                      <div className="p-8 text-center text-foreground-tertiary">
                         لا توجد مسيرات مطابقة للفلاتر الحالية.
                       </div>
                     ) : (
                       filteredPayrollRunList.map((run) => (
                         <div
                           key={run.id}
-                          className={`flex items-start gap-3 border-b border-border-100 p-3 ${selectedPayrollRunId === run.id ? 'bg-blue-50' : ''}`}
+                          className={`border-b border-border-100/90 p-3 transition-colors duration-200 hover:bg-sky-50/30 md:p-4 ${showPayrollRunDetailsModal && selectedPayrollRunId === run.id ? 'bg-blue-50/40' : ''}`}
                         >
-                          {canExport('payroll') && (
-                            <label className="mt-1 inline-flex items-center">
-                              <input
-                                type="checkbox"
-                                aria-label={`تحديد مسير ${getPayrollRunDisplayName(run.scope_type, run.scope_id, run.payroll_month)}`}
-                                checked={selectedPayrollExportRunIds.includes(run.id)}
-                                disabled={run.entry_count === 0}
-                                onChange={(event) =>
-                                  handleTogglePayrollRunExportSelection(
-                                    run.id,
-                                    event.target.checked
-                                  )
-                                }
-                                className="rounded border-border-300"
-                              />
-                            </label>
-                          )}
-                          <button
-                            onClick={() => handleSelectPayrollRun(run.id)}
-                            className={`flex-1 text-right p-3 rounded-lg transition ${selectedPayrollRunId === run.id ? 'bg-surface border border-blue-200 border-r-4 border-r-blue-600' : 'hover:bg-gray-50'}`}
+                          <div
+                            className={`${payrollRunListCardClass} group transition-all duration-300 ${showPayrollRunDetailsModal && selectedPayrollRunId === run.id ? 'border-sky-200 bg-gradient-to-br from-white via-sky-50/60 to-indigo-50/40 border-r-4 border-r-sky-500 shadow-[0_18px_38px_-28px_rgba(14,116,144,0.38)]' : 'hover:border-sky-100 hover:shadow-[0_16px_36px_-30px_rgba(59,130,246,0.5)]'}`}
                           >
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <span className="font-medium text-gray-900">
-                                {formatPayrollMonthLabel(run.payroll_month)}
-                              </span>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${run.status === 'finalized' ? 'bg-green-100 text-green-700' : run.status === 'draft' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'}`}
-                              >
-                                {getPayrollStatusText(run.status)}
-                              </span>
-                            </div>
-                            {selectedPayrollRunId === run.id && (
-                              <div className="text-xs font-medium text-blue-700 mb-2">
-                                المسير المحدد الآن
-                              </div>
-                            )}
-                            <div className="text-sm text-gray-600">
-                              {getPayrollRunDisplayName(
-                                run.scope_type,
-                                run.scope_id,
-                                run.payroll_month
+                            <div className="flex items-start gap-3">
+                              {canExport('payroll') && (
+                                <label className="mt-1 inline-flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`تحديد مسير ${getPayrollRunDisplayName(run.scope_type, run.scope_id, run.payroll_month)}`}
+                                    checked={selectedPayrollExportRunIds.includes(run.id)}
+                                    disabled={run.entry_count === 0}
+                                    onChange={(event) =>
+                                      handleTogglePayrollRunExportSelection(
+                                        run.id,
+                                        event.target.checked
+                                      )
+                                    }
+                                    className="rounded border-border-300"
+                                  />
+                                </label>
                               )}
+                              <div className="flex-1 text-right">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                  <div>
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      <span className="text-base font-bold text-foreground">
+                                        {formatPayrollMonthLabel(run.payroll_month)}
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${run.status === 'finalized' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : run.status === 'draft' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-border-200 bg-surface-secondary-50 text-foreground-secondary'}`}
+                                      >
+                                        {getPayrollStatusText(run.status)}
+                                      </span>
+                                    </div>
+                                    {showPayrollRunDetailsModal && selectedPayrollRunId === run.id && (
+                                      <div className="text-xs font-medium text-blue-700 mb-2">
+                                        المسير المفتوح الآن
+                                      </div>
+                                    )}
+                                    <div className="text-sm font-semibold text-foreground-secondary">
+                                      {getPayrollRunDisplayName(
+                                        run.scope_type,
+                                        run.scope_id,
+                                        run.payroll_month
+                                      )}
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                      <span className="inline-flex items-center rounded-full border border-border-200 bg-white px-2.5 py-1 text-foreground-secondary shadow-sm">
+                                        طريقة الإدخال: {getPayrollInputModeText(run.input_mode)}
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full border border-border-200 bg-white px-2.5 py-1 text-foreground-secondary shadow-sm">
+                                        {run.entry_count} موظف
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 font-semibold text-sky-700 shadow-sm">
+                                        صافي {run.total_net_amount.toLocaleString('en-US')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 self-start">
+                                    {showPayrollRunDetailsModal && selectedPayrollRunId === run.id && (
+                                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-sky-700 shadow-sm">
+                                        مفتوح الآن
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (showPayrollRunDetailsModal && selectedPayrollRunId === run.id) {
+                                          handleClosePayrollRunDetailsModal()
+                                          return
+                                        }
+                                        handleSelectPayrollRun(run.id)
+                                      }}
+                                      className={`${outlineCompactButtonClass} rounded-xl border-sky-100 bg-white shadow-sm hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 group-hover:border-sky-200`}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                      {showPayrollRunDetailsModal && selectedPayrollRunId === run.id
+                                        ? 'إخفاء المسير'
+                                        : 'عرض المسير'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              طريقة الإدخال: {getPayrollInputModeText(run.input_mode)}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {run.entry_count} موظف • صافي{' '}
-                              {run.total_net_amount.toLocaleString('en-US')}
-                            </div>
-                          </button>
+
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
-                </div>
-
-                <div
-                  ref={payrollDetailsPanelRef}
-                  className="xl:col-span-3 border border-border-200 rounded-lg overflow-hidden bg-surface"
-                >
-                  <div className="px-4 py-3 bg-gray-50 border-b border-border-200 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-gray-800">تفاصيل المسير</div>
-                      {selectedPayrollRun && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          {getPayrollRunDisplayName(
-                            selectedPayrollRun.scope_type,
-                            selectedPayrollRun.scope_id,
-                            selectedPayrollRun.payroll_month
-                          )}{' '}
-                          • {selectedPayrollRun.entry_count} موظف
-                        </div>
-                      )}
-                      {selectedPayrollRun && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          قسائم الرواتب المولدة: {payrollSlips.length} • طريقة الإدخال:{' '}
-                          {getPayrollInputModeText(selectedPayrollRun.input_mode)}
-                        </div>
-                      )}
-                      {selectedPayrollRun && (
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${selectedPayrollRun.status === 'finalized' ? 'bg-green-100 text-green-700' : selectedPayrollRun.status === 'draft' ? 'bg-orange-100 text-orange-700' : selectedPayrollRun.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}
-                          >
-                            حالة المسير: {getPayrollStatusText(selectedPayrollRun.status)}
-                          </span>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            الإدخال: {getPayrollInputModeText(selectedPayrollRun.input_mode)}
-                          </span>
-                          {selectedPayrollRunEditable &&
-                            scopedPayrollEmployees.length === 0 &&
-                            !scopedEmployeesLoading && (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                لا يوجد موظفون ضمن هذا النطاق حاليًا
-                              </span>
-                            )}
-                        </div>
-                      )}
-                    </div>
-                    {selectedPayrollRun && isAdmin && (
-                      <div className="flex flex-wrap items-center justify-end gap-2 max-w-xl">
-                        <input
-                          ref={payrollExcelInputRef}
-                          type="file"
-                          accept=".xlsx,.xls"
-                          className="hidden"
-                          onChange={handlePayrollExcelImport}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRefreshPayrollData}
-                          className={outlineCompactButtonClass}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          تحديث المسير
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (showPayrollEntryForm) {
-                              setShowPayrollEntryForm(false)
-                              return
-                            }
-                            handleOpenPayrollEntryForm()
-                          }}
-                          className={`${primaryCompactButtonClass} disabled:bg-surface-secondary-200 disabled:text-foreground-tertiary disabled:border disabled:border-border-200`}
-                          disabled={
-                            !selectedPayrollRunEditable ||
-                            scopedEmployeesLoading ||
-                            scopedPayrollEmployees.length === 0
-                          }
-                          title={
-                            selectedPayrollRun?.status === 'cancelled'
-                              ? 'هذا المسير ملغي ويجب إعادة فتحه أولًا'
-                              : scopedPayrollEmployees.length === 0
-                                ? 'لا يوجد موظفون داخل نطاق المسير الحالي'
-                                : undefined
-                          }
-                        >
-                          <Plus className="w-4 h-4" />
-                          {showPayrollEntryForm ? 'إخفاء النموذج' : 'إدخال راتب يدوي'}
-                        </button>
-                        {selectedPayrollRunEditable && (
-                          <button
-                            type="button"
-                            onClick={downloadPayrollTemplate}
-                            className={slateCompactButtonClass}
-                          >
-                            <Download className="w-4 h-4" />
-                            قالب Excel
-                          </button>
-                        )}
-                        {canExport('payroll') && payrollEntries.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={exportPayrollToExcel}
-                            className={`${successCompactButtonClass} bg-emerald-600 hover:bg-emerald-700`}
-                          >
-                            <Download className="w-4 h-4" />
-                            تصدير كشف المسير
-                          </button>
-                        )}
-                        {selectedPayrollRunEditable && (
-                          <button
-                            type="button"
-                            onClick={handleOpenPayrollExcelImport}
-                            className={indigoCompactButtonClass}
-                            disabled={
-                              importingPayrollExcel ||
-                              confirmingPayrollExcelImport ||
-                              scopedPayrollEmployees.length === 0
-                            }
-                          >
-                            {importingPayrollExcel ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <FileUp className="w-4 h-4" />
-                            )}
-                            استيراد Excel
-                          </button>
-                        )}
-                        {selectedPayrollRunEditable && (
-                          <button
-                            onClick={() => handleUpdatePayrollRunStatus('finalized')}
-                            className={successCompactButtonClass}
-                            disabled={updatePayrollRunStatus.isPending}
-                          >
-                            {updatePayrollRunStatus.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <ReceiptText className="w-4 h-4" />
-                            )}
-                            اعتماد المسير
-                          </button>
-                        )}
-                        {selectedPayrollRun.status === 'finalized' && (
-                          <button
-                            onClick={() => handleUpdatePayrollRunStatus('draft')}
-                            className={orangeCompactButtonClass}
-                            disabled={updatePayrollRunStatus.isPending}
-                          >
-                            {updatePayrollRunStatus.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                            إعادة إلى مسودة
-                          </button>
-                        )}
-                        {selectedPayrollRun.status === 'cancelled' && (
-                          <button
-                            onClick={() => handleUpdatePayrollRunStatus('draft')}
-                            className={warningCompactButtonClass}
-                            disabled={updatePayrollRunStatus.isPending}
-                          >
-                            {updatePayrollRunStatus.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                            إعادة فتح المسير
-                          </button>
-                        )}
-                        {selectedPayrollRun.status === 'cancelled' && canDelete('payroll') && (
-                          <button
-                            onClick={handleDeletePayrollRun}
-                            className={dangerCompactButtonClass}
-                            disabled={deletePayrollRun.isPending}
-                          >
-                            {deletePayrollRun.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                            حذف المسير
-                          </button>
-                        )}
-                        {selectedPayrollRun.status !== 'cancelled' && (
-                          <button
-                            onClick={() => handleUpdatePayrollRunStatus('cancelled')}
-                            className={dangerCompactButtonClass}
-                            disabled={updatePayrollRunStatus.isPending}
-                          >
-                            {updatePayrollRunStatus.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <AlertTriangle className="w-4 h-4" />
-                            )}
-                            إلغاء المسير
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedPayrollRun && showPayrollEntryForm && isAdmin && (
-                    <div
-                      ref={payrollEntryFormRef}
-                      className="p-4 border-b border-border-200 bg-blue-50 space-y-4"
-                    >
-                      <div className="rounded-lg border border-blue-200 bg-surface px-4 py-3 text-sm text-gray-700">
-                        أدخل راتب الموظف يدويًا داخل المسير الحالي. إذا كان لهذا الموظف مدخل سابق في
-                        نفس المسير، فالحفظ سيقوم بالتحديث بدل إنشاء سجل مكرر.
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            الموظف
-                          </label>
-                          <select
-                            value={payrollEntryForm.employee_id}
-                            onChange={(e) => {
-                              const employee = scopedPayrollEmployees.find(
-                                (item) => item.id === e.target.value
-                              )
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                employee_id: e.target.value,
-                                basic_salary_snapshot: Number(employee?.salary || 0),
-                                transfer_renewal_amount: 0,
-                                penalty_amount: 0,
-                                advance_amount: employee?.suggested_installment_amount ?? 0,
-                                other_amount: 0,
-                                installment_deducted_amount:
-                                  employee?.suggested_installment_amount ?? 0,
-                              }))
-                            }}
-                            className="w-full px-3 py-2 border rounded-md"
-                            disabled={scopedEmployeesLoading}
-                          >
-                            <option value="">اختر...</option>
-                            {scopedPayrollEmployees.map((employee) => (
-                              <option key={employee.id} value={employee.id}>
-                                {employee.name} - {employee.residence_number}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            أيام الحضور
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={payrollEntryForm.attendance_days}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                attendance_days: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            الإجازات المدفوعة
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={payrollEntryForm.paid_leave_days}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                paid_leave_days: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            الراتب الأساسي
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.basic_salary_snapshot}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                basic_salary_snapshot: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            الإضافي
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.overtime_amount}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                overtime_amount: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            قسط رسوم نقل وتجديد
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.transfer_renewal_amount}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                transfer_renewal_amount: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            قسط جزاءات وغرامات
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.penalty_amount}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                penalty_amount: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            قسط سلفة
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.advance_amount}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                advance_amount: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            قسط أخرى
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={payrollEntryForm.other_amount}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                other_amount: Number(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            الأجر اليومي
-                          </label>
-                          <div className="w-full px-3 py-2 border rounded-md bg-surface text-gray-700">
-                            {dailyRate.toLocaleString('en-US')}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ملاحظات الإضافي
-                          </label>
-                          <input
-                            type="text"
-                            value={payrollEntryForm.overtime_notes}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                overtime_notes: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ملاحظات الاستقطاعات
-                          </label>
-                          <input
-                            type="text"
-                            value={payrollEntryForm.deductions_notes}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                deductions_notes: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ملاحظات عامة
-                          </label>
-                          <input
-                            type="text"
-                            value={payrollEntryForm.notes}
-                            onChange={(e) =>
-                              setPayrollEntryForm((current) => ({
-                                ...current,
-                                notes: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-surface border border-border-200 rounded-lg p-3">
-                          <div className="text-sm text-gray-500 mb-1">إجمالي الراتب</div>
-                          <div className="text-lg font-bold text-gray-900">
-                            {grossAmount.toLocaleString('en-US')}
-                          </div>
-                        </div>
-                        <div className="bg-surface border border-border-200 rounded-lg p-3">
-                          <div className="text-sm text-gray-500 mb-1">إجمالي الاستقطاعات</div>
-                          <div className="text-lg font-bold text-red-600">
-                            {groupedDeductionsTotal.toLocaleString('en-US')}
-                          </div>
-                        </div>
-                        <div className="bg-surface border border-border-200 rounded-lg p-3">
-                          <div className="text-sm text-gray-500 mb-1">الصافي</div>
-                          <div
-                            className={`text-lg font-bold ${netAmount < 0 ? 'text-red-600' : 'text-blue-700'}`}
-                          >
-                            {netAmount.toLocaleString('en-US')}
-                          </div>
-                        </div>
-                        <div className="bg-surface border border-border-200 rounded-lg p-3">
-                          <div className="text-sm text-gray-500 mb-1">اقتراح الأقساط</div>
-                          <div className="text-lg font-bold text-orange-600">
-                            {(
-                              selectedPayrollEmployee?.suggested_installment_amount ?? 0
-                            ).toLocaleString('en-US')}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => setShowPayrollEntryForm(false)}
-                          className={outlineCompactButtonClass}
-                          disabled={upsertPayrollEntry.isPending}
-                        >
-                          إلغاء
-                        </button>
-                        <button
-                          onClick={handleUpsertPayrollEntry}
-                          className={successCompactButtonClass}
-                          disabled={upsertPayrollEntry.isPending}
-                        >
-                          {upsertPayrollEntry.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ReceiptText className="w-4 h-4" />
-                          )}
-                          حفظ راتب الموظف
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {!selectedPayrollRun ? (
-                    <div className="p-8 text-center text-gray-500">اختر مسيرًا لعرض التفاصيل.</div>
-                  ) : payrollEntriesLoading ? (
-                    <div className="p-8 text-center text-gray-500">جاري تحميل كشف الرواتب...</div>
-                  ) : payrollEntries.length === 0 ? (
-                    <div className="p-8 bg-surface-secondary-50 border-t border-border-100">
-                      <div className="max-w-lg mx-auto text-center space-y-4">
-                        <div
-                          className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center ${selectedPayrollRun.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}
-                        >
-                          {selectedPayrollRun.status === 'cancelled' ? (
-                            <AlertTriangle className="w-7 h-7" />
-                          ) : (
-                            <Wallet className="w-7 h-7" />
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold text-foreground">
-                            {selectedPayrollRun.status === 'cancelled'
-                              ? 'هذا المسير ملغي حاليًا'
-                              : 'المسير المحدد جاهز لإدخال الرواتب'}
-                          </h3>
-                          <p className="text-sm text-foreground-secondary">
-                            {selectedPayrollRun.status === 'cancelled'
-                              ? 'هذا المسير ملغي حاليًا، لذلك لا يمكن إدخال رواتب أو استيراد بيانات بداخله حتى إعادة فتحه.'
-                              : 'أنت الآن داخل تفاصيل هذا المسير. لا توجد مدخلات رواتب بعد، ويمكنك إضافة أول راتب يدويًا أو استيراد كشف كامل من Excel.'}
-                          </p>
-                        </div>
-                        {selectedPayrollRun.status !== 'cancelled' && (
-                          <div className="rounded-xl border border-border-200 bg-surface px-4 py-3 text-right">
-                            <div className="text-sm font-semibold text-foreground mb-2">
-                              للبدء السريع:
-                            </div>
-                            <div className="space-y-1 text-sm text-foreground-secondary">
-                              <p>
-                                1. اضغط على زر إدخال راتب يدوي لإضافة راتب أول موظف داخل هذا المسير.
-                              </p>
-                              <p>2. أو اضغط على استيراد من Excel إذا كان لديك كشف جاهز.</p>
-                              <p>3. بعد الحفظ سيظهر الموظف في جدول تفاصيل المسير أسفل هذا القسم.</p>
-                            </div>
-                          </div>
-                        )}
-                        {selectedPayrollRunEditable &&
-                          isAdmin &&
-                          scopedPayrollEmployees.length > 0 && (
-                            <div className="flex flex-wrap items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleOpenPayrollEntryForm}
-                                className={primaryCompactButtonClass}
-                              >
-                                <Plus className="w-4 h-4" />
-                                إدخال راتب يدوي
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleOpenPayrollExcelImport}
-                                className={indigoCompactButtonClass}
-                                disabled={
-                                  importingPayrollExcel ||
-                                  confirmingPayrollExcelImport ||
-                                  scopedPayrollEmployees.length === 0
-                                }
-                              >
-                                <FileUp className="w-4 h-4" />
-                                استيراد من Excel
-                              </button>
-                            </div>
-                          )}
-                        {selectedPayrollRunEditable &&
-                          isAdmin &&
-                          scopedPayrollEmployees.length === 0 &&
-                          !scopedEmployeesLoading && (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                              لا يوجد موظفون داخل نطاق هذا المسير حاليًا، لذلك تم تعطيل الإدخال
-                              اليدوي والاستيراد حتى إضافة موظفين لهذا النطاق أولًا.
-                            </div>
-                          )}
-                        <div className="text-xs text-foreground-tertiary">
-                          الموظفون المتاحون داخل نطاق هذا المسير: {scopedPayrollEmployees.length}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-right">الموظف</th>
-                            <th className="px-4 py-3 text-right">الإقامة</th>
-                            <th className="px-4 py-3 text-right">إجمالي</th>
-                            <th className="px-4 py-3 text-right">نقل/تجديد</th>
-                            <th className="px-4 py-3 text-right">جزاءات</th>
-                            <th className="px-4 py-3 text-right">سلفة</th>
-                            <th className="px-4 py-3 text-right">أخرى</th>
-                            <th className="px-4 py-3 text-right">الصافي</th>
-                            <th className="px-4 py-3 text-right">الحالة</th>
-                            <th className="px-4 py-3 text-right">الإجراءات</th>
-                            <th className="px-4 py-3 text-right">القسيمة</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {payrollEntries.map((entry) => {
-                            const rowBreakdown = normalizePayrollObligationBreakdown(
-                              payrollEntryBreakdownById.get(entry.id) ?? {
-                                ...EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
-                                penalty: Number(entry.deductions_amount || 0),
-                                advance: Number(entry.installment_deducted_amount || 0),
-                              }
-                            )
-
-                            return (
-                              <tr key={entry.id} className="border-t hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-900">
-                                  {entry.employee_name_snapshot}
-                                </td>
-                                <td className="px-4 py-3">{entry.residence_number_snapshot}</td>
-                                <td className="px-4 py-3">
-                                  {entry.gross_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {rowBreakdown.transfer_renewal.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {rowBreakdown.penalty.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {rowBreakdown.advance.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {rowBreakdown.other.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-blue-700">
-                                  {entry.net_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700 border border-border-200">
-                                    {getPayrollStatusText(entry.entry_status)}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                  {selectedPayrollRunEditable && isAdmin ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditPayrollEntry(entry)}
-                                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition"
-                                    >
-                                      تعديل
-                                    </button>
-                                  ) : (
-                                    <span className="text-xs text-foreground-tertiary">—</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {payrollSlipEntryIds.has(entry.id) ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedPayrollSlipEntryId(entry.id)}
-                                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border bg-green-100 text-green-700 border-green-200 hover:bg-green-200 transition"
-                                    >
-                                      <Eye className="w-3 h-3" />
-                                      عرض القسيمة
-                                    </button>
-                                  ) : (
-                                    <span className="px-2 py-1 rounded-full text-xs border bg-gray-100 text-gray-600 border-border-200">
-                                      غير مولدة
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {selectedPayrollRun && selectedPayrollRunEditable && (
-                    <div className="border-t border-border-200 bg-surface-secondary-50 px-4 py-4">
-                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                        <div className="lg:max-w-sm">
-                          <h3 className="font-semibold text-foreground mb-1">
-                            استيراد الرواتب من Excel
-                          </h3>
-                          <p className="text-sm text-foreground-secondary">
-                            ابدأ بالقالب الجاهز، ثم ارفع الملف وراجع الصفوف قبل الاعتماد النهائي
-                            داخل نفس المسير.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
-                          <div className="rounded-lg border border-border-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
-                            1. نزّل القالب وأبقِ رقم الإقامة موجودًا في كل صف.
-                          </div>
-                          <div className="rounded-lg border border-border-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
-                            2. اترك أي عمود غير متوفر فارغًا وسيتم اعتباره صفرًا أو ملاحظة فارغة.
-                          </div>
-                          <div className="rounded-lg border border-border-200 bg-surface px-3 py-2 text-sm text-foreground-secondary">
-                            3. راجع المعاينة قبل الاعتماد لتجنب إدخال بيانات غير مطابقة.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {payrollImportPreviewRows.length > 0 && (
-                    <div className="border-t border-border-200 bg-blue-50 px-4 py-4 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold text-blue-900">معاينة استيراد الرواتب</h3>
-                          <p className="text-sm text-blue-700 mt-1">
-                            الملف: {payrollImportFileName || 'Excel'} • الصفوف الجاهزة للاعتماد:{' '}
-                            {payrollImportPreviewRows.length}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleClearPayrollImportPreview}
-                            className={outlineCompactButtonClass}
-                            disabled={confirmingPayrollExcelImport}
-                          >
-                            إلغاء المعاينة
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleConfirmPayrollExcelImport}
-                            className={primaryCompactButtonClass}
-                            disabled={confirmingPayrollExcelImport}
-                          >
-                            {confirmingPayrollExcelImport ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="w-4 h-4" />
-                            )}
-                            اعتماد الاستيراد
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="overflow-x-auto rounded-lg border border-blue-200 bg-surface">
-                        <table className="w-full text-sm">
-                          <thead className="bg-blue-50">
-                            <tr>
-                              <th className="px-4 py-3 text-right">الصف</th>
-                              <th className="px-4 py-3 text-right">الموظف</th>
-                              <th className="px-4 py-3 text-right">الإقامة</th>
-                              <th className="px-4 py-3 text-right">الحضور</th>
-                              <th className="px-4 py-3 text-right">الإضافي</th>
-                              <th className="px-4 py-3 text-right">الخصومات</th>
-                              <th className="px-4 py-3 text-right">الأقساط</th>
-                              <th className="px-4 py-3 text-right">الإجمالي</th>
-                              <th className="px-4 py-3 text-right">الصافي</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {payrollImportPreviewRows.map((row) => (
-                              <tr
-                                key={`${row.employee_id}-${row.row_number}`}
-                                className="border-t border-blue-100"
-                              >
-                                <td className="px-4 py-3">{row.row_number}</td>
-                                <td className="px-4 py-3 font-medium text-gray-900">
-                                  {row.employee_name}
-                                </td>
-                                <td className="px-4 py-3">{row.residence_number}</td>
-                                <td className="px-4 py-3">{row.attendance_days}</td>
-                                <td className="px-4 py-3">
-                                  {row.overtime_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {row.deductions_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {row.installment_deducted_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {row.gross_amount.toLocaleString('en-US')}
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-blue-700">
-                                  {row.net_amount.toLocaleString('en-US')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {payrollImportHeaderError && (
-                    <div className="border-t border-border-200 bg-amber-50 px-4 py-4">
-                      <h3 className="font-semibold text-amber-900 mb-2">مشكلة في رأس ملف Excel</h3>
-                      <p className="text-sm text-amber-800">{payrollImportHeaderError}</p>
-                    </div>
-                  )}
-
-                  {payrollImportErrors.length > 0 && (
-                    <div className="border-t border-border-200 bg-red-50 px-4 py-4">
-                      <div className="flex items-center justify-between gap-3 mb-3">
-                        <div>
-                          <h3 className="font-semibold text-red-900">أخطاء استيراد الرواتب</h3>
-                          <p className="text-sm text-red-700 mt-1">
-                            تم استيراد بعض الصفوف، لكن الصفوف التالية تحتاج تصحيحًا قبل إعادة الرفع.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPayrollImportErrors([])}
-                          className={outlineCompactButtonClass}
-                        >
-                          إخفاء
-                        </button>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto rounded-lg border border-red-200 bg-surface">
-                        <ul className="divide-y divide-red-100 text-sm text-red-800">
-                          {payrollImportErrors.map((error, index) => (
-                            <li key={`${error}-${index}`} className="px-4 py-3">
-                              {error}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* ══════════════════════════════════════════════════════════════
+            Tab: قائمة الالتزامات
+        ══════════════════════════════════════════════════════════════ */}
+        {activePageTab === 'obligations' && (
+          <div className="space-y-5 mb-6">
+            {/* Header bar */}
+            <div className="rounded-2xl border border-border-200 bg-surface p-4 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">قائمة الالتزامات والاستقطاعات</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    ملخص جميع الالتزامات النشطة على الموظفين — تعديل القيمة هنا يُحدِّث خطة
+                    الالتزام مباشرة.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void refetchObligations()}
+                    className={outlineCompactButtonClass}
+                    disabled={obligationsLoading}
+                  >
+                    {obligationsLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    تحديث
+                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddObligationDialog(true)}
+                      className={primaryCompactButtonClass}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      إضافة التزام
+                    </button>
+                  )}
+                  {canExport('payroll') && (
+                    <button
+                      type="button"
+                      onClick={() => void exportObligationsToExcel()}
+                      disabled={exportingObligations || filteredObligationsSummary.length === 0}
+                      className={successCompactButtonClass}
+                    >
+                      {exportingObligations ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      تصدير Excel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="max-w-sm">
+                <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                  بحث
+                </label>
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-tertiary" />
+                  <input
+                    type="text"
+                    value={obligationsSearchQuery}
+                    onChange={(e) => setObligationsSearchQuery(e.target.value)}
+                    placeholder="الاسم أو رقم الإقامة أو المشروع"
+                    className="w-full rounded-xl border border-border-300 bg-surface py-2 pr-9 pl-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-xl border border-border-200 bg-surface p-3">
+                  <p className="text-xs text-foreground-tertiary mb-1">عدد الموظفين</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {filteredObligationsSummary.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border-200 bg-surface p-3">
+                  <p className="text-xs text-foreground-tertiary mb-1">إجمالي المتبقي</p>
+                  <p className="text-xl font-bold text-red-600">
+                    {filteredObligationsSummary
+                      .reduce((s, r) => s + r.total_remaining, 0)
+                      .toLocaleString('en-US')}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border-200 bg-surface p-3">
+                  <p className="text-xs text-foreground-tertiary mb-1">سلف متبقية</p>
+                  <p className="text-xl font-bold text-blue-700">
+                    {filteredObligationsSummary
+                      .reduce((s, r) => s + r.advance_remaining, 0)
+                      .toLocaleString('en-US')}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border-200 bg-surface p-3">
+                  <p className="text-xs text-foreground-tertiary mb-1">جزاءات متبقية</p>
+                  <p className="text-xl font-bold text-rose-600">
+                    {filteredObligationsSummary
+                      .reduce((s, r) => s + r.penalty_remaining, 0)
+                      .toLocaleString('en-US')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Table */}
+              {obligationsLoading ? (
+                <div className="py-10 text-center text-sm text-foreground-tertiary">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />
+                  جاري تحميل بيانات الالتزامات...
+                </div>
+              ) : filteredObligationsSummary.length === 0 ? (
+                <div className="rounded-xl border border-border-200 bg-surface-secondary-50 py-10 text-center text-sm text-foreground-tertiary">
+                  لا توجد التزامات نشطة حالياً.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface-secondary-50">
+                      <tr>
+                        <th className="px-4 py-3 text-right font-semibold">الموظف</th>
+                        <th className="px-4 py-3 text-right font-semibold">رقم الإقامة</th>
+                        <th className="px-4 py-3 text-right font-semibold">المشروع</th>
+                        <th className="px-4 py-3 text-right font-semibold">المؤسسة</th>
+                        <th className="px-4 py-3 text-right font-semibold">نقل كفالة</th>
+                        <th className="px-4 py-3 text-right font-semibold">تجديد</th>
+                        <th className="px-4 py-3 text-right font-semibold">جزاءات</th>
+                        <th className="px-4 py-3 text-right font-semibold">سلف</th>
+                        <th className="px-4 py-3 text-right font-semibold">أخرى</th>
+                        <th className="px-4 py-3 text-right font-semibold text-red-700">
+                          إجمالي المتبقي
+                        </th>
+                        <th className="px-4 py-3 text-center font-semibold">تعديل</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-100">
+                      {filteredObligationsSummary.map((row) => (
+                        <tr
+                          key={row.employee_id}
+                          className="hover:bg-surface-secondary-50 transition"
+                        >
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {row.employee_name}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-foreground-secondary">
+                            {row.residence_number}
+                          </td>
+                          <td className="px-4 py-3 text-foreground-secondary">
+                            {row.project_name || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-foreground-secondary">
+                            {row.company_name || '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.transfer_remaining > 0 ? (
+                              <span className="text-amber-700 font-medium">
+                                {row.transfer_remaining.toLocaleString('en-US')}
+                              </span>
+                            ) : (
+                              <span className="text-foreground-tertiary">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.renewal_remaining > 0 ? (
+                              <span className="text-amber-700 font-medium">
+                                {row.renewal_remaining.toLocaleString('en-US')}
+                              </span>
+                            ) : (
+                              <span className="text-foreground-tertiary">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.penalty_remaining > 0 ? (
+                              <span className="text-rose-600 font-medium">
+                                {row.penalty_remaining.toLocaleString('en-US')}
+                              </span>
+                            ) : (
+                              <span className="text-foreground-tertiary">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.advance_remaining > 0 ? (
+                              <span className="text-blue-700 font-medium">
+                                {row.advance_remaining.toLocaleString('en-US')}
+                              </span>
+                            ) : (
+                              <span className="text-foreground-tertiary">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.other_remaining > 0 ? (
+                              <span className="text-violet-700 font-medium">
+                                {row.other_remaining.toLocaleString('en-US')}
+                              </span>
+                            ) : (
+                              <span className="text-foreground-tertiary">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-bold text-red-600">
+                            {row.total_remaining.toLocaleString('en-US')}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenObligationDetail(row.employee_id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              تفاصيل
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-surface-secondary-50 border-t border-border-200 font-semibold">
+                      <tr>
+                        <td className="px-4 py-3" colSpan={4}>
+                          الإجمالي ({filteredObligationsSummary.length} موظف)
+                        </td>
+                        <td className="px-4 py-3 text-amber-700">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.transfer_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-amber-700">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.renewal_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-rose-600">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.penalty_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-blue-700">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.advance_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-violet-700">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.other_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3 text-red-600">
+                          {filteredObligationsSummary
+                            .reduce((s, r) => s + r.total_remaining, 0)
+                            .toLocaleString('en-US')}
+                        </td>
+                        <td className="px-4 py-3" />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {payrollRunDeleteConfirmOpen && selectedPayrollRun && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-secondary-950/55 p-4 backdrop-blur-sm">
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-surface-secondary-950/55 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (!deletePayrollRun.isPending) {
+                setPayrollRunDeleteConfirmOpen(false)
+              }
+            }}
+          >
             <div
               role="dialog"
               aria-modal="true"
               className="w-full max-w-md rounded-2xl border border-border-200 bg-surface shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-3 border-b border-border-200 px-5 py-4">
                 <div>
@@ -3396,6 +4053,890 @@ export default function PayrollDeductions() {
                     <Trash2 className="h-4 w-4" />
                   )}
                   تأكيد الحذف
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showPayrollRunDetailsModal && selectedPayrollRun && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-surface-secondary-950/65 p-3 backdrop-blur-md md:p-4"
+            onClick={() => {
+              if (
+                !updatePayrollRunStatus.isPending &&
+                !deletePayrollRun.isPending &&
+                !upsertPayrollEntry.isPending &&
+                !confirmingPayrollExcelImport
+              ) {
+                handleClosePayrollRunDetailsModal()
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="app-modal-surface w-full max-w-7xl max-h-[94vh] overflow-y-auto border border-sky-100 shadow-[0_32px_100px_-38px_rgba(15,23,42,0.58)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="app-modal-header sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4 md:px-6 md:py-5">
+                <div>
+                  <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700 mb-2">
+                    كشف المسير
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">عرض المسير</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary max-w-3xl">
+                    {getPayrollRunDisplayName(
+                      selectedPayrollRun.scope_type,
+                      selectedPayrollRun.scope_id,
+                      selectedPayrollRun.payroll_month
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClosePayrollRunDetailsModal}
+                  disabled={
+                    updatePayrollRunStatus.isPending ||
+                    deletePayrollRun.isPending ||
+                    upsertPayrollEntry.isPending ||
+                    confirmingPayrollExcelImport
+                  }
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-200 bg-white/90 text-foreground-tertiary shadow-sm hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="bg-gradient-to-b from-surface-secondary-50/70 to-surface p-4 md:p-5">{renderSelectedPayrollRunDetails()}</div>
+            </div>
+          </div>
+        )}
+
+        {showPayrollRunForm && isAdmin && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-surface-secondary-950/55 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (!createPayrollRun.isPending && !upsertPayrollEntry.isPending) {
+                handleTogglePayrollRunForm()
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-7xl max-h-[92vh] overflow-y-auto rounded-2xl border border-border-200 bg-surface shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border-200 bg-surface px-5 py-4">
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">إضافة مسير جديد</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary">
+                    اختر المشروع أو المؤسسة، وسيتم تحميل موظفي النطاق تلقائيًا مع الراتب
+                    الحالي والأقساط المستحقة لهذا الشهر.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTogglePayrollRunForm}
+                  disabled={createPayrollRun.isPending || upsertPayrollEntry.isPending}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-200 text-foreground-tertiary hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-5 p-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
+                      شهر الرواتب
+                    </label>
+                    <input
+                      type="month"
+                      value={payrollForm.payroll_month}
+                      onChange={(e) =>
+                        setPayrollForm((current) => ({ ...current, payroll_month: e.target.value }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
+                      نوع المسير
+                    </label>
+                    <select
+                      value={payrollForm.scope_type}
+                      onChange={(e) =>
+                        setPayrollForm((current) => ({
+                          ...current,
+                          scope_type: e.target.value as PayrollScopeType,
+                          scope_id: '',
+                        }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                    >
+                      <option value="company">مسير لمؤسسة</option>
+                      <option value="project">مسير لمشروع</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
+                      {payrollForm.scope_type === 'project' ? 'اختر المشروع' : 'اختر المؤسسة'}
+                    </label>
+                    <select
+                      value={payrollForm.scope_id}
+                      onChange={(e) =>
+                        setPayrollForm((current) => ({ ...current, scope_id: e.target.value }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                    >
+                      <option value="">اختر...</option>
+                      {scopeOptions.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground-secondary">
+                      طريقة الإدخال
+                    </label>
+                    <select
+                      value={payrollForm.input_mode}
+                      onChange={(e) =>
+                        setPayrollForm((current) => ({
+                          ...current,
+                          input_mode: e.target.value as PayrollInputMode,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                    >
+                      <option value="manual">يدوي</option>
+                      <option value="excel">Excel</option>
+                      <option value="mixed">مختلط</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                  {payrollForm.scope_id ? (
+                    <>
+                      سيتم إنشاء:{' '}
+                      <strong>
+                        {getPayrollRunDisplayName(
+                          payrollForm.scope_type,
+                          payrollForm.scope_id,
+                          payrollForm.payroll_month
+                        )}
+                      </strong>
+                      {' — '}الموظفون يظهرون مرة واحدة فقط بناءً على رقم الإقامة.
+                    </>
+                  ) : (
+                    'اختر الشهر والنطاق أولاً ليتم تحميل قائمة الموظفين تلقائيًا.'
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground-secondary">
+                    ملاحظات المسير
+                  </label>
+                  <textarea
+                    value={payrollForm.notes}
+                    onChange={(e) =>
+                      setPayrollForm((current) => ({ ...current, notes: e.target.value }))
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm resize-none"
+                    placeholder="اختياري"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-border-200 overflow-hidden">
+                  <div className="flex flex-col gap-3 border-b border-border-200 bg-surface-secondary-50 px-4 py-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="font-semibold text-foreground">موظفو المسير</div>
+                      <div className="mt-1 text-sm text-foreground-secondary">
+                        الموظفون المعروضون مرتبطون بنفس المشروع أو المؤسسة، والراتب والأقساط
+                        محمّلة تلقائيًا وقابلة للتعديل قبل الإنشاء.
+                      </div>
+                    </div>
+                    {newPayrollRunRows.length > 0 && (
+                      <label className="inline-flex items-center gap-2 text-sm text-foreground-secondary">
+                        <input
+                          type="checkbox"
+                          checked={allNewPayrollRunRowsSelected}
+                          onChange={(e) =>
+                            handleToggleSelectAllNewPayrollRows(e.target.checked)
+                          }
+                          className="rounded border-border-300"
+                        />
+                        تحديد الكل
+                      </label>
+                    )}
+                  </div>
+
+                  {!payrollForm.scope_id || !normalizedPayrollFormMonth ? (
+                    <div className="px-4 py-10 text-center text-sm text-foreground-tertiary">
+                      اختر الشهر والنطاق لعرض الموظفين.
+                    </div>
+                  ) : payrollRunSeedEmployeesLoading ? (
+                    <div className="px-4 py-10 text-center text-sm text-foreground-tertiary">
+                      <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+                      جاري تحميل موظفي المسير...
+                    </div>
+                  ) : newPayrollRunRows.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-sm text-foreground-tertiary">
+                      لا يوجد موظفون داخل هذا النطاق حاليًا.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[1380px] text-sm">
+                        <thead className="bg-surface-secondary-50">
+                          <tr>
+                            <th className="px-3 py-3 text-right">اختيار</th>
+                            <th className="px-3 py-3 text-right">الموظف</th>
+                            <th className="px-3 py-3 text-right">الإقامة</th>
+                            <th className="px-3 py-3 text-right">الراتب</th>
+                            <th className="px-3 py-3 text-right">الأجر اليومي</th>
+                            <th className="px-3 py-3 text-right">الحضور</th>
+                            <th className="px-3 py-3 text-right">الإجازات</th>
+                            <th className="px-3 py-3 text-right">نقل/تجديد</th>
+                            <th className="px-3 py-3 text-right">جزاءات</th>
+                            <th className="px-3 py-3 text-right">سلفة</th>
+                            <th className="px-3 py-3 text-right">أخرى</th>
+                            <th className="px-3 py-3 text-right">إجمالي الاستقطاعات</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-100">
+                          {newPayrollRunRows.map((row) => {
+                            const rowDailyRate = roundPayrollAmount(row.basic_salary_snapshot / 30)
+                            const rowTotalDeductions =
+                              row.transfer_renewal_amount +
+                              row.penalty_amount +
+                              row.advance_amount +
+                              row.other_amount
+
+                            return (
+                              <tr
+                                key={row.employee_id}
+                                className={row.included ? 'bg-surface' : 'bg-surface-secondary-50/70'}
+                              >
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={row.included}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'included',
+                                        e.target.checked
+                                      )
+                                    }
+                                    className="rounded border-border-300"
+                                  />
+                                </td>
+                                <td className="px-3 py-3 font-medium text-foreground">
+                                  {row.employee_name}
+                                </td>
+                                <td className="px-3 py-3 font-mono text-foreground-secondary">
+                                  {row.residence_number}
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.basic_salary_snapshot}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'basic_salary_snapshot',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-28 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3 text-foreground-secondary">
+                                  {rowDailyRate.toLocaleString('en-US')}
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={row.attendance_days}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'attendance_days',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-20 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={row.paid_leave_days}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'paid_leave_days',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-20 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.transfer_renewal_amount}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'transfer_renewal_amount',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-24 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.penalty_amount}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'penalty_amount',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-24 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.advance_amount}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'advance_amount',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-24 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={row.other_amount}
+                                    onChange={(e) =>
+                                      handleUpdateNewPayrollRunRow(
+                                        row.employee_id,
+                                        'other_amount',
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    className="w-24 rounded-lg border border-border-300 bg-surface px-2 py-1.5"
+                                  />
+                                </td>
+                                <td className="px-3 py-3 font-semibold text-red-600">
+                                  {rowTotalDeductions.toLocaleString('en-US')}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-border-200 px-5 py-4">
+                <div className="text-sm text-foreground-secondary">
+                  المحددون: <strong>{selectedNewPayrollRunRows.length}</strong> من أصل{' '}
+                  <strong>{newPayrollRunRows.length}</strong>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTogglePayrollRunForm}
+                    className={outlineCompactButtonClass}
+                    disabled={createPayrollRun.isPending || upsertPayrollEntry.isPending}
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreatePayrollRun}
+                    className={successCompactButtonClass}
+                    disabled={createPayrollRun.isPending || upsertPayrollEntry.isPending}
+                  >
+                    {createPayrollRun.isPending || upsertPayrollEntry.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    إنشاء المسير
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            Modal: تفاصيل وتعديل التزامات الموظف
+        ══════════════════════════════════════════════════════════════ */}
+        {obligationDetailEmployeeId && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-surface-secondary-950/55 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (!editingObligationLineId) {
+                handleCloseObligationDetail()
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border-200 bg-surface shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border-200 bg-surface px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">
+                    التزامات الموظف
+                  </h2>
+                  <p className="text-sm text-foreground-secondary mt-0.5">
+                    {allObligationsSummary.find(r => r.employee_id === obligationDetailEmployeeId)?.employee_name ?? ''}
+                    {' — '}
+                    {allObligationsSummary.find(r => r.employee_id === obligationDetailEmployeeId)?.residence_number ?? ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseObligationDetail}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-200 text-foreground-tertiary hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                {detailObligationsLoading ? (
+                  <div className="py-10 text-center text-sm text-foreground-tertiary">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin mb-2" />
+                    جاري تحميل الالتزامات...
+                  </div>
+                ) : detailObligationPlans.filter(p => p.status === 'active' || p.status === 'draft').length === 0 ? (
+                  <div className="py-10 text-center text-sm text-foreground-tertiary">
+                    لا توجد التزامات نشطة لهذا الموظف.
+                  </div>
+                ) : (
+                  detailObligationPlans
+                    .filter(p => p.status === 'active' || p.status === 'draft')
+                    .map(plan => {
+                      const planRemaining = plan.lines.reduce(
+                        (s, l) => s + Math.max(l.amount_due - l.amount_paid, 0),
+                        0
+                      )
+                      const planPaid = plan.lines.reduce(
+                        (s, l) => s + Number(l.amount_paid || 0),
+                        0
+                      )
+                      return (
+                        <div
+                          key={plan.id}
+                          className="rounded-xl border border-border-200 bg-surface overflow-hidden"
+                        >
+                          {/* Plan header */}
+                          <div className="flex items-center justify-between gap-3 bg-surface-secondary-50 px-4 py-3 border-b border-border-100">
+                            <div>
+                              <span className="font-semibold text-foreground">{plan.title}</span>
+                              <span className="mr-2 text-xs rounded-full px-2 py-0.5 bg-blue-100 text-blue-700">
+                                {plan.installment_count} قسط
+                              </span>
+                            </div>
+                            <div className="text-sm text-foreground-secondary">
+                              مدفوع:{' '}
+                              <strong className="text-green-700">
+                                {planPaid.toLocaleString('en-US')}
+                              </strong>
+                              {' / '}متبقي:{' '}
+                              <strong className="text-red-600">
+                                {planRemaining.toLocaleString('en-US')}
+                              </strong>
+                            </div>
+                          </div>
+
+                          {/* Lines */}
+                          <div className="divide-y divide-border-100">
+                            {plan.lines
+                              .filter(l => l.line_status === 'unpaid' || l.line_status === 'partial')
+                              .map(line => {
+                                const remaining = Math.max(line.amount_due - line.amount_paid, 0)
+                                const isEditing = editingObligationLineId === line.id
+                                return (
+                                  <div key={line.id} className="px-4 py-3 space-y-3">
+                                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="text-foreground-secondary">
+                                          {line.due_month.slice(0, 7)}
+                                        </span>
+                                        <span
+                                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                            line.line_status === 'partial'
+                                              ? 'bg-amber-100 text-amber-700'
+                                              : 'bg-blue-100 text-blue-700'
+                                          }`}
+                                        >
+                                          {line.line_status === 'partial' ? 'جزئي' : 'مفتوح'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-sm">
+                                        <span className="text-foreground-tertiary">
+                                          المستحق: {line.amount_due.toLocaleString('en-US')}
+                                        </span>
+                                        <span className="text-green-700">
+                                          مدفوع: {line.amount_paid.toLocaleString('en-US')}
+                                        </span>
+                                        <span className="font-semibold text-red-600">
+                                          متبقي: {remaining.toLocaleString('en-US')}
+                                        </span>
+                                        {!isEditing && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleStartEditObligationLine(
+                                                line.id,
+                                                line.amount_paid,
+                                                line.notes
+                                              )
+                                            }
+                                            className="inline-flex items-center gap-1 rounded-lg border border-border-200 bg-surface px-2.5 py-1 text-xs font-medium text-foreground-secondary hover:bg-surface-secondary-50 transition"
+                                          >
+                                            تعديل
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {isEditing && (
+                                      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <label className="mb-1 block text-xs font-medium text-foreground-secondary">
+                                              إجمالي المدفوع حتى الآن
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              max={line.amount_due}
+                                              step="0.01"
+                                              value={obligationPaymentForm.amount_paid}
+                                              onChange={e =>
+                                                setObligationPaymentForm(f => ({
+                                                  ...f,
+                                                  amount_paid: Number(e.target.value) || 0,
+                                                }))
+                                              }
+                                              className="w-full rounded-lg border border-border-300 bg-surface px-3 py-2 text-sm"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="mb-1 block text-xs font-medium text-foreground-secondary">
+                                              ملاحظات
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={obligationPaymentForm.notes}
+                                              onChange={e =>
+                                                setObligationPaymentForm(f => ({
+                                                  ...f,
+                                                  notes: e.target.value,
+                                                }))
+                                              }
+                                              className="w-full rounded-lg border border-border-300 bg-surface px-3 py-2 text-sm"
+                                              placeholder="اختياري"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingObligationLineId(null)}
+                                            className={outlineCompactButtonClass}
+                                            disabled={updateObligationLinePayment.isPending}
+                                          >
+                                            إلغاء
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              void handleSaveObligationLinePayment(
+                                                line.id,
+                                                line.amount_due
+                                              )
+                                            }
+                                            className={successCompactButtonClass}
+                                            disabled={updateObligationLinePayment.isPending}
+                                          >
+                                            {updateObligationLinePayment.isPending ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <CheckCircle className="h-4 w-4" />
+                                            )}
+                                            حفظ
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                          </div>
+                        </div>
+                      )
+                    })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 border-t border-border-200 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={handleCloseObligationDetail}
+                  className={outlineCompactButtonClass}
+                >
+                  إغلاق
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            Dialog: إضافة التزام جديد
+        ══════════════════════════════════════════════════════════════ */}
+        {showAddObligationDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-secondary-950/55 p-4 backdrop-blur-sm">
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-lg rounded-2xl border border-border-200 bg-surface shadow-2xl"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-border-200 px-5 py-4">
+                <h2 className="text-lg font-bold text-foreground">إضافة التزام جديد</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAddObligationDialog(false)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-200 text-foreground-tertiary hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 px-5 py-4">
+                {/* Employee search */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                    البحث عن موظف (الاسم أو رقم الإقامة)
+                  </label>
+                  <input
+                    type="text"
+                    value={addObligationEmployeeSearch}
+                    onChange={(e) => {
+                      setAddObligationEmployeeSearch(e.target.value)
+                      setAddObligationSelectedEmployeeId('')
+                    }}
+                    placeholder="اكتب الاسم أو رقم الإقامة..."
+                    className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                  />
+                  {addObligationEmployeeSearch && !addObligationSelectedEmployeeId && (
+                    <div className="mt-1 max-h-44 overflow-y-auto rounded-xl border border-border-200 bg-surface shadow-lg">
+                      {dialogEmployeeOptions.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-foreground-tertiary">لا توجد نتائج</p>
+                      ) : (
+                        dialogEmployeeOptions.map((emp) => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            onClick={() => {
+                              setAddObligationSelectedEmployeeId(emp.id as string)
+                              setAddObligationEmployeeSearch(
+                                `${emp.name} — ${emp.residence_number}`
+                              )
+                            }}
+                            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-surface-secondary-50 text-right"
+                          >
+                            <span className="font-medium">{emp.name}</span>
+                            <span className="font-mono text-foreground-tertiary text-xs">
+                              {emp.residence_number}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {addObligationSelectedEmployeeId && (
+                    <p className="mt-1 text-xs text-green-700 font-medium flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      تم اختيار الموظف
+                    </p>
+                  )}
+                </div>
+
+                {/* Obligation type */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                    نوع الالتزام
+                  </label>
+                  <select
+                    value={addObligationForm.obligation_type}
+                    onChange={(e) =>
+                      setAddObligationForm((f) => ({
+                        ...f,
+                        obligation_type: e.target.value as typeof addObligationForm.obligation_type,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                  >
+                    <option value="advance">سلفة</option>
+                    <option value="transfer">نقل كفالة</option>
+                    <option value="renewal">تجديد</option>
+                    <option value="penalty">غرامة / جزاء</option>
+                    <option value="other">أخرى</option>
+                  </select>
+                </div>
+
+                {/* Amount + installments */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                      قيمة الالتزام الكلية
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={addObligationForm.total_amount || ''}
+                      onChange={(e) =>
+                        setAddObligationForm((f) => ({
+                          ...f,
+                          total_amount: Number(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                      عدد أشهر الأقساط
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={addObligationForm.installment_count || ''}
+                      onChange={(e) =>
+                        setAddObligationForm((f) => ({
+                          ...f,
+                          installment_count: Math.max(1, Number(e.target.value) || 1),
+                        }))
+                      }
+                      className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                      placeholder="1"
+                    />
+                  </div>
+                </div>
+
+                {/* Start month */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                    شهر بداية أول قسط
+                  </label>
+                  <input
+                    type="month"
+                    value={addObligationForm.start_month}
+                    onChange={(e) =>
+                      setAddObligationForm((f) => ({ ...f, start_month: e.target.value }))
+                    }
+                    className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm"
+                  />
+                </div>
+
+                {/* Preview */}
+                {addObligationForm.total_amount > 0 && addObligationForm.installment_count > 0 && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    قسط شهري تقريبي:{' '}
+                    <strong>
+                      {(
+                        addObligationForm.total_amount / addObligationForm.installment_count
+                      ).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                    </strong>{' '}
+                    × {addObligationForm.installment_count} شهر
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground-secondary">
+                    ملاحظات (اختياري)
+                  </label>
+                  <textarea
+                    value={addObligationForm.notes}
+                    onChange={(e) =>
+                      setAddObligationForm((f) => ({ ...f, notes: e.target.value }))
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-border-300 bg-surface px-3 py-2 text-sm resize-none"
+                    placeholder="أي ملاحظات إضافية..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border-200 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddObligationDialog(false)}
+                  className={outlineCompactButtonClass}
+                  disabled={createObligationPlan.isPending}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleAddObligation()}
+                  className={primaryCompactButtonClass}
+                  disabled={createObligationPlan.isPending || !addObligationSelectedEmployeeId}
+                >
+                  {createObligationPlan.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  إضافة الالتزام
                 </button>
               </div>
             </div>

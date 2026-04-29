@@ -164,7 +164,7 @@ export const NAV_ITEMS: NavItem[] = [
     labelAr: 'إعدادات التنبيهات',
     labelEn: 'Alert Settings',
     icon: AlertCircle,
-    to: '/alert-settings',
+    to: '/admin-settings?tab=alert-settings',
     requiredPermission: 'manage_alerts',
     group: 'admin',
     order: 2,

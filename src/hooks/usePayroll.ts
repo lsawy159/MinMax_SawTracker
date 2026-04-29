@@ -53,6 +53,7 @@ export interface ScopedPayrollEmployee extends Omit<Employee, 'company' | 'proje
   company?: { name?: string | null } | null
   project?: { name?: string | null } | null
   suggested_installment_amount: number
+  suggested_deduction_breakdown: PayrollObligationBreakdown
 }
 
 export interface UpsertPayrollEntryInput {
@@ -155,6 +156,21 @@ function lineMatchesBucket(type: ObligationType, bucket: PayrollObligationBucket
   }
 
   return type === getPayrollBucketType(bucket)
+}
+
+function getBucketForObligationType(type: ObligationType): PayrollObligationBucketKey {
+  switch (type) {
+    case 'transfer':
+    case 'renewal':
+      return 'transfer_renewal'
+    case 'penalty':
+      return 'penalty'
+    case 'advance':
+      return 'advance'
+    case 'other':
+    default:
+      return 'other'
+  }
 }
 
 async function restorePayrollEntryAllocations(entryIds: string[]) {
@@ -897,15 +913,46 @@ export function useScopedPayrollEmployees(
         throw employeesError
       }
 
-      const employeeList = (employees ?? []) as unknown as ScopedPayrollEmployee[]
+      const rawEmployeeList = (employees ?? []) as unknown as ScopedPayrollEmployee[]
+      const employeeByResidence = new Map<string, ScopedPayrollEmployee>()
+
+      for (const employee of rawEmployeeList) {
+        const normalizedResidence = String(employee.residence_number || '').trim()
+        if (!normalizedResidence) {
+          employeeByResidence.set(employee.id, employee)
+          continue
+        }
+
+        if (!employeeByResidence.has(normalizedResidence)) {
+          employeeByResidence.set(normalizedResidence, employee)
+        }
+      }
+
+      const employeeList = Array.from(employeeByResidence.values())
       if (employeeList.length === 0) {
         return [] as ScopedPayrollEmployee[]
       }
 
       const employeeIds = employeeList.map((employee) => employee.id)
+      const { data: obligationHeaders, error: obligationHeadersError } = await supabase
+        .from('employee_obligation_headers')
+        .select('id, employee_id, obligation_type, status')
+        .in('employee_id', employeeIds)
+        .in('status', ['active', 'draft'])
+
+      if (obligationHeadersError) {
+        logger.error('Error fetching scoped obligation headers:', obligationHeadersError)
+        throw obligationHeadersError
+      }
+
+      const headerTypeById = new Map<string, ObligationType>()
+      for (const header of obligationHeaders ?? []) {
+        headerTypeById.set(header.id as string, header.obligation_type as ObligationType)
+      }
+
       const { data: obligationLines, error: obligationLinesError } = await supabase
         .from('employee_obligation_lines')
-        .select('employee_id, amount_due, amount_paid, line_status, due_month')
+        .select('employee_id, header_id, amount_due, amount_paid, line_status, due_month')
         .in('employee_id', employeeIds)
         .eq('due_month', payrollMonth)
         .in('line_status', ['unpaid', 'partial'])
@@ -916,18 +963,29 @@ export function useScopedPayrollEmployees(
       }
 
       const suggestedInstallments = new Map<string, number>()
+      const suggestedBreakdown = new Map<string, PayrollObligationBreakdown>()
       for (const line of obligationLines ?? []) {
-        const existing = suggestedInstallments.get(line.employee_id as string) ?? 0
+        const employeeId = line.employee_id as string
+        const existing = suggestedInstallments.get(employeeId) ?? 0
         const remaining = Math.max(
           (Number(line.amount_due) || 0) - (Number(line.amount_paid) || 0),
           0
         )
-        suggestedInstallments.set(line.employee_id as string, existing + remaining)
+        suggestedInstallments.set(employeeId, existing + remaining)
+
+        const obligationType = headerTypeById.get(line.header_id as string) ?? 'other'
+        const bucket = getBucketForObligationType(obligationType)
+        const currentBreakdown =
+          suggestedBreakdown.get(employeeId) ?? normalizePayrollObligationBreakdown()
+        currentBreakdown[bucket] += remaining
+        suggestedBreakdown.set(employeeId, currentBreakdown)
       }
 
       return employeeList.map((employee) => ({
         ...employee,
         suggested_installment_amount: suggestedInstallments.get(employee.id) ?? 0,
+        suggested_deduction_breakdown:
+          suggestedBreakdown.get(employee.id) ?? normalizePayrollObligationBreakdown(),
       }))
     },
   })
@@ -1040,6 +1098,7 @@ export function useUpsertPayrollEntry() {
       queryClient.invalidateQueries({ queryKey: ['payroll-run-entries', entry.payroll_run_id] })
       queryClient.invalidateQueries({ queryKey: ['payroll-scope-employees'] })
       queryClient.invalidateQueries({ queryKey: ['employee-obligations', variables.employee_id] })
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
     },
   })
 }

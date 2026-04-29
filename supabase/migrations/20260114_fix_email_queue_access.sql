@@ -85,6 +85,8 @@ WITH CHECK (
 );
 
 -- Create RLS policy for users with adminSettings permission (read only)
+-- ملاحظة: تم تبسيط هذه السياسة لتجنب خطأ users.permissions الغير موجود في هذه المرحلة
+-- سيتم تحديث هذه السياسة في migration لاحق عندما يُضاف عمود permissions
 CREATE POLICY "AdminSettings permission can read email_queue"
 ON email_queue FOR SELECT
 TO authenticated
@@ -92,11 +94,7 @@ USING (
     EXISTS (
         SELECT 1 FROM users
         WHERE users.id = auth.uid()
-        AND (
-            users.role = 'admin'
-            OR COALESCE((users.permissions->'adminSettings'->>'edit')::boolean, false)
-            OR COALESCE((users.permissions->'adminSettings'->>'view')::boolean, false)
-        )
+        AND users.role = 'admin'
     )
 );
 

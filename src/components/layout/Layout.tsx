@@ -24,7 +24,7 @@ import {
 import { useAlertsStats } from '@/hooks/useAlertsStats'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip'
 import { usePermissions } from '@/utils/permissions'
-import { useThemeMode, useFontMode, useDensityMode } from '@/hooks/useUiPreferences'
+import { useThemeMode, useFontMode } from '@/hooks/useUiPreferences'
 import { MobileBottomNav } from './MobileBottomNav'
 import { PillHeader } from './PillHeader'
 
@@ -67,7 +67,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { hasPermission } = usePermissions()
   const { isDark, toggleTheme } = useThemeMode()
   const { fontMode, setFontMode } = useFontMode()
-  const { densityMode, setDensityMode } = useDensityMode()
 
   const handleSignOut = async () => {
     await signOut()
@@ -212,7 +211,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         badge: null,
       },
       {
-        path: '/alert-settings',
+        path: '/admin-settings?tab=alert-settings',
         icon: Bell,
         label: 'إعدادات التنبيهات',
         permission: { section: 'centralizedSettings' as const, action: 'view' },
@@ -267,8 +266,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           onSignOut={handleSignOut}
           fontMode={fontMode}
           onFontChange={setFontMode}
-          densityMode={densityMode}
-          onDensityChange={setDensityMode}
           quickSearchItems={quickSearchItems}
         />
 

@@ -26,9 +26,27 @@ ALTER TABLE public.employees
 
 -- This partial unique index protects the active workforce and keeps
 -- residence_number usable as the payroll import identifier.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_employees_residence_number_active
-  ON public.employees (residence_number)
-  WHERE is_deleted = false;
+-- Only create if the column exists (it may be added by a later migration)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'employees'
+      AND column_name = 'residence_number'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'employees'
+        AND indexname = 'uq_employees_residence_number_active'
+    ) THEN
+      EXECUTE 'CREATE UNIQUE INDEX uq_employees_residence_number_active
+        ON public.employees (residence_number)
+        WHERE is_deleted = false';
+    END IF;
+  END IF;
+END $$;
 
 -- -----------------------------------------------------
 -- 2) Create enums in idempotent DO blocks

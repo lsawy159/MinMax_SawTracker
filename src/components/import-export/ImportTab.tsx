@@ -1279,7 +1279,7 @@ export default function ImportTab({
       return
     }
 
-    const blockingErrors = getBlockingErrorCount
+    const blockingErrors = blockingErrorCount
     if (selectedRows.size > 0 && blockingErrors > 0) {
       toast.error('الصفوف المحددة تحتوي على أخطاء. يرجى إصلاحها أو إلغاء تحديدها قبل الاستيراد.')
       return
@@ -1538,20 +1538,14 @@ export default function ImportTab({
         index,
       }))
 
-      const hasErrorSeverity = (idx: number) => {
-        const excelRowNumber = idx + 2
-        const rowErrors = validationResults.filter(
-          (e) => e.row === excelRowNumber && e.severity === 'error'
-        )
-        return rowErrors.length > 0
-      }
+      const hasBlockingError = (idx: number) => blockingRowIndices.has(idx)
 
       // تطبيق التحديد واستبعاد أخطاء التحقق
       rowsWithIndex = rowsWithIndex.filter(({ index }) => {
         if (!targetIndices.has(index)) return false
 
         // استبعاد الصفوف ذات الأخطاء غير المحددة (أو المحددة لكن المفروض أن الزر لن يُفعّل حينها)
-        if (hasErrorSeverity(index)) return false
+        if (hasBlockingError(index)) return false
 
         // معالجة التعارض مع بيانات DB
         if (dbConflicts.has(index)) {
@@ -2301,7 +2295,6 @@ export default function ImportTab({
   }
 
   // حساب الأخطاء في جميع الصفوف
-  const totalErrorCount = validationResults.filter((e) => e.severity === 'error').length
   const errorRowCount = new Set(
     validationResults.filter((e) => e.severity === 'error').map((e) => e.row)
   ).size
@@ -2309,49 +2302,23 @@ export default function ImportTab({
     validationResults.filter((e) => e.severity === 'warning').map((e) => e.row)
   ).size
 
-  // حساب الأخطاء في الصفوف المحددة فقط
-  const getSelectedRowsErrors = (): number => {
-    if (selectedRows.size === 0) {
-      // إذا لم تكن هناك صفوف محددة، نتحقق من جميع الصفوف
-      return totalErrorCount
-    }
-
-    // حساب الأخطاء في الصفوف المحددة فقط
-    let errorCount = 0
-    selectedRows.forEach((rowIndex) => {
-      const excelRowNumber = rowIndex + 2 // Excel row number (1 is header, +1 for index)
-      const rowErrors = validationResults.filter(
-        (e) => e.row === excelRowNumber && e.severity === 'error'
-      )
-      if (rowErrors.length > 0) {
-        errorCount += rowErrors.length
-      }
-    })
-    return errorCount
+  const isInternalDuplicateError = (error: ValidationError): boolean => {
+    if (error.severity !== 'error') return false
+    return error.message.includes('مكرر في ملف Excel') || error.message.includes('مكرر في الصف')
   }
 
-  // حساب أخطاء مانعة ديناميكياً بناءً على الصفوف المحددة فقط والتكرارات الفعلية
-  const getBlockingErrorCount = useMemo((): number => {
+  // نطاق الاستيراد الحالي: الصفوف المحددة فقط، أو كل الصفوف عند عدم وجود تحديد.
+  const activeScopeIndices = useMemo(() => {
+    const indicesRaw = selectedRows.size > 0 ? Array.from(selectedRows) : previewData.map((_, idx) => idx)
+    return indicesRaw.filter((idx) => idx >= 0 && idx < previewData.length)
+  }, [selectedRows, previewData])
+
+  // حساب أخطاء مانعة ديناميكياً بناءً على الصفوف المحددة والتكرارات الفعلية
+  const blockingRowIndices = useMemo((): Set<number> => {
     const errorRows = new Set<number>()
+    const targetIndices = activeScopeIndices
 
-    // ✅ إذا كانت هناك صفوف محددة، احسب الأخطاء للصفوف المحددة فقط
-    // إذا لم تكن هناك صفوف محددة، احسب الأخطاء لجميع الصفوف
-    const targetIndices =
-      selectedRows.size > 0 ? Array.from(selectedRows) : previewData.map((_, idx) => idx)
-
-    // احسب الأخطاء من validation results للصفوف المستهدفة فقط
-    validationResults.forEach((error) => {
-      if (error.severity === 'error' && error.row > 1) {
-        // Excel row numbers start from 2 (1 is header)
-        const dataIndex = error.row - 2
-        if (dataIndex >= 0 && dataIndex < previewData.length && targetIndices.includes(dataIndex)) {
-          errorRows.add(dataIndex)
-        }
-      }
-    })
-
-    // ✅ التكرارات من النظام فقط (Database duplicates) يمكن استبدالها
-    // التكرارات الداخلية (Internal duplicates) لا يمكن حلها - مانعة دائماً
+    // تجميع التكرارات داخل النطاق المحدد فقط.
     const duplicateGroups = new Map<string, number[]>()
     targetIndices.forEach((idx) => {
       const row = previewData[idx]
@@ -2366,83 +2333,112 @@ export default function ImportTab({
       duplicateGroups.set(key, list)
     })
 
-    // فقط DB duplicates (موجودة في النظام بالفعل) يمكن استبدالها
-    duplicateGroups.forEach((indices) => {
-      if (indices.length > 1) {
-        // تحقق من أن جميع النسخ المكررة هي من DB conflicts (موجودة بالفعل)
-        const allAreDbConflicts = indices.every((i) => dbConflicts.has(i))
+    // احسب الأخطاء المانعة لكل صف داخل النطاق المحدد.
+    targetIndices.forEach((idx) => {
+      const excelRowNumber = idx + 2
+      const rowErrors = validationResults.filter(
+        (error) => error.severity === 'error' && error.row === excelRowNumber
+      )
 
-        if (allAreDbConflicts) {
-          // كل النسخ المكررة من النظام - الافتراضي = "استبدال"
-          // فقط أضفها للأخطاء إذا اختار المستخدم "بقاء" بشكل صريح
-          const hasKeepChoice = indices.some((i) => conflictResolution.get(i) === 'keep')
-          if (hasKeepChoice) {
-            indices.forEach((i) => {
-              if (conflictResolution.get(i) === 'keep') {
-                errorRows.add(i)
-              }
-            })
-          }
-        } else {
-          // بعض النسخ المكررة من ملف Excel نفسه → خطأ مانع دائماً
-          // (لا يمكن استبدالها - يجب إصلاح الملف)
-          indices.forEach((i) => errorRows.add(i))
-        }
+      if (rowErrors.length === 0) return
+
+      // أي خطأ غير متعلق بالتكرار الداخلي = مانع مباشرة.
+      const hasNonDuplicateError = rowErrors.some((error) => !isInternalDuplicateError(error))
+      if (hasNonDuplicateError) {
+        errorRows.add(idx)
+        return
+      }
+
+      // أخطاء التكرار الداخلي فقط: تكون مانعة فقط إذا ما زال هناك أكثر من صف مكرر في النطاق المحدد.
+      const hasInternalDuplicateOnly = rowErrors.some((error) => isInternalDuplicateError(error))
+      if (!hasInternalDuplicateOnly) return
+
+      const row = previewData[idx]
+      if (!row) return
+
+      const key =
+        importType === 'employees'
+          ? row['رقم الإقامة']?.toString().trim()
+          : row['الرقم الموحد']?.toString().trim()
+      if (!key) {
+        errorRows.add(idx)
+        return
+      }
+
+      const groupSize = duplicateGroups.get(key)?.length ?? 0
+      if (groupSize > 1) {
+        errorRows.add(idx)
       }
     })
 
-    return errorRows.size
-  }, [previewData, validationResults, importType, conflictResolution, dbConflicts, selectedRows])
+    return errorRows
+  }, [activeScopeIndices, previewData, validationResults, importType])
 
-  const selectedRowsErrorCount = getSelectedRowsErrors()
-  const blockingErrorCount = getBlockingErrorCount
+  const blockingErrorCount = blockingRowIndices.size
+
+  const warningRowCountInScope = useMemo(() => {
+    const warningRows = new Set<number>()
+    activeScopeIndices.forEach((idx) => {
+      const excelRowNumber = idx + 2
+      const hasWarning = validationResults.some(
+        (error) => error.severity === 'warning' && error.row === excelRowNumber
+      )
+      if (hasWarning) {
+        warningRows.add(idx)
+      }
+    })
+    return warningRows.size
+  }, [activeScopeIndices, validationResults])
+
+  const selectedRowsErrorCount = blockingErrorCount
   const errorCount = blockingErrorCount
 
   return (
     <div className="space-y-6">
-      {/* Import Type Selection and Color Legend - يظهر فقط خارج الـ modal */}
-      {!isInModal && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Import Type Selection and Color Legend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column: Import Type Selection + File Upload */}
           <div className="space-y-4">
-            {/* Import Type Selection */}
-            <div>
-              <label className="block text-xs font-medium text-neutral-600 mb-1.5">
-                نوع البيانات المراد استيرادها
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setImportType('employees')
-                    setCurrentPage(1)
-                    setSelectedRows(new Set())
-                    setShouldDeleteBeforeImport(false)
-                  }}
-                  className={`flex-1 rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition ${
-                    importType === 'employees'
-                      ? 'border-primary bg-primary/15 text-slate-900'
-                      : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                  }`}
-                >
-                  موظفين
-                </button>
-                <button
-                  onClick={() => {
-                    setImportType('companies')
-                    setCurrentPage(1)
-                    setSelectedRows(new Set())
-                    setShouldDeleteBeforeImport(false)
-                  }}
-                  className={`flex-1 px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition ${
-                    importType === 'companies'
-                      ? 'border-green-600 bg-green-50 text-success-600'
-                      : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                  }`}
-                >
-                  مؤسسات
-                </button>
+            {/* Import Type Selection - hidden when used inside parent with external selector */}
+            {!isInModal && (
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1.5">
+                  نوع البيانات المراد استيرادها
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setImportType('employees')
+                      setCurrentPage(1)
+                      setSelectedRows(new Set())
+                      setShouldDeleteBeforeImport(false)
+                    }}
+                    className={`flex-1 rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition ${
+                      importType === 'employees'
+                        ? 'border-primary bg-primary/15 text-slate-900'
+                        : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                    }`}
+                  >
+                    موظفين
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImportType('companies')
+                      setCurrentPage(1)
+                      setSelectedRows(new Set())
+                      setShouldDeleteBeforeImport(false)
+                    }}
+                    className={`flex-1 px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition ${
+                      importType === 'companies'
+                        ? 'border-green-600 bg-green-50 text-success-600'
+                        : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                    }`}
+                  >
+                    مؤسسات
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* File Upload Area */}
             <div
@@ -2521,10 +2517,9 @@ export default function ImportTab({
             </div>
           </div>
         </div>
-      )}
 
-      {/* Selected File - يظهر فقط خارج الـ modal */}
-      {!isInModal && file && (
+      {/* Selected File */}
+      {file && (
         <div className="app-info-block rounded-xl border-2 border-primary/30 p-3 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2569,8 +2564,8 @@ export default function ImportTab({
         </div>
       )}
 
-      {/* Validation Results Summary - يظهر فقط خارج الـ modal */}
-      {!isInModal && validationResults.length > 0 && (
+      {/* Validation Results Summary */}
+      {validationResults.length > 0 && (
         <div className="border-2 border-neutral-300 rounded-xl overflow-hidden shadow-md">
           <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-5 py-4 border-b-2 border-neutral-300 flex items-center justify-between">
             <h4 className="font-bold text-neutral-900 text-lg flex items-center gap-2">
@@ -2582,19 +2577,21 @@ export default function ImportTab({
                 <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
                   <XCircle className="w-5 h-5 text-red-600" />
                   <span className="font-bold text-red-700">
-                    {errorRowCount} {errorRowCount === 1 ? 'صف به خطأ' : 'صفوف بها أخطاء'}
+                    {blockingErrorCount}{' '}
+                    {blockingErrorCount === 1 ? 'صف به خطأ مانع' : 'صفوف بها أخطاء مانعة'}
                   </span>
                 </div>
               )}
-              {warningRowCount > 0 && (
+              {warningRowCountInScope > 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
                   <AlertCircle className="w-5 h-5 text-yellow-600" />
                   <span className="font-bold text-yellow-700">
-                    {warningRowCount} {warningRowCount === 1 ? 'صف به تحذير' : 'صفوف بها تحذيرات'}
+                    {warningRowCountInScope}{' '}
+                    {warningRowCountInScope === 1 ? 'صف به تحذير' : 'صفوف بها تحذيرات'}
                   </span>
                 </div>
               )}
-              {errorRowCount === 0 && warningRowCount === 0 && (
+              {blockingErrorCount === 0 && warningRowCountInScope === 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
                   <CheckCircle className="w-5 h-5 text-success-600" />
                   <span className="font-bold text-success-700">جاهز للاستيراد</span>
@@ -2603,11 +2600,13 @@ export default function ImportTab({
             </div>
             <div className="flex items-center gap-3 text-xs text-neutral-700 bg-white px-3 py-2 rounded-lg border border-neutral-200 shadow-sm">
               <span className="font-semibold text-neutral-900">
-                إجمالي الصفوف: {previewData.length}
+                إجمالي الصفوف ضمن النطاق الحالي: {activeScopeIndices.length}
               </span>
-              <span className="text-red-600 font-semibold">صفوف بها أخطاء: {errorRowCount}</span>
+              <span className="text-red-600 font-semibold">
+                صفوف بها أخطاء مانعة: {blockingErrorCount}
+              </span>
               <span className="text-yellow-600 font-semibold">
-                صفوف بها تحذيرات: {warningRowCount}
+                صفوف بها تحذيرات: {warningRowCountInScope}
               </span>
             </div>
           </div>
@@ -3495,13 +3494,13 @@ export default function ImportTab({
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded-lg border border-neutral-200 shadow-sm">
                       <span className="font-semibold text-neutral-800">
-                        إجمالي الصفوف: {previewData.length}
+                        إجمالي الصفوف ضمن النطاق الحالي: {activeScopeIndices.length}
                       </span>
                       <span className="text-red-600 font-semibold">
-                        صفوف بها أخطاء: {errorRowCount}
+                        صفوف بها أخطاء مانعة: {blockingErrorCount}
                       </span>
                       <span className="text-yellow-600 font-semibold">
-                        صفوف بها تحذيرات: {warningRowCount}
+                        صفوف بها تحذيرات: {warningRowCountInScope}
                       </span>
                     </div>
                     <button
@@ -3543,25 +3542,29 @@ export default function ImportTab({
                           ملخص نتائج التحقق
                         </h4>
                         <div className="flex items-center gap-4">
-                          {errorRowCount > 0 && (
+                          {blockingErrorCount > 0 && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-100 rounded-lg border-2 border-red-400">
                               <XCircle className="w-5 h-5 text-red-600" />
                               <span className="font-bold text-red-700">
-                                {errorRowCount}{' '}
-                                {errorRowCount === 1 ? 'صف به خطأ' : 'صفوف بها أخطاء'}
+                                {blockingErrorCount}{' '}
+                                {blockingErrorCount === 1
+                                  ? 'صف به خطأ مانع'
+                                  : 'صفوف بها أخطاء مانعة'}
                               </span>
                             </div>
                           )}
-                          {warningRowCount > 0 && (
+                          {warningRowCountInScope > 0 && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-lg border-2 border-yellow-400">
                               <AlertCircle className="w-5 h-5 text-yellow-600" />
                               <span className="font-bold text-yellow-700">
-                                {warningRowCount}{' '}
-                                {warningRowCount === 1 ? 'صف به تحذير' : 'صفوف بها تحذيرات'}
+                                {warningRowCountInScope}{' '}
+                                {warningRowCountInScope === 1
+                                  ? 'صف به تحذير'
+                                  : 'صفوف بها تحذيرات'}
                               </span>
                             </div>
                           )}
-                          {errorRowCount === 0 && warningRowCount === 0 && (
+                          {blockingErrorCount === 0 && warningRowCountInScope === 0 && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-green-100 rounded-lg border-2 border-green-400">
                               <CheckCircle className="w-5 h-5 text-success-600" />
                               <span className="font-bold text-success-700">جاهز للاستيراد</span>
@@ -3570,13 +3573,13 @@ export default function ImportTab({
                         </div>
                         <div className="flex items-center gap-3 text-xs text-neutral-700 bg-white px-3 py-2 rounded-lg border border-neutral-200 shadow-sm">
                           <span className="font-semibold text-neutral-900">
-                            إجمالي الصفوف: {previewData.length}
+                            إجمالي الصفوف ضمن النطاق الحالي: {activeScopeIndices.length}
                           </span>
                           <span className="text-red-600 font-semibold">
-                            صفوف بها أخطاء: {errorRowCount}
+                            صفوف بها أخطاء مانعة: {blockingErrorCount}
                           </span>
                           <span className="text-yellow-600 font-semibold">
-                            صفوف بها تحذيرات: {warningRowCount}
+                            صفوف بها تحذيرات: {warningRowCountInScope}
                           </span>
                         </div>
                       </div>
@@ -4183,8 +4186,9 @@ export default function ImportTab({
                           <span className="font-bold text-base">لا يمكن الاستيراد</span>
                         </div>
                         <p className="text-sm text-red-700">
-                          يوجد {blockingErrorCount} خطأ في الملف. يجب إصلاح جميع الأخطاء قبل
-                          المتابعة. التحذيرات لا تمنع الاستيراد.
+                          يوجد {blockingErrorCount} صف به أخطاء مانعة ضمن نطاق الاستيراد الحالي.
+                          يمكنك إلغاء تحديد الصفوف الخاطئة أو إصلاحها قبل المتابعة. التحذيرات لا
+                          تمنع الاستيراد.
                         </p>
                       </div>
                     ) : (

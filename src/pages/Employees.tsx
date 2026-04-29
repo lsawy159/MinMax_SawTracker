@@ -40,7 +40,14 @@ import { useCardColumns } from '@/hooks/useUiPreferences'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/DropdownMenu'
 
 const COLOR_THRESHOLD_FALLBACK: EmployeeNotificationThresholds = {
   residence_urgent_days: 7,
@@ -1283,66 +1290,52 @@ export default function Employees() {
                 </TooltipContent>
               </Tooltip>
 
-              <div className="relative">
-                <Button onClick={() => setShowSortDropdown(!showSortDropdown)} variant="secondary">
-                  {getSortIcon(sortField)}
-                  <span className="hidden sm:inline">الترتيب</span>
-                  <ArrowUpDown className="w-4 h-4" />
-                </Button>
-
-                {showSortDropdown && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowSortDropdown(false)}
-                    />
-                    <div className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-neutral-200 bg-surface py-2 shadow-lg">
-                      <div className="border-b border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-500">
-                        الترتيب حسب:
-                      </div>
-                      {[
-                        { field: 'name' as typeof sortField, label: 'الاسم' },
-                        { field: 'profession' as typeof sortField, label: 'المهنة' },
-                        { field: 'nationality' as typeof sortField, label: 'الجنسية' },
-                        { field: 'company' as typeof sortField, label: 'الشركة' },
-                        { field: 'project' as typeof sortField, label: 'المشروع' },
-                        {
-                          field: 'contract_expiry' as typeof sortField,
-                          label: 'تاريخ انتهاء العقد',
-                        },
-                        {
-                          field: 'hired_worker_contract_expiry' as typeof sortField,
-                          label: 'تاريخ انتهاء عقد أجير',
-                        },
-                        {
-                          field: 'residence_expiry' as typeof sortField,
-                          label: 'تاريخ انتهاء الإقامة',
-                        },
-                        {
-                          field: 'health_insurance_expiry' as typeof sortField,
-                          label: 'تاريخ انتهاء التأمين الصحي',
-                        },
-                      ].map(({ field, label }) => (
-                        <button
-                          key={field}
-                          onClick={() => {
-                            handleSort(field)
-                            setShowSortDropdown(false)
-                          }}
-                          className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition ${
-                            sortField === field
-                              ? 'bg-primary/10 text-foreground'
-                              : 'text-neutral-700 hover:bg-neutral-50'
-                          }`}
-                        >
-                          <span>{label}</span>
-                          {sortField === field && getSortIcon(field)}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <DropdownMenu open={showSortDropdown} onOpenChange={setShowSortDropdown}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">
+                    {getSortIcon(sortField)}
+                    <span className="hidden sm:inline">الترتيب</span>
+                    <ArrowUpDown className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={8} className="w-56">
+                  <DropdownMenuLabel>الترتيب حسب:</DropdownMenuLabel>
+                  {[
+                    { field: 'name' as typeof sortField, label: 'الاسم' },
+                    { field: 'profession' as typeof sortField, label: 'المهنة' },
+                    { field: 'nationality' as typeof sortField, label: 'الجنسية' },
+                    { field: 'company' as typeof sortField, label: 'الشركة' },
+                    { field: 'project' as typeof sortField, label: 'المشروع' },
+                    {
+                      field: 'contract_expiry' as typeof sortField,
+                      label: 'تاريخ انتهاء العقد',
+                    },
+                    {
+                      field: 'hired_worker_contract_expiry' as typeof sortField,
+                      label: 'تاريخ انتهاء عقد أجير',
+                    },
+                    {
+                      field: 'residence_expiry' as typeof sortField,
+                      label: 'تاريخ انتهاء الإقامة',
+                    },
+                    {
+                      field: 'health_insurance_expiry' as typeof sortField,
+                      label: 'تاريخ انتهاء التأمين الصحي',
+                    },
+                  ].map(({ field, label }) => (
+                    <DropdownMenuItem
+                      key={field}
+                      onClick={() => {
+                        handleSort(field)
+                      }}
+                      className={`w-full justify-between text-right ${sortField === field ? 'bg-primary/10 text-foreground' : ''}`}
+                    >
+                      <span>{label}</span>
+                      {sortField === field && getSortIcon(field)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           }
         >
@@ -1357,7 +1350,7 @@ export default function Employees() {
 
         {/* Filters Modal */}
         {showFiltersModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
             {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)]"
@@ -1436,7 +1429,7 @@ export default function Employees() {
                         </div>
 
                         {isCompanyDropdownOpen && (
-                          <div className="absolute z-50 w-full mt-1 bg-surface border border-neutral-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="absolute z-[130] w-full mt-1 bg-surface border border-neutral-300 rounded-md shadow-lg max-h-60 overflow-auto">
                             <button
                               type="button"
                               onClick={() => {
@@ -2299,8 +2292,14 @@ export default function Employees() {
 
       {/* مودال تأكيد حذف الموظف */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
+        <div
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 flex items-center justify-center p-4"
+          onClick={() => {
+            setShowDeleteModal(false)
+            setEmployeeToDelete(null)
+          }}
+        >
+          <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-red-100 p-3 rounded-lg">
@@ -2410,7 +2409,7 @@ function BulkDeleteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 flex items-center justify-center p-4"
       onClick={handleCancel}
     >
       <div
@@ -2510,8 +2509,8 @@ function BulkDateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">

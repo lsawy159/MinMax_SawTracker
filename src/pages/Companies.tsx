@@ -29,7 +29,14 @@ import { normalizeArabic } from '@/utils/textUtils'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FilterBar } from '@/components/ui/FilterBar'
 import { SearchInput } from '@/components/ui/SearchInput'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/DropdownMenu'
 import {
   calculateCommercialRegistrationStatus,
   calculatePowerSubscriptionStatus,
@@ -1055,50 +1062,40 @@ export default function Companies() {
             </span>
           </Button>
 
-          <div className="relative">
-            <Button onClick={() => setShowSortDropdown(!showSortDropdown)} variant="secondary">
-              {getSortIcon(sortField)}
-              <span className="hidden sm:inline">الترتيب</span>
-              <ArrowUpDown className="w-4 h-4" />
-            </Button>
-
-            {/* Sort Dropdown Menu */}
-            {showSortDropdown && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowSortDropdown(false)} />
-                <div className="absolute left-0 mt-2 w-56 bg-surface rounded-lg shadow-lg border border-neutral-200 z-20 py-2">
-                  <div className="px-3 py-2 text-xs font-semibold text-neutral-500 border-b border-neutral-200">
-                    الترتيب حسب:
-                  </div>
-                  {[
-                    { field: 'name' as SortField, label: 'الاسم' },
-                    { field: 'created_at' as SortField, label: 'تاريخ التسجيل' },
-                    {
-                      field: 'commercial_registration_status' as SortField,
-                      label: 'حالة التسجيل التجاري',
-                    },
-                    { field: 'employee_count' as SortField, label: 'عدد الموظفين' },
-                    { field: 'power_subscription_status' as SortField, label: 'حالة اشتراك قوى' },
-                    { field: 'moqeem_subscription_status' as SortField, label: 'حالة اشتراك مقيم' },
-                  ].map(({ field, label }) => (
-                    <button
-                      key={field}
-                      onClick={() => {
-                        handleSort(field)
-                        setShowSortDropdown(false)
-                      }}
-                      className={`flex w-full items-center justify-between px-4 py-2 text-right text-sm transition hover:bg-neutral-50 ${
-                        sortField === field ? 'bg-primary/10 text-foreground' : 'text-neutral-700'
-                      }`}
-                    >
-                      <span>{label}</span>
-                      {sortField === field && getSortIcon(field)}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <DropdownMenu open={showSortDropdown} onOpenChange={setShowSortDropdown}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary">
+                {getSortIcon(sortField)}
+                <span className="hidden sm:inline">الترتيب</span>
+                <ArrowUpDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8} className="w-56">
+              <DropdownMenuLabel>الترتيب حسب:</DropdownMenuLabel>
+              {[
+                { field: 'name' as SortField, label: 'الاسم' },
+                { field: 'created_at' as SortField, label: 'تاريخ التسجيل' },
+                {
+                  field: 'commercial_registration_status' as SortField,
+                  label: 'حالة التسجيل التجاري',
+                },
+                { field: 'employee_count' as SortField, label: 'عدد الموظفين' },
+                { field: 'power_subscription_status' as SortField, label: 'حالة اشتراك قوى' },
+                { field: 'moqeem_subscription_status' as SortField, label: 'حالة اشتراك مقيم' },
+              ].map(({ field, label }) => (
+                <DropdownMenuItem
+                  key={field}
+                  onClick={() => {
+                    handleSort(field)
+                  }}
+                  className={`w-full justify-between text-right ${sortField === field ? 'bg-primary/10 text-foreground' : ''}`}
+                >
+                  <span>{label}</span>
+                  {sortField === field && getSortIcon(field)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* View Mode and Items Per Page */}
           <div className="flex flex-wrap items-center gap-3">
@@ -1153,7 +1150,7 @@ export default function Companies() {
 
         {/* Filters Modal */}
         {showFiltersModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
             {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black/50 transition-opacity duration-[var(--motion-base)] ease-[var(--ease-out)]"
@@ -1709,8 +1706,11 @@ export default function Companies() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4"
+            onClick={handleModalClose}
+          >
+            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-red-100 p-3 rounded-lg">
@@ -1746,8 +1746,15 @@ export default function Companies() {
 
         {/* Bulk Delete Confirmation Modal */}
         {showBulkDeleteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full">
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4"
+            onClick={() => {
+              if (!loading) {
+                setShowBulkDeleteModal(false)
+              }
+            }}
+          >
+            <div className="bg-surface rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-red-100 p-3 rounded-lg">

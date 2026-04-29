@@ -14,6 +14,7 @@ import {
   Bell,
   BarChart3,
   Users,
+  AlertTriangle,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -25,8 +26,9 @@ import { BackupTab } from '@/components/settings/tabs/BackupTab'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
 import { PermissionsPanel } from '@/pages/Permissions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import UnifiedSettings from '@/components/settings/UnifiedSettings'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import {
   Select,
   SelectContent,
@@ -48,9 +50,45 @@ interface GeneralSetting {
 interface SettingsCategory {
   key: string
   label: string
+  description: string
   icon: React.ComponentType<{ className?: string }>
   settings?: GeneralSetting[]
   component?: React.ComponentType
+}
+
+const SystemDefaultsInfo = () => {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-border-200 bg-surface-secondary-50 p-3">
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">ثوابت النظام</h3>
+        <p className="text-xs leading-relaxed text-gray-600">
+          هذه القيم أساسية في النظام وتمت إزالتها من الإعدادات القابلة للتعديل.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">المنطقة الزمنية</p>
+          <p className="text-sm font-medium text-gray-900">Asia/Riyadh</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">لغة النظام</p>
+          <p className="text-sm font-medium text-gray-900">العربية</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">العملة</p>
+          <p className="text-sm font-medium text-gray-900">الريال السعودي (SAR)</p>
+        </div>
+
+        <div className="rounded-lg border border-border-100 bg-surface p-3">
+          <p className="text-xs text-gray-500">تنسيق التاريخ</p>
+          <p className="text-sm font-medium text-gray-900">ar-SA</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 type TabType =
@@ -61,8 +99,17 @@ type TabType =
   | 'ui'
   | 'reports'
   | 'advanced-notifications'
-  | 'unified'
+  | 'alert-settings'
   | 'backup'
+
+const LEGACY_SYSTEM_SETTINGS_KEYS = [
+  'system_timezone',
+  'system_language',
+  'system_currency',
+  'date_format',
+  'working_hours_start',
+  'working_hours_end',
+]
 
 export default function GeneralSettings() {
   const { user } = useAuth()
@@ -81,15 +128,36 @@ export default function GeneralSettings() {
   const hasViewPermission = canView('adminSettings')
   const hasEditPermission = canEdit('adminSettings')
 
+  const cleanupLegacySystemSettings = async () => {
+    try {
+      const table = supabase.from('system_settings') as unknown as {
+        delete?: () => { in: (column: string, values: string[]) => Promise<{ error: unknown }> }
+      }
+
+      if (!table.delete) {
+        return
+      }
+
+      const { error } = await table
+        .delete()
+        .in('setting_key', LEGACY_SYSTEM_SETTINGS_KEYS)
+
+      if (error) {
+        console.error('Error cleaning legacy system settings:', error)
+      }
+    } catch (error) {
+      console.error('Error cleaning legacy system settings:', error)
+    }
+  }
+
   const loadSettings = async () => {
     setIsLoading(true)
     try {
       const { data, error } = await supabase
-        .from('general_settings')
-        .select('id,setting_key,setting_value,created_at,updated_at')
+        .from('system_settings')
+        .select('setting_key,setting_value')
 
       if (error && error.code !== 'PGRST116') {
-        // PGRST116 = table doesn't exist
         console.error('Error loading settings:', error)
       }
 
@@ -98,8 +166,18 @@ export default function GeneralSettings() {
           string,
           string | number | boolean | Record<string, unknown> | null
         > = {}
-        data.forEach((setting) => {
-          settingsMap[setting.setting_key] = setting.setting_value
+        data.forEach((row: { setting_key: string; setting_value: unknown }) => {
+          const raw = row.setting_value
+          // Values stored as JSON strings — parse back to native type
+          if (typeof raw === 'string') {
+            try {
+              settingsMap[row.setting_key] = JSON.parse(raw)
+            } catch {
+              settingsMap[row.setting_key] = raw
+            }
+          } else {
+            settingsMap[row.setting_key] = raw as string | number | boolean | null
+          }
         })
         setSettings(settingsMap)
       }
@@ -112,11 +190,14 @@ export default function GeneralSettings() {
 
   useEffect(() => {
     if (user && hasViewPermission) {
+      if (hasEditPermission) {
+        cleanupLegacySystemSettings()
+      }
       loadSettings()
     } else {
       setIsLoading(false)
     }
-  }, [user, hasViewPermission])
+  }, [user, hasViewPermission, hasEditPermission])
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -132,7 +213,7 @@ export default function GeneralSettings() {
       'ui',
       'reports',
       'advanced-notifications',
-      'unified',
+      'alert-settings',
       'backup',
     ]
     if (allowedTabs.includes(tab as TabType)) {
@@ -166,83 +247,42 @@ export default function GeneralSettings() {
     {
       key: 'system',
       label: 'إعدادات النظام الأساسية',
+      description: 'إعدادات أساسية ثابتة على مستوى النظام وغير قابلة للتعديل من الواجهة.',
       icon: Globe,
-      settings: [
-        {
-          setting_key: 'system_timezone',
-          setting_value: 'Asia/Riyadh',
-          category: 'system',
-          description: 'المنطقة الزمنية للنظام',
-          setting_type: 'select',
-          options: ['Asia/Riyadh', 'UTC', 'Asia/Dubai', 'Asia/Kuwait'],
-        },
-        {
-          setting_key: 'system_language',
-          setting_value: 'ar',
-          category: 'system',
-          description: 'لغة النظام الافتراضية',
-          setting_type: 'select',
-          options: ['ar', 'en'],
-        },
-        {
-          setting_key: 'system_currency',
-          setting_value: 'SAR',
-          category: 'system',
-          description: 'العملة الافتراضية',
-          setting_type: 'select',
-          options: ['SAR', 'USD', 'EUR', 'AED'],
-        },
-        {
-          setting_key: 'date_format',
-          setting_value: 'yyyy-MM-dd',
-          category: 'system',
-          description: 'تنسيق التاريخ',
-          setting_type: 'select',
-          options: ['yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy'],
-        },
-        {
-          setting_key: 'working_hours_start',
-          setting_value: '08:00',
-          category: 'system',
-          description: 'بداية ساعات العمل',
-          setting_type: 'time',
-        },
-        {
-          setting_key: 'working_hours_end',
-          setting_value: '17:00',
-          category: 'system',
-          description: 'نهاية ساعات العمل',
-          setting_type: 'time',
-        },
-      ],
+      component: SystemDefaultsInfo,
     },
     {
       key: 'backup',
       label: 'النسخ الاحتياطية',
+      description: 'جدولة النسخ الاحتياطي التلقائي وعرض سجل العمليات السابقة وتحميل النسخ المحفوظة.',
       icon: DatabaseIcon,
       component: BackupTab,
     },
     {
       key: 'sessions',
       label: 'إدارة الجلسات النشطة',
+      description: 'عرض جميع الجلسات المفتوحة حالياً لجميع المستخدمين وإمكانية إنهاء أي جلسة عن بُعد.',
       icon: Users,
       component: SessionsManager,
     },
     {
       key: 'audit',
       label: 'لوحة المراجعة والتدقيق',
+      description: 'سجل كامل لكل عمليات الإضافة والتعديل والحذف في النظام مع التوقيت والمستخدم المسؤول.',
       icon: BarChart3,
       component: AuditDashboard,
     },
     {
       key: 'permissions',
       label: 'إدارة الصلاحيات',
+      description: 'تحديد صلاحيات كل مستخدم وتعيين الأدوار (مدير / مسؤول / مستخدم) والتحكم في ما يستطيع رؤيته وتعديله.',
       icon: Shield,
       component: PermissionsPanel,
     },
     {
       key: 'ui',
       label: 'إعدادات واجهة المستخدم',
+      description: 'تخصيص مظهر التطبيق: الثيم، حجم الخط، كثافة العرض، وعدد العناصر في كل صفحة.',
       icon: Palette,
       settings: [
         {
@@ -296,6 +336,7 @@ export default function GeneralSettings() {
     {
       key: 'reports',
       label: 'إعدادات التقارير',
+      description: 'تحديد تنسيق التقارير الافتراضي (Excel/CSV)، جدولة الإرسال التلقائي للبريد الإلكتروني، وإضافة شعار الشركة.',
       icon: FileText,
       settings: [
         {
@@ -340,6 +381,7 @@ export default function GeneralSettings() {
     {
       key: 'advanced-notifications',
       label: 'إعدادات الإشعارات المتقدمة',
+      description: 'التحكم في طريقة الإشعارات (داخل التطبيق / بريد / SMS)، وتحديد عدد الأيام للتنبيه قبل انتهاء الإقامات والعقود، وساعات الصمت.',
       icon: Bell,
       settings: [
         {
@@ -395,6 +437,13 @@ export default function GeneralSettings() {
         },
       ],
     },
+    {
+      key: 'alert-settings',
+      label: 'إعدادات التنبيهات',
+      description: 'تخصيص حدود التنبيهات وألوانها وحالاتها: ما يُعتبر تنبيهاً حرجاً، والألوان المرتبطة بكل حالة.',
+      icon: AlertTriangle,
+      component: UnifiedSettings,
+    },
   ]
 
   const saveActiveTabSettings = async () => {
@@ -412,52 +461,24 @@ export default function GeneralSettings() {
 
     setIsSaving(true)
     try {
-      // إعدادات التبويب الحالي فقط
-      const tabSettings = categoryToSave.settings.map((setting) => ({
-        ...setting,
-        setting_value: settings[setting.setting_key] ?? setting.setting_value,
-      }))
-
-      // حذف الإعدادات الخاصة بهذا التبويب فقط
-      const { error: deleteError } = await supabase
-        .from('general_settings')
-        .delete()
-        .eq('category', categoryToSave.key)
-
-      if (deleteError) {
-        console.error('Error deleting existing settings for tab:', deleteError)
-        toast.error('فشل حذف إعدادات هذا التبويب قبل الحفظ')
-        return
-      }
-
-      const { error } = await supabase.from('general_settings').insert(
-        tabSettings.map((setting) => ({
+      const rows = categoryToSave.settings.map((setting) => {
+        const currentValue = settings[setting.setting_key] ?? setting.setting_value
+        return {
           setting_key: setting.setting_key,
-          setting_value: setting.setting_value,
+          setting_value: JSON.stringify(currentValue),
           category: setting.category,
           description: setting.description,
           setting_type: setting.setting_type,
-          options: setting.options,
-        }))
-      )
+        }
+      })
+
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert(rows, { onConflict: 'setting_key' })
 
       if (error) {
-        console.error('Error saving settings:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        })
-
-        if (error.code === '23505') {
-          toast.error(
-            'يوجد تعارض في مفاتيح الإعدادات. تأكد من عدم تكرار نفس الاسم أكثر من مرة.'
-          )
-        } else {
-          toast.error(
-            'فشل حفظ إعدادات هذا التبويب. يرجى المحاولة مرة أخرى.'
-          )
-        }
+        console.error('Error saving settings:', error)
+        toast.error('فشل حفظ الإعدادات. يرجى المحاولة مرة أخرى.')
         return
       }
 
@@ -714,14 +735,12 @@ export default function GeneralSettings() {
                         <h2 className="text-sm font-semibold text-gray-900">
                           {activeCategory.label}
                         </h2>
-                        {activeCategory.settings && (
-                          <p className="text-xs text-gray-600">
-                            {activeCategory.settings.length} إعدادات
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-500 mt-0.5 max-w-lg leading-relaxed">
+                          {activeCategory.description}
+                        </p>
                       </div>
                     </div>
-                    {hasEditPermission && activeCategory.settings && (
+                    {hasEditPermission && activeCategory.settings && activeCategory.settings.length > 0 && (
                       <div className="flex items-center gap-2">
                         <Button
                           onClick={() => resetToDefaults(activeTab)}

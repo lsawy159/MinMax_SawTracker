@@ -27,7 +27,7 @@ import { LogsFilters } from '@/components/activity/LogsFilters'
 import { DeleteConfirmModal } from '@/components/activity/DeleteConfirmModal'
 import { LogDetailsModal } from '@/components/activity/LogDetailsModal'
 import { LogsTable } from '@/components/activity/LogsTable'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'

@@ -43,7 +43,6 @@ const Employees = lazy(() => import('./pages/Employees'))
 const Companies = lazy(() => import('./pages/Companies'))
 const Projects = lazy(() => import('./pages/Projects'))
 const TransferProcedures = lazy(() => import('./pages/TransferProcedures'))
-const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Alerts = lazy(() => import('./pages/Alerts'))
 const Reports = lazy(() => import('./pages/Reports'))
@@ -53,7 +52,6 @@ const ImportExport = lazy(() => import('./pages/ImportExport'))
 const DesignSystem = lazy(() => import('./pages/DesignSystem'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
 const GeneralSettings = lazy(() => import('./pages/GeneralSettings'))
-const AlertSettings = lazy(() => import('./pages/AlertSettings'))
 
 // Loading fallback component
 function PageLoader({
@@ -177,14 +175,7 @@ function AppRoutes() {
             }
           />
           <Route path="/backup-settings" element={<Navigate to="/admin-settings?tab=backup" replace />} />
-          <Route
-            path="/alert-settings"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <AlertSettings />
-              </Suspense>
-            }
-          />
+          <Route path="/alert-settings" element={<Navigate to="/admin-settings?tab=alert-settings" replace />} />
           <Route
             path="/notifications"
             element={
