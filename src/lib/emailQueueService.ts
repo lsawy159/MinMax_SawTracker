@@ -6,6 +6,7 @@ interface EnqueueEmailOptions {
   htmlContent?: string
   textContent?: string
   priority?: 'low' | 'medium' | 'high' | 'urgent'
+  category?: 'general' | 'alert-digest' | 'backup'
   ccEmails?: string[]
   bccEmails?: string[]
   scheduledAt?: Date
@@ -23,26 +24,55 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // Maximum recipients per email
 const MAX_RECIPIENTS = 100
 
+const DIGEST_ADMIN_EMAIL = 'ahmad.alsawy159@gmail.com'
+
+function resolveQueueMode(): 'normal' | 'digest-only' {
+  const viteMode = (import.meta as unknown as { env?: Record<string, string> }).env
+    ?.VITE_EMAIL_QUEUE_MODE
+  const processMode = (
+    globalThis as {
+      process?: {
+        env?: Record<string, string | undefined>
+      }
+    }
+  ).process?.env?.VITE_EMAIL_QUEUE_MODE
+
+  const mode = (processMode || viteMode || 'normal').trim().toLowerCase()
+  return mode === 'digest-only' ? 'digest-only' : 'normal'
+}
+
 // Check if email is allowed by current queue mode constraint
 function validateQueueModeConstraint(options: EnqueueEmailOptions): {
   allowed: boolean
   error?: string
 } {
-  const mode =
-    (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_EMAIL_QUEUE_MODE ||
-    'digest-only'
+  const mode = resolveQueueMode()
 
   if (mode === 'digest-only') {
+    const normalizedCategory = (options.category || 'general').toLowerCase()
+
+    // Backup notifications are operationally critical and should not be blocked by digest mode.
+    if (normalizedCategory === 'backup') {
+      return { allowed: true }
+    }
+
     const isDigest =
       typeof options.subject === 'string' && options.subject.toLowerCase().includes('daily digest')
-    const adminOnly =
-      options.toEmails.length === 1 && options.toEmails[0] === 'ahmad.alsawy159@gmail.com'
+
+    const isLegacyBackupSubject =
+      typeof options.subject === 'string' && options.subject.toLowerCase().includes('backup')
+
+    if (isLegacyBackupSubject) {
+      return { allowed: true }
+    }
+
+    const adminOnly = options.toEmails.length === 1 && options.toEmails[0] === DIGEST_ADMIN_EMAIL
 
     if (!isDigest || !adminOnly) {
       return {
         allowed: false,
         error:
-          'Email queue is in digest-only mode. Only a single Daily Digest to ahmad.alsawy159@gmail.com is allowed.',
+          `Email queue is in digest-only mode. Only a single Daily Digest to ${DIGEST_ADMIN_EMAIL} is allowed.`,
       }
     }
   }

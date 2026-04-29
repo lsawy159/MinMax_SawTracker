@@ -21,6 +21,9 @@ export interface BackupSettings {
   schedule_hour: number
   schedule_day: number
   retention_days: number
+  delivery_mode: 'local_only' | 'local_plus_email'
+  email_notifications_enabled: boolean
+  email_recipients: string[]
   last_run_at: string | null
   next_run_at: string | null
 }
@@ -31,6 +34,9 @@ const BACKUP_SETTING_KEYS = [
   'backup_schedule_hour',
   'backup_schedule_day',
   'backup_retention_days',
+  'backup_delivery_mode',
+  'backup_email_notifications_enabled',
+  'backup_email_recipients',
   'backup_last_run_at',
   'backup_next_run_at',
 ]
@@ -53,13 +59,53 @@ export async function fetchBackupSettings(): Promise<BackupSettings> {
   const raw = (key: string) => map.get(key)
   const cleanStr = (val: unknown) =>
     val != null ? String(val).replace(/^"|"$/g, '') : null
+  const parseBool = (val: unknown, fallback: boolean): boolean => {
+    if (typeof val === 'boolean') return val
+    if (typeof val === 'string') {
+      const normalized = val.replace(/^"|"$/g, '').trim().toLowerCase()
+      if (normalized === 'true') return true
+      if (normalized === 'false') return false
+    }
+    if (typeof val === 'number') return val !== 0
+    return fallback
+  }
+  const parseStringArray = (val: unknown, fallback: string[]): string[] => {
+    if (Array.isArray(val)) {
+      return val.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    }
+
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (trimmed.length === 0) return fallback
+
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) {
+          return parsed.filter(
+            (item): item is string => typeof item === 'string' && item.trim().length > 0
+          )
+        }
+      } catch {
+        return trimmed
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+      }
+    }
+
+    return fallback
+  }
 
   return {
-    schedule_enabled: Boolean(raw('backup_schedule_enabled')),
+    schedule_enabled: parseBool(raw('backup_schedule_enabled'), false),
     frequency: (cleanStr(raw('backup_frequency')) ?? 'daily') as BackupSettings['frequency'],
     schedule_hour: Number(raw('backup_schedule_hour') ?? 2),
     schedule_day: Number(raw('backup_schedule_day') ?? 0),
     retention_days: Number(raw('backup_retention_days') ?? 30),
+    delivery_mode:
+      (cleanStr(raw('backup_delivery_mode')) as BackupSettings['delivery_mode']) ?? 'local_plus_email',
+    email_notifications_enabled: parseBool(raw('backup_email_notifications_enabled'), true),
+    email_recipients: parseStringArray(raw('backup_email_recipients'), []),
     last_run_at: cleanStr(raw('backup_last_run_at')),
     next_run_at: cleanStr(raw('backup_next_run_at')),
   }
@@ -101,6 +147,27 @@ export async function saveBackupSettings(settings: BackupSettings): Promise<void
       category: 'backup',
       description: 'عدد أيام الاحتفاظ بالنسخ الاحتياطية',
       setting_type: 'number',
+    },
+    {
+      setting_key: 'backup_delivery_mode',
+      setting_value: JSON.stringify(settings.delivery_mode),
+      category: 'backup',
+      description: 'طريقة تسليم النسخ الاحتياطية (محلي فقط/محلي + بريد)',
+      setting_type: 'select',
+    },
+    {
+      setting_key: 'backup_email_notifications_enabled',
+      setting_value: JSON.stringify(settings.email_notifications_enabled),
+      category: 'backup',
+      description: 'تفعيل إرسال إشعارات النسخ الاحتياطي عبر البريد الإلكتروني',
+      setting_type: 'boolean',
+    },
+    {
+      setting_key: 'backup_email_recipients',
+      setting_value: JSON.stringify(settings.email_recipients),
+      category: 'backup',
+      description: 'قائمة بريد المستقبلين لإشعارات النسخ الاحتياطي',
+      setting_type: 'json',
     },
   ]
 
