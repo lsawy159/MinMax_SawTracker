@@ -68,7 +68,7 @@
 | [X] T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
 | T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
 | T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
-| T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
+| [X] T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
 | T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
 | T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
 | T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
