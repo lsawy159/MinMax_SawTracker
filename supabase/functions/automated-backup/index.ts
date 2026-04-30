@@ -4,7 +4,36 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
 
-/** T-114: escape HTML to prevent XSS in email templates */
+/** T-108: Encrypt backup data with AES-256-GCM using BACKUP_ENCRYPTION_KEY env var.
+ * The output is: base64(iv [12 bytes] + ciphertext + authTag [16 bytes])
+ * Returns plain bytes when the env var is not set (development only). */
+async function encryptBackup(plaintext: Uint8Array): Promise<{ data: Uint8Array; encrypted: boolean }> {
+  // @ts-expect-error Deno global
+  const rawKey = Deno.env.get('BACKUP_ENCRYPTION_KEY')
+  if (!rawKey) {
+    console.warn('[Backup] BACKUP_ENCRYPTION_KEY not set — storing unencrypted (set key for production)')
+    return { data: plaintext, encrypted: false }
+  }
+
+  // Decode the base64 key (must be 32 bytes = 256 bits)
+  const keyBytes = Uint8Array.from(atob(rawKey), c => c.charCodeAt(0))
+  if (keyBytes.length !== 32) {
+    throw new Error('BACKUP_ENCRYPTION_KEY must be 32 bytes (256-bit) base64-encoded')
+  }
+
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const cipherBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, plaintext)
+  const cipherBytes = new Uint8Array(cipherBuffer)
+
+  // Prepend IV so decryption can extract it: [iv(12) | ciphertext+tag]
+  const combined = new Uint8Array(12 + cipherBytes.length)
+  combined.set(iv, 0)
+  combined.set(cipherBytes, 12)
+  return { data: combined, encrypted: true }
+}
+
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -320,11 +349,17 @@ SET standard_conforming_strings = on;
       throw new Error(errorMsg)
     }
 
+    // T-108: تشفير النسخة الاحتياطية بـ AES-256-GCM قبل الرفع
+    const plainBytes = new TextEncoder().encode(backupData)
+    const { data: uploadBytes, encrypted } = await encryptBackup(plainBytes)
+    const uploadFileName = encrypted ? `${backupFileName}.enc` : backupFileName
+    const uploadContentType = encrypted ? 'application/octet-stream' : 'application/sql'
+
     // رفع النسخة الاحتياطية إلى Storage
     const { error: uploadError } = await supabase.storage
       .from('backups')
-      .upload(backupFileName, new TextEncoder().encode(backupData), {
-        contentType: 'application/sql',
+      .upload(uploadFileName, uploadBytes, {
+        contentType: uploadContentType,
         cacheControl: '3600',
         upsert: false
       })
@@ -346,7 +381,7 @@ SET standard_conforming_strings = on;
           supabase,
           supabaseUrl,
           backupRecord.id,
-          backupFileName,
+          uploadFileName,
           'failed',
           0,
           backup_type,
@@ -375,7 +410,7 @@ SET standard_conforming_strings = on;
     const response: BackupResponse = {
       success: true,
       backup_id: backupRecord.id,
-      file_path: backupFileName,
+      file_path: uploadFileName,
       file_size: compressedSize
     }
 
