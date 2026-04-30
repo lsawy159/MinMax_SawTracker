@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 export type ThemeMode = 'light' | 'dark'
-export type FontMode = 'ibm-plex' | 'tajawal'
+export type FontMode = 'ibm-plex' | 'tajawal' | 'cairo'
 
 const THEME_STORAGE_KEY = 'sawtracker-theme-mode'
 const FONT_STORAGE_KEY = 'sawtracker-font-mode'
@@ -28,7 +28,7 @@ function readStoredFont(): FontMode {
   }
 
   const savedFont = window.localStorage.getItem(FONT_STORAGE_KEY)
-  if (savedFont === 'ibm-plex' || savedFont === 'tajawal') {
+  if (savedFont === 'ibm-plex' || savedFont === 'tajawal' || savedFont === 'cairo') {
     return savedFont
   }
 

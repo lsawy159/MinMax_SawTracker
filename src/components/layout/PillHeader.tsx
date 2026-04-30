@@ -255,6 +255,7 @@ export const PillHeader = ({
                 >
                   <option value="ibm-plex">IBM Plex Sans Arabic</option>
                   <option value="tajawal">Tajawal</option>
+                  <option value="cairo">Cairo</option>
                 </select>
 
                 <button
