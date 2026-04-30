@@ -2,6 +2,7 @@
 // المرحلة 9: نظام النسخ الاحتياطي المتطور
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
 
 interface BackupResponse {
   success: boolean
@@ -90,6 +91,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await requireAdmin(req)
+
     // إنشاء عميل Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -465,15 +468,7 @@ SET standard_conforming_strings = on;
       }
     })()
     
-    const errorResponse: BackupResponse = {
-      success: false,
-      error: error.message
-    }
-
-    return new Response(JSON.stringify(errorResponse), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    return toErrorResponse(error, corsHeaders)
   }
 })
 
@@ -598,7 +593,7 @@ async function sendBackupNotificationEmail(
 }
 
 async function sendBackupEmailPayload(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   supabaseUrl: string,
   recipients: string[],
   backupId: string,
@@ -609,7 +604,6 @@ async function sendBackupEmailPayload(
   errorMessage?: string
 ) {
   try {
-
     // إنشاء محتوى البريد
     const date = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })
     const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2)
@@ -626,16 +620,18 @@ async function sendBackupEmailPayload(
           downloadUrl = signedUrlData.signedUrl
         }
       } catch (urlError) {
-        console.warn('فشل في إنشاء رابط التحميل:', urlError)
+        console.error('تعذر إنشاء رابط تحميل موقّع:', urlError)
       }
     }
-    
-    const subject = status === 'success' 
-      ? `✅ نسخة احتياطية ناجحة - ${fileName}`
-      : `❌ فشل النسخ الاحتياطي - ${fileName}`
 
-    const htmlContent = status === 'success'
-      ? `
+    const subject =
+      status === 'success'
+        ? `✅ نسخة احتياطية ناجحة - ${fileName}`
+        : `❌ فشل النسخ الاحتياطي - ${fileName}`
+
+    const htmlContent =
+      status === 'success'
+        ? `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
           <h2 style="color: #22c55e;">✅ نسخة احتياطية تمت بنجاح</h2>
           <p><strong>اسم الملف:</strong> ${fileName}</p>
@@ -690,9 +686,9 @@ async function sendBackupEmailPayload(
     })
 
     if (!emailResponse.ok) {
-      const errorData = await emailResponse.json().catch(() => ({}))
+      const errorData = await emailResponse.json().catch(() => ({ error: 'Failed to send email' }))
       console.error('خطأ في استدعاء send-email:', errorData)
-      throw new Error(errorData.error || 'Failed to send email')
+      throw new Error((errorData as { error?: string }).error || 'Failed to send email')
     }
 
     console.log('تم إرسال بريد إشعار النسخ الاحتياطي بنجاح')
