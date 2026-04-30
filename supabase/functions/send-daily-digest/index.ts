@@ -18,6 +18,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 // @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireServiceToken, toErrorResponse } from '../_shared/auth.ts'
 
 // @ts-expect-error Deno global - valid in Deno runtime
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -219,6 +220,9 @@ serve(async (req: Request) => {
       return new Response('Method not allowed', { status: 405 })
     }
 
+    // التحقق من service token (يرسله الصادر المجدول فقط)
+    requireServiceToken(req)
+
     console.log('🚀 Starting daily digest at 03:00 AM')
 
     // 1. Get all alerts from today
@@ -347,16 +351,6 @@ serve(async (req: Request) => {
   } catch (err) {
     console.error('❌ Digest generation failed:', err)
     
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: (err as Error).message,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    return toErrorResponse(err, { 'Content-Type': 'application/json' })
   }
 })

@@ -104,6 +104,27 @@ Deno.serve(async (req) => {
 
     // الحصول على معايير النسخ الاحتياطي
     const { backup_type = 'full', tables = [], triggered_by = 'manual' } = await req.json().catch(() => ({}))
+
+    // T-107: قائمة الجداول المسموح بنسخها (ALLOWED_TABLES)
+    const SENSITIVE_TABLES = new Set(['user_sessions', 'login_attempts', 'security_events', 'audit_log'])
+    const ALLOWED_TABLES = new Set([
+      'companies', 'employees', 'users', 'notifications', 'activity_log',
+      'saved_searches', 'system_settings', 'backup_history', 'security_settings',
+      'user_permissions', 'projects', 'contracts', 'invoices', 'payments',
+      'daily_excel_logs', 'email_queue', 'cron_jobs_log',
+    ])
+
+    if (tables.length > 0) {
+      const invalid = (tables as string[]).filter(
+        (t: string) => !ALLOWED_TABLES.has(t) || SENSITIVE_TABLES.has(t)
+      )
+      if (invalid.length > 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'INVALID_TABLE', tables: invalid }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+    }
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const backupFileName = `backup_${backup_type}_${timestamp}.sql`
@@ -133,8 +154,6 @@ Deno.serve(async (req) => {
     // جداول اختيارية (قد لا تكون موجودة في بعض المشاريع)
     const optionalTables = [
       'user_permissions',
-      'user_sessions',
-      'login_attempts'
     ]
     
     // دمج الجداول المطلوبة والاختيارية

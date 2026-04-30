@@ -2,6 +2,7 @@
 // المرحلة 9: نظام تسجيل العمليات مع معلومات الأمان
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAuth, toErrorResponse } from '../_shared/auth.ts'
 
 interface ActivityLogRequest {
   entity_type: string
@@ -34,6 +35,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await requireAuth(req)
+
     // إنشاء عميل Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -183,15 +186,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('خطأ في تسجيل النشاط:', error)
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    return toErrorResponse(error, corsHeaders)
   }
 })
