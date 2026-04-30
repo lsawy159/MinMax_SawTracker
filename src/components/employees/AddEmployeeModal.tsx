@@ -580,9 +580,6 @@ export default function AddEmployeeModal({
 
       toast.success('تم إضافة الموظف بنجاح')
 
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('employeeUpdated'))
-
       // إعادة تعيين النموذج
       setFormData(createDefaultFormData())
       setProjectSearchQuery('')

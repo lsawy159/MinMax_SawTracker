@@ -249,8 +249,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
     }
     // إغلاق modal التعديل
     setShowEditModal(false)
-    // إرسال event لتحديث إحصائيات التنبيهات
-    window.dispatchEvent(new CustomEvent('companyUpdated'))
   }
 
   const handleMarkAsRead = async (alertId: string) => {
@@ -279,9 +277,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       // تحديث حالة التنبيه محلياً
       setReadAlerts((prev) => new Set([...prev, alertId]))
-
-      // [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
-      window.dispatchEvent(new CustomEvent('alertMarkedAsRead', { detail: { alertId } }))
     } catch (error) {
       console.error('خطأ في حفظ التنبيه كمقروء:', error)
     }
@@ -327,9 +322,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       // 4. تحديث الحالة المحلية
       setReadAlerts((prev) => new Set([...prev, ...allUnreadIds]))
-
-      // 5. [MODIFIED] أعدنا هذا السطر لتحديث شارة "التنبيهات"
-      window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
     } catch (error) {
       console.error('خطأ في حفظ جميع التنبيهات كمقروءة:', error)
     }
@@ -361,9 +353,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
         newSet.delete(alertId)
         return newSet
       })
-
-      // تحديث الإحصائيات
-      window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
     } catch (error) {
       console.error('خطأ في إعادة التنبيه إلى غير مقروء:', error)
     }
@@ -404,9 +393,6 @@ export default function Alerts({ initialTab = 'all', initialFilter = 'all' }: Al
 
       // 3. تحديث الحالة المحلية
       setReadAlerts(new Set())
-
-      // 4. تحديث الإحصائيات
-      window.dispatchEvent(new CustomEvent('alertMarkedAsRead'))
     } catch (error) {
       console.error('خطأ في إعادة جميع التنبيهات إلى غير مقروءة:', error)
     }

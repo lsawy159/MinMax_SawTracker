@@ -303,11 +303,10 @@ export default function UnifiedSettings({ isReadOnly = false }: { isReadOnly?: b
         throw notificationError || statusError
       }
 
-      // إبطال جميع الكاش وإشعار باقي الصفحات
+      // إبطال جميع الكاش
       invalidateNotificationThresholdsCache()
       invalidateEmployeeNotificationThresholdsCache()
       invalidateStatusThresholdsCache()
-      window.dispatchEvent(new CustomEvent('settingsUpdated'))
 
       toast.success('تم حفظ جميع الإعدادات بنجاح')
     } catch (error) {

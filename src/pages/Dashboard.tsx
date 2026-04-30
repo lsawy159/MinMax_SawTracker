@@ -155,25 +155,6 @@ export default function Dashboard() {
     fetchBasicData()
     loadReadAlerts()
 
-    // استماع لأحداث تحديث البيانات لتحديث الإحصائيات
-    const handleCompanyUpdated = () => {
-      alertCache.invalidateCompanyAlerts() // إبطال cache المؤسسات
-      fetchBasicData()
-    }
-
-    const handleEmployeeUpdated = () => {
-      alertCache.invalidateEmployeeAlerts() // إبطال cache الموظفين
-      fetchBasicData()
-    }
-
-    window.addEventListener('companyUpdated', handleCompanyUpdated)
-    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('companyUpdated', handleCompanyUpdated)
-      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

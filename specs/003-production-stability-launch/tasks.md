@@ -65,7 +65,7 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
+| [X] T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
 | T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
 | T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
 | T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |

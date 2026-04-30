@@ -1,4 +1,4 @@
 {
-  "integration": "claude",
-  "version": "0.8.1.dev0"
+  "integration": "agy",
+  "version": "0.8.4.dev0"
 }
