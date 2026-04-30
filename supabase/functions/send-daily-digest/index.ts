@@ -28,7 +28,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // @ts-expect-error Deno global - valid in Deno runtime
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const PRIMARY_ADMIN_EMAIL = 'ahmad.alsawy159@gmail.com'
 
 if (!RESEND_API_KEY) {
   throw new Error('RESEND_API_KEY environment variable is required')
@@ -45,9 +44,9 @@ async function getDigestRecipients(): Promise<string[]> {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Not found - use fallback
-        console.warn('[getDigestRecipients] notification_recipients not found, using fallback')
-        return [PRIMARY_ADMIN_EMAIL]
+        // T-115: notification_recipients not configured — no fallback
+        console.warn('[getDigestRecipients] notification_recipients not found — no recipients')
+        return []
       }
       throw error
     }
@@ -55,15 +54,17 @@ async function getDigestRecipients(): Promise<string[]> {
     // Parse JSON safely
     const configJson = data?.setting_value as string | null
     if (!configJson) {
-      console.warn('[getDigestRecipients] Empty config, using fallback')
-      return [PRIMARY_ADMIN_EMAIL]
+      console.warn('[getDigestRecipients] Empty config — no recipients')
+      return []
     }
 
     const config = JSON.parse(configJson) as Record<string, unknown>
     const recipients = new Set<string>()
 
-    // 🔐 ALWAYS add primary admin
-    recipients.add(PRIMARY_ADMIN_EMAIL)
+    // Add primary admin from config
+    if (typeof config.primary_admin === 'string' && config.primary_admin) {
+      recipients.add(config.primary_admin)
+    }
 
     // Add additional recipients with dailyDigest flag
     const additionalRecipients = config.additional_recipients as unknown[]

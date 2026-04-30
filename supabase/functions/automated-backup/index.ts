@@ -4,6 +4,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
 
+/** T-114: escape HTML to prevent XSS in email templates */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 interface BackupResponse {
   success: boolean
   backup_id?: string
@@ -531,8 +541,7 @@ async function sendBackupNotificationEmail(
       .eq('setting_key', 'notification_recipients')
       .maybeSingle()
 
-    let recipients: string[] = []
-    const PRIMARY_ADMIN = 'ahmad.alsawy159@gmail.com'
+    const recipients: string[] = []
 
     // محاولة القراءة من notification_recipients
     if (notificationConfig?.setting_value && !configError) {
@@ -554,13 +563,10 @@ async function sendBackupNotificationEmail(
 
         // استخراج جميع المستقبلين
         if (parsed && typeof parsed === 'object') {
-          // الإداري الأساسي - ALWAYS ADD
+          // الإداري الأساسي
           if (parsed.primary_admin && typeof parsed.primary_admin === 'string') {
             recipients.push(parsed.primary_admin)
             console.log('[BackupNotification] Added primary admin:', parsed.primary_admin)
-          } else {
-            recipients.push(PRIMARY_ADMIN)
-            console.log('[BackupNotification] Using hardcoded primary admin:', PRIMARY_ADMIN)
           }
           
           // المستقبلين الإضافيين الذين لديهم إذن backupNotifications
@@ -577,14 +583,12 @@ async function sendBackupNotificationEmail(
         }
       } catch (parseError) {
         console.error('[BackupNotification] خطأ في تحليل notification_recipients:', parseError)
-        // Fallback إلى البريد الإداري الأساسي فقط
-        recipients = [PRIMARY_ADMIN]
-        console.log('[BackupNotification] Using fallback, primary admin only')
+        // T-115: لا يوجد fallback مُضمَّن — يجب تكوين notification_recipients في إعدادات النظام
+        console.error('[BackupNotification] No recipients configured — skipping email notification')
       }
     } else {
       // إذا لم نجد البيانات أو كان هناك خطأ
-      console.warn('[BackupNotification] notification_recipients not found, using primary admin only')
-      recipients = [PRIMARY_ADMIN]
+      console.warn('[BackupNotification] notification_recipients not configured — skipping email notification')
     }
 
     // إذا كانت القائمة فارغة، لا نرسل بريد
@@ -653,14 +657,14 @@ async function sendBackupEmailPayload(
         ? `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
           <h2 style="color: #22c55e;">✅ نسخة احتياطية تمت بنجاح</h2>
-          <p><strong>اسم الملف:</strong> ${fileName}</p>
+          <p><strong>اسم الملف:</strong> ${escapeHtml(fileName)}</p>
           <p><strong>نوع النسخة:</strong> ${backupType === 'full' ? 'كاملة' : backupType === 'incremental' ? 'تزايدية' : 'جزئية'}</p>
           <p><strong>حجم الملف:</strong> ${fileSizeMB} MB</p>
           <p><strong>تاريخ الإنشاء:</strong> ${date}</p>
-          <p><strong>معرف النسخة:</strong> ${backupId}</p>
+          <p><strong>معرف النسخة:</strong> ${escapeHtml(backupId)}</p>
           ${downloadUrl ? `
             <p style="margin-top: 20px;">
-              <a href="${downloadUrl}" style="background-color: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              <a href="${escapeHtml(downloadUrl)}" style="background-color: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 تحميل النسخة الاحتياطية
               </a>
             </p>
@@ -673,12 +677,12 @@ async function sendBackupEmailPayload(
       : `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
           <h2 style="color: #ef4444;">❌ فشل النسخ الاحتياطي</h2>
-          <p><strong>اسم الملف:</strong> ${fileName}</p>
+          <p><strong>اسم الملف:</strong> ${escapeHtml(fileName)}</p>
           <p><strong>نوع النسخة:</strong> ${backupType === 'full' ? 'كاملة' : backupType === 'incremental' ? 'تزايدية' : 'جزئية'}</p>
           <p><strong>تاريخ المحاولة:</strong> ${date}</p>
-          <p><strong>معرف النسخة:</strong> ${backupId}</p>
+          <p><strong>معرف النسخة:</strong> ${escapeHtml(backupId)}</p>
           <p><strong>رسالة الخطأ:</strong></p>
-          <pre style="background: #f3f4f6; padding: 10px; border-radius: 5px;">${errorMessage || 'خطأ غير معروف'}</pre>
+          <pre style="background: #f3f4f6; padding: 10px; border-radius: 5px;">${escapeHtml(errorMessage || 'خطأ غير معروف')}</pre>
           <p style="margin-top: 20px; color: #666;">يرجى مراجعة إعدادات النسخ الاحتياطي أو الاتصال بالدعم الفني.</p>
         </div>
       `
