@@ -549,6 +549,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const email = usernameOrEmail.includes('@')
           ? usernameOrEmail
           : `${usernameOrEmail}@sawtracker.local`
+        const normalizedIdentifier = email.trim().toLowerCase()
+
+        // تحقق من حالة القفل قبل إرسال بيانات الدخول إلى Supabase Auth
+        const { data: rateLimitCheckData, error: rateLimitCheckError } = await supabase.rpc(
+          'check_login_allowed',
+          {
+            p_identifier: normalizedIdentifier,
+          }
+        )
+
+        if (rateLimitCheckError) {
+          logger.warn('[Auth] Login rate limit check failed (fail-open):', rateLimitCheckError)
+        } else if (rateLimitCheckData && typeof rateLimitCheckData === 'object') {
+          const allowed =
+            'allowed' in rateLimitCheckData
+              ? Boolean((rateLimitCheckData as { allowed?: unknown }).allowed)
+              : true
+
+          if (!allowed) {
+            const lockedUntilRaw =
+              'locked_until' in rateLimitCheckData
+                ? (rateLimitCheckData as { locked_until?: unknown }).locked_until
+                : null
+            const lockedUntil =
+              typeof lockedUntilRaw === 'string' && lockedUntilRaw.length > 0
+                ? new Date(lockedUntilRaw).toLocaleString('ar-SA')
+                : null
+
+            const lockoutMessage = lockedUntil
+              ? `تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول مرة أخرى بعد ${lockedUntil}.`
+              : 'تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول مرة أخرى لاحقاً.'
+
+            logger.warn('[Auth] Login blocked by rate limit for identifier:', normalizedIdentifier)
+            setError(lockoutMessage)
+            setLoading(false)
+            loadingRef.current = false
+            fetchingRef.current = false
+            throw new Error(lockoutMessage)
+          }
+        }
 
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -557,6 +597,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (signInError) {
           logger.error('[Auth] Sign in error:', signInError)
+
+          // تسجيل الفشل وتطبيق lockout policy (5 فشل -> قفل 30 دقيقة)
+          const { data: failRecordData, error: failRecordError } = await supabase.rpc(
+            'record_login_failure',
+            {
+              p_identifier: normalizedIdentifier,
+              p_email: email,
+              p_max_attempts: 5,
+              p_lock_minutes: 30,
+            }
+          )
+
+          if (failRecordError) {
+            logger.warn('[Auth] Failed to record login failure in lockout table:', failRecordError)
+          } else if (failRecordData && typeof failRecordData === 'object') {
+            const isNowLocked =
+              'locked' in failRecordData
+                ? Boolean((failRecordData as { locked?: unknown }).locked)
+                : false
+
+            if (isNowLocked) {
+              const lockedUntilRaw =
+                'locked_until' in failRecordData
+                  ? (failRecordData as { locked_until?: unknown }).locked_until
+                  : null
+              const lockedUntil =
+                typeof lockedUntilRaw === 'string' && lockedUntilRaw.length > 0
+                  ? new Date(lockedUntilRaw).toLocaleString('ar-SA')
+                  : null
+              const lockMessage = lockedUntil
+                ? `تم قفل الحساب مؤقتاً بسبب تكرار محاولات الدخول. حاول مرة أخرى بعد ${lockedUntil}.`
+                : 'تم قفل الحساب مؤقتاً بسبب تكرار محاولات الدخول. حاول مرة أخرى لاحقاً.'
+              setError(lockMessage)
+            }
+          }
+
           // تسجيل محاولة دخول فاشلة
           await securityLogger.logFailedLogin(usernameOrEmail, signInError.message).catch((err) => {
             logger.warn('[Auth] Failed to log failed login attempt:', err)
@@ -568,6 +644,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // هذا يضمن تسجيل نشاط الدخول فقط عند تسجيل الدخول اليدوي وليس عند refresh
         if (signInData?.session) {
           logger.debug('[Auth] Sign in successful, creating session and logging login activity...')
+
+          // إعادة ضبط عداد الفشل بعد نجاح تسجيل الدخول
+          const { error: clearLockoutError } = await supabase.rpc('clear_login_failures', {
+            p_identifier: normalizedIdentifier,
+          })
+          if (clearLockoutError) {
+            logger.warn('[Auth] Failed to clear login failures after success:', clearLockoutError)
+          }
 
           // تحديث last_login
           void Promise.resolve(

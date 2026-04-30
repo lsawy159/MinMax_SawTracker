@@ -79,6 +79,38 @@ serve(async (req) => {
       )
     }
 
+    // T-208: Password policy validation (min 8, upper, lower, digit, symbol)
+    if (password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/[A-Z]/.test(password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/[a-z]/.test(password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/\d/.test(password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // التحقق من صحة username (حروف، أرقام، _ أو - أو . فقط)
     if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
       return new Response(

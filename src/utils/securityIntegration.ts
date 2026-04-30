@@ -100,20 +100,6 @@ export interface SecurityContext {
 }
 
 /**
- * Check if user has permission for an action
- */
-export async function checkPermission(): Promise<boolean> {
-  try {
-    // This would typically check the user_permissions table
-    // For now, we'll return true and let RLS handle the actual access control
-    return true
-  } catch (error) {
-    console.error('Permission check failed:', error)
-    return false
-  }
-}
-
-/**
  * Log all API/database errors automatically
  */
 export function setupGlobalErrorLogging() {
@@ -244,7 +230,6 @@ export async function initializeSecurity() {
 export default {
   withErrorLogging,
   useAuditLog,
-  checkPermission,
   setupGlobalErrorLogging,
   ActivityTracker,
   activityTracker,

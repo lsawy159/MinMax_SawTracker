@@ -54,18 +54,34 @@ serve(async (req) => {
       }
     }
 
-    // التحقق من البيانات المطلوبة
-    if (!user_id || !new_password) {
+    // T-208: Validate password against policy (min 8 chars, upper, lower, digit, symbol)
+    if (!new_password || new_password.length < 8) {
       return new Response(
-        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: user_id, new_password' } }),
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' } }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    // التحقق من طول كلمة المرور
-    if (new_password.length < 6) {
+    if (!/[A-Z]/.test(new_password)) {
       return new Response(
-        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Password must be at least 6 characters long' } }),
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/[a-z]/.test(new_password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/\d/.test(new_password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(new_password)) {
+      return new Response(
+        JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل' } }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
