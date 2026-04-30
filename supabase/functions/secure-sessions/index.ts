@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { requireAdmin, requireAuth, toErrorResponse, type AuthContext } from '../_shared/auth.ts'
+import { corsHeadersWithGet } from '../_shared/cors.ts'
 
 interface SessionRequest {
   action: 'create' | 'validate' | 'terminate' | 'list' | 'terminate_all'
@@ -27,13 +28,6 @@ interface SessionResponse {
   error?: string
 }
 
-const corsHeaders: HeadersInit = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, user-agent',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-  'Access-Control-Allow-Credentials': 'false',
-}
 
 const parsePayload = async (req: Request): Promise<SessionRequest> => {
   const body = (await req.json()) as Partial<SessionRequest>
@@ -67,6 +61,9 @@ const ensureSessionOwner = (ctx: AuthContext, targetUserId: string) => {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = corsHeadersWithGet(origin)
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
