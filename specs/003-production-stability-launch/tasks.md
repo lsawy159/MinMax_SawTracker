@@ -55,8 +55,8 @@
 | [X] T-206 | RLS لباقي الجداول (audit, notifications, etc.) | C-4 | migration موجود |
 | [X] T-207 | حذف `checkPermission()` stub + استبدال callers | C-4 | لا callers خارجية |
 | [X] T-208 | سياسة كلمات المرور القوية (Edge + UI) | F-6 | validation في create-user + update-user-password |
-| T-209 | rate limit + CAPTCHA Turnstile | F-7 | 5 fails → captcha يظهر |
-| T-210 | matrix RLS tests (دور × جدول × عملية) | M-12 | 100% rows في matrix تمر |
+| [CANCELLED] T-209 | rate limit + CAPTCHA Turnstile | F-7 | تم الإلغاء: اعتماد lockout بجدول `login_rate_limits` بدون CAPTCHA |
+| [CANCELLED] T-210 | matrix RLS tests (دور × جدول × عملية) | M-12 | تم الإلغاء: اعتماد سياسة RLS موحدة للمستخدمين الموثّقين |
 | [X] T-211 | PDPL compliance: سجل معالجة بيانات | M-10 | `docs/pdpl-record-of-processing.md` موجود |
 
 ---
