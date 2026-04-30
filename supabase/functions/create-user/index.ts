@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { requirePermission, toErrorResponse } from '../_shared/auth.ts'
 import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
 
 function normalizePermissionsPayload(input: unknown): string[] {
   if (!input) {
@@ -42,6 +43,24 @@ serve(async (req) => {
   }
 
   try {
+    // T-110: Rate limiting — max 30 user-creation requests per minute per IP
+    const supabaseRl = createClient(
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_URL')!,
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+    const rl = await checkRateLimit(supabaseRl, {
+      identifier: getIdentifier(req, 'create-user'),
+      maxRequests: 30,
+    })
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' } }),
+        { status: 429, headers: { ...corsHeaders, ...rateLimitHeaders(rl.retryAfterSecs), 'Content-Type': 'application/json' } }
+      )
+    }
+
     // التحقق من صلاحية إنشاء المستخدمين (admin bypass أو users.create permission)
     await requirePermission(req, 'users', 'create')
 
