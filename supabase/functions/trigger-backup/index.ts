@@ -3,6 +3,7 @@
 // Usage: يُستدعى من صفحة الإعدادات -> تبويب النسخ الاحتياطية
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
 
 interface TriggerBackupRequest {
   backup_type?: 'full' | 'incremental' | 'partial'
@@ -23,7 +24,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // التحقق من المصادقة
+    await requireAdmin(req)
+
     const authHeader = req.headers.get('authorization')
     if (!authHeader) {
       return new Response(
@@ -53,7 +55,7 @@ Deno.serve(async (req) => {
         executed_by: triggeredBy,
         result_details: { backup_type: backupType, triggered_by: triggeredBy }
       })
-      .select('id')
+      .select('id, created_at')
       .single()
 
     if (logError) {
@@ -117,13 +119,6 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     console.error('Error in trigger-backup:', error)
-
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: String(error)
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return toErrorResponse(error, corsHeaders)
   }
 })

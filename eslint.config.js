@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   // ✨ هذا هو التعديل: أضفنا 'coverage/' هنا ✨
-  { ignores: ['dist', 'coverage/', '.dev-files/**', '.claude/worktrees/**', 'everything-claude-code/**', 'create_sample_companies.ts'] },
+  { ignores: ['dist', 'build', 'coverage/', 'node_modules', '*.min.js', '.dev-files/**', '.claude/worktrees/**', 'everything-claude-code/**', 'create_sample_companies.ts'] },
   
   // القواعد الافتراضية لجميع الملفات
   {

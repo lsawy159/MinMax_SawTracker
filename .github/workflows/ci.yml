@@ -90,11 +90,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
       - name: Run tests
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: pnpm test -- --run --reporter=verbose
+        continue-on-error: false
+
+      - name: Run edge auth helper tests
+        run: pnpm test:edge:auth
         continue-on-error: false
         
 
