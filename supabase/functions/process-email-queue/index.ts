@@ -3,6 +3,7 @@
 // ودعم وضع "الملخص اليومي" فقط.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireServiceToken } from '../_shared/auth.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface EmailQueueItem {
@@ -302,6 +303,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    requireServiceToken(req)
     console.log('[Email Queue] Starting queue processing...')
     
     // قراءة إعدادات Resend من Environment Variables

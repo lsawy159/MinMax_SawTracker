@@ -134,6 +134,22 @@ export const requirePermission = async (
   return ctx
 }
 
+/**
+ * Validates that the request comes from an authorized service caller (e.g. cron).
+ * Caller must send: Authorization: Bearer <CRON_SECRET>
+ */
+export const requireServiceToken = (req: Request): void => {
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  if (!cronSecret) {
+    throw createHttpError(500, 'SERVER_CONFIG', 'CRON_SECRET is not configured')
+  }
+
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
+  if (!token || token !== cronSecret) {
+    throw createHttpError(401, 'INVALID_SERVICE_TOKEN', 'Invalid or missing service token')
+  }
+}
+
 export const toErrorResponse = (error: unknown, headers: HeadersInit): Response => {
   const httpError = error as Partial<HttpError>
   const status = typeof httpError.status === 'number' ? httpError.status : 500

@@ -14,6 +14,8 @@
  * }
  */
 
+import { requireAdmin } from '../_shared/auth.ts'
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -26,7 +28,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json() as any
+    await requireAdmin(req)
+    const body = await req.json() as { to?: string; subject?: string }
     const toEmail = body.to || 'a.g16591@gmail.com'
     const subject = body.subject || 'Test Email from Resend'
 

@@ -127,6 +127,11 @@ html[data-font-mode='tajawal'] {
   --font-family-display: 'Tajawal', system-ui, sans-serif;
 }
 
+html[data-font-mode='cairo'] {
+  --font-family-body: 'Cairo', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-family-display: 'Cairo', system-ui, sans-serif;
+}
+
 body {
   margin: 0;
   padding: 0;

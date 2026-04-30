@@ -25,6 +25,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 // @ts-expect-error Deno Edge Function imports - valid in Deno runtime
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireServiceToken } from '../_shared/auth.ts'
 // @deno-types="npm:@types/node"
 import * as XLSX from "npm:xlsx@0.18.5"
 
@@ -586,6 +587,7 @@ serve(async (req: Request) => {
   }
 
   try {
+    requireServiceToken(req)
     console.log('[Daily Digest] Starting daily digest generation at', new Date().toISOString())
 
     // Verify environment variables

@@ -5,6 +5,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireServiceToken } from '../_shared/auth.ts';
 
 interface EmailRequest {
   to: string | string[];
@@ -89,17 +90,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verify authorization
-    const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Missing or invalid Authorization header" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
-        }
-      );
-    }
+    requireServiceToken(req)
 
     // Parse request body
     const body = await req.json() as EmailRequest;

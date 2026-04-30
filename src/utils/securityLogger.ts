@@ -128,7 +128,7 @@ class SecurityLogger {
         resource_id: entry.resource_id,
         old_values: entry.old_values,
         new_values: entry.new_values,
-        ip_address: entry.ip_address || (await this.getClientIP()),
+        ip_address: entry.ip_address || (this.getClientIP()),
         user_agent: entry.user_agent || navigator.userAgent,
         status: entry.status || 'success',
         error_message: entry.error_message,
@@ -164,7 +164,7 @@ class SecurityLogger {
         user_id: userId,
         description,
         details: details || {},
-        ip_address: await this.getClientIP(),
+        ip_address: this.getClientIP(),
         is_resolved: false,
       })
 
@@ -177,16 +177,12 @@ class SecurityLogger {
   }
 
   /**
-   * Get client IP address (requires backend support)
+   * Get client IP address from request headers (set by reverse proxy/CDN).
+   * Never calls external services to avoid third-party data leakage.
    */
-  private async getClientIP(): Promise<string | undefined> {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json')
-      const data = await response.json()
-      return data.ip
-    } catch {
-      return undefined
-    }
+  private getClientIP(): string | undefined {
+    // IP is captured server-side by the Edge Function; return undefined on client
+    return undefined
   }
 
   /**
@@ -198,7 +194,7 @@ class SecurityLogger {
         email,
         attempt_type: 'failed',
         failure_reason: reason,
-        ip_address: await this.getClientIP(),
+        ip_address: this.getClientIP(),
         user_agent: navigator.userAgent,
       })
 
@@ -224,7 +220,7 @@ class SecurityLogger {
         user_id: userId,
         email,
         attempt_type: 'success',
-        ip_address: await this.getClientIP(),
+        ip_address: this.getClientIP(),
         user_agent: navigator.userAgent,
       })
 

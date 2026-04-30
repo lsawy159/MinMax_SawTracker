@@ -1,33 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-  'Access-Control-Allow-Credentials': 'false'
-}
-
-function hasPermission(permissions: unknown, key: string): boolean {
-  if (!permissions) {
-    return false
-  }
-
-  if (Array.isArray(permissions)) {
-    return permissions.includes(key)
-  }
-
-  if (typeof permissions === 'object' && permissions !== null) {
-    const [section, action] = key.split('.')
-    const sectionValue = (permissions as Record<string, unknown>)[section]
-    if (typeof sectionValue === 'object' && sectionValue !== null) {
-      return (sectionValue as Record<string, unknown>)[action] === true
-    }
-  }
-
-  return false
-}
+import { requirePermission, toErrorResponse } from '../_shared/auth.ts'
+import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
 
 function normalizePermissionsPayload(input: unknown): string[] {
   if (!input) {
@@ -61,62 +36,37 @@ function normalizePermissionsPayload(input: unknown): string[] {
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'))
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
 
   try {
-    // إنشاء عميل Supabase للتحقق من المستخدم الحالي
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
+    // T-110: Rate limiting — max 30 user-creation requests per minute per IP
+    const supabaseRl = createClient(
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_URL')!,
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+    const rl = await checkRateLimit(supabaseRl, {
+      identifier: getIdentifier(req, 'create-user'),
+      maxRequests: 30,
+    })
+    if (!rl.allowed) {
       return new Response(
-        JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Missing authorization header' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' } }),
+        { status: 429, headers: { ...corsHeaders, ...rateLimitHeaders(rl.retryAfterSecs), 'Content-Type': 'application/json' } }
       )
     }
+
+    // التحقق من صلاحية إنشاء المستخدمين (admin bypass أو users.create permission)
+    await requirePermission(req, 'users', 'create')
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    })
-
-    // التحقق من المستخدم الحالي
-    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !currentUser) {
-      return new Response(
-        JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Invalid or missing authentication' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // التحقق من صلاحية إنشاء المستخدمين
-    const { data: currentUserData, error: userError } = await supabase
-      .from('users')
-      .select('role, permissions, is_active')
-      .eq('id', currentUser.id)
-      .single()
-
-    if (userError || !currentUserData || !currentUserData.is_active) {
-      return new Response(
-        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'User is not active' } }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // إذا كان مدير → السماح
-    const isAdmin = currentUserData.role === 'admin' && currentUserData.is_active
-    
-    // إذا لم يكن مدير → التحقق من الصلاحية
-    if (!isAdmin) {
-      const canCreate = hasPermission(currentUserData.permissions, 'users.create')
-      if (!canCreate) {
-        return new Response(
-          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to create users' } }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
     // قراءة بيانات الطلب
     const { username, email, password, full_name, role, permissions, is_active } = await req.json()
@@ -138,7 +88,7 @@ serve(async (req) => {
     }
 
     // التحقق من عدم وجود username مكرر
-    const { data: existingUser, error: usernameCheckError } = await supabase
+    const { data: existingUser, error: usernameCheckError } = await supabaseAdmin
       .from('users')
       .select('id')
       .ilike('username', username)
@@ -173,29 +123,11 @@ serve(async (req) => {
       )
     }
 
-    // التحقق من عدم وجود مدير آخر (للأمان الإضافي)
-    const { error: adminCheckError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('role', 'admin')
-      .eq('is_active', true)
-
-    if (adminCheckError) {
-      return new Response(
-        JSON.stringify({ error: { code: 'DATABASE_ERROR', message: 'Failed to check existing admins' } }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // استخدام service_role لإنشاء المستخدم في auth.users
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
     // إنشاء المستخدم في auth.users
     const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // تأكيد البريد تلقائياً
+      email_confirm: true,
       user_metadata: {
         full_name,
         username
@@ -243,12 +175,9 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in create-user function:', error)
-    return new Response(
-      JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: error.message || 'Internal server error' } }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return toErrorResponse(error, corsHeaders)
   }
 })
 

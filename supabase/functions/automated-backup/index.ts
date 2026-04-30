@@ -4,6 +4,45 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
 
+/** T-108: Encrypt backup data with AES-256-GCM using BACKUP_ENCRYPTION_KEY env var.
+ * The output is: base64(iv [12 bytes] + ciphertext + authTag [16 bytes])
+ * Returns plain bytes when the env var is not set (development only). */
+async function encryptBackup(plaintext: Uint8Array): Promise<{ data: Uint8Array; encrypted: boolean }> {
+  // @ts-expect-error Deno global
+  const rawKey = Deno.env.get('BACKUP_ENCRYPTION_KEY')
+  if (!rawKey) {
+    console.warn('[Backup] BACKUP_ENCRYPTION_KEY not set — storing unencrypted (set key for production)')
+    return { data: plaintext, encrypted: false }
+  }
+
+  // Decode the base64 key (must be 32 bytes = 256 bits)
+  const keyBytes = Uint8Array.from(atob(rawKey), c => c.charCodeAt(0))
+  if (keyBytes.length !== 32) {
+    throw new Error('BACKUP_ENCRYPTION_KEY must be 32 bytes (256-bit) base64-encoded')
+  }
+
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const cipherBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, plaintext)
+  const cipherBytes = new Uint8Array(cipherBuffer)
+
+  // Prepend IV so decryption can extract it: [iv(12) | ciphertext+tag]
+  const combined = new Uint8Array(12 + cipherBytes.length)
+  combined.set(iv, 0)
+  combined.set(cipherBytes, 12)
+  return { data: combined, encrypted: true }
+}
+
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 interface BackupResponse {
   success: boolean
   backup_id?: string
@@ -104,6 +143,27 @@ Deno.serve(async (req) => {
 
     // الحصول على معايير النسخ الاحتياطي
     const { backup_type = 'full', tables = [], triggered_by = 'manual' } = await req.json().catch(() => ({}))
+
+    // T-107: قائمة الجداول المسموح بنسخها (ALLOWED_TABLES)
+    const SENSITIVE_TABLES = new Set(['user_sessions', 'login_attempts', 'security_events', 'audit_log'])
+    const ALLOWED_TABLES = new Set([
+      'companies', 'employees', 'users', 'notifications', 'activity_log',
+      'saved_searches', 'system_settings', 'backup_history', 'security_settings',
+      'user_permissions', 'projects', 'contracts', 'invoices', 'payments',
+      'daily_excel_logs', 'email_queue', 'cron_jobs_log',
+    ])
+
+    if (tables.length > 0) {
+      const invalid = (tables as string[]).filter(
+        (t: string) => !ALLOWED_TABLES.has(t) || SENSITIVE_TABLES.has(t)
+      )
+      if (invalid.length > 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'INVALID_TABLE', tables: invalid }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+    }
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const backupFileName = `backup_${backup_type}_${timestamp}.sql`
@@ -133,8 +193,6 @@ Deno.serve(async (req) => {
     // جداول اختيارية (قد لا تكون موجودة في بعض المشاريع)
     const optionalTables = [
       'user_permissions',
-      'user_sessions',
-      'login_attempts'
     ]
     
     // دمج الجداول المطلوبة والاختيارية
@@ -291,11 +349,17 @@ SET standard_conforming_strings = on;
       throw new Error(errorMsg)
     }
 
+    // T-108: تشفير النسخة الاحتياطية بـ AES-256-GCM قبل الرفع
+    const plainBytes = new TextEncoder().encode(backupData)
+    const { data: uploadBytes, encrypted } = await encryptBackup(plainBytes)
+    const uploadFileName = encrypted ? `${backupFileName}.enc` : backupFileName
+    const uploadContentType = encrypted ? 'application/octet-stream' : 'application/sql'
+
     // رفع النسخة الاحتياطية إلى Storage
     const { error: uploadError } = await supabase.storage
       .from('backups')
-      .upload(backupFileName, new TextEncoder().encode(backupData), {
-        contentType: 'application/sql',
+      .upload(uploadFileName, uploadBytes, {
+        contentType: uploadContentType,
         cacheControl: '3600',
         upsert: false
       })
@@ -317,7 +381,7 @@ SET standard_conforming_strings = on;
           supabase,
           supabaseUrl,
           backupRecord.id,
-          backupFileName,
+          uploadFileName,
           'failed',
           0,
           backup_type,
@@ -346,7 +410,7 @@ SET standard_conforming_strings = on;
     const response: BackupResponse = {
       success: true,
       backup_id: backupRecord.id,
-      file_path: backupFileName,
+      file_path: uploadFileName,
       file_size: compressedSize
     }
 
@@ -512,8 +576,7 @@ async function sendBackupNotificationEmail(
       .eq('setting_key', 'notification_recipients')
       .maybeSingle()
 
-    let recipients: string[] = []
-    const PRIMARY_ADMIN = 'ahmad.alsawy159@gmail.com'
+    const recipients: string[] = []
 
     // محاولة القراءة من notification_recipients
     if (notificationConfig?.setting_value && !configError) {
@@ -535,13 +598,10 @@ async function sendBackupNotificationEmail(
 
         // استخراج جميع المستقبلين
         if (parsed && typeof parsed === 'object') {
-          // الإداري الأساسي - ALWAYS ADD
+          // الإداري الأساسي
           if (parsed.primary_admin && typeof parsed.primary_admin === 'string') {
             recipients.push(parsed.primary_admin)
             console.log('[BackupNotification] Added primary admin:', parsed.primary_admin)
-          } else {
-            recipients.push(PRIMARY_ADMIN)
-            console.log('[BackupNotification] Using hardcoded primary admin:', PRIMARY_ADMIN)
           }
           
           // المستقبلين الإضافيين الذين لديهم إذن backupNotifications
@@ -558,14 +618,12 @@ async function sendBackupNotificationEmail(
         }
       } catch (parseError) {
         console.error('[BackupNotification] خطأ في تحليل notification_recipients:', parseError)
-        // Fallback إلى البريد الإداري الأساسي فقط
-        recipients = [PRIMARY_ADMIN]
-        console.log('[BackupNotification] Using fallback, primary admin only')
+        // T-115: لا يوجد fallback مُضمَّن — يجب تكوين notification_recipients في إعدادات النظام
+        console.error('[BackupNotification] No recipients configured — skipping email notification')
       }
     } else {
       // إذا لم نجد البيانات أو كان هناك خطأ
-      console.warn('[BackupNotification] notification_recipients not found, using primary admin only')
-      recipients = [PRIMARY_ADMIN]
+      console.warn('[BackupNotification] notification_recipients not configured — skipping email notification')
     }
 
     // إذا كانت القائمة فارغة، لا نرسل بريد
@@ -634,14 +692,14 @@ async function sendBackupEmailPayload(
         ? `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
           <h2 style="color: #22c55e;">✅ نسخة احتياطية تمت بنجاح</h2>
-          <p><strong>اسم الملف:</strong> ${fileName}</p>
+          <p><strong>اسم الملف:</strong> ${escapeHtml(fileName)}</p>
           <p><strong>نوع النسخة:</strong> ${backupType === 'full' ? 'كاملة' : backupType === 'incremental' ? 'تزايدية' : 'جزئية'}</p>
           <p><strong>حجم الملف:</strong> ${fileSizeMB} MB</p>
           <p><strong>تاريخ الإنشاء:</strong> ${date}</p>
-          <p><strong>معرف النسخة:</strong> ${backupId}</p>
+          <p><strong>معرف النسخة:</strong> ${escapeHtml(backupId)}</p>
           ${downloadUrl ? `
             <p style="margin-top: 20px;">
-              <a href="${downloadUrl}" style="background-color: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              <a href="${escapeHtml(downloadUrl)}" style="background-color: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 تحميل النسخة الاحتياطية
               </a>
             </p>
@@ -654,12 +712,12 @@ async function sendBackupEmailPayload(
       : `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
           <h2 style="color: #ef4444;">❌ فشل النسخ الاحتياطي</h2>
-          <p><strong>اسم الملف:</strong> ${fileName}</p>
+          <p><strong>اسم الملف:</strong> ${escapeHtml(fileName)}</p>
           <p><strong>نوع النسخة:</strong> ${backupType === 'full' ? 'كاملة' : backupType === 'incremental' ? 'تزايدية' : 'جزئية'}</p>
           <p><strong>تاريخ المحاولة:</strong> ${date}</p>
-          <p><strong>معرف النسخة:</strong> ${backupId}</p>
+          <p><strong>معرف النسخة:</strong> ${escapeHtml(backupId)}</p>
           <p><strong>رسالة الخطأ:</strong></p>
-          <pre style="background: #f3f4f6; padding: 10px; border-radius: 5px;">${errorMessage || 'خطأ غير معروف'}</pre>
+          <pre style="background: #f3f4f6; padding: 10px; border-radius: 5px;">${escapeHtml(errorMessage || 'خطأ غير معروف')}</pre>
           <p style="margin-top: 20px; color: #666;">يرجى مراجعة إعدادات النسخ الاحتياطي أو الاتصال بالدعم الفني.</p>
         </div>
       `

@@ -1,90 +1,51 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-  'Access-Control-Allow-Credentials': 'false'
-}
-
-function hasPermission(permissions: unknown, key: string): boolean {
-  if (!permissions) {
-    return false
-  }
-
-  if (Array.isArray(permissions)) {
-    return permissions.includes(key)
-  }
-
-  if (typeof permissions === 'object' && permissions !== null) {
-    const [section, action] = key.split('.')
-    const sectionValue = (permissions as Record<string, unknown>)[section]
-    if (typeof sectionValue === 'object' && sectionValue !== null) {
-      return (sectionValue as Record<string, unknown>)[action] === true
-    }
-  }
-
-  return false
-}
+import { requireAuth, toErrorResponse } from '../_shared/auth.ts'
+import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'))
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
 
   try {
-    // إنشاء عميل Supabase للتحقق من المستخدم الحالي
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
+    // T-110: Rate limiting — max 30 per minute per IP
+    const supabaseRl = createClient(
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_URL')!,
+      // @ts-expect-error Deno global
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+    const rl = await checkRateLimit(supabaseRl, {
+      identifier: getIdentifier(req, 'update-user-password'),
+      maxRequests: 30,
+    })
+    if (!rl.allowed) {
       return new Response(
-        JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Missing authorization header' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' } }),
+        { status: 429, headers: { ...corsHeaders, ...rateLimitHeaders(rl.retryAfterSecs), 'Content-Type': 'application/json' } }
       )
     }
+
+    const ctx = await requireAuth(req)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    })
-
-    // التحقق من المستخدم الحالي
-    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !currentUser) {
-      return new Response(
-        JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Invalid or missing authentication' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
     // قراءة بيانات الطلب
     const { user_id, new_password } = await req.json()
 
-    // التحقق من صلاحية تحديث كلمة المرور
-    const { data: currentUserData, error: userError } = await supabase
-      .from('users')
-      .select('role, permissions, is_active')
-      .eq('id', currentUser.id)
-      .single()
-
-    if (userError || !currentUserData || !currentUserData.is_active) {
-      return new Response(
-        JSON.stringify({ error: { code: 'FORBIDDEN', message: 'User is not active' } }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     // إذا كان المستخدم يحاول تحديث كلمة مروره الخاصة → السماح
-    const isUpdatingOwnPassword = currentUser.id === user_id
-    
-    // إذا كان مدير → السماح
-    const isAdmin = currentUserData.role === 'admin' && currentUserData.is_active
-    
+    const isUpdatingOwnPassword = ctx.userId === user_id
+    const isAdmin = ctx.role === 'admin'
+
     // إذا لم يكن مدير ولا يحدث كلمة مروره الخاصة → التحقق من الصلاحية
     if (!isUpdatingOwnPassword && !isAdmin) {
-      const canEdit = hasPermission(currentUserData.permissions, 'users.edit')
+      const canEdit = ctx.permissions?.['users']?.['edit'] === true
       if (!canEdit) {
         return new Response(
           JSON.stringify({ error: { code: 'FORBIDDEN', message: 'You do not have permission to update user passwords' } }),
@@ -110,7 +71,7 @@ serve(async (req) => {
     }
 
     // التحقق من وجود المستخدم
-    const { data: targetUser, error: targetUserError } = await supabase
+    const { data: targetUser, error: targetUserError } = await supabaseAdmin
       .from('users')
       .select('id, email')
       .eq('id', user_id)
@@ -122,10 +83,6 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    // استخدام service_role لتغيير كلمة المرور
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
     // تحديث كلمة المرور في auth.users
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -149,12 +106,9 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in update-user-password function:', error)
-    return new Response(
-      JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: error.message || 'Internal server error' } }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return toErrorResponse(error, corsHeaders)
   }
 })
 

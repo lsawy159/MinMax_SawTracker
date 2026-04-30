@@ -9,6 +9,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireServiceToken, toErrorResponse } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,7 @@ Deno.serve(async (req) => {
   const supabase    = createClient(supabaseUrl, serviceKey)
 
   try {
+    requireServiceToken(req)
     // Read backup schedule settings
     const { data: settings, error: settingsErr } = await supabase
       .from('system_settings')
@@ -88,9 +90,6 @@ Deno.serve(async (req) => {
     )
   } catch (err) {
     console.error('[backup-scheduler] Error:', err)
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return toErrorResponse(err, corsHeaders)
   }
 })
