@@ -71,8 +71,8 @@
 | [X] T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
 | [X] T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
 | [X] T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
-| T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
-| T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
+| [X] T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
+| [X] T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
 
 ---
 
