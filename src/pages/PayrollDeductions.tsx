@@ -1022,7 +1022,7 @@ export default function PayrollDeductions() {
           )
 
           return {
-            ...(entry as unknown as PayrollEntry),
+            ...(entry as PayrollEntry),
             gross_amount: normalizedTotals.grossAmount,
             net_amount: normalizedTotals.netAmount,
             daily_rate_snapshot: normalizedTotals.dailyRate,

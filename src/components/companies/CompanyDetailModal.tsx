@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X, Users, Eye, ArrowLeft, Building2 } from 'lucide-react'
-import { supabase, Company, Employee, Project } from '@/lib/supabase'
+import { supabase, Company, Employee, Project, EmployeeWithRelations } from '@/lib/supabase'
 import CompanyCard from './CompanyCard'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import { toast } from 'sonner'
@@ -32,13 +32,9 @@ export default function CompanyDetailModal({
   getAvailableSlotsText,
 }: CompanyDetailModalProps) {
   const navigate = useNavigate()
-  const [employees, setEmployees] = useState<
-    (Employee & { company: Company; project?: Project })[]
-  >([])
+  const [employees, setEmployees] = useState<EmployeeWithRelations[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(true)
-  const [selectedEmployee, setSelectedEmployee] = useState<
-    (Employee & { company: Company; project?: Project }) | null
-  >(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithRelations | null>(null)
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
 
   const loadEmployees = useCallback(async () => {
@@ -53,9 +49,7 @@ export default function CompanyDetailModal({
         .order('name')
 
       if (error) throw error
-      setEmployees(
-        (data || []) as unknown as (Employee & { company: Company; project?: Project })[]
-      )
+      setEmployees((data || []) as EmployeeWithRelations[])
     } catch (error) {
       console.error('Error loading employees:', error)
       toast.error('فشل تحميل الموظفين')

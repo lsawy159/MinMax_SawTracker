@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase, Company, Project, Employee } from '@/lib/supabase'
+import { supabase, Company, Project, Employee, EmployeeWithRelations } from '@/lib/supabase'
 import {
   X,
   UserPlus,
@@ -23,7 +23,7 @@ import {
 interface AddEmployeeModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: (createdEmployee?: Employee & { company: Company; project?: Project }) => void
+  onSuccess: (createdEmployee?: EmployeeWithRelations) => void
   initialData?: Partial<{
     name: string
     profession: string
@@ -586,11 +586,7 @@ export default function AddEmployeeModal({
       setIsProjectDropdownOpen(false)
 
       // إغلاق المودال وإعادة تحميل البيانات
-      onSuccess(
-        insertedEmployee as unknown as
-          | (Employee & { company: Company; project?: Project })
-          | undefined
-      )
+      onSuccess(insertedEmployee as EmployeeWithRelations | undefined)
       onClose()
     } catch (error) {
       console.error('Error adding employee:', error)

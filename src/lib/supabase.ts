@@ -253,6 +253,34 @@ export interface User {
 }
 
 
+// Common joined types to avoid unsafe 'as unknown as' casts
+export interface EmployeeWithRelations extends Employee {
+  company?: Company
+  project?: Project
+}
+
+export interface TransferProcedureWithEmployee extends TransferProcedure {
+  employee?: Employee
+}
+
+export interface NotificationRecipientsConfig {
+  recipients?: string[]
+  sendToAdmin?: boolean
+  sendToManagers?: boolean
+}
+
+export interface SavedSearch {
+  id: string
+  query: string
+  filters?: Record<string, unknown>
+  created_at: string
+}
+
+export interface ScopedPayrollEmployee extends Employee {
+  company?: Company
+  project?: Project
+}
+
 export interface Notification {
   id: number
   type: string

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { supabase, Project, Employee, Company } from '@/lib/supabase'
+import { supabase, Project, Employee, Company, EmployeeWithRelations } from '@/lib/supabase'
 import { X, FolderKanban, Users, DollarSign, Eye, Edit2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import EmployeeCard from '@/components/employees/EmployeeCard'
@@ -23,13 +23,9 @@ export default function ProjectDetailModal({
   onEdit,
   onDelete,
 }: ProjectDetailModalProps) {
-  const [employees, setEmployees] = useState<
-    (Employee & { company: Company; project?: Project })[]
-  >([])
+  const [employees, setEmployees] = useState<EmployeeWithRelations[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(true)
-  const [selectedEmployee, setSelectedEmployee] = useState<
-    (Employee & { company: Company; project?: Project }) | null
-  >(null)
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithRelations | null>(null)
   const [showEmployeeCard, setShowEmployeeCard] = useState(false)
 
   const loadEmployees = useCallback(async () => {
@@ -44,9 +40,7 @@ export default function ProjectDetailModal({
         .order('name')
 
       if (error) throw error
-      setEmployees(
-        (data || []) as unknown as (Employee & { company: Company; project?: Project })[]
-      )
+      setEmployees((data || []) as EmployeeWithRelations[])
     } catch (error) {
       console.error('Error loading employees:', error)
       toast.error('فشل تحميل الموظفين')

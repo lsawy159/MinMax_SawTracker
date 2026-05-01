@@ -6,6 +6,7 @@ import {
   PayrollInputMode,
   PayrollRun,
   PayrollScopeType,
+  ScopedPayrollEmployee,
   supabase,
 } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
@@ -921,7 +922,7 @@ export function useScopedPayrollEmployees(
         throw employeesError
       }
 
-      const rawEmployeeList = (employees ?? []) as unknown as ScopedPayrollEmployee[]
+      const rawEmployeeList = (employees ?? []) as ScopedPayrollEmployee[]
       const employeeByResidence = new Map<string, ScopedPayrollEmployee>()
 
       for (const employee of rawEmployeeList) {

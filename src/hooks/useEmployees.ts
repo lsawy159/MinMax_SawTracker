@@ -1,5 +1,5 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, Employee, Company, Project } from '@/lib/supabase'
+import { supabase, Employee, EmployeeWithRelations } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
 
 interface PaginationOptions {
@@ -30,7 +30,7 @@ export function useEmployees(options?: PaginationOptions) {
         logger.error('Error fetching employees:', error)
         throw error
       }
-      return data as unknown as (Employee & { company: Company; project?: Project })[]
+      return data as EmployeeWithRelations[]
     },
   })
 }
