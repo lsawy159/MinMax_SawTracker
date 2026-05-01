@@ -743,10 +743,10 @@ describe('PayrollDeductions', () => {
       },
     ])
 
-    const { container } = renderPayrollDeductions()
+    renderPayrollDeductions()
     const openRunButton = await screen.findByRole('button', { name: 'عرض المسير' })
     await user.click(openRunButton)
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
 
     const file = new File(['demo'], 'payroll.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
