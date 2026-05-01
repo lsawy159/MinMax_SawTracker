@@ -760,7 +760,7 @@ export default function PayrollDeductions() {
       return
     }
 
-    setNewPayrollRunRows(payrollRunSeedEmployees.map((employee) => buildPayrollRunSeedRow(employee)))
+    setNewPayrollRunRows(payrollRunSeedEmployees.map((employee) => buildPayrollRunSeedRow(employee as ScopedPayrollEmployee)))
   }, [
     showPayrollRunForm,
     payrollForm.scope_id,
@@ -1022,7 +1022,7 @@ export default function PayrollDeductions() {
           )
 
           return {
-            ...(entry as PayrollEntry),
+            ...(entry as unknown as PayrollEntry),
             gross_amount: normalizedTotals.grossAmount,
             net_amount: normalizedTotals.netAmount,
             daily_rate_snapshot: normalizedTotals.dailyRate,

@@ -80,7 +80,7 @@ async function seedDatabase() {
     // 1. Seed companies
     console.log('\n→ Adding companies...')
     for (const company of sampleCompanies) {
-      const { data, error } = await supabase.from('companies').insert(company).select()
+      const { error } = await supabase.from('companies').insert(company).select()
 
       if (error) {
         console.error(`  ✗ Error adding ${company.name}:`, error.message)
@@ -92,7 +92,7 @@ async function seedDatabase() {
     // 2. Seed employees
     console.log('\n→ Adding employees...')
     for (const employee of sampleEmployees) {
-      const { data, error } = await supabase.from('employees').insert(employee).select()
+      const { error } = await supabase.from('employees').insert(employee).select()
 
       if (error) {
         console.error(

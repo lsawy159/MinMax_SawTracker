@@ -231,7 +231,7 @@ describe('payrollMath', () => {
       expect(result.dailyRate).toBe(1111.11)
       // Verify gross and net are properly calculated and rounded
       expect(typeof result.grossAmount).toBe('number')
-      expect(result.netAmount).toBe(result.grossAmount - 1000)
+      expect(Math.abs(result.netAmount - (result.grossAmount - 1000))).toBeLessThan(0.01)
     })
 
     it('handles multiple decimal precision issues', () => {

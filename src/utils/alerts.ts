@@ -186,7 +186,7 @@ async function createExpiryAlert(
     company: {
       id: company.id,
       name: company.name,
-      commercial_registration_number: company.commercial_registration_number,
+      commercial_registration_expiry: company.commercial_registration_expiry,
       unified_number: company.unified_number,
     },
     expiry_date: expiryDateStr as string,
@@ -232,7 +232,7 @@ function logCompanyAlertsForDigest(alerts: Alert[]) {
       expiry_date: alert.expiry_date || null,
       details: {
         company_name: alert.company?.name,
-        company_commercial_id: alert.company?.commercial_registration_number,
+        company_commercial_id: alert.company?.commercial_registration_expiry,
         unified_number: alert.company?.unified_number,
       },
     }))
@@ -337,7 +337,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           company: {
             id: company.id,
             name: company.name,
-            commercial_registration_number: company.commercial_registration_number,
+            commercial_registration_expiry: company.commercial_registration_expiry,
             unified_number: company.unified_number,
           },
           expiry_date: company.commercial_registration_expiry,
@@ -396,7 +396,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           company: {
             id: company.id,
             name: company.name,
-            commercial_registration_number: company.commercial_registration_number,
+            commercial_registration_expiry: company.commercial_registration_expiry,
             unified_number: company.unified_number,
           },
           expiry_date: company.ending_subscription_power_date,
@@ -455,7 +455,7 @@ export async function generateCompanyAlertsSync(companies: Company[]): Promise<A
           company: {
             id: company.id,
             name: company.name,
-            commercial_registration_number: company.commercial_registration_number,
+            commercial_registration_expiry: company.commercial_registration_expiry,
             unified_number: company.unified_number,
           },
           expiry_date: company.ending_subscription_moqeem_date,

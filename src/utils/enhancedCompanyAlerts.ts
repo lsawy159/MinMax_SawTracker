@@ -1,4 +1,4 @@
-import { Company } from './alerts'
+import { Company } from '@/lib/supabase'
 import { differenceInDays } from 'date-fns'
 
 // Simple enhanced alert interface for compatibility
