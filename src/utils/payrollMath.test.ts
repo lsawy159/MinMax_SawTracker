@@ -35,6 +35,7 @@ describe('payrollMath', () => {
     })
 
     it('avoids floating point precision issues', () => {
+      // Test the classic floating point issue: 0.1 + 0.2
       expect(roundPayrollAmount(0.1 + 0.2)).toBe(0.3)
       expect(roundPayrollAmount(1.005)).toBe(1.01)
     })
@@ -170,6 +171,7 @@ describe('payrollMath', () => {
           net_amount: 25000,
         }
       )
+      // When net > gross, inferred deduction is 0
       expect(result.netAmount).toBe(20000)
     })
 
@@ -222,18 +224,21 @@ describe('payrollMath', () => {
   })
 
   describe('edge cases and precision', () => {
-    it('handles combined calculations correctly', () => {
-      const result = calculatePayrollTotals(30000, 15, 0, 0, 1000)
-      expect(result.dailyRate).toBe(1000)
-      expect(result.grossAmount).toBe(15000)
-      expect(result.netAmount).toBe(14000)
+    it('handles rounding consistency across functions', () => {
+      const salary = 33333.33
+      const result = calculatePayrollTotals(salary, 15, 0, 0, 1000)
+      // dailyRate = 33333.33 / 30 = 1111.11
+      expect(result.dailyRate).toBe(1111.11)
+      // Verify gross and net are properly calculated and rounded
+      expect(typeof result.grossAmount).toBe('number')
+      expect(Math.abs(result.netAmount - (result.grossAmount - 1000))).toBeLessThan(0.01)
     })
 
-    it('handles floating point with rounding', () => {
+    it('handles multiple decimal precision issues', () => {
+      // Sum of numbers with decimal parts
       const result = calculatePayrollTotals(29999, 10, 5, 1111.11, 999.99)
       expect(result.dailyRate).toBe(999.97)
-      expect(typeof result.grossAmount).toBe('number')
-      expect(result.netAmount).toBeLessThan(result.grossAmount)
+      expect(result.netAmount).toBe(Math.round((result.grossAmount - 999.99) * 100) / 100)
     })
   })
 })

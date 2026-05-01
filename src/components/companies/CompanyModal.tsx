@@ -453,7 +453,7 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
           await logActivity(
             'full_edit',
             changes,
-            originalData as unknown as Record<string, unknown>,
+            originalData as Record<string, unknown>,
             actualUpdateData,
             company.id,
             formData.name,

@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { requirePermission, toErrorResponse } from '../_shared/auth.ts'
 import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
+import { logAudit } from '../_shared/audit.ts'
 
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req.headers.get('origin'))
@@ -157,8 +158,25 @@ serve(async (req) => {
       )
     }
 
+    // T-408: Log audit trail for email/username update
+    // @ts-expect-error Deno global
+    const currentUserId = Deno.env.get('CURRENT_USER_ID') || req.headers.get('x-user-id')
+    if (currentUserId) {
+      await logAudit(supabaseAdmin, currentUserId, {
+        entity_type: 'users',
+        entity_id: user_id,
+        action: 'update',
+        changed_fields: {
+          old_email: targetUser.email,
+          new_email: new_email,
+          ...(new_username && { new_username }),
+        },
+        changes_summary: `Updated user email from ${targetUser.email} to ${new_email}${new_username ? ` and username to ${new_username}` : ''}`,
+      })
+    }
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Email updated successfully',
         user_id: user_id,

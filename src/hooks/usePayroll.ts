@@ -6,14 +6,23 @@ import {
   PayrollInputMode,
   PayrollRun,
   PayrollScopeType,
+  ScopedPayrollEmployee,
   supabase,
 } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
+import { isFeatureEnabled } from '@/lib/featureFlags'
 import {
   calculatePayrollTotals,
   normalizePayrollEntryAmounts,
   roundPayrollAmount,
 } from '@/utils/payrollMath'
+import {
+  takePayrollSnapshot,
+  comparePayrollSnapshots,
+  hasPayrollDrift,
+  type PayrollSnapshot,
+  type PayrollDiff,
+} from '@/utils/payrollSnapshot'
 import {
   EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
   PayrollObligationBreakdown,
@@ -913,7 +922,7 @@ export function useScopedPayrollEmployees(
         throw employeesError
       }
 
-      const rawEmployeeList = (employees ?? []) as unknown as ScopedPayrollEmployee[]
+      const rawEmployeeList = (employees ?? []) as ScopedPayrollEmployee[]
       const employeeByResidence = new Map<string, ScopedPayrollEmployee>()
 
       for (const employee of rawEmployeeList) {
@@ -1108,6 +1117,9 @@ export function useUpdatePayrollRunStatus() {
 
   return useMutation({
     mutationFn: async ({ runId, status, approved_at }: UpdatePayrollRunStatusInput) => {
+      // Take snapshot before operation for drift validation
+      const beforeSnapshot = await takePayrollSnapshot(runId)
+
       const payload = {
         status,
         approved_at: approved_at ?? null,
@@ -1190,6 +1202,53 @@ export function useUpdatePayrollRunStatus() {
         await restorePayrollEntryAllocations(runEntries.map((entry) => entry.id))
       }
 
+      // Validate drift
+      const afterSnapshot = await takePayrollSnapshot(runId)
+      const diff = comparePayrollSnapshots(beforeSnapshot, afterSnapshot)
+
+      if (hasPayrollDrift(diff)) {
+        logger.warn('Payroll drift detected after status update:', {
+          runId,
+          status,
+          diff,
+        })
+      }
+
+      // Dual-write: validate with new RPC if feature flag enabled
+      if (isFeatureEnabled('useNewPayrollRPC')) {
+        const action = status === 'finalized' ? 'finalize' : status === 'cancelled' ? 'cancel' : 'calculate'
+        try {
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('process_payroll_run', {
+            p_run_id: runId,
+            p_action: action,
+          })
+
+          if (rpcError) {
+            logger.warn('[Dual-Write] RPC process_payroll_run failed:', rpcError)
+          } else {
+            // Compare old and new implementations
+            const oldResult = {
+              status: run.status,
+              entry_count: runEntries.length,
+            }
+
+            const newResult = rpcResult as Record<string, unknown>
+            const rpcStatus = status === 'finalized' ? 'finalized' : status === 'cancelled' ? 'cancelled' : 'processing'
+
+            if (newResult.success !== true || rpcStatus !== run.status) {
+              logger.warn('[Dual-Write] Results diverged:', {
+                old: oldResult,
+                new: newResult,
+                expected_status: rpcStatus,
+                actual_status: run.status,
+              })
+            }
+          }
+        } catch (dualWriteError) {
+          logger.warn('[Dual-Write] Unexpected error in dual-write validation:', dualWriteError)
+        }
+      }
+
       return run
     },
     onSuccess: (run) => {
@@ -1270,4 +1329,48 @@ export function useDeletePayrollRun() {
       queryClient.invalidateQueries({ queryKey: ['employee-obligations'] })
     },
   })
+}
+
+export interface ValidatePayrollRunInput {
+  runId: string
+  operation: () => Promise<void>
+}
+
+export interface ValidatePayrollRunResult {
+  before: PayrollSnapshot
+  after: PayrollSnapshot
+  diff: PayrollDiff
+  hasDrift: boolean
+}
+
+export async function validatePayrollRun({
+  runId,
+  operation,
+}: ValidatePayrollRunInput): Promise<ValidatePayrollRunResult> {
+  const before = await takePayrollSnapshot(runId)
+
+  try {
+    await operation()
+  } catch (error) {
+    logger.error('Error during payroll operation:', error)
+    throw error
+  }
+
+  const after = await takePayrollSnapshot(runId)
+  const diff = comparePayrollSnapshots(before, after)
+  const hasDrift = hasPayrollDrift(diff)
+
+  if (hasDrift) {
+    logger.warn('Payroll drift detected:', {
+      runId,
+      diff,
+    })
+  }
+
+  return {
+    before,
+    after,
+    diff,
+    hasDrift,
+  }
 }

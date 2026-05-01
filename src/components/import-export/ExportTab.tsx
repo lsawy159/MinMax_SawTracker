@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, ReactNode } from 'react'
-import { supabase, Employee, Company, Project } from '@/lib/supabase'
+import { supabase, Employee, Company, Project, EmployeeWithRelations } from '@/lib/supabase'
 import {
   FileDown,
   CheckSquare,
@@ -145,12 +145,7 @@ export default function ExportTab({
       if (employeesRes.error) throw employeesRes.error
       if (companiesRes.error) throw companiesRes.error
 
-      setEmployees(
-        (employeesRes.data || []) as unknown as (Employee & {
-          company: Company
-          project?: Project
-        })[]
-      )
+      setEmployees((employeesRes.data || []) as EmployeeWithRelations[])
 
       // [OPTIMIZATION] حساب عدد الموظفين لكل الشركات باستعلام واحد بدلاً من عدة استعلامات
       // استخدام البيانات المحملة بالفعل من employeesRes

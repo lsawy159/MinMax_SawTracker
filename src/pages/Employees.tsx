@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, type CSSProperties } from 'react'
-import { supabase, Employee, Company, Project } from '@/lib/supabase'
+import { supabase, Employee, Company, Project, EmployeeWithRelations } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import EmployeeCard from '@/components/employees/EmployeeCard'
 import AddEmployeeModal from '@/components/employees/AddEmployeeModal'
@@ -165,10 +165,7 @@ export default function Employees() {
 
       if (error) throw error
 
-      const employeesData = (data || []) as unknown as (Employee & {
-        company: Company
-        project?: Project
-      })[]
+      const employeesData = (data || []) as EmployeeWithRelations[]
       setEmployees(employeesData)
 
       // استخراج القوائم الفريدة للفلاتر

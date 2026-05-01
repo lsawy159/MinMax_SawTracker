@@ -760,7 +760,7 @@ export default function PayrollDeductions() {
       return
     }
 
-    setNewPayrollRunRows(payrollRunSeedEmployees.map((employee) => buildPayrollRunSeedRow(employee)))
+    setNewPayrollRunRows(payrollRunSeedEmployees.map((employee) => buildPayrollRunSeedRow(employee as ScopedPayrollEmployee)))
   }, [
     showPayrollRunForm,
     payrollForm.scope_id,

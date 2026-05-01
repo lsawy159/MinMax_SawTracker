@@ -72,7 +72,7 @@ export function GlobalSearch() {
       .order('created_at', { ascending: false })
       .limit(5)
 
-    if (data) setSavedSearches(data as unknown as SavedSearch[])
+    if (data) setSavedSearches(data as SavedSearch[])
   }
 
   const loadRecentSearches = () => {
