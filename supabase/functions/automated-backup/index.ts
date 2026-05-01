@@ -319,19 +319,14 @@ SET standard_conforming_strings = on;
     
     console.log(`[Backup] Fetched ${totalRows} total rows from ${tablesToBackup.length} tables`)
 
-    // ضغط البيانات (محاكاة)
-    const originalSize = new TextEncoder().encode(backupData).length
-    const compressedSize = Math.floor(originalSize * 0.3) // محاكاة ضغط 70%
-    const compressionRatio = ((originalSize - compressedSize) / originalSize * 100)
-
     // التحقق من وجود bucket قبل المحاولة
     const { data: buckets } = await supabase.storage.listBuckets()
     const backupsBucketExists = buckets?.some(bucket => bucket.name === 'backups')
-    
+
     if (!backupsBucketExists) {
       const errorMsg = 'Bucket "backups" not found. Please create it in Supabase Dashboard → Storage → New bucket'
       console.error(errorMsg)
-      
+
       // تحديث حالة الفشل
       await supabase
         .from('backup_history')
@@ -350,6 +345,11 @@ SET standard_conforming_strings = on;
     const { data: uploadBytes, encrypted } = await encryptBackup(plainBytes)
     const uploadFileName = encrypted ? `${backupFileName}.enc` : backupFileName
     const uploadContentType = encrypted ? 'application/octet-stream' : 'application/sql'
+
+    // T-507: Use actual uploaded size, not simulated compression
+    const originalSize = plainBytes.length
+    const compressedSize = uploadBytes.length
+    const compressionRatio = encrypted ? 0 : ((originalSize - compressedSize) / originalSize * 100)
 
     // رفع النسخة الاحتياطية إلى Storage
     const { error: uploadError } = await supabase.storage
