@@ -545,10 +545,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // لا نعين fetchingRef هنا لأن onAuthStateChange سيتولى استدعاء fetchUserData
 
       try {
-        // تحويل username إلى email وهمي إذا لم يحتوي على @
-        const email = usernameOrEmail.includes('@')
-          ? usernameOrEmail
-          : `${usernameOrEmail}@sawtracker.local`
+        // T-409: Require @ in username/email (no fallback domain)
+        if (!usernameOrEmail.includes('@')) {
+          setError('اسم المستخدم يجب أن يحتوي على @ (مثل: user@example.com)')
+          setLoading(false)
+          loadingRef.current = false
+          throw new Error('Username must contain @ symbol')
+        }
+
+        const email = usernameOrEmail
         const normalizedIdentifier = email.trim().toLowerCase()
 
         // تحقق من حالة القفل قبل إرسال بيانات الدخول إلى Supabase Auth
