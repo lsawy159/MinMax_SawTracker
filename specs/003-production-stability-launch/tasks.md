@@ -65,14 +65,14 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
-| T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
-| T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
-| T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
-| T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
-| T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
-| T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
-| T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
+| [X] T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
+| [X] T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
+| [X] T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
+| [X] T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
+| [X] T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
+| [X] T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
+| [X] T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
+| [X] T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
 
 ---
 
@@ -80,16 +80,16 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
-| T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
-| T-403 | RPC `get_payroll_summary` | - | output schema valid |
-| T-404 | dual-write في usePayroll (4 أسبوع overlap) | F-3 | feature flag `useNewPayrollRPC` |
-| T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
-| T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
-| T-407 | إصلاح ActivityTracker memory leak | S-6 | `stopTracking` يزيل listeners |
-| T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
-| T-409 | حذف `@sawtracker.local` fallback | S-8 | username بدون @ → خطأ |
-| T-410 | JWT في sessionStorage (PKCE) | S-5 | إغلاق التبويب → logout |
+| [X] T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
+| [X] T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
+| [X] T-403 | RPC `get_payroll_summary` | - | output schema valid |
+| [X] T-404 | dual-write في usePayroll (4 أسبوع overlap) | F-3 | feature flag `useNewPayrollRPC` |
+| [X] T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
+| [X] T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
+| [X] T-407 | إصلاح ActivityTracker memory leak | S-6 | `stopTracking` يزيل listeners |
+| [X] T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
+| [X] T-409 | حذف `@sawtracker.local` fallback | S-8 | username بدون @ → خطأ |
+| [X] T-410 | JWT في sessionStorage (PKCE) | S-5 | إغلاق التبويب → logout |
 
 ---
 
@@ -97,19 +97,19 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-501 | توحيد Company type | L-2 | grep تعريف 2nd → 0 |
-| T-502 | مصنع تنبيهات موحد | L-1 | حذف ~400 سطر مكرر |
-| T-503 | استبدال `as unknown as` بأنواع DB | L-5 | grep `as unknown as` → 0 |
+| [X] T-501 | توحيد Company type | L-2 | grep تعريف 2nd → 0 |
+| [X] T-502 | مصنع تنبيهات موحد | L-1 | حذف ~400 سطر مكرر |
+| [X] T-503 | استبدال `as unknown as` بأنواع DB | L-5 | grep `as unknown as` → 0 |
 | [X] T-504 | اختبارات payrollMath ≥95% | S-1 | coverage report |
 | [X] T-505 | اختبارات usePayroll ≥80% | S-1 | coverage report |
 | [X] T-506 | اختبارات Edge Functions (Deno) | S-1 | كل دالة لها test file |
-| T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
-| T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
+| [X] T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
+| [X] T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
 | [X] T-509 | Logger للإنتاج → Sentry | S-4 | error في prod يصل Sentry |
 | [X] T-510 | E2E tests Playwright (5 سيناريوهات) | M-12 | login + employee + payroll + backup + restore |
 | T-511 | mobile QA matrix | M-13 | كل صفحة على iOS/Android |
 | T-512 | empty/loading/error states لكل صفحة | M-14 | 14×3 = 42 حالة |
-| T-513 | نقل تسجيل خلاصة لـ Edge | L-4 | client لا يكتب daily_excel_logs |
+| [X] T-513 | نقل تسجيل خلاصة لـ Edge | L-4 | client لا يكتب daily_excel_logs |
 
 ---
 
