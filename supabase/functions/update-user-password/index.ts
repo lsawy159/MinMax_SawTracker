@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { requireAuth, toErrorResponse } from '../_shared/auth.ts'
 import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
+import { logAudit } from '../_shared/audit.ts'
 
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req.headers.get('origin'))
@@ -113,8 +114,20 @@ serve(async (req) => {
       )
     }
 
+    // T-408: Log audit trail for password update
+    await logAudit(supabaseAdmin, ctx.userId, {
+      entity_type: 'users',
+      entity_id: user_id,
+      action: 'update',
+      changed_fields: {
+        password_updated_at: new Date().toISOString(),
+        updated_by_self: isUpdatingOwnPassword,
+      },
+      changes_summary: isUpdatingOwnPassword ? 'Updated own password' : `Admin updated password for user ${user_id}`,
+    })
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Password updated successfully',
         user_id: user_id

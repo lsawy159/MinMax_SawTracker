@@ -87,7 +87,7 @@
 | [X] T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
 | [X] T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
 | [X] T-407 | إصلاح ActivityTracker memory leak | S-6 | `stopTracking` يزيل listeners |
-| T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
+| [X] T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
 | T-409 | حذف `@sawtracker.local` fallback | S-8 | username بدون @ → خطأ |
 | T-410 | JWT في sessionStorage (PKCE) | S-5 | إغلاق التبويب → logout |
 

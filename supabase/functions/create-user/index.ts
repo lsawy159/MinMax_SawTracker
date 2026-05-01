@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { requirePermission, toErrorResponse } from '../_shared/auth.ts'
 import { corsHeaders as buildCorsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, getIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
+import { logAudit } from '../_shared/audit.ts'
 
 function normalizePermissionsPayload(input: unknown): string[] {
   if (!input) {
@@ -199,8 +200,26 @@ serve(async (req) => {
       )
     }
 
+    // T-408: Log audit trail for user creation
+    // @ts-expect-error Deno global
+    const currentUserId = Deno.env.get('CURRENT_USER_ID') || req.headers.get('x-user-id')
+    if (currentUserId) {
+      await logAudit(supabaseAdmin, currentUserId, {
+        entity_type: 'users',
+        entity_id: createdUser.id,
+        action: 'create',
+        changed_fields: {
+          username: createdUser.username,
+          email: createdUser.email,
+          full_name: createdUser.full_name,
+          role: createdUser.role,
+        },
+        changes_summary: `Created user: ${createdUser.username} (${createdUser.email})`,
+      })
+    }
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         user: createdUser
       }),
