@@ -48,7 +48,6 @@ const Notifications = lazy(() => import('./pages/Notifications'))
 const Alerts = lazy(() => import('./pages/Alerts'))
 const Reports = lazy(() => import('./pages/Reports'))
 const PayrollDeductions = lazy(() => import('./pages/PayrollDeductions'))
-const ActivityLogs = lazy(() => import('./pages/ActivityLogs'))
 const ImportExport = lazy(() => import('./pages/ImportExport'))
 const DesignSystem = lazy(() => import('./pages/DesignSystem'))
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'))
@@ -220,11 +219,7 @@ function AppRoutes() {
           />
           <Route
             path="/activity-logs"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <ActivityLogs />
-              </Suspense>
-            }
+            element={<Navigate to="/admin-settings?tab=activity-logs" replace />}
           />
           <Route
             path="/import-export"

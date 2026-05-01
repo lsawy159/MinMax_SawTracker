@@ -121,15 +121,6 @@ export const NAV_ITEMS: NavItem[] = [
     order: 9,
   },
   {
-    id: 'activity-logs',
-    labelAr: 'سجل الأنشطة',
-    labelEn: 'Activity Logs',
-    icon: Clock,
-    to: '/activity-logs',
-    group: 'operational',
-    order: 10,
-  },
-  {
     id: 'import-export',
     labelAr: 'استيراد/تصدير',
     labelEn: 'Import/Export',
@@ -158,16 +149,6 @@ export const NAV_ITEMS: NavItem[] = [
     requiredPermission: 'manage_settings',
     group: 'admin',
     order: 1,
-  },
-  {
-    id: 'alert-settings',
-    labelAr: 'إعدادات التنبيهات',
-    labelEn: 'Alert Settings',
-    icon: AlertCircle,
-    to: '/admin-settings?tab=alert-settings',
-    requiredPermission: 'manage_alerts',
-    group: 'admin',
-    order: 2,
   },
   {
     id: 'general-settings',

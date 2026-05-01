@@ -33,7 +33,7 @@ type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'login' | 'logout'
 type EntityFilter = 'all' | 'employee' | 'company' | 'user' | 'settings'
 type DateFilter = 'all' | 'today' | 'week' | 'month'
 
-export default function ActivityLogs() {
+export default function ActivityLogs({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth()
   const { canView } = usePermissions()
   const isAdmin = user?.role === 'admin'
@@ -1169,18 +1169,16 @@ export default function ActivityLogs() {
     toast.success('تم تصدير البيانات بنجاح')
   }, [filteredLogs, usersMap])
 
-  return (
-    <Layout>
-      {unauthorized ? (
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <Activity className="w-16 h-16 mx-auto mb-4 text-danger-500" />
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
-            <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
-          </div>
-        </div>
-      ) : (
-        <div className="app-page app-tech-grid">
+  const content = unauthorized ? (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <Activity className="w-16 h-16 mx-auto mb-4 text-danger-500" />
+        <h2 className="text-2xl font-bold text-neutral-900 mb-2">غير مصرح</h2>
+        <p className="text-neutral-600">عذراً، ليس لديك صلاحية لعرض هذه الصفحة.</p>
+      </div>
+    </div>
+  ) : (
+    <div className="app-page app-tech-grid">
           {/* Header */}
           <div className="flex flex-col gap-3 mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -1325,7 +1323,8 @@ export default function ActivityLogs() {
 
           {/* End of main container */}
         </div>
-      )}
-    </Layout>
   )
+
+  if (embedded) return content
+  return <Layout>{content}</Layout>
 }

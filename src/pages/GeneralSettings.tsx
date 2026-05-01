@@ -21,7 +21,10 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePermissions } from '@/utils/permissions'
 import { getInputValue } from '@/utils/errorHandling'
+import ActivityLogsPage from '@/pages/ActivityLogs'
 import SessionsManager from '@/components/settings/SessionsManager'
+
+const ActivityLogsEmbedded = () => <ActivityLogsPage embedded />
 import { BackupTab } from '@/components/settings/tabs/BackupTab'
 import AuditDashboard from '@/components/settings/AuditDashboard'
 import ConfirmationDialog from '@/components/dialogs/ConfirmationDialog'
@@ -101,6 +104,7 @@ type TabType =
   | 'advanced-notifications'
   | 'alert-settings'
   | 'backup'
+  | 'activity-logs'
 
 const LEGACY_SYSTEM_SETTINGS_KEYS = [
   'system_timezone',
@@ -215,6 +219,7 @@ export default function GeneralSettings() {
       'advanced-notifications',
       'alert-settings',
       'backup',
+      'activity-logs',
     ]
     if (allowedTabs.includes(tab as TabType)) {
       setActiveTab(tab as TabType)
@@ -443,6 +448,13 @@ export default function GeneralSettings() {
       description: 'تخصيص حدود التنبيهات وألوانها وحالاتها: ما يُعتبر تنبيهاً حرجاً، والألوان المرتبطة بكل حالة.',
       icon: AlertTriangle,
       component: UnifiedSettings,
+    },
+    {
+      key: 'activity-logs',
+      label: 'سجل الأنشطة',
+      description: 'عرض كامل سجل الإجراءات والعمليات التي تمت في النظام مع التوقيت والمستخدم المسؤول.',
+      icon: Clock,
+      component: ActivityLogsEmbedded,
     },
   ]
 
