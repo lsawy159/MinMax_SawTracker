@@ -18,6 +18,7 @@ import {
   Search,
   ClipboardList,
   UserPlus,
+  CreditCard,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -248,6 +249,7 @@ export default function PayrollDeductions() {
   const [showPayrollRunForm, setShowPayrollRunForm] = useState(false)
   const [showPayrollEntryForm, setShowPayrollEntryForm] = useState(false)
   const [showPayrollRunDetailsModal, setShowPayrollRunDetailsModal] = useState(false)
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<'all' | 'bank' | 'cash'>('all')
   const [selectedPayrollRunId, setSelectedPayrollRunId] = useState<string | null>(null)
   const [selectedPayrollSlipEntryId, setSelectedPayrollSlipEntryId] = useState<string | null>(null)
   const [payrollSearchQuery, setPayrollSearchQuery] = useState('')
@@ -1227,7 +1229,7 @@ export default function PayrollDeductions() {
     const { data, error } = await supabase
       .from('payroll_entries')
       .select(
-        'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+        'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at,employee:employees(bank_account)'
       )
       .eq('payroll_run_id', runId)
 
@@ -1235,7 +1237,11 @@ export default function PayrollDeductions() {
       throw error
     }
 
-    return (data ?? []) as PayrollEntry[]
+    return ((data ?? []) as (PayrollEntry & { employee?: { bank_account?: string | null } | null })[]).map((e) => ({
+      ...e,
+      bank_account_snapshot: e.employee?.bank_account ?? null,
+      employee: undefined,
+    })) as PayrollEntry[]
   }
 
   const fetchPayrollEntryBreakdowns = async (entryIds: string[]) => {
@@ -1422,6 +1428,39 @@ export default function PayrollDeductions() {
     } catch (error) {
       console.error('Error exporting payroll run to Excel:', error)
       const message = error instanceof Error ? error.message : 'فشل تصدير المسير بصيغة Excel'
+      toast.error(message)
+    }
+  }
+
+  const exportPayrollByPaymentMethod = async (method: 'bank' | 'cash') => {
+    if (!selectedPayrollRun) {
+      toast.error('يرجى اختيار مسير أولاً')
+      return
+    }
+
+    try {
+      const allEntries = await fetchPayrollEntriesForExport(selectedPayrollRun.id)
+      const filtered = allEntries.filter((e) =>
+        method === 'bank' ? Boolean(e.bank_account_snapshot) : !e.bank_account_snapshot
+      )
+
+      if (filtered.length === 0) {
+        toast.warning(method === 'bank' ? 'لا يوجد موظفون بحساب بنكي في هذا المسير' : 'لا يوجد موظفون يقبضون كاش في هذا المسير')
+        return
+      }
+
+      const breakdownByEntryId = await fetchPayrollEntryBreakdowns(filtered.map((e) => e.id))
+      const XLSX = await loadXlsx()
+      const workbook = buildPayrollExportWorkbook(XLSX, selectedPayrollRun, filtered, breakdownByEntryId)
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const suffix = method === 'bank' ? 'تحويل_بنكي' : 'كاش'
+      const baseName = sanitizePayrollFileName(getPayrollRunDisplayName(selectedPayrollRun.scope_type, selectedPayrollRun.scope_id, selectedPayrollRun.payroll_month))
+      saveAs(blob, `${baseName}_${suffix}.xlsx`)
+      toast.success(`تم تصدير كشف ${method === 'bank' ? 'التحويل البنكي' : 'الكاش'} (${filtered.length} موظف)`)
+    } catch (error) {
+      console.error('Error exporting payroll by payment method:', error)
+      const message = error instanceof Error ? error.message : 'فشل التصدير'
       toast.error(message)
     }
   }
@@ -2329,6 +2368,7 @@ export default function PayrollDeductions() {
     setShowPayrollEntryForm(false)
     setSelectedPayrollSlipEntryId(null)
     setPayrollRunDeleteConfirmOpen(false)
+    setPaymentMethodFilter('all')
   }
 
   const handleEditPayrollEntry = (entry: PayrollEntry) => {
@@ -2946,13 +2986,81 @@ export default function PayrollDeductions() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : (() => {
+          const bankEntries = payrollEntries.filter((e) => Boolean(e.bank_account_snapshot))
+          const cashEntries = payrollEntries.filter((e) => !e.bank_account_snapshot)
+          const displayedEntries =
+            paymentMethodFilter === 'bank' ? bankEntries :
+            paymentMethodFilter === 'cash' ? cashEntries :
+            payrollEntries
+          const bankNet = bankEntries.reduce((s, e) => s + Number(e.net_amount || 0), 0)
+          const cashNet = cashEntries.reduce((s, e) => s + Number(e.net_amount || 0), 0)
+
+          return (
+          <div className="space-y-3">
+            {/* Payment split summary + filter */}
+            <div className="rounded-[20px] border border-border-200 bg-gradient-to-l from-sky-50/60 via-white to-indigo-50/40 p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm">
+                    <span className="font-semibold text-blue-700">{bankEntries.length}</span>
+                    <span className="text-blue-600 mr-1">موظف تحويل بنكي</span>
+                    <span className="text-blue-500 text-xs mr-1">({bankNet.toLocaleString('en-US')} ر.س)</span>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                    <span className="font-semibold text-amber-700">{cashEntries.length}</span>
+                    <span className="text-amber-600 mr-1">موظف كاش</span>
+                    <span className="text-amber-500 text-xs mr-1">({cashNet.toLocaleString('en-US')} ر.س)</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Filter buttons */}
+                  <div className="flex rounded-xl border border-border-200 overflow-hidden text-xs font-medium">
+                    {(['all', 'bank', 'cash'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setPaymentMethodFilter(m)}
+                        className={`px-3 py-2 transition ${paymentMethodFilter === m ? 'bg-blue-600 text-white' : 'bg-white text-foreground-secondary hover:bg-surface-secondary-50'}`}
+                      >
+                        {m === 'all' ? 'الكل' : m === 'bank' ? 'تحويل بنكي' : 'كاش'}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Split export buttons */}
+                  {canExport('payroll') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => exportPayrollByPaymentMethod('bank')}
+                        disabled={bankEntries.length === 0}
+                        className={`${outlineCompactButtonClass} border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-40`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        تصدير بنكي
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => exportPayrollByPaymentMethod('cash')}
+                        disabled={cashEntries.length === 0}
+                        className={`${outlineCompactButtonClass} border-amber-200 text-amber-700 hover:bg-amber-50 disabled:opacity-40`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        تصدير كاش
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
           <div className="overflow-hidden rounded-[24px] border border-border-200 bg-surface shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-secondary-50/90">
                 <tr>
                   <th className="px-4 py-3 text-right">الموظف</th>
+                  <th className="px-4 py-3 text-right">طريقة الصرف</th>
                   <th className="px-4 py-3 text-right">الإقامة</th>
                   <th className="px-4 py-3 text-right">إجمالي</th>
                   <th className="px-4 py-3 text-right">نقل/تجديد</th>
@@ -2966,7 +3074,7 @@ export default function PayrollDeductions() {
                 </tr>
               </thead>
               <tbody>
-                {payrollEntries.map((entry) => {
+                {displayedEntries.map((entry) => {
                   const rowBreakdown = normalizePayrollObligationBreakdown(
                     payrollEntryBreakdownById.get(entry.id) ?? {
                       ...EMPTY_PAYROLL_OBLIGATION_BREAKDOWN,
@@ -2978,6 +3086,18 @@ export default function PayrollDeductions() {
                   return (
                     <tr key={entry.id} className="border-t border-border-100 transition hover:bg-sky-50/40">
                       <td className="px-4 py-3 font-medium text-gray-900">{entry.employee_name_snapshot}</td>
+                      <td className="px-4 py-3">
+                        {entry.bank_account_snapshot ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                            <CreditCard className="w-3 h-3" />
+                            بنكي
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                            كاش
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">{entry.residence_number_snapshot}</td>
                       <td className="px-4 py-3">{entry.gross_amount.toLocaleString('en-US')}</td>
                       <td className="px-4 py-3">{rowBreakdown.transfer_renewal.toLocaleString('en-US')}</td>
@@ -3026,7 +3146,9 @@ export default function PayrollDeductions() {
             </table>
           </div>
           </div>
-        )}
+          </div>
+        )
+        })()}
 
         {selectedPayrollRun && selectedPayrollRunEditable && (
           <div className="rounded-[24px] border border-border-200 bg-gradient-to-br from-surface-secondary-50 via-surface to-surface px-4 py-4 shadow-sm">
@@ -3736,6 +3858,42 @@ export default function PayrollDeductions() {
               </div>
             </div>
           </div>
+
+          {showPayrollRunDetailsModal && selectedPayrollRun && (
+            <div className="overflow-hidden rounded-[26px] border border-sky-100 bg-surface shadow-[0_20px_45px_-36px_rgba(14,116,144,0.38)]">
+              <div className="flex items-center justify-between gap-4 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4 md:px-6 md:py-5">
+                <div>
+                  <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700 mb-2">
+                    كشف المسير
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">عرض المسير</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary max-w-3xl">
+                    {getPayrollRunDisplayName(
+                      selectedPayrollRun.scope_type,
+                      selectedPayrollRun.scope_id,
+                      selectedPayrollRun.payroll_month
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClosePayrollRunDetailsModal}
+                  disabled={
+                    updatePayrollRunStatus.isPending ||
+                    deletePayrollRun.isPending ||
+                    upsertPayrollEntry.isPending ||
+                    confirmingPayrollExcelImport
+                  }
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-200 bg-white/90 text-foreground-tertiary shadow-sm hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="max-h-[75vh] overflow-y-auto">
+                <div className="bg-gradient-to-b from-surface-secondary-50/70 to-surface p-4 md:p-5">{renderSelectedPayrollRunDetails()}</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
@@ -4063,60 +4221,6 @@ export default function PayrollDeductions() {
                   تأكيد الحذف
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {showPayrollRunDetailsModal && selectedPayrollRun && (
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-surface-secondary-950/65 p-3 backdrop-blur-md md:p-4"
-            onClick={() => {
-              if (
-                !updatePayrollRunStatus.isPending &&
-                !deletePayrollRun.isPending &&
-                !upsertPayrollEntry.isPending &&
-                !confirmingPayrollExcelImport
-              ) {
-                handleClosePayrollRunDetailsModal()
-              }
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="app-modal-surface w-full max-w-7xl max-h-[94vh] overflow-y-auto border border-sky-100 shadow-[0_32px_100px_-38px_rgba(15,23,42,0.58)]"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="app-modal-header sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4 md:px-6 md:py-5">
-                <div>
-                  <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700 mb-2">
-                    كشف المسير
-                  </div>
-                  <h2 className="text-2xl font-bold text-foreground">عرض المسير</h2>
-                  <p className="mt-1 text-sm text-foreground-secondary max-w-3xl">
-                    {getPayrollRunDisplayName(
-                      selectedPayrollRun.scope_type,
-                      selectedPayrollRun.scope_id,
-                      selectedPayrollRun.payroll_month
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClosePayrollRunDetailsModal}
-                  disabled={
-                    updatePayrollRunStatus.isPending ||
-                    deletePayrollRun.isPending ||
-                    upsertPayrollEntry.isPending ||
-                    confirmingPayrollExcelImport
-                  }
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-200 bg-white/90 text-foreground-tertiary shadow-sm hover:bg-surface-secondary-50 transition"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="bg-gradient-to-b from-surface-secondary-50/70 to-surface p-4 md:p-5">{renderSelectedPayrollRunDetails()}</div>
             </div>
           </div>
         )}
