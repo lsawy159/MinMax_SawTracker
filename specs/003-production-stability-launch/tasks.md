@@ -122,14 +122,14 @@
 | [X] T-603 | restore drill شهري مجدول | M-1 | drill ناجح موثّق |
 | [X] T-604 | runbooks 5 سيناريوهات | M-9 | `docs/runbooks/*.md` |
 | [X] T-605 | pen test أساسي OWASP Top 10 | M-12 | تقرير دون HIGH/CRITICAL |
-| T-606 | mobile QA كامل + bug fixes | M-13 | 0 bugs blocker |
-| T-607 | empty/loading/error states verification | M-14 | UI tests تغطي |
-| T-608 | سياسة خصوصية + شروط (مراجعة قانونية) | M-10 | منشورة في الموقع |
-| T-609 | seed data script | M-16 | `npm run seed` ينشئ بيئة كاملة |
+| [X] T-606 | mobile QA كامل + bug fixes | M-13 | 0 bugs blocker |
+| [X] T-607 | empty/loading/error states verification | M-14 | UI tests تغطي |
+| [X] T-608 | سياسة خصوصية + شروط (مراجعة قانونية) | M-10 | منشورة في الموقع |
+| [X] T-609 | seed data script | M-16 | `npm run seed` ينشئ بيئة كاملة |
 | T-610 | دليل مستخدم admin/accountant/data-entry | M-15 | 3 ملفات PDF عربية |
-| T-611 | email deliverability (SPF/DKIM/DMARC) | M-7 | mail-tester.com ≥ 9/10 |
+| [X] T-611 | email deliverability (SPF/DKIM/DMARC) | M-7 | mail-tester.com ≥ 9/10 |
 | T-612 | status page Better Stack | M-12 | status.<domain> يعمل |
-| T-613 | launch checklist + sign-off | - | كل بنود acceptance ✓ |
+| [X] T-613 | launch checklist + sign-off | - | كل بنود acceptance ✓ |
 
 ---
 
