@@ -8,6 +8,7 @@ import { queryClient } from './lib/queryClient'
 import AuthLoading from './components/AuthLoading'
 import { useFontMode, useThemeMode } from './hooks/useUiPreferences'
 import { AppShell } from './components/layout/AppShell'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
 // Protected route layout with AppShell
@@ -72,6 +73,15 @@ function PageLoader({
   )
 }
 
+// Helper component to wrap route components with ErrorBoundary and Suspense
+function RouteGuard({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </ErrorBoundary>
+  )
+}
+
 function PublicRoute({ children }: { children: ReactNode }) {
   const { session } = useAuth()
 
@@ -101,9 +111,9 @@ function AppRoutes() {
           path="/login"
           element={
             <PublicRoute>
-              <Suspense fallback={<PageLoader />}>
+              <RouteGuard>
                 <Login />
-              </Suspense>
+              </RouteGuard>
             </PublicRoute>
           }
         />
@@ -113,9 +123,9 @@ function AppRoutes() {
           <Route
             path="/dashboard"
             element={
-              <Suspense fallback={<PageLoader />}>
+              <RouteGuard>
                 <Dashboard />
-              </Suspense>
+              </RouteGuard>
             }
           />
           <Route
