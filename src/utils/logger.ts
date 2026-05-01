@@ -116,7 +116,29 @@ class Logger {
     const formatted = this.formatMessage(LogLevel.ERROR, ...args)
     this.recordLog(LogLevel.ERROR, formatted)
     console.error(formatted)
-    // في الإنتاج، يمكن إرسال الأخطاء لخدمة tracking
+
+    // في الإنتاج، إرسال الأخطاء إلى Sentry
+    if (!isDev && typeof window !== 'undefined') {
+      try {
+        // import Sentry dynamically to avoid circular dependencies
+        import('@sentry/react').then(({ captureException }) => {
+          const errorObj = args.find((arg) => arg instanceof Error) || new Error(formatted)
+          captureException(errorObj, {
+            level: 'error',
+            tags: {
+              source: 'logger',
+            },
+            extra: {
+              originalArgs: args,
+            },
+          })
+        }).catch(() => {
+          // Silently fail if Sentry is not available
+        })
+      } catch {
+        // Silently fail if dynamic import fails
+      }
+    }
   }
 }
 

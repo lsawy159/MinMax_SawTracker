@@ -105,7 +105,7 @@
 | [X] T-506 | اختبارات Edge Functions (Deno) | S-1 | كل دالة لها test file |
 | T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
 | T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
-| T-509 | Logger للإنتاج → Sentry | S-4 | error في prod يصل Sentry |
+| [X] T-509 | Logger للإنتاج → Sentry | S-4 | error في prod يصل Sentry |
 | T-510 | E2E tests Playwright (5 سيناريوهات) | M-12 | login + employee + payroll + backup + restore |
 | T-511 | mobile QA matrix | M-13 | كل صفحة على iOS/Android |
 | T-512 | empty/loading/error states لكل صفحة | M-14 | 14×3 = 42 حالة |

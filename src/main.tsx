@@ -2,6 +2,7 @@
 import React, { StrictMode } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { createRoot } from 'react-dom/client'
+import * as Sentry from '@sentry/react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
@@ -9,6 +10,26 @@ import './index.css'
 import App from './App.tsx'
 import { logger } from './utils/logger'
 import { initializeSecurity } from './utils/securityIntegration'
+
+// Initialize Sentry for error tracking in production
+if (!import.meta.env.DEV) {
+  const sentryDsn = import.meta.env.VITE_SENTRY_DSN
+  if (sentryDsn) {
+    Sentry.init({
+      dsn: sentryDsn,
+      environment: import.meta.env.MODE,
+      tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+      attachStacktrace: true,
+      beforeSend(event) {
+        // Filter out non-error events in production to reduce noise
+        if (import.meta.env.PROD && event.level !== 'error') {
+          return null
+        }
+        return event
+      },
+    })
+  }
+}
 
 // Register global handlers once and clean up on HMR to avoid listener duplication
 const registerGlobalHandlers = () => {
@@ -113,11 +134,13 @@ try {
 
   root.render(
     <StrictMode>
-      <ErrorBoundary>
-        <App />
-        <SpeedInsights />
-        <Analytics />
-      </ErrorBoundary>
+      <Sentry.ErrorBoundary fallback={<ErrorBoundary />} showDialog>
+        <ErrorBoundary>
+          <App />
+          <SpeedInsights />
+          <Analytics />
+        </ErrorBoundary>
+      </Sentry.ErrorBoundary>
     </StrictMode>
   )
 
