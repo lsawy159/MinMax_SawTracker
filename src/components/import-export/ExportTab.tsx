@@ -145,7 +145,12 @@ export default function ExportTab({
       if (employeesRes.error) throw employeesRes.error
       if (companiesRes.error) throw companiesRes.error
 
-      setEmployees((employeesRes.data || []) as unknown as EmployeeWithRelations[])
+      setEmployees(
+        (employeesRes.data || []) as unknown as (Employee & {
+          company: Company
+          project?: Project
+        })[]
+      )
 
       // [OPTIMIZATION] حساب عدد الموظفين لكل الشركات باستعلام واحد بدلاً من عدة استعلامات
       // استخدام البيانات المحملة بالفعل من employeesRes

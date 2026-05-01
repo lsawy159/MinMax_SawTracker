@@ -2,7 +2,7 @@
 // Replaces useState pattern with React Query for efficient server state management
 
 import { useQuery } from '@tanstack/react-query'
-import { useSupabase } from '@/contexts/SupabaseContext'
+import { supabase } from '@/lib/supabase'
 
 interface DashboardStats {
   companies_count: number
@@ -21,8 +21,6 @@ interface DashboardStats {
 }
 
 export function useDashboardStats() {
-  const { supabase } = useSupabase()
-
   return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
