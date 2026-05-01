@@ -41,92 +41,70 @@ function getEmployeeDigestKey(alert: EmployeeAlert): string {
   return `${alert.employee.id}:${alert.type}:${alert.expiry_date ?? getTodayEmployeeAlertDate()}`
 }
 
+// T-513: Send alert logging to Edge Function instead of client-side DB writes
 function logEmployeeAlertsForDigest(alerts: EmployeeAlert[], employees: Employee[]) {
   if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
     return
   }
 
   const employeeMap = new Map(employees.map((employee) => [employee.id, employee]))
+  const urgentHighAlerts = alerts.filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
 
-  const logPromises = alerts
-    .filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
-    .map(async (alert) => {
+  if (urgentHighAlerts.length === 0) {
+    return
+  }
+
+  // Dedup on client side to avoid redundant Edge Function calls
+  const logsToSend = urgentHighAlerts
+    .filter((alert) => {
       const digestKey = getEmployeeDigestKey(alert)
       if (loggedEmployeeDigestKeys.has(digestKey)) {
-        return
+        return false
       }
-
       loggedEmployeeDigestKeys.add(digestKey)
-
-      try {
-        const employee = employeeMap.get(alert.employee.id)
-        const startOfToday = new Date()
-        startOfToday.setHours(0, 0, 0, 0)
-
-        const startOfTomorrow = new Date(startOfToday)
-        startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
-
-        const { data: existingLog, error: lookupError } = await supabase
-          .from('daily_excel_logs')
-          .select('id')
-          .eq('employee_id', alert.employee.id)
-          .eq('alert_type', alert.type)
-          .gte('created_at', startOfToday.toISOString())
-          .lt('created_at', startOfTomorrow.toISOString())
-          .maybeSingle()
-
-        if (lookupError && lookupError.code !== 'PGRST116') {
-          loggedEmployeeDigestKeys.delete(digestKey)
-          logger.error(
-            `Failed to check existing employee alert ${alert.id} in daily_excel_logs:`,
-            lookupError
-          )
-          return
-        }
-
-        if (existingLog) {
-          return
-        }
-
-        const { error } = await supabase.from('daily_excel_logs').insert({
-          employee_id: alert.employee.id,
-          alert_type: alert.type,
-          priority: alert.priority,
-          title: alert.title,
-          message: alert.message,
-          action_required: alert.action_required,
-          expiry_date: alert.expiry_date,
-          details: {
-            employee_name: alert.employee.name,
-            employee_profession: alert.employee.profession,
-            employee_nationality: alert.employee.nationality,
-            residence_number: employee?.residence_number,
-            unified_number: alert.company?.unified_number,
-          },
-        })
-
-        if (error) {
-          if (error.code === '23505') {
-            return
-          }
-
-          loggedEmployeeDigestKeys.delete(digestKey)
-          logger.error(`Failed to log employee alert ${alert.id} to daily_excel_logs:`, error)
-          return
-        }
-
-        logger.debug(
-          `✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.employee.name}`
-        )
-      } catch (logError) {
-        loggedEmployeeDigestKeys.delete(digestKey)
-        logger.error(`Exception logging employee alert ${alert.id}:`, logError)
+      return true
+    })
+    .map((alert) => {
+      const employee = employeeMap.get(alert.employee.id)
+      return {
+        employee_id: alert.employee.id,
+        alert_type: alert.type,
+        priority: alert.priority,
+        title: alert.title,
+        message: alert.message,
+        action_required: alert.action_required,
+        expiry_date: alert.expiry_date || null,
+        details: {
+          employee_name: alert.employee.name,
+          employee_profession: alert.employee.profession,
+          employee_nationality: alert.employee.nationality,
+          residence_number: employee?.residence_number,
+          unified_number: alert.company?.unified_number,
+        },
       }
     })
 
-  void Promise.allSettled(logPromises).catch((err) => {
-    logger.error('Error settling employee log promises:', err)
+  if (logsToSend.length === 0) {
+    return
+  }
+
+  // Call Edge Function to handle logging
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  fetch(`${supabaseUrl}/functions/v1/log-alert-digest`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supabase.auth.session()?.access_token || ''}`,
+    },
+    body: JSON.stringify({ logs: logsToSend }),
   })
+    .then((res) => res.json())
+    .then((result) => {
+      logger.debug(`Employee alert digest logging: ${result.logged} logged, ${result.skipped} skipped, ${result.failed} failed`)
+    })
+    .catch((err) => {
+      logger.error('Failed to call log-alert-digest function:', err)
+    })
 }
 
 /**

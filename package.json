@@ -26,6 +26,8 @@
     "test:coverage": "vitest run --coverage",
     "test:edge:auth": "deno test supabase/functions/_shared/auth.test.ts --allow-env --allow-net",
     "test:edge": "pnpm test:edge:auth",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
     "validate": "pnpm type-check && pnpm lint && pnpm test",
     "clean": "rimraf node_modules .pnpm-store dist .turbo coverage",
     "clean:cache": "rimraf node_modules/.vite node_modules/.cache",

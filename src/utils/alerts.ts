@@ -200,87 +200,64 @@ function getCompanyDigestKey(alert: Alert): string {
   return `${alert.company?.id ?? 'unknown'}:${alert.type}:${alert.expiry_date ?? getTodayAlertDate()}`
 }
 
+// T-513: Send alert logging to Edge Function instead of client-side DB writes
 function logCompanyAlertsForDigest(alerts: Alert[]) {
   if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
     return
   }
 
-  const logPromises = alerts
-    .filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
-    .map(async (alert) => {
+  const urgentHighAlerts = alerts.filter((alert) => alert.priority === 'urgent' || alert.priority === 'high')
+
+  if (urgentHighAlerts.length === 0) {
+    return
+  }
+
+  // Dedup on client side to avoid redundant Edge Function calls
+  const logsToSend = urgentHighAlerts
+    .filter((alert) => {
       const digestKey = getCompanyDigestKey(alert)
       if (loggedCompanyDigestKeys.has(digestKey)) {
-        return
+        return false
       }
-
       loggedCompanyDigestKeys.add(digestKey)
-
-      try {
-        const startOfToday = new Date()
-        startOfToday.setHours(0, 0, 0, 0)
-
-        const startOfTomorrow = new Date(startOfToday)
-        startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
-
-        const { data: existingLog, error: lookupError } = await supabase
-          .from('daily_excel_logs')
-          .select('id')
-          .eq('company_id', alert.company?.id || '')
-          .eq('alert_type', alert.type)
-          .gte('created_at', startOfToday.toISOString())
-          .lt('created_at', startOfTomorrow.toISOString())
-          .maybeSingle()
-
-        if (lookupError && lookupError.code !== 'PGRST116') {
-          loggedCompanyDigestKeys.delete(digestKey)
-          logger.error(
-            `Failed to check existing company alert ${alert.id} in daily_excel_logs:`,
-            lookupError
-          )
-          return
-        }
-
-        if (existingLog) {
-          return
-        }
-
-        const { error } = await supabase.from('daily_excel_logs').insert({
-          company_id: alert.company?.id || null,
-          alert_type: alert.type,
-          priority: alert.priority,
-          title: alert.title,
-          message: alert.message,
-          action_required: alert.action_required,
-          expiry_date: alert.expiry_date,
-          details: {
-            company_name: alert.company?.name,
-            company_commercial_id: alert.company?.commercial_registration_number,
-            unified_number: alert.company?.unified_number,
-          },
-        })
-
-        if (error) {
-          if (error.code === '23505') {
-            return
-          }
-
-          loggedCompanyDigestKeys.delete(digestKey)
-          logger.error(`Failed to log company alert ${alert.id} to daily_excel_logs:`, error)
-          return
-        }
-
-        logger.debug(
-          `✅ Alert logged to daily_excel_logs: ${alert.type} for ${alert.company?.name}`
-        )
-      } catch (logError) {
-        loggedCompanyDigestKeys.delete(digestKey)
-        logger.error(`Exception logging company alert ${alert.id}:`, logError)
-      }
+      return true
     })
+    .map((alert) => ({
+      company_id: alert.company?.id || null,
+      alert_type: alert.type,
+      priority: alert.priority,
+      title: alert.title,
+      message: alert.message,
+      action_required: alert.action_required,
+      expiry_date: alert.expiry_date || null,
+      details: {
+        company_name: alert.company?.name,
+        company_commercial_id: alert.company?.commercial_registration_number,
+        unified_number: alert.company?.unified_number,
+      },
+    }))
 
-  void Promise.allSettled(logPromises).catch((err) => {
-    logger.error('Error settling company log promises:', err)
+  if (logsToSend.length === 0) {
+    return
+  }
+
+  // Call Edge Function to handle logging
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  fetch(`${supabaseUrl}/functions/v1/log-alert-digest`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supabase.auth.session()?.access_token || ''}`,
+    },
+    body: JSON.stringify({ logs: logsToSend }),
   })
+    .then((res) => res.json())
+    .then((result) => {
+      logger.debug(`Alert digest logging: ${result.logged} logged, ${result.skipped} skipped, ${result.failed} failed`)
+    })
+    .catch((err) => {
+      logger.error('Failed to call log-alert-digest function:', err)
+    })
 }
 
 /**
