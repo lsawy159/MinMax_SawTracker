@@ -213,6 +213,7 @@ export interface PayrollEntry {
   notes?: string | null
   created_at: string
   updated_at: string
+  bank_account_snapshot?: string | null
 }
 
 export interface PayrollEntryComponent {

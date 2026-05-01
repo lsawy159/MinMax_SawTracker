@@ -825,7 +825,7 @@ export function usePayrollRunEntries(runId?: string) {
       const { data, error } = await supabase
         .from('payroll_entries')
         .select(
-          'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at'
+          'id,payroll_run_id,employee_id,residence_number_snapshot,employee_name_snapshot,company_name_snapshot,project_name_snapshot,basic_salary_snapshot,daily_rate_snapshot,attendance_days,paid_leave_days,overtime_amount,overtime_notes,deductions_amount,deductions_notes,installment_deducted_amount,gross_amount,net_amount,entry_status,notes,created_at,updated_at,employee:employees(bank_account)'
         )
         .eq('payroll_run_id', runId)
         .order('employee_name_snapshot', { ascending: true })
@@ -835,13 +835,15 @@ export function usePayrollRunEntries(runId?: string) {
         throw error
       }
 
-      return ((data ?? []) as PayrollEntry[]).map((entry) => {
+      return ((data ?? []) as (PayrollEntry & { employee?: { bank_account?: string | null } | null })[]).map((entry) => {
         const normalized = normalizePayrollEntryAmounts(entry)
         return {
           ...entry,
           daily_rate_snapshot: normalized.dailyRate,
           gross_amount: normalized.grossAmount,
           net_amount: normalized.netAmount,
+          bank_account_snapshot: entry.employee?.bank_account ?? null,
+          employee: undefined,
         }
       })
     },
