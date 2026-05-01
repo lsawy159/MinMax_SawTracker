@@ -8,7 +8,6 @@ import {
   FolderKanban,
   Database,
   BarChart3,
-  History,
   ArrowDownUp,
   SearchIcon,
   Bell,
@@ -197,24 +196,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         badge: null,
       },
       {
-        path: '/activity-logs',
-        icon: History,
-        label: 'سجل النشاطات',
-        permission: { section: 'activityLogs' as const, action: 'view' },
-        badge: null,
-      },
-      {
         path: '/import-export',
         icon: ArrowDownUp,
         label: 'استيراد/تصدير',
         permission: { section: 'importExport' as const, action: 'view' },
-        badge: null,
-      },
-      {
-        path: '/admin-settings?tab=alert-settings',
-        icon: Bell,
-        label: 'إعدادات التنبيهات',
-        permission: { section: 'centralizedSettings' as const, action: 'view' },
         badge: null,
       },
       {
