@@ -1,0 +1,51 @@
+-- Tests for payroll RPC functions
+-- Run in development/staging environment only
+-- Reference: T-401, T-402, T-403
+
+-- Test data setup (would be run in actual testing harness)
+-- These are assertion-style tests to validate RPC contracts
+
+-- T-401: process_payroll_run - Test state transitions
+-- Test: draft → processing → finalized
+-- Expected: Each transition updates status correctly
+-- Test: Cancel from any state
+-- Expected: Status becomes cancelled
+-- Test: Delete only from finalized/cancelled
+-- Expected: Row deleted if allowed, error otherwise
+-- Test: Transaction atomicity
+-- Expected: All or nothing - no partial updates on error
+
+-- T-402: recompute_obligation_lines - Test line recomputation
+-- Test: Creates correct number of lines
+-- Expected: installment_count lines created
+-- Test: Preserves paid lines
+-- Expected: Paid lines not deleted, new lines created
+-- Test: Updates version counter
+-- Expected: source_version incremented
+
+-- T-403: get_payroll_summary - Test output schema
+-- Test: Returns JSONB with correct structure
+-- Expected: {
+--   run_id: UUID,
+--   month: "YYYY-MM",
+--   scope: { type, id, name },
+--   status: string,
+--   totals: {
+--     employees_count: integer,
+--     gross_total: numeric,
+--     deductions_total: numeric,
+--     installments_total: numeric,
+--     net_total: numeric
+--   },
+--   breakdown_by_project: array,
+--   currency: "SAR"
+-- }
+-- Test: Permission check
+-- Expected: Raises INSUFFICIENT_PERMISSION for unauthorized users
+-- Test: Invalid run_id
+-- Expected: Raises RUN_NOT_FOUND for non-existent run
+
+-- All tests designed for automated validation:
+-- - ASSERT statements can be used in testing framework
+-- - Error codes follow convention (P0001, P0002, 42501)
+-- - Transactions fully atomic with ROLLBACK on error

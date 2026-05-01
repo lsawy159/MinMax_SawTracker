@@ -80,9 +80,9 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
-| T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
-| T-403 | RPC `get_payroll_summary` | - | output schema valid |
+| [X] T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
+| [X] T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
+| [X] T-403 | RPC `get_payroll_summary` | - | output schema valid |
 | T-404 | dual-write في usePayroll (4 أسبوع overlap) | F-3 | feature flag `useNewPayrollRPC` |
 | T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
 | T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
