@@ -28,6 +28,7 @@ export interface Alert {
     id: string
     name: string
     commercial_registration_number?: string
+    commercial_registration_expiry?: string
     unified_number?: number
   }
   expiry_date?: string

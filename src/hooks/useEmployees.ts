@@ -30,7 +30,7 @@ export function useEmployees(options?: PaginationOptions) {
         logger.error('Error fetching employees:', error)
         throw error
       }
-      return data as EmployeeWithRelations[]
+      return data as unknown as EmployeeWithRelations[]
     },
   })
 }

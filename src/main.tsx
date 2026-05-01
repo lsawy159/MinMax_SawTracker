@@ -134,13 +134,11 @@ try {
 
   root.render(
     <StrictMode>
-      <Sentry.ErrorBoundary fallback={<ErrorBoundary />} showDialog>
-        <ErrorBoundary>
-          <App />
-          <SpeedInsights />
-          <Analytics />
-        </ErrorBoundary>
-      </Sentry.ErrorBoundary>
+      <ErrorBoundary>
+        <App />
+        <SpeedInsights />
+        <Analytics />
+      </ErrorBoundary>
     </StrictMode>
   )
 

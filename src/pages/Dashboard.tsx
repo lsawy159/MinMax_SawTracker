@@ -193,7 +193,8 @@ export default function Dashboard() {
         }
       )
     }
-  }, [employees, companies, companyThresholds, employeeThresholds, calculateStats])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employees, companies, companyThresholds, employeeThresholds])
 
   // Generate alerts when data changes
   useEffect(() => {

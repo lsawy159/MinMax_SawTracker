@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { type Company } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import { EnhancedAlertsSection } from '@/components/dashboard/EnhancedAlertsSection'
 import { EnhancedAlertCard } from '@/components/alerts/EnhancedAlertCard'
@@ -74,7 +75,7 @@ export default function EnhancedAlertsTestPage() {
 
   useEffect(() => {
     // Generate enhanced alerts from test data
-    const generatedAlerts = generateEnhancedCompanyAlerts(testCompanies)
+    const generatedAlerts = generateEnhancedCompanyAlerts(testCompanies as unknown as Company[])
     setAlerts(generatedAlerts)
     setLoading(false)
   }, [])
@@ -222,7 +223,7 @@ export default function EnhancedAlertsTestPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <button 
-                onClick={() => setAlerts(generateEnhancedCompanyAlerts(testCompanies))}
+                onClick={() => setAlerts(generateEnhancedCompanyAlerts(testCompanies as unknown as Company[]))}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />

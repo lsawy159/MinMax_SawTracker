@@ -165,8 +165,8 @@ export default function Employees() {
 
       if (error) throw error
 
-      const employeesData = (data || []) as EmployeeWithRelations[]
-      setEmployees(employeesData)
+      const employeesData = (data || []) as unknown as EmployeeWithRelations[]
+      setEmployees(employeesData as unknown as (Employee & { company: Company; project?: Project })[])
 
       // استخراج القوائم الفريدة للفلاتر
       // Reserved for future use: uniqueCompanies

@@ -42,7 +42,7 @@ function getEmployeeDigestKey(alert: EmployeeAlert): string {
 }
 
 // T-513: Send alert logging to Edge Function instead of client-side DB writes
-function logEmployeeAlertsForDigest(alerts: EmployeeAlert[], employees: Employee[]) {
+async function logEmployeeAlertsForDigest(alerts: EmployeeAlert[], employees: Employee[]) {
   if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
     return
   }

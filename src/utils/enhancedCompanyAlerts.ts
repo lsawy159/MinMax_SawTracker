@@ -11,7 +11,7 @@ export interface SimpleEnhancedAlert {
   company: {
     id: string
     name: string
-    commercial_registration_number?: string
+    commercial_registration_expiry?: string
   }
   expiry_date?: string
   days_remaining?: number
@@ -70,7 +70,7 @@ export interface EnhancedAlert {
   company: {
     id: string
     name: string
-    commercial_registration_number?: string
+    commercial_registration_expiry?: string
   }
   expiry_date?: string
   days_remaining?: number
@@ -133,7 +133,7 @@ export function generateEnhancedCompanyAlerts(companies: Company[]): EnhancedAle
           company: {
             id: company.id,
             name: company.name,
-            commercial_registration_number: company.commercial_registration_number,
+            commercial_registration_expiry: company.commercial_registration_expiry,
           },
           expiry_date: company.commercial_registration_expiry,
           days_remaining: daysRemaining,
@@ -284,8 +284,8 @@ function generateGovDocsActions(days: number, company: Company): string[] {
 function determineRenewalComplexity(company: Company): EnhancedAlert['renewal_complexity'] {
   // Simple logic - could be enhanced with more company attributes
   if (
-    company.commercial_registration_number &&
-    company.commercial_registration_number.length > 10
+    company.commercial_registration_expiry &&
+    company.commercial_registration_expiry.length > 10
   ) {
     return 'moderate'
   }

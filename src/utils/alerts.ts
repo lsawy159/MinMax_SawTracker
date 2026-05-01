@@ -201,7 +201,7 @@ function getCompanyDigestKey(alert: Alert): string {
 }
 
 // T-513: Send alert logging to Edge Function instead of client-side DB writes
-function logCompanyAlertsForDigest(alerts: Alert[]) {
+async function logCompanyAlertsForDigest(alerts: Alert[]) {
   if (import.meta.env.MODE === 'test' || import.meta.env.VITEST) {
     return
   }
@@ -247,7 +247,7 @@ function logCompanyAlertsForDigest(alerts: Alert[]) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${supabase.auth.session()?.access_token || ''}`,
+      Authorization: `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token || ''}`,
     },
     body: JSON.stringify({ logs: logsToSend }),
   })
