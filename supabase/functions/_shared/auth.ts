@@ -74,7 +74,9 @@ const createServiceClient = () => {
     throw createHttpError(500, 'SERVER_CONFIG', 'Supabase credentials are not configured')
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey)
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 export const requireAuth = async (req: Request): Promise<AuthContext> => {
