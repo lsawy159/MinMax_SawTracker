@@ -100,8 +100,8 @@
 | T-501 | توحيد Company type | L-2 | grep تعريف 2nd → 0 |
 | T-502 | مصنع تنبيهات موحد | L-1 | حذف ~400 سطر مكرر |
 | T-503 | استبدال `as unknown as` بأنواع DB | L-5 | grep `as unknown as` → 0 |
-| T-504 | اختبارات payrollMath ≥95% | S-1 | coverage report |
-| T-505 | اختبارات usePayroll ≥80% | S-1 | coverage report |
+| [X] T-504 | اختبارات payrollMath ≥95% | S-1 | coverage report |
+| [X] T-505 | اختبارات usePayroll ≥80% | S-1 | coverage report |
 | T-506 | اختبارات Edge Functions (Deno) | S-1 | كل دالة لها test file |
 | T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
 | T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
