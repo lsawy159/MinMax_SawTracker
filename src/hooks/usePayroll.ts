@@ -9,6 +9,7 @@ import {
   supabase,
 } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
+import { isFeatureEnabled } from '@/lib/featureFlags'
 import {
   calculatePayrollTotals,
   normalizePayrollEntryAmounts,
@@ -1188,6 +1189,41 @@ export function useUpdatePayrollRunStatus() {
         await syncPayrollSlipsForRun(run)
       } else {
         await restorePayrollEntryAllocations(runEntries.map((entry) => entry.id))
+      }
+
+      // Dual-write: validate with new RPC if feature flag enabled
+      if (isFeatureEnabled('useNewPayrollRPC')) {
+        const action = status === 'finalized' ? 'finalize' : status === 'cancelled' ? 'cancel' : 'calculate'
+        try {
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('process_payroll_run', {
+            p_run_id: runId,
+            p_action: action,
+          })
+
+          if (rpcError) {
+            logger.warn('[Dual-Write] RPC process_payroll_run failed:', rpcError)
+          } else {
+            // Compare old and new implementations
+            const oldResult = {
+              status: run.status,
+              entry_count: runEntries.length,
+            }
+
+            const newResult = rpcResult as Record<string, unknown>
+            const rpcStatus = status === 'finalized' ? 'finalized' : status === 'cancelled' ? 'cancelled' : 'processing'
+
+            if (newResult.success !== true || rpcStatus !== run.status) {
+              logger.warn('[Dual-Write] Results diverged:', {
+                old: oldResult,
+                new: newResult,
+                expected_status: rpcStatus,
+                actual_status: run.status,
+              })
+            }
+          }
+        } catch (dualWriteError) {
+          logger.warn('[Dual-Write] Unexpected error in dual-write validation:', dualWriteError)
+        }
       }
 
       return run
