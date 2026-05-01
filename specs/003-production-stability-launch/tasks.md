@@ -84,7 +84,7 @@
 | [X] T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
 | [X] T-403 | RPC `get_payroll_summary` | - | output schema valid |
 | [X] T-404 | dual-write في usePayroll (4 أسبوع overlap) | F-3 | feature flag `useNewPayrollRPC` |
-| T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
+| [X] T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
 | [X] T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
 | [X] T-407 | إصلاح ActivityTracker memory leak | S-6 | `stopTracking` يزيل listeners |
 | T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
