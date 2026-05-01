@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PayrollDeductions from '@/pages/PayrollDeductions'
 
@@ -266,6 +266,7 @@ vi.mock('sonner', () => ({
 
 describe('PayrollDeductions', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2026-04-01T00:00:00.000Z'), toFake: ['Date'] })
     vi.clearAllMocks()
     setupDefaultPayrollMocks()
     mockActivityLogInsert.mockResolvedValue({ error: null })
@@ -288,6 +289,10 @@ describe('PayrollDeductions', () => {
       error: null,
     })
     mockSheetToJson.mockReturnValue([])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('shows an unauthorized state when payroll view permission is missing', () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, ReactNode } from 'react'
-import { supabase, Employee, Company, Project, EmployeeWithRelations } from '@/lib/supabase'
+import { supabase, Employee, Company, Project } from '@/lib/supabase'
 import {
   FileDown,
   CheckSquare,
