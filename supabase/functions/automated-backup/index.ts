@@ -3,6 +3,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAdmin, toErrorResponse } from '../_shared/auth.ts'
+import { corsHeadersWithGet } from '../_shared/cors.ts'
 
 /** T-108: Encrypt backup data with AES-256-GCM using BACKUP_ENCRYPTION_KEY env var.
  * The output is: base64(iv [12 bytes] + ciphertext + authTag [16 bytes])
@@ -117,13 +118,8 @@ async function readBackupNotificationConfig(supabase: ReturnType<typeof createCl
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Max-Age': '86400',
-    'Access-Control-Allow-Credentials': 'false'
-  }
+  const origin = req.headers.get('origin')
+  const corsHeaders = corsHeadersWithGet(origin)
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })

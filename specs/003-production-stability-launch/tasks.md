@@ -65,14 +65,14 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
-| T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
-| T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
-| T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
-| T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
-| T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
-| T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
-| T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
+| [X] T-301 | RPC `dashboard_stats` | F-1 | call واحد < 100ms |
+| [X] T-302 | ترحيل Dashboard لـ React Query | F-1 | لا useState للبيانات |
+| [X] T-303 | ترحيل useAlertsStats لـ React Query | F-2 | لا fetch مكرر |
+| [X] T-304 | حذف نظام window events | L-7 | grep dispatchEvent → 0 |
+| [X] T-305 | ترقيم صفحات لكل hook كبير | C-7 | useEmployees يدعم {page,size} |
+| [X] T-306 | indexes audit + إنشاء كل المفقودة | M-6 | EXPLAIN على الاستعلامات الرئيسية يستخدم index |
+| [X] T-307 | bundle size budget في CI | M-12 | PR يكسر الحد → fail |
+| [X] T-308 | load test k6 على staging | M-12 | 100 user متزامن < 1% errors |
 
 ---
 
@@ -80,12 +80,12 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
-| T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
-| T-403 | RPC `get_payroll_summary` | - | output schema valid |
+| [X] T-401 | RPC `process_payroll_run` | F-3 | tests معاملات pass |
+| [X] T-402 | RPC `recompute_obligation_lines` | F-3 | tests pass |
+| [X] T-403 | RPC `get_payroll_summary` | - | output schema valid |
 | T-404 | dual-write في usePayroll (4 أسبوع overlap) | F-3 | feature flag `useNewPayrollRPC` |
 | T-405 | snapshot قبل/بعد + diff | F-3 | drift = 0 لكل run |
-| T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
+| [X] T-406 | ErrorBoundary لكل route | S-3 | crash في صفحة لا يُسقط الكل |
 | T-407 | إصلاح ActivityTracker memory leak | S-6 | `stopTracking` يزيل listeners |
 | T-408 | تسجيل تدقيق Edge: create/update user | S-7 | كل عملية → audit_log |
 | T-409 | حذف `@sawtracker.local` fallback | S-8 | username بدون @ → خطأ |

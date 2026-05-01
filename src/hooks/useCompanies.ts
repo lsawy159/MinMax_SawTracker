@@ -2,16 +2,29 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, Company } from '@/lib/supabase'
 import { logger } from '@/utils/logger'
 
-export function useCompanies() {
+interface PaginationOptions {
+  page?: number
+  size?: number
+}
+
+export function useCompanies(options?: PaginationOptions) {
+  const page = options?.page || 0
+  const size = options?.size || 50
+
   return useQuery({
-    queryKey: ['companies'],
+    queryKey: ['companies', page, size],
     queryFn: async () => {
+      const from = page * size
+      const to = from + size - 1
+
       const { data, error } = await supabase
         .from('companies')
         .select(
-          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count'
+          'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_expiry,ending_subscription_power_date,ending_subscription_moqeem_date,ending_subscription_insurance_date,commercial_registration_status,social_insurance_status,current_employees,max_employees,additional_fields,created_at,updated_at,notes,exemptions,social_insurance_number,company_type,employee_count',
+          { count: 'exact' }
         )
         .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (error) {
         logger.error('Error fetching companies:', error)

@@ -713,9 +713,6 @@ export default function Companies() {
         },
       })
 
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('companyUpdated'))
-
       // إظهار رسالة نجاح مفصلة
       const employeeCount = employees?.length || 0
       if (employeeCount > 0) {

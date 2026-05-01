@@ -596,9 +596,6 @@ export default function EmployeeCard({
       toast.success('تم حفظ التعديلات بنجاح')
       setIsEditMode(false)
 
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('employeeUpdated'))
-
       onUpdate()
     } catch (error) {
       logger.error('Error saving employee:', error)

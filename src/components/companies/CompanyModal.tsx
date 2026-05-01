@@ -551,9 +551,6 @@ export default function CompanyModal({ isOpen, company, onClose, onSuccess }: Co
         toast.success('✅ تم إضافة المؤسسة الجديدة بنجاح')
       }
 
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('companyUpdated'))
-
       // إغلاق المودال وإعادة تحميل القائمة فقط في حالة النجاح
       try {
         onSuccess()

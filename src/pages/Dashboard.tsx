@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase, Employee, Company } from '@/lib/supabase'
 import {
   Users,
@@ -32,6 +32,8 @@ import { alertCache } from '@/utils/alertCache'
 import type { Alert } from '@/components/alerts/AlertCard'
 import { getStatusThresholds, DEFAULT_STATUS_THRESHOLDS } from '@/utils/autoCompanyStatus'
 import { usePermissions } from '@/utils/permissions'
+import { useEmployees } from '@/hooks/useEmployees'
+import { useCompanies } from '@/hooks/useCompanies'
 
 interface Stats {
   totalEmployees: number
@@ -88,15 +90,17 @@ interface Stats {
 
 export default function Dashboard() {
   const { canView } = usePermissions()
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  // React Query hooks for data
+  const { data: employees = [], isLoading: isLoadingEmployees } = useEmployees()
+  const { data: companies = [], isLoading: isLoadingCompanies } = useCompanies()
+
   const [companyThresholds, setCompanyThresholds] = useState(DEFAULT_STATUS_THRESHOLDS)
   const [employeeThresholds, setEmployeeThresholds] = useState(DEFAULT_EMPLOYEE_THRESHOLDS)
   const [companyAlerts, setCompanyAlerts] = useState<Alert[]>([])
   const [employeeAlerts, setEmployeeAlerts] = useState<EmployeeAlert[]>([])
   const [activeTab, setActiveTab] = useState<'companies' | 'employees'>('companies')
-  const navigate = useNavigate()
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     totalCompanies: 0,
@@ -150,36 +154,50 @@ export default function Dashboard() {
     validMoqeem: 0,
   })
 
+  // Load thresholds on mount
   useEffect(() => {
-    // Load critical data first (basic stats)
-    fetchBasicData()
-    loadReadAlerts()
-
-    // استماع لأحداث تحديث البيانات لتحديث الإحصائيات
-    const handleCompanyUpdated = () => {
-      alertCache.invalidateCompanyAlerts() // إبطال cache المؤسسات
-      fetchBasicData()
+    const loadThresholds = async () => {
+      const [companyThresholdsData, employeeThresholdsData] = await Promise.all([
+        getStatusThresholds(),
+        getEmployeeNotificationThresholdsPublic(),
+      ])
+      setCompanyThresholds(companyThresholdsData)
+      setEmployeeThresholds(employeeThresholdsData)
     }
-
-    const handleEmployeeUpdated = () => {
-      alertCache.invalidateEmployeeAlerts() // إبطال cache الموظفين
-      fetchBasicData()
-    }
-
-    window.addEventListener('companyUpdated', handleCompanyUpdated)
-    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('companyUpdated', handleCompanyUpdated)
-      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadThresholds()
   }, [])
 
-  // Load secondary data (alerts) after basic data is loaded
+  // Load read alerts on mount
   useEffect(() => {
-    if (!loading && employees.length > 0 && companies.length > 0) {
+    const loadReadAlerts = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) return
+
+        await supabase.from('read_alerts').select('alert_id').eq('user_id', user.id)
+      } catch (error) {
+        console.error('خطأ في جلب التنبيهات المقروءة:', error)
+      }
+    }
+    loadReadAlerts()
+  }, [])
+
+  // Calculate stats when data changes
+  useEffect(() => {
+    if (employees && employees.length > 0 && companies && companies.length > 0) {
+      calculateStats(employees, companies, companyThresholds, employeeThresholds).then(
+        (calculatedStats) => {
+          setStats(calculatedStats)
+        }
+      )
+    }
+  }, [employees, companies, companyThresholds, employeeThresholds, calculateStats])
+
+  // Generate alerts when data changes
+  useEffect(() => {
+    if (employees && employees.length > 0 && companies && companies.length > 0) {
       // Use requestIdleCallback for non-critical work
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
         ;(
@@ -188,149 +206,78 @@ export default function Dashboard() {
             options?: IdleRequestOptions
           ) => number
         )(
-          () => {
-            fetchSecondaryData()
+          async () => {
+            const companyAlertsGenerated = await alertCache.getCompanyAlerts(companies)
+            setCompanyAlerts(companyAlertsGenerated)
+
+            const employeeAlertsGenerated = await alertCache.getEmployeeAlerts(employees, companies)
+            const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(
+              employeeAlertsGenerated,
+              companies
+            )
+            setEmployeeAlerts(enrichedEmployeeAlerts)
           },
           { timeout: 2000 }
         )
       } else {
         // Fallback for browsers without requestIdleCallback
-        setTimeout(() => {
-          fetchSecondaryData()
-        }, 100)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, employees.length, companies.length])
-
-  // جلب التنبيهات المقروءة من قاعدة البيانات
-  const loadReadAlerts = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { error } = await supabase.from('read_alerts').select('alert_id').eq('user_id', user.id)
-
-      if (error) throw error
-    } catch (error) {
-      console.error('خطأ في جلب التنبيهات المقروءة:', error)
-    }
-  }
-
-  // Phase 1: Load basic data and stats (critical)
-  const fetchBasicData = async () => {
-    try {
-      setLoading(true)
-
-      // Fetch employees, companies، والإعدادات في آن واحد
-      const [employeesResult, companiesResult, companyThresholdsData, employeeThresholdsData] =
-        await Promise.all([
-          supabase
-            .from('employees')
-            .select(
-              'id,company_id,name,profession,nationality,birth_date,phone,passport_number,residence_number,joining_date,contract_expiry,hired_worker_contract_expiry,residence_expiry,project_id,project_name,bank_account,residence_image_url,health_insurance_expiry,salary,notes,additional_fields,is_deleted,deleted_at,created_at,updated_at'
-            ),
-          supabase
-            .from('companies')
-            .select(
-              'id,name,unified_number,labor_subscription_number,commercial_registration_expiry,social_insurance_number,commercial_registration_status,additional_fields,ending_subscription_power_date,ending_subscription_moqeem_date,employee_count,max_employees,notes,exemptions,company_type,created_at,updated_at'
-            ),
-          getStatusThresholds(),
-          getEmployeeNotificationThresholdsPublic(),
-        ])
-
-      if (employeesResult.error) throw employeesResult.error
-      if (companiesResult.error) throw companiesResult.error
-
-      const employeesData = employeesResult.data || []
-      const companiesData = companiesResult.data || []
-
-      setEmployees(employeesData)
-      setCompanies(companiesData)
-      setCompanyThresholds(companyThresholdsData)
-      setEmployeeThresholds(employeeThresholdsData)
-
-      if (employeesData.length > 0 && companiesData.length > 0) {
-        // Calculate basic stats immediately (critical)
-        const calculatedStats = await calculateStats(
-          employeesData,
-          companiesData,
-          companyThresholdsData,
-          employeeThresholdsData
-        )
-        setStats(calculatedStats)
-      }
-    } catch (error) {
-      console.error('خطأ في جلب البيانات الأساسية:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Phase 2: Load alerts (non-critical, can be deferred)
-  const fetchSecondaryData = () => {
-    try {
-      // Generate alerts asynchronously (non-blocking) using cache
-      // Using setTimeout to defer execution and avoid blocking the main thread
-      setTimeout(async () => {
-        if (employees.length > 0 && companies.length > 0) {
-          // توليد تنبيهات المؤسسات باستخدام Cache
+        setTimeout(async () => {
           const companyAlertsGenerated = await alertCache.getCompanyAlerts(companies)
           setCompanyAlerts(companyAlertsGenerated)
 
-          // توليد تنبيهات الموظفين باستخدام Cache
           const employeeAlertsGenerated = await alertCache.getEmployeeAlerts(employees, companies)
           const enrichedEmployeeAlerts = enrichEmployeeAlertsWithCompanyData(
             employeeAlertsGenerated,
             companies
           )
           setEmployeeAlerts(enrichedEmployeeAlerts)
-        }
-      }, 0)
-    } catch (error) {
-      console.error('خطأ في جلب البيانات الثانوية:', error)
+        }, 100)
+      }
     }
-  }
+  }, [employees, companies])
+
 
   // دالة مساعدة لحساب الفئات الخمس لأي تاريخ انتهاء
-  const calculateFiveCategories = (
-    expiryDate: string | null | undefined,
-    today: Date,
-    thresholds: { urgent: number; high: number; medium: number }
-  ) => {
-    if (!expiryDate) {
-      return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 0 }
-    }
+  const calculateFiveCategories = useCallback(
+    (
+      expiryDate: string | null | undefined,
+      today: Date,
+      thresholds: { urgent: number; high: number; medium: number }
+    ) => {
+      if (!expiryDate) {
+        return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 0 }
+      }
 
-    // إعادة تعيين الوقت لضمان المقارنة الصحيحة
-    const expiry = new Date(expiryDate)
-    const todayNormalized = new Date(today)
-    todayNormalized.setHours(0, 0, 0, 0)
-    expiry.setHours(0, 0, 0, 0)
+      // إعادة تعيين الوقت لضمان المقارنة الصحيحة
+      const expiry = new Date(expiryDate)
+      const todayNormalized = new Date(today)
+      todayNormalized.setHours(0, 0, 0, 0)
+      expiry.setHours(0, 0, 0, 0)
 
-    const diff = differenceInDays(expiry, todayNormalized)
+      const diff = differenceInDays(expiry, todayNormalized)
 
-    if (diff < 0) {
-      return { expired: 1, urgent: 0, high: 0, medium: 0, valid: 0 }
-    } else if (diff <= thresholds.urgent) {
-      return { expired: 0, urgent: 1, high: 0, medium: 0, valid: 0 }
-    } else if (diff <= thresholds.high) {
-      return { expired: 0, urgent: 0, high: 1, medium: 0, valid: 0 }
-    } else if (diff <= thresholds.medium) {
-      return { expired: 0, urgent: 0, high: 0, medium: 1, valid: 0 }
-    } else {
-      return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 1 }
-    }
-  }
+      if (diff < 0) {
+        return { expired: 1, urgent: 0, high: 0, medium: 0, valid: 0 }
+      } else if (diff <= thresholds.urgent) {
+        return { expired: 0, urgent: 1, high: 0, medium: 0, valid: 0 }
+      } else if (diff <= thresholds.high) {
+        return { expired: 0, urgent: 0, high: 1, medium: 0, valid: 0 }
+      } else if (diff <= thresholds.medium) {
+        return { expired: 0, urgent: 0, high: 0, medium: 1, valid: 0 }
+      } else {
+        return { expired: 0, urgent: 0, high: 0, medium: 0, valid: 1 }
+      }
+    },
+    []
+  )
 
-  const calculateStats = async (
-    employees: Employee[],
-    companies: Company[],
-    companyThresholdsInput = companyThresholds,
-    employeeThresholdsInput = employeeThresholds
-  ) => {
+  const calculateStats = useCallback(
+    async (
+      employees: Employee[],
+      companies: Company[],
+      companyThresholdsInput = companyThresholds,
+      employeeThresholdsInput = employeeThresholds
+    ) => {
     const today = new Date()
 
     // حساب إحصائيات الموظفين
@@ -553,7 +500,9 @@ export default function Dashboard() {
       mediumMoqeem,
       validMoqeem,
     }
-  }
+    },
+    [calculateFiveCategories, companyThresholds, employeeThresholds]
+  )
 
   // حساب التنبيهات الطارئة والعاجلة للمؤسسات (urgent + high)
   const companyUrgentAndHighAlerts = useMemo(
@@ -569,6 +518,8 @@ export default function Dashboard() {
 
   // التحقق من الصلاحية دون إرجاع مبكر للحفاظ على ترتيب الـ Hooks
   const unauthorized = !canView('dashboard')
+
+  const loading = isLoadingEmployees || isLoadingCompanies
 
   return (
     <Layout>

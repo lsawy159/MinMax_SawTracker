@@ -134,7 +134,6 @@ export default function Employees() {
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const companyDropdownRef = useRef<HTMLDivElement>(null)
-  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadEmployeesRef = useRef<() => Promise<void>>()
 
   // التحقق من صلاحية العرض
@@ -253,15 +252,8 @@ export default function Employees() {
 
     loadThresholds()
 
-    const handleSettingsUpdated = () => {
-      loadThresholds()
-    }
-
-    window.addEventListener('settingsUpdated', handleSettingsUpdated)
-
     return () => {
       isMounted = false
-      window.removeEventListener('settingsUpdated', handleSettingsUpdated)
     }
   }, [])
 
@@ -273,34 +265,6 @@ export default function Employees() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadEmployees, hasViewPermission])
 
-  // الاستماع لتحديثات الموظفين من أجهزة أخرى
-  useEffect(() => {
-    const handleEmployeeUpdated = () => {
-      // إلغاء أي timeout سابق
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current)
-      }
-
-      // إضافة debounce لتجنب تحديثات متعددة متزامنة
-      debounceTimeoutRef.current = setTimeout(() => {
-        logger.debug('[Employees] Employee updated event received, reloading...')
-        if (loadEmployeesRef.current) {
-          loadEmployeesRef.current()
-        }
-      }, 500) // 500ms debounce
-    }
-
-    window.addEventListener('employeeUpdated', handleEmployeeUpdated)
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('employeeUpdated', handleEmployeeUpdated)
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current)
-        debounceTimeoutRef.current = null
-      }
-    }
-  }, [])
 
   // Handle company filter from URL after companies are loaded
   useEffect(() => {
@@ -639,9 +603,6 @@ export default function Employees() {
 
       toast.success(`تم حذف الموظف "${employeeToDelete.name}" بنجاح`)
 
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('employeeUpdated'))
-
       // Refresh employees list
       await loadEmployees()
       setShowDeleteModal(false)
@@ -746,9 +707,6 @@ export default function Employees() {
       } else {
         toast.success(`تم حذف ${totalDeleted} موظف بنجاح`)
       }
-
-      // إرسال event لتحديث إحصائيات التنبيهات
-      window.dispatchEvent(new CustomEvent('employeeUpdated'))
 
       // Refresh and clear selection
       await loadEmployees()
