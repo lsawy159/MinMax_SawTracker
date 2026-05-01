@@ -123,6 +123,7 @@ export class ActivityTracker {
   private lastActivityTime: number = Date.now()
   private sessionStartTime: number = Date.now()
   private isTracking: boolean = false
+  private activityListeners: Map<string, EventListener> = new Map()
 
   /**
    * Start tracking user activity
@@ -141,7 +142,9 @@ export class ActivityTracker {
     const activities = ['mousedown', 'keydown', 'scroll', 'touchstart']
 
     activities.forEach((activity) => {
-      document.addEventListener(activity, () => this.updateActivity(), true)
+      const listener = () => this.updateActivity()
+      this.activityListeners.set(activity, listener)
+      document.addEventListener(activity, listener, true)
     })
 
     // تنظيف أي interval قديم قبل إنشاء واحد جديد
@@ -188,6 +191,10 @@ export class ActivityTracker {
       clearTimeout(this.inactivityTimeout)
       this.inactivityTimeout = null
     }
+    this.activityListeners.forEach((listener, activity) => {
+      document.removeEventListener(activity, listener, true)
+    })
+    this.activityListeners.clear()
     this.isTracking = false
     logger.debug('[ActivityTracker] Stopped activity tracking')
   }
