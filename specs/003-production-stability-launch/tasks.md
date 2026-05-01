@@ -117,11 +117,11 @@
 
 | ID | المهمة | المرجع | القبول |
 |----|--------|--------|--------|
-| T-601 | GitHub Actions: lint + test + build + deploy | M-2 | PR يشغّل CI تلقائياً |
-| T-602 | `docs/disaster-recovery.md` (RTO/RPO/خطوات) | M-9 | مراجعة من 2 مهندسين |
-| T-603 | restore drill شهري مجدول | M-1 | drill ناجح موثّق |
-| T-604 | runbooks 5 سيناريوهات | M-9 | `docs/runbooks/*.md` |
-| T-605 | pen test أساسي OWASP Top 10 | M-12 | تقرير دون HIGH/CRITICAL |
+| [X] T-601 | GitHub Actions: lint + test + build + deploy | M-2 | PR يشغّل CI تلقائياً |
+| [X] T-602 | `docs/disaster-recovery.md` (RTO/RPO/خطوات) | M-9 | مراجعة من 2 مهندسين |
+| [X] T-603 | restore drill شهري مجدول | M-1 | drill ناجح موثّق |
+| [X] T-604 | runbooks 5 سيناريوهات | M-9 | `docs/runbooks/*.md` |
+| [X] T-605 | pen test أساسي OWASP Top 10 | M-12 | تقرير دون HIGH/CRITICAL |
 | T-606 | mobile QA كامل + bug fixes | M-13 | 0 bugs blocker |
 | T-607 | empty/loading/error states verification | M-14 | UI tests تغطي |
 | T-608 | سياسة خصوصية + شروط (مراجعة قانونية) | M-10 | منشورة في الموقع |
