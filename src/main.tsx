@@ -132,13 +132,22 @@ try {
 
   logger.debug('React root created, rendering app...')
 
+  // @sentry/react v7 ErrorBoundary has type incompatibility with React 18 — cast to avoid TS2786
+  const SentryBoundary = Sentry.ErrorBoundary as unknown as React.ComponentType<{
+    fallback: React.ReactElement
+    showDialog?: boolean
+    children: React.ReactNode
+  }>
+
   root.render(
     <StrictMode>
-      <ErrorBoundary>
-        <App />
-        <SpeedInsights />
-        <Analytics />
-      </ErrorBoundary>
+      <SentryBoundary fallback={<ErrorBoundary>{null}</ErrorBoundary>} showDialog>
+        <ErrorBoundary>
+          <App />
+          <SpeedInsights />
+          <Analytics />
+        </ErrorBoundary>
+      </SentryBoundary>
     </StrictMode>
   )
 

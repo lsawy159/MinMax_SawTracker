@@ -1,4 +1,5 @@
 import { ChangeEvent, useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Layout from '@/components/layout/Layout'
 import {
   BarChart3,
@@ -3859,42 +3860,8 @@ export default function PayrollDeductions() {
             </div>
           </div>
 
-          {showPayrollRunDetailsModal && selectedPayrollRun && (
-            <div className="overflow-hidden rounded-[26px] border border-sky-100 bg-surface shadow-[0_20px_45px_-36px_rgba(14,116,144,0.38)]">
-              <div className="flex items-center justify-between gap-4 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4 md:px-6 md:py-5">
-                <div>
-                  <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700 mb-2">
-                    كشف المسير
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground">عرض المسير</h2>
-                  <p className="mt-1 text-sm text-foreground-secondary max-w-3xl">
-                    {getPayrollRunDisplayName(
-                      selectedPayrollRun.scope_type,
-                      selectedPayrollRun.scope_id,
-                      selectedPayrollRun.payroll_month
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClosePayrollRunDetailsModal}
-                  disabled={
-                    updatePayrollRunStatus.isPending ||
-                    deletePayrollRun.isPending ||
-                    upsertPayrollEntry.isPending ||
-                    confirmingPayrollExcelImport
-                  }
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-200 bg-white/90 text-foreground-tertiary shadow-sm hover:bg-surface-secondary-50 transition"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="max-h-[75vh] overflow-y-auto">
-                <div className="bg-gradient-to-b from-surface-secondary-50/70 to-surface p-4 md:p-5">{renderSelectedPayrollRunDetails()}</div>
-              </div>
-            </div>
-          )}
         </div>
+
 
         {/* ══════════════════════════════════════════════════════════════
             Tab: قائمة الالتزامات
@@ -4156,6 +4123,62 @@ export default function PayrollDeductions() {
               )}
             </div>
           </div>
+        )}
+
+        {showPayrollRunDetailsModal && selectedPayrollRun && createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-surface-secondary-950/65 p-3 backdrop-blur-md md:p-4"
+            onClick={() => {
+              if (
+                !updatePayrollRunStatus.isPending &&
+                !deletePayrollRun.isPending &&
+                !upsertPayrollEntry.isPending &&
+                !confirmingPayrollExcelImport
+              ) {
+                handleClosePayrollRunDetailsModal()
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="app-modal-surface w-full max-w-7xl max-h-[94vh] overflow-y-auto border border-sky-100 shadow-[0_32px_100px_-38px_rgba(15,23,42,0.58)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="app-modal-header sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-sky-100 bg-gradient-to-l from-sky-50 via-white to-indigo-50 px-5 py-4 md:px-6 md:py-5">
+                <div>
+                  <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-sky-700 mb-2">
+                    كشف المسير
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground">عرض المسير</h2>
+                  <p className="mt-1 text-sm text-foreground-secondary max-w-3xl">
+                    {getPayrollRunDisplayName(
+                      selectedPayrollRun.scope_type,
+                      selectedPayrollRun.scope_id,
+                      selectedPayrollRun.payroll_month
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClosePayrollRunDetailsModal}
+                  disabled={
+                    updatePayrollRunStatus.isPending ||
+                    deletePayrollRun.isPending ||
+                    upsertPayrollEntry.isPending ||
+                    confirmingPayrollExcelImport
+                  }
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-200 bg-white/90 text-foreground-tertiary shadow-sm hover:bg-surface-secondary-50 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="bg-gradient-to-b from-surface-secondary-50/70 to-surface p-4 md:p-5">
+                {renderSelectedPayrollRunDetails()}
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         {payrollRunDeleteConfirmOpen && selectedPayrollRun && (

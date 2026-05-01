@@ -25,7 +25,11 @@
       "PowerShell(& .specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
       "Bash(cd /d d:\\\\00_Main_Projects\\\\MiniMax\\\\SAW\\\\sawtracker)",
       "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json)",
-      "mcp__claude_ai_Supabase__generate_typescript_types"
+      "mcp__claude_ai_Supabase__generate_typescript_types",
+      "mcp__1106d4f5-27bc-4e5d-b290-d08372eab1e6__list_projects",
+      "mcp__1106d4f5-27bc-4e5d-b290-d08372eab1e6__list_deployments",
+      "mcp__1106d4f5-27bc-4e5d-b290-d08372eab1e6__get_deployment_build_logs",
+      "mcp__1106d4f5-27bc-4e5d-b290-d08372eab1e6__list_teams"
     ]
   }
 }

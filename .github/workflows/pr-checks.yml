@@ -34,6 +34,16 @@ jobs:
             ui
             api
             deps
+            reports
+            payroll
+            config
+            test
+            notifications
+            projects
+            transfers
+            settings
+            import
+            export
 
   # Check for TODO comments
   check-todos:
@@ -99,7 +109,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pr-title, size-check]
     if: always()
-    
+    permissions:
+      issues: write
+      pull-requests: write
+
     steps:
       - name: Comment on PR
         uses: actions/github-script@v7
