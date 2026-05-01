@@ -3,6 +3,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// T-410: Use sessionStorage for JWT tokens (tab close = logout)
+// sessionStorage is cleared when the tab/window closes, improving security
+const sessionStorageAdapter = {
+  getItem: (key: string) => sessionStorage.getItem(key),
+  setItem: (key: string, value: string) => sessionStorage.setItem(key, value),
+  removeItem: (key: string) => sessionStorage.removeItem(key),
+}
+
 // إنشاء Supabase client
 // في بيئة الاختبارات، نستخدم mock values إذا لم تكن المتغيرات موجودة
 let supabase: SupabaseClient
@@ -21,7 +29,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
     )
   }
 } else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage: sessionStorageAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  })
 }
 
 export { supabase }
