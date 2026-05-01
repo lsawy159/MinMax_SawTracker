@@ -49,7 +49,7 @@ export default function CompanyDetailModal({
         .order('name')
 
       if (error) throw error
-      setEmployees((data || []) as EmployeeWithRelations[])
+      setEmployees((data || []) as unknown as EmployeeWithRelations[])
     } catch (error) {
       console.error('Error loading employees:', error)
       toast.error('فشل تحميل الموظفين')
@@ -89,7 +89,7 @@ export default function CompanyDetailModal({
   }, [onClose, showEmployeeCard, handleCloseEmployeeCard])
 
   const handleEmployeeClick = async (
-    employee: Employee & { company: Company; project?: Project }
+    employee: EmployeeWithRelations
   ) => {
     // تأكد من أن employee يحتوي على company
     if (!employee.company) {
@@ -125,7 +125,7 @@ export default function CompanyDetailModal({
   if (showEmployeeCard && selectedEmployee) {
     return (
       <EmployeeCard
-        employee={selectedEmployee}
+        employee={selectedEmployee as unknown as Employee & { company: Company }}
         onClose={handleCloseEmployeeCard}
         onUpdate={handleEmployeeUpdate}
       />

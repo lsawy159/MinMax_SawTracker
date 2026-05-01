@@ -459,7 +459,7 @@ export default function EmployeeCard({
 
       const baselineData: Record<string, unknown> = existingEmployee
         ? (existingEmployee as Record<string, unknown>)
-        : (originalData as Record<string, unknown>)
+        : (originalData as unknown as Record<string, unknown>)
 
       // بناء actualUpdateData بناءً على الحقول التي تغيرت فقط (بدون تحضير جميع الحقول)
       const fieldsToCheck = [
