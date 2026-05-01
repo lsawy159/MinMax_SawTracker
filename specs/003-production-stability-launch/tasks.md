@@ -126,9 +126,9 @@
 | [X] T-607 | empty/loading/error states verification | M-14 | UI tests تغطي |
 | [X] T-608 | سياسة خصوصية + شروط (مراجعة قانونية) | M-10 | منشورة في الموقع |
 | [X] T-609 | seed data script | M-16 | `npm run seed` ينشئ بيئة كاملة |
-| T-610 | دليل مستخدم admin/accountant/data-entry | M-15 | 3 ملفات PDF عربية |
+| [X] T-610 | دليل مستخدم admin/accountant/data-entry | M-15 | 3 ملفات PDF عربية |
 | [X] T-611 | email deliverability (SPF/DKIM/DMARC) | M-7 | mail-tester.com ≥ 9/10 |
-| T-612 | status page Better Stack | M-12 | status.<domain> يعمل |
+| [X] T-612 | status page Better Stack | M-12 | status.<domain> يعمل |
 | [X] T-613 | launch checklist + sign-off | - | كل بنود acceptance ✓ |
 
 ---
