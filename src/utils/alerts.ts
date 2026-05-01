@@ -1,5 +1,5 @@
 import { Alert } from '../components/alerts/AlertCard'
-import { supabase } from '../lib/supabase'
+import { supabase, type Company } from '../lib/supabase'
 import { logger } from './logger'
 
 // Default thresholds for alerts
@@ -76,18 +76,6 @@ export async function getNotificationThresholds() {
     cacheTimestamp = now
     return DEFAULT_THRESHOLDS
   }
-}
-
-export interface Company {
-  id: string
-  name: string
-  unified_number?: number
-  commercial_registration_number?: string
-  commercial_registration_expiry?: string
-  ending_subscription_power_date?: string
-  ending_subscription_moqeem_date?: string
-  created_at: string
-  updated_at: string
 }
 
 const loggedCompanyDigestKeys = new Set<string>()
