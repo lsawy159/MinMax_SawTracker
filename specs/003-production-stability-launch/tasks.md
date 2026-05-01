@@ -106,7 +106,7 @@
 | T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
 | T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
 | [X] T-509 | Logger للإنتاج → Sentry | S-4 | error في prod يصل Sentry |
-| T-510 | E2E tests Playwright (5 سيناريوهات) | M-12 | login + employee + payroll + backup + restore |
+| [X] T-510 | E2E tests Playwright (5 سيناريوهات) | M-12 | login + employee + payroll + backup + restore |
 | T-511 | mobile QA matrix | M-13 | كل صفحة على iOS/Android |
 | T-512 | empty/loading/error states لكل صفحة | M-14 | 14×3 = 42 حالة |
 | T-513 | نقل تسجيل خلاصة لـ Edge | L-4 | client لا يكتب daily_excel_logs |
