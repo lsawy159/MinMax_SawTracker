@@ -8,7 +8,6 @@ import {
   AlertCircle,
   BarChart3,
   DollarSign,
-  Clock,
   Upload,
   Bell,
   Settings,
