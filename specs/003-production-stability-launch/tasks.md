@@ -102,7 +102,7 @@
 | T-503 | استبدال `as unknown as` بأنواع DB | L-5 | grep `as unknown as` → 0 |
 | [X] T-504 | اختبارات payrollMath ≥95% | S-1 | coverage report |
 | [X] T-505 | اختبارات usePayroll ≥80% | S-1 | coverage report |
-| T-506 | اختبارات Edge Functions (Deno) | S-1 | كل دالة لها test file |
+| [X] T-506 | اختبارات Edge Functions (Deno) | S-1 | كل دالة لها test file |
 | T-507 | إصلاح ضغط backup مُزيّف | L-6 | حجم مُسجّل = حجم فعلي |
 | T-508 | توحيد SecurityLogger (نسخة واحدة) | S-9 | grep `new SecurityLogger` → 1 |
 | T-509 | Logger للإنتاج → Sentry | S-4 | error في prod يصل Sentry |
